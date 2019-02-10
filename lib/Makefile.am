@@ -32,8 +32,35 @@ DISTCLEANFILES = $(pkgconfig_DATA)
 
 lib_LTLIBRARIES = libnghttp3.la
 
-OBJECTS =
-HFILES =
+OBJECTS = \
+	nghttp3_rcbuf.c \
+	nghttp3_mem.c \
+	nghttp3_str.c \
+	nghttp3_conv.c \
+	nghttp3_buf.c \
+	nghttp3_ringbuf.c \
+	nghttp3_pq.c \
+	nghttp3_map.c \
+	nghttp3_ksl.c \
+	nghttp3_qpack.c \
+	nghttp3_qpack_huffman.c \
+	nghttp3_qpack_huffman_data.c \
+	nghttp3_err.c \
+	nghttp3_debug.c
+HFILES = \
+	nghttp3_rcbuf.h \
+	nghttp3_mem.h \
+	nghttp3_str.h \
+	nghttp3_conv.h \
+	nghttp3_buf.h \
+	nghttp3_ringbuf.h \
+	nghttp3_pq.h \
+	nghttp3_map.h \
+	nghttp3_ksl.h \
+	nghttp3_qpack.h \
+	nghttp3_qpack_huffman.h \
+	nghttp3_err.h \
+	nghttp3_debug.h
 
 libnghttp3_la_SOURCES = $(HFILES) $(OBJECTS)
 libnghttp3_la_LDFLAGS = -no-undefined \

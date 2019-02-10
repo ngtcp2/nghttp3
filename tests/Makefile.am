@@ -27,8 +27,11 @@ if HAVE_CUNIT
 
 check_PROGRAMS = main
 
-OBJECTS =
-HFILES =
+OBJECTS = \
+	main.c \
+	nghttp3_qpack_test.c
+HFILES = \
+	nghttp3_qpack_test.h
 
 main_SOURCES = $(HFILES) $(OBJECTS)
 

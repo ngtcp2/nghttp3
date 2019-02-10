@@ -69,6 +69,7 @@ AC_ARG_ENABLE([debug],
 if test "x${debug}" = "x${enableval}"; then
   DEBUGCFLAGS="-O0 -g3"
   AC_SUBST([DEBUGCFLAGS])
+  AC_DEFINE([DEBUGBUILD], [1], [Define to 1 to enable debug output.])
 fi
 
 AC_ARG_ENABLE(asan,
