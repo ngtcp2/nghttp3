@@ -1,7 +1,7 @@
-# nghttp3
+# ngtcp3
 #
 # Copyright (c) 2019 nghttp3 contributors
-# Copyright (c) 2016 ngtcp2 contributors
+# Copyright (c) 2017 ngtcp2 contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -21,14 +21,22 @@
 # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-SUBDIRS = lib tests examples
 
-ACLOCAL_AMFLAGS = -I m4
+AM_CFLAGS = $(WARNCFLAGS) $(DEBUGCFLAGS)
+AM_CXXFLAGS = $(WARNCXXFLAGS) $(DEBUGCFLAGS)
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/lib/includes \
+	-I$(top_builddir)/lib/includes \
+	@DEFS@
+AM_LDFLAGS = -no-install
+LDADD = $(top_builddir)/lib/libnghttp3.la \
+	-lstdc++fs
 
-# Format source files using clang-format.  Don't format source files
-# under third-party directory since we are not responsible for thier
-# coding style.
-clang-format:
-	CLANGFORMAT=`git config --get clangformat.binary`; \
-	test -z $${CLANGFORMAT} && CLANGFORMAT="clang-format"; \
-	$${CLANGFORMAT} -i lib/*.{c,h} lib/includes/nghttp3/*.h
+noinst_PROGRAMS = qpack
+
+qpack_SOURCES = \
+	qpack.cc qpack.h \
+	qpack_encode.cc qpack_encode.h \
+	qpack_decode.cc qpack_decode.h \
+	template.h \
+	util.cc util.h
