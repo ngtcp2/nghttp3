@@ -24,8 +24,10 @@
  */
 #include "qpack.h"
 
+#include <cstring>
 #include <iostream>
 #include <string>
+#include <charconv>
 
 #include <getopt.h>
 
@@ -85,14 +87,28 @@ int main(int argc, char **argv) {
       // --help
       print_help();
       exit(EXIT_SUCCESS);
-    case 'm':
+    case 'm': {
       // --max-blocked
-      config.max_blocked = strtol(optarg, nullptr, 10);
+      auto last = optarg + strlen(optarg);
+      if (auto [p, ec] = std::from_chars(optarg, last, config.max_blocked);
+          p != last || ec != std::errc()) {
+        std::cerr << "max-blocked: could not parse '" << optarg << "'"
+                  << std::endl;
+        exit(EXIT_FAILURE);
+      }
       break;
-    case 's':
+    }
+    case 's': {
       // --max-dtable-size
-      config.max_dtable_size = strtol(optarg, nullptr, 10);
+      auto last = optarg + strlen(optarg);
+      if (auto [p, ec] = std::from_chars(optarg, last, config.max_dtable_size);
+          p != last || ec != std::errc()) {
+        std::cerr << "max-dtable-size: could not parse '" << optarg << "'"
+                  << std::endl;
+        exit(EXIT_FAILURE);
+      }
       break;
+    }
     case 'a':
       // --immediate-ack
       config.immediate_ack = true;
