@@ -174,10 +174,14 @@ NGHTTP3_EXTERN nghttp3_mem *nghttp3_mem_default(void);
  * arbitrary array of bytes.
  */
 typedef struct {
-  /* base points to the data. */
+  /**
+   * base points to the data.
+   */
   uint8_t *base;
-  /* len is the number of bytes which the buffer pointed by base
-     contains. */
+  /**
+   * len is the number of bytes which the buffer pointed by base
+   * contains.
+   */
   size_t len;
 } nghttp3_vec;
 
@@ -186,93 +190,131 @@ struct nghttp3_rcbuf;
 /**
  * @struct
  *
- * The object representing reference counted buffer.  The details of
- * this structure are intentionally hidden from the public API.
+ * :type:`nghttp3_rcbuf` is the object representing reference counted
+ * buffer.  The details of this structure are intentionally hidden
+ * from the public API.
  */
 typedef struct nghttp3_rcbuf nghttp3_rcbuf;
 
 /**
  * @function
  *
- * Increments the reference count of |rcbuf| by 1.
+ * `nghttp3_rcbuf_incref` increments the reference count of |rcbuf| by
+ * 1.
  */
 NGHTTP3_EXTERN void nghttp3_rcbuf_incref(nghttp3_rcbuf *rcbuf);
 
 /**
  * @function
  *
- * Decrements the reference count of |rcbuf| by 1.  If the reference
- * count becomes zero, the object pointed by |rcbuf| will be freed.
- * In this case, application must not use |rcbuf| again.
+ * `nghttp3_rcbuf_decref` decrements the reference count of |rcbuf| by
+ * 1.  If the reference count becomes zero, the object pointed by
+ * |rcbuf| will be freed.  In this case, application must not use
+ * |rcbuf| again.
  */
 NGHTTP3_EXTERN void nghttp3_rcbuf_decref(nghttp3_rcbuf *rcbuf);
 
 /**
  * @function
  *
- * Returns the underlying buffer managed by |rcbuf|.
+ * `nghttp3_rcbuf_get_buf` returns the underlying buffer managed by
+ * |rcbuf|.
  */
 NGHTTP3_EXTERN nghttp3_vec nghttp3_rcbuf_get_buf(nghttp3_rcbuf *rcbuf);
 
 /**
  * @function
  *
- * Returns nonzero if the underlying buffer is statically allocated,
- * and 0 otherwise. This can be useful for language bindings that wish
- * to avoid creating duplicate strings for these buffers.
+ * `nghttp3_rcbuf_is_static` returns nonzero if the underlying buffer
+ * is statically allocated, and 0 otherwise. This can be useful for
+ * language bindings that wish to avoid creating duplicate strings for
+ * these buffers.
  */
 NGHTTP3_EXTERN int nghttp3_rcbuf_is_static(const nghttp3_rcbuf *rcbuf);
 
+/**
+ * @struct
+ *
+ * :type:`nghttp3_buf` is the variable size buffer.
+ */
 typedef struct {
-  /* begin points to the beginning of the buffer. */
+  /**
+   * begin points to the beginning of the buffer.
+   */
   uint8_t *begin;
-  /* end points to the one beyond of the last byte of the buffer */
+  /**
+   * end points to the one beyond of the last byte of the buffer
+   */
   uint8_t *end;
-  /* pos pointers to the start of data.  Typically, this points to the
-     point that next data should be read.  Initially, it points to
-     |begin|. */
+  /**
+   * pos pointers to the start of data.  Typically, this points to the
+   * point that next data should be read.  Initially, it points to
+   * |begin|.
+   */
   uint8_t *pos;
-  /* last points to the one beyond of the last data of the buffer.
-     Typically, new data is written at this point.  Initially, it
-     points to |begin|. */
+  /**
+   * last points to the one beyond of the last data of the buffer.
+   * Typically, new data is written at this point.  Initially, it
+   * points to |begin|.
+   */
   uint8_t *last;
 } nghttp3_buf;
 
-/*
- * nghttp3_buf_init initializes empty |buf|.
+/**
+ * @function
+ *
+ * `nghttp3_buf_init` initializes empty |buf|.
  */
 NGHTTP3_EXTERN void nghttp3_buf_init(nghttp3_buf *buf);
 
+/**
+ * @function
+ *
+ * `nghttp3_buf_free` frees resources allocated for |buf| using |mem|
+ * as memory allocator.  buf->begin must be a heap buffer allocated by
+ * |mem|.
+ */
 NGHTTP3_EXTERN void nghttp3_buf_free(nghttp3_buf *buf, nghttp3_mem *mem);
 
-/*
- * nghttp3_buf_left returns the number of additional bytes which can
+/**
+ * @function
+ *
+ * `nghttp3_buf_left` returns the number of additional bytes which can
  * be written to the underlying buffer.  In other words, it returns
  * buf->end - buf->last.
  */
 NGHTTP3_EXTERN size_t nghttp3_buf_left(const nghttp3_buf *buf);
 
-/*
- * nghttp3_buf_len returns the number of bytes left to read.  In other
- * words, it returns buf->last - buf->pos.
+/**
+ * @function
+ *
+ * `nghttp3_buf_len` returns the number of bytes left to read.  In
+ * other words, it returns buf->last - buf->pos.
  */
 NGHTTP3_EXTERN size_t nghttp3_buf_len(const nghttp3_buf *buf);
 
+/**
+ * @function
+ *
+ * `nghttp3_buf_reset` sets buf->pos and buf->last to buf->begin.
+ */
 NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
 
 /**
  * @enum
  *
- * The flags for header field name/value pair.
+ * :type:`nghttp3_nv_flag` is the flags for header field name/value
+ * pair.
  */
 typedef enum {
   /**
-   * No flag set.
+   * :enum:`NGHTTP3_NV_FLAG_NONE` indicates no flag set.
    */
   NGHTTP3_NV_FLAG_NONE = 0,
   /**
-   * Indicates that this name/value pair must not be indexed.  Other
-   * implementation calls this bit as "sensitive".
+   * :enum:`NGHTTP3_NV_FLAG_NEVER_INDEX` indicates that this
+   * name/value pair must not be indexed.  Other implementation calls
+   * this bit as "sensitive".
    */
   NGHTTP3_NV_FLAG_NEVER_INDEX = 0x01,
 } nghttp3_nv_flag;
@@ -280,27 +322,29 @@ typedef enum {
 /**
  * @struct
  *
- * The name/value pair, which mainly used to represent header fields.
+ * :type:`nghttp3_nv` is the name/value pair, which mainly used to
+ * represent header fields.
  */
 typedef struct {
   /**
-   * The |name| byte string.
+   * name is the header field name.
    */
   uint8_t *name;
   /**
-   * The |value| byte string.
+   * value is the header field value.
    */
   uint8_t *value;
   /**
-   * The length of the |name|, excluding terminating NULL.
+   * namelen is the length of the |name|, excluding terminating NULL.
    */
   size_t namelen;
   /**
-   * The length of the |value|, excluding terminating NULL.
+   * valuelen is the length of the |value|, excluding terminating
+   * NULL.
    */
   size_t valuelen;
   /**
-   * Bitwise OR of one or more of :type:`nghttp3_nv_flag`.
+   * flags is bitwise OR of one or more of :type:`nghttp3_nv_flag`.
    */
   uint8_t flags;
 } nghttp3_nv;
@@ -361,6 +405,14 @@ typedef enum {
   NGHTTP3_QPACK_TOKEN_X_FRAME_OPTIONS = 96
 } nghttp3_qpack_token;
 
+/**
+ * @struct
+ *
+ * nghttp3_qpack_nv represents header field name/value pair just like
+ * :type:`nghttp3_nv`.  It is an extended version of
+ * :type:`nghttp3_nv` and has reference counted buffers and tokens
+ * which might be useful for applications.
+ */
 typedef struct {
   /* The buffer containing header field name.  NULL-termination is
      guaranteed. */
@@ -376,80 +428,311 @@ typedef struct {
 } nghttp3_qpack_nv;
 
 struct nghttp3_qpack_encoder;
+
+/**
+ * @struct
+ *
+ * :type:`nghttp3_qpack_encoder` is QPACK encoder.
+ */
 typedef struct nghttp3_qpack_encoder nghttp3_qpack_encoder;
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_encoder_new` initializes QPACK encoder.  |pencoder|
+ * must be non-NULL pointer.  |max_dtable_size| is the maximum dynamic
+ * table size.  |max_blocked| is the maximum number of streams which
+ * can be blocked.  |mem| is a memory allocator.  This function
+ * allocates memory for :type:`nghttp3_qpack_encoder` itself and
+ * assigns its pointer to |*pencoder| if it succeeds.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :enum:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
+ */
 NGHTTP3_EXTERN int nghttp3_qpack_encoder_new(nghttp3_qpack_encoder **pencoder,
                                              size_t max_dtable_size,
                                              size_t max_blocked,
                                              nghttp3_mem *mem);
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_encoder_del` frees memory allocated for |encoder|.
+ * This function frees memory pointed by |encoder| itself.
+ */
 NGHTTP3_EXTERN void nghttp3_qpack_encoder_del(nghttp3_qpack_encoder *encoder);
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_encoder_encode` encodes the list of header fields
+ * |nva|.  |nvlen| is the length of |nva|.  |stream_id| is the
+ * identifier of the stream which this header fields belong to.  This
+ * function writes header block prefix, encoded header fields, and
+ * encoder stream to |pbuf|, |rbuf|, and |ebuf| respectively.  The
+ * last field of nghttp3_buf will be adjusted when data is written.
+ * An application should write |pbuf| and |rbuf| to the request stream
+ * in this order.
+ *
+ * The buffer pointed by |pbuf|, |rbuf|, and |ebuf| can be empty
+ * buffer.  It is fine to pass a buffer initialized by
+ * nghttp3_buf_init(buf).  This function allocates memory for these
+ * buffers as necessary.  In particular, it frees and expands buffer
+ * if the current capacity of buffer is not enough.  If begin field of
+ * any buffer is not NULL, it must be allocated by the same memory
+ * allocator passed to `nghttp3_qpack_encoder_new()`.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :enum:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory
+ * TBD
+ */
 NGHTTP3_EXTERN int nghttp3_qpack_encoder_encode(
     nghttp3_qpack_encoder *encoder, nghttp3_buf *pbuf, nghttp3_buf *rbuf,
     nghttp3_buf *ebuf, int64_t stream_id, const nghttp3_nv *nva, size_t nvlen);
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_encoder_ack_header` tells |encoder| that header
+ * block for a stream denoted by |stream_id| was acknowledged by
+ * decoder.  This function is provided mainly for debugging.  In
+ * HTTP/3, |encoder| knows acknowledgement of header block by reading
+ * decoder stream.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * TBD
+ */
 NGHTTP3_EXTERN int
 nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
                                  int64_t stream_id);
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_encoder_inc_insert_count` increments known received
+ * count of |encoder| by one.  This function is provided mainly for
+ * debugging.  In HTTP/3, |encoder| increments known received count by
+ * reading decoder stream.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * TBD
+ */
 NGHTTP3_EXTERN int
 nghttp3_qpack_encoder_inc_insert_count(nghttp3_qpack_encoder *encoder);
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_encoder_ack_everything` tells |encoder| that all
+ * encoded header blocks are acknowledged.  This function is provided
+ * mainly for debugging.  In HTTP/3, |encoder| knows this by reading
+ * decoder stream.
+ */
 NGHTTP3_EXTERN void
 nghttp3_qpack_encoder_ack_everything(nghttp3_qpack_encoder *encoder);
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_encoder_get_num_blocked` returns the number of
+ * streams which is potentially blocked at decoder side.
+ */
 NGHTTP3_EXTERN size_t
 nghttp3_qpack_encoder_get_num_blocked(nghttp3_qpack_encoder *encoder);
 
 struct nghttp3_qpack_stream_context;
+
+/**
+ * @struct
+ *
+ * :type:`nghttp3_qpack_stream_context` is a decoder context for an
+ * individual stream.
+ */
 typedef struct nghttp3_qpack_stream_context nghttp3_qpack_stream_context;
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_stream_context_new` initializes stream context.
+ * |psctx| must be non-NULL pointer.  |mem| is a memory allocator.
+ * This function allocates memory for
+ * :type:`nghttp3_qpack_stream_context` itself and assigns its pointer
+ * to |*psctx| if it succeeds.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :enum:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
+ */
 NGHTTP3_EXTERN int
 nghttp3_qpack_stream_context_new(nghttp3_qpack_stream_context **psctx,
                                  nghttp3_mem *mem);
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_stream_context_del` frees memory allocated for
+ * |sctx|.  This function frees memory pointed by |sctx| itself.
+ */
 NGHTTP3_EXTERN void
 nghttp3_qpack_stream_context_del(nghttp3_qpack_stream_context *sctx);
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_stream_context_get_ricnt` returns required insert
+ * count.
+ */
 NGHTTP3_EXTERN size_t
 nghttp3_qpack_stream_context_get_ricnt(nghttp3_qpack_stream_context *sctx);
 
 struct nghttp3_qpack_decoder;
+
+/**
+ * @struct
+ *
+ * `nghttp3_qpack_decoder` is QPACK decoder.
+ */
 typedef struct nghttp3_qpack_decoder nghttp3_qpack_decoder;
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_decoder_new` initializes QPACK decoder.  |pdecoder|
+ * must be non-NULL pointer.  |max_dtable_size| is the maximum dynamic
+ * table size.  |max_blocked| is the maximum number of streams which
+ * can be blocked.  |mem| is a memory allocator.  This function
+ * allocates memory for :type:`nghttp3_qpack_decoder` itself and
+ * assigns its pointer to |*pdecoder| if it succeeds.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :enum:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
+ */
 NGHTTP3_EXTERN int nghttp3_qpack_decoder_new(nghttp3_qpack_decoder **pdecoder,
                                              size_t max_dtable_size,
                                              size_t max_blocked,
                                              nghttp3_mem *mem);
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_decoder_del` frees memory allocated for |decoder|.
+ * This function frees memory pointed by |decoder| itself.
+ */
 NGHTTP3_EXTERN void nghttp3_qpack_decoder_del(nghttp3_qpack_decoder *decoder);
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_decoder_read_encoder` reads encoder stream.  The
+ * buffer pointed by |in| of length |inlen| contains encoder stream.
+ *
+ * This function returns the number of bytes read, or one of the
+ * following negative error codes:
+ *
+ * TBD
+ */
 NGHTTP3_EXTERN ssize_t nghttp3_qpack_decoder_read_encoder(
     nghttp3_qpack_decoder *decoder, const uint8_t *in, size_t inlen);
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_decoder_get_icnt` returns insert count.
+ */
 NGHTTP3_EXTERN size_t
 nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
 
+/**
+ * @enum
+ *
+ * :type:`nghttp3_qpack_decode_flag` is a set of flags for decoder.
+ */
 typedef enum {
+  /**
+   * :enum:`NGHTTP3_QPACK_DECODE_FLAG_NONE` indicates that no flag
+   * set.
+   */
   NGHTTP3_QPACK_DECODE_FLAG_NONE,
+  /**
+   * :enum:`NGHTTP3_QPACK_DECODE_FLAG_EMIT` indicates that a header
+   * field is successfully decoded.
+   */
   NGHTTP3_QPACK_DECODE_FLAG_EMIT = 0x01,
+  /**
+   * :enum:`NGHTTP3_QPACK_DECODE_FLAG_FINAL` indicates that all header
+   * fields have been decoded.
+   */
   NGHTTP3_QPACK_DECODE_FLAG_FINAL = 0x02,
+  /**
+   * :enum:`NGHTTP3_QPACK_DECODE_FLAG_BLOCKED` indicates that decoding
+   * has been blocked.
+   */
   NGHTTP3_QPACK_DECODE_FLAG_BLOCKED = 0x04
 } nghttp3_qpack_decode_flag;
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_decoder_read_request` reads request stream.  The
+ * request stream is given as the buffer pointed by |src| of length
+ * |srclen|.  |sctx| is the stream context and it must be initialized
+ * by `nghttp3_qpack_stream_context_init()`.  |*pflags| must be
+ * non-NULL pointer.  |nv| must be non-NULL pointer.
+ *
+ * If this function succeeds, it assigns flags to |*pflags|.  If
+ * |*pflags| has :enum:`NGHTTP3_QPACK_DECODE_FLAG_EMIT` set, a decoded
+ * header field is assigned to |nv|.  If |*pflags| has
+ * :enum:`NGHTTP3_QPACK_DECODE_FLAG_FINAL` set, all header fields have
+ * been successfully decoded.  If |*pflags| has
+ * :enum:`NGHTTP3_QPACK_DECODE_FLAG_BLOCKED` set, decoding is blocked
+ * due to required insert count.
+ *
+ * When a header field is decoded, an application receives it in |nv|.
+ * nv->name and nv->value are reference counted buffer, and the their
+ * reference counts are already incremented for application use.
+ * Therefore, when application finishes processing the header field,
+ * it must call nghttp3_rcbuf_decref(nv->name) and
+ * nghttp3_rcbuf_decref(nv->value) or memory leak might occur.
+ *
+ * This function returns the number of bytes read, or one of the
+ * following negative error codes:
+ *
+ * TBD
+ */
 NGHTTP3_EXTERN ssize_t nghttp3_qpack_decoder_read_request(
     nghttp3_qpack_decoder *decoder, nghttp3_qpack_stream_context *sctx,
     nghttp3_qpack_nv *nv, uint8_t *pflags, const uint8_t *src, size_t srclen,
     int fin);
 
+/**
+ * @function
+ *
+ * `nghttp3_strerror` returns textual representation of |liberr| which
+ * should be one of error codes defined in :type:`nghttp3_lib_error`.
+ */
 NGHTTP3_EXTERN const char *nghttp3_strerror(int liberr);
 
 /**
  * @functypedef
  *
- * Callback function invoked when the library outputs debug logging.
- * The function is called with arguments suitable for ``vfprintf(3)``
+ * :type:`nghttp3_debug_vprintf_callback` is a callback function
+ * invoked when the library outputs debug logging.  The function is
+ * called with arguments suitable for ``vfprintf(3)``
  *
  * The debug output is only enabled if the library is built with
  * ``DEBUGBUILD`` macro defined.
@@ -460,9 +743,10 @@ typedef void (*nghttp3_debug_vprintf_callback)(const char *format,
 /**
  * @function
  *
- * Sets a debug output callback called by the library when built with
- * ``DEBUGBUILD`` macro defined.  If this option is not used, debug
- * log is written into standard error output.
+ * `nghttp3_set_debug_vprintf_callback` sets a debug output callback
+ * called by the library when built with ``DEBUGBUILD`` macro defined.
+ * If this option is not used, debug log is written into standard
+ * error output.
  *
  * For builds without ``DEBUGBUILD`` macro defined, this function is
  * noop.
