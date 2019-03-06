@@ -86,9 +86,19 @@ typedef struct {
 struct nghttp3_qpack_entry_ref;
 typedef struct nghttp3_qpack_entry_ref nghttp3_qpack_entry_ref;
 
+/*
+ * nghttp3_qpack_entry_ref is created per encoded header block and
+ * includes the required insert count and the minimum insert count of
+ * dynamic table entry it refers to.
+ */
 struct nghttp3_qpack_entry_ref {
   nghttp3_qpack_entry_ref *next;
+  /* max_cnt is the required insert count. */
   size_t max_cnt;
+  /* min_cnt is the minimum insert count of dynamic table entry it
+     refers to.  In other words, this is the minimum absolute index of
+     dynamic header table entry this encoded block refers to plus
+     1. */
   size_t min_cnt;
 };
 
@@ -98,8 +108,13 @@ void nghttp3_qpack_entry_ref_init(nghttp3_qpack_entry_ref *ref, size_t max_cnt,
 typedef struct {
   nghttp3_pq_entry pe;
   nghttp3_map_entry me;
+  /* ref is a linked list of nghttp3_qpack_entry_ref.  HTTP allows
+     multiple header blocks (e.g., non-final response headers, final
+     response headers, and trailers). */
   nghttp3_qpack_entry_ref *ref;
+  /* max_cnt is maximum max_cnt in ref. */
   size_t max_cnt;
+  /* min_cnt is minimum min_cnt in ref. */
   size_t min_cnt;
 } nghttp3_qpack_stream;
 
@@ -127,7 +142,8 @@ typedef struct {
   size_t dtable_sum;
   /* dtable_size is the effective maximum size of dynamic table. */
   size_t max_dtable_size;
-  /* next_absidx is the next absolute index for nghttp3_qpack_entry */
+  /* next_absidx is the next absolute index for nghttp3_qpack_entry.
+     It is equivalent to insert count. */
   size_t next_absidx;
   /* If inflate/deflate error occurred, this value is set to 1 and
      further invocation of inflate/deflate will fail with
@@ -143,11 +159,24 @@ typedef struct {
 
 struct nghttp3_qpack_encoder {
   nghttp3_qpack_context ctx;
+  /* dtable_map is a map of hash to nghttp3_qpack_entry to provide
+     fast access to an entry in dynamic table. */
   nghttp3_qpack_map dtable_map;
+  /* stream_refs is a map of stream ID to nghttp3_qpack_stream to keep
+     track of unacknowledged streams. */
   nghttp3_map stream_refs;
+  /* blocked_refs is an ordered list of nghttp3_qpack_stream, in
+     descending order of max_cnt, to search the unblocked streams by
+     received known count. */
   nghttp3_ksl blocked_refs;
+  /* refsq is a priority queue of nghttp3_qpack_stream ordered by
+     min_cnt to know that an entry can be evicted from dynamic
+     table.  */
   nghttp3_pq refsq;
+  /* max_blocked is the maximum number of stream which can be
+     blocked. */
   size_t max_blocked;
+  /* krcnt is Known Received Count. */
   size_t krcnt;
 };
 
@@ -164,11 +193,13 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
                                     int allow_blocking);
 
 typedef struct {
+  /* index is an index of matched entry.  -1 if no match is made. */
   ssize_t index;
-  /* Nonzero if both name and value are matched. */
+  /* name_value_match is nonzero if both name and value are
+     matched. */
   int name_value_match;
   /* pb_index is the absolute index of matched post-based dynamic
-     table entry. */
+     table entry.  -1 if no such entry exists. */
   ssize_t pb_index;
 } nghttp3_qpack_lookup_result;
 
@@ -340,9 +371,15 @@ void nghttp3_qpack_read_state_reset(nghttp3_qpack_read_state *rstate);
 
 struct nghttp3_qpack_decoder {
   nghttp3_qpack_context ctx;
+  /* max_blocked is the maximum number of stream which can be
+     blocked. */
   size_t max_blocked;
+  /* state is a current state of reading encoder stream. */
   nghttp3_qpack_encoder_stream_state state;
+  /* opcode is an encoder stream opcode being processed. */
   nghttp3_qpack_encoder_stream_opcode opcode;
+  /* rstate is a set of intermediate state which are used to process
+     encoder stream. */
   nghttp3_qpack_read_state rstate;
 };
 
@@ -363,12 +400,19 @@ int nghttp3_qpack_decoder_dtable_duplicate_add(nghttp3_qpack_decoder *decoder);
 int nghttp3_qpack_decoder_dtable_literal_add(nghttp3_qpack_decoder *decoder);
 
 struct nghttp3_qpack_stream_context {
+  /* state is a current state of reading request stream. */
   nghttp3_qpack_request_stream_state state;
+  /* rstate is a set of intermediate state which are used to process
+     request stream. */
   nghttp3_qpack_read_state rstate;
   nghttp3_mem *mem;
+  /* opcode is a request stream opcode being processed. */
   nghttp3_qpack_request_stream_opcode opcode;
+  /* ricnt is Required Insert Count to decode this header block. */
   size_t ricnt;
+  /* base is Base in Header Block Prefix. */
   size_t base;
+  /* dbase_sign is the delta base sign in Header Block Prefix. */
   int dbase_sign;
 };
 
