@@ -814,23 +814,37 @@ static void qpack_map_remove(nghttp3_qpack_map *map, nghttp3_qpack_entry *ent) {
   }
 }
 
+/*
+ * qpack_context_can_reference returns nonzero if dynamic table entry
+ * at |absidx| can be referenced.  In other words, it is within
+ * ctx->max_dtable_size.
+ */
+static int qpack_context_can_reference(nghttp3_qpack_context *ctx,
+                                       size_t absidx) {
+  nghttp3_qpack_entry *ent = nghttp3_qpack_context_dtable_get(ctx, absidx);
+  return ctx->dtable_sum - ent->sum <= ctx->max_dtable_size;
+}
+
 /* |*ppb_match| (post-base match), if it is not NULL, is always exact
      match. */
-static void qpack_map_find(nghttp3_qpack_map *map, int *exact_match,
-                           nghttp3_qpack_entry **pmatch,
-                           nghttp3_qpack_entry **ppb_match,
-                           const nghttp3_nv *nv, int32_t token, uint32_t hash,
-                           size_t krcnt, int allow_blocking, int name_only) {
+static void encoder_qpack_map_find(nghttp3_qpack_encoder *encoder,
+                                   int *exact_match,
+                                   nghttp3_qpack_entry **pmatch,
+                                   nghttp3_qpack_entry **ppb_match,
+                                   const nghttp3_nv *nv, int32_t token,
+                                   uint32_t hash, size_t krcnt,
+                                   int allow_blocking, int name_only) {
   nghttp3_qpack_entry *p;
 
   *exact_match = 0;
   *pmatch = NULL;
   *ppb_match = NULL;
 
-  for (p = map->table[hash & (NGHTTP3_QPACK_MAP_SIZE - 1)]; p;
+  for (p = encoder->dtable_map.table[hash & (NGHTTP3_QPACK_MAP_SIZE - 1)]; p;
        p = p->map_next) {
     if (token != p->nv.token ||
-        (token == -1 && (hash != p->hash || !qpack_nv_name_eq(&p->nv, nv)))) {
+        (token == -1 && (hash != p->hash || !qpack_nv_name_eq(&p->nv, nv))) ||
+        !qpack_context_can_reference(&encoder->ctx, p->absidx)) {
       continue;
     }
     if (allow_blocking || p->absidx + 1 <= krcnt) {
@@ -854,7 +868,7 @@ static void qpack_map_find(nghttp3_qpack_map *map, int *exact_match,
 static int qpack_context_init(nghttp3_qpack_context *ctx,
                               size_t max_dtable_size, nghttp3_mem *mem) {
   int rv;
-  size_t len = max_dtable_size / NGHTTP3_QPACK_ENTRY_OVERHEAD;
+  size_t len = 4096 / NGHTTP3_QPACK_ENTRY_OVERHEAD;
   size_t len2;
 
   for (len2 = 1; len2 < len; len2 <<= 1)
@@ -869,7 +883,7 @@ static int qpack_context_init(nghttp3_qpack_context *ctx,
   ctx->mem = mem;
   ctx->dtable_size = 0;
   ctx->dtable_sum = 0;
-  ctx->max_dtable_size = max_dtable_size;
+  ctx->hard_max_dtable_size = ctx->max_dtable_size = max_dtable_size;
   ctx->next_absidx = 0;
   ctx->bad = 0;
 
@@ -946,6 +960,9 @@ int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
   encoder->krcnt = 0;
   encoder->state = NGHTTP3_QPACK_DS_STATE_OPCODE;
   encoder->opcode = 0;
+  encoder->min_dtable_update = encoder->last_max_dtable_update =
+      max_dtable_size;
+  encoder->flags = NGHTTP3_QPACK_ENCODER_FLAG_NONE;
 
   nghttp3_qpack_read_state_reset(&encoder->rstate);
 
@@ -977,6 +994,68 @@ void nghttp3_qpack_encoder_free(nghttp3_qpack_encoder *encoder) {
                         encoder->ctx.mem);
   nghttp3_map_free(&encoder->stream_refs);
   qpack_context_free(&encoder->ctx);
+}
+
+int nghttp3_qpack_encoder_set_max_dtable_size(nghttp3_qpack_encoder *encoder,
+                                              size_t max_dtable_size) {
+  if (encoder->ctx.hard_max_dtable_size < max_dtable_size) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  if (encoder->ctx.max_dtable_size == max_dtable_size) {
+    return 0;
+  }
+
+  encoder->flags |= NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP;
+
+  if (encoder->min_dtable_update > max_dtable_size) {
+    encoder->min_dtable_update = max_dtable_size;
+    encoder->ctx.max_dtable_size = max_dtable_size;
+  }
+  encoder->last_max_dtable_update = max_dtable_size;
+
+  return 0;
+}
+
+static nghttp3_qpack_stream *
+qpack_encoder_refs_top(nghttp3_qpack_encoder *encoder) {
+  nghttp3_pq_entry *pe = nghttp3_pq_top(&encoder->refsq);
+  return nghttp3_struct_of(pe, nghttp3_qpack_stream, pe);
+}
+
+void nghttp3_qpack_encoder_shrink_dtable(nghttp3_qpack_encoder *encoder) {
+  nghttp3_ringbuf *dtable = &encoder->ctx.dtable;
+  nghttp3_mem *mem = encoder->ctx.mem;
+  size_t min_cnt = SIZE_MAX;
+  nghttp3_qpack_stream *stream;
+  size_t len;
+  nghttp3_qpack_entry *ent;
+
+  if (encoder->ctx.dtable_size <= encoder->ctx.max_dtable_size) {
+    return;
+  }
+
+  if (!nghttp3_pq_empty(&encoder->refsq)) {
+    stream = qpack_encoder_refs_top(encoder);
+    min_cnt = stream->min_cnt;
+  }
+
+  for (; encoder->ctx.dtable_size > encoder->ctx.max_dtable_size;) {
+    len = nghttp3_ringbuf_len(dtable);
+    ent = *(nghttp3_qpack_entry **)nghttp3_ringbuf_get(dtable, len - 1);
+    if (ent->absidx + 1 == min_cnt) {
+      return;
+    }
+
+    encoder->ctx.dtable_size -=
+        table_space(ent->nv.name->len, ent->nv.value->len);
+
+    nghttp3_ringbuf_pop_back(dtable);
+    qpack_map_remove(&encoder->dtable_map, ent);
+
+    nghttp3_qpack_entry_free(ent);
+    nghttp3_mem_free(mem, ent);
+  }
 }
 
 static int qpack_encoder_add_stream_ref(nghttp3_qpack_encoder *encoder,
@@ -1074,6 +1153,11 @@ int nghttp3_qpack_encoder_encode(nghttp3_qpack_encoder *encoder,
     return NGHTTP3_ERR_QPACK_FATAL;
   }
 
+  rv = nghttp3_qpack_encoder_process_dtable_update(encoder, ebuf);
+  if (rv != 0) {
+    goto fail;
+  }
+
   base = encoder->ctx.next_absidx;
 
   stream = nghttp3_qpack_encoder_find_stream(encoder, stream_id);
@@ -1111,6 +1195,66 @@ int nghttp3_qpack_encoder_encode(nghttp3_qpack_encoder *encoder,
 fail:
   encoder->ctx.bad = 1;
   return rv;
+}
+
+static int qpack_write_number(nghttp3_buf *rbuf, uint8_t fb, uint64_t num,
+                              size_t prefix, nghttp3_mem *mem) {
+  int rv;
+  size_t len = nghttp3_qpack_put_varint_len(num, prefix);
+  uint8_t *p;
+
+  rv = reserve_buf(rbuf, len, mem);
+  if (rv != 0) {
+    return rv;
+  }
+
+  p = rbuf->last;
+
+  *p = fb;
+  p = nghttp3_qpack_put_varint(p, num, prefix);
+
+  assert((size_t)(p - rbuf->last) == len);
+
+  rbuf->last = p;
+
+  return 0;
+}
+
+int nghttp3_qpack_encoder_process_dtable_update(nghttp3_qpack_encoder *encoder,
+                                                nghttp3_buf *ebuf) {
+  int rv;
+
+  nghttp3_qpack_encoder_shrink_dtable(encoder);
+
+  if (encoder->ctx.max_dtable_size < encoder->ctx.dtable_size ||
+      !(encoder->flags & NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP)) {
+    return 0;
+  }
+
+  if (encoder->min_dtable_update != encoder->last_max_dtable_update) {
+    rv = nghttp3_qpack_encoder_write_set_dtable_cap(encoder, ebuf,
+                                                    encoder->min_dtable_update);
+    if (rv != 0) {
+      return rv;
+    }
+  }
+
+  rv = nghttp3_qpack_encoder_write_set_dtable_cap(
+      encoder, ebuf, encoder->last_max_dtable_update);
+  if (rv != 0) {
+    return rv;
+  }
+
+  encoder->flags &= (uint8_t)~NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP;
+  encoder->min_dtable_update = encoder->ctx.max_dtable_size =
+      encoder->last_max_dtable_update;
+
+  return 0;
+}
+
+int nghttp3_qpack_encoder_write_set_dtable_cap(nghttp3_qpack_encoder *encoder,
+                                               nghttp3_buf *ebuf, size_t cap) {
+  return qpack_write_number(ebuf, 0x20, cap, 5, encoder->ctx.mem);
 }
 
 nghttp3_qpack_stream *
@@ -1173,23 +1317,19 @@ qpack_encoder_decide_indexing_mode(nghttp3_qpack_encoder *encoder,
   return NGHTTP3_QPACK_INDEXING_MODE_STORE;
 }
 
-static nghttp3_qpack_stream *
-qpack_encoder_refs_top(nghttp3_qpack_encoder *encoder) {
-  nghttp3_pq_entry *pe = nghttp3_pq_top(&encoder->refsq);
-  return nghttp3_struct_of(pe, nghttp3_qpack_stream, pe);
-}
-
 static int qpack_encoder_can_index(nghttp3_qpack_encoder *encoder, size_t need,
                                    size_t min_cnt) {
-  size_t avail;
+  size_t avail = 0;
   size_t i, len;
   nghttp3_qpack_entry *ent;
   nghttp3_qpack_stream *stream;
   nghttp3_ringbuf *dtable = &encoder->ctx.dtable;
 
-  avail = encoder->ctx.max_dtable_size - encoder->ctx.dtable_size;
-  if (need <= avail) {
-    return 1;
+  if (encoder->ctx.max_dtable_size > encoder->ctx.dtable_size) {
+    avail = encoder->ctx.max_dtable_size - encoder->ctx.dtable_size;
+    if (need <= avail) {
+      return 1;
+    }
   }
 
   len = nghttp3_ringbuf_len(dtable);
@@ -1273,9 +1413,8 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
     }
   }
 
-  dres = nghttp3_qpack_lookup_dtable(&encoder->dtable_map, nv, token,
-                                     indexing_mode, hash, encoder->krcnt,
-                                     allow_blocking);
+  dres = nghttp3_qpack_encoder_lookup_dtable(
+      encoder, nv, token, indexing_mode, hash, encoder->krcnt, allow_blocking);
 
   just_index =
       indexing_mode == NGHTTP3_QPACK_INDEXING_MODE_STORE && dres.pb_index == -1;
@@ -1421,18 +1560,17 @@ nghttp3_qpack_lookup_stable(const nghttp3_nv *nv, int32_t token,
   return res;
 }
 
-nghttp3_qpack_lookup_result
-nghttp3_qpack_lookup_dtable(nghttp3_qpack_map *dtable_map, const nghttp3_nv *nv,
-                            int32_t token,
-                            nghttp3_qpack_indexing_mode indexing_mode,
-                            uint32_t hash, size_t krcnt, int allow_blocking) {
+nghttp3_qpack_lookup_result nghttp3_qpack_encoder_lookup_dtable(
+    nghttp3_qpack_encoder *encoder, const nghttp3_nv *nv, int32_t token,
+    nghttp3_qpack_indexing_mode indexing_mode, uint32_t hash, size_t krcnt,
+    int allow_blocking) {
   nghttp3_qpack_lookup_result res = {-1, 0, -1};
   int exact_match = 0;
   nghttp3_qpack_entry *match, *pb_match;
 
-  qpack_map_find(dtable_map, &exact_match, &match, &pb_match, nv, token, hash,
-                 krcnt, allow_blocking,
-                 indexing_mode == NGHTTP3_QPACK_INDEXING_MODE_NEVER);
+  encoder_qpack_map_find(encoder, &exact_match, &match, &pb_match, nv, token,
+                         hash, krcnt, allow_blocking,
+                         indexing_mode == NGHTTP3_QPACK_INDEXING_MODE_NEVER);
   if (match) {
     res.index = (ssize_t)match->absidx;
     res.name_value_match = exact_match;
@@ -1502,35 +1640,11 @@ void nghttp3_qpack_stream_pop_ref(nghttp3_qpack_stream *stream,
   }
 }
 
-static int qpack_encoder_write_indexed(nghttp3_qpack_encoder *encoder,
-                                       nghttp3_buf *rbuf, uint8_t fb,
-                                       size_t idx, size_t prefix) {
-  int rv;
-  size_t len = nghttp3_qpack_put_varint_len(idx, prefix);
-  uint8_t *p;
-
-  rv = reserve_buf(rbuf, len, encoder->ctx.mem);
-  if (rv != 0) {
-    return rv;
-  }
-
-  p = rbuf->last;
-
-  *p = fb;
-  p = nghttp3_qpack_put_varint(p, idx, prefix);
-
-  assert((size_t)(p - rbuf->last) == len);
-
-  rbuf->last = p;
-
-  return 0;
-}
-
 int nghttp3_qpack_encoder_write_static_indexed(nghttp3_qpack_encoder *encoder,
                                                nghttp3_buf *rbuf,
                                                size_t absidx) {
   DEBUGF("qpack::encode: Indexed Header field (static) absidx=%zu\n", absidx);
-  return qpack_encoder_write_indexed(encoder, rbuf, 0xc0, absidx, 6);
+  return qpack_write_number(rbuf, 0xc0, absidx, 6, encoder->ctx.mem);
 }
 
 int nghttp3_qpack_encoder_write_dynamic_indexed(nghttp3_qpack_encoder *encoder,
@@ -1540,11 +1654,11 @@ int nghttp3_qpack_encoder_write_dynamic_indexed(nghttp3_qpack_encoder *encoder,
          absidx, base);
 
   if (absidx < base) {
-    return qpack_encoder_write_indexed(encoder, rbuf, 0x80, base - absidx - 1,
-                                       6);
+    return qpack_write_number(rbuf, 0x80, base - absidx - 1, 6,
+                              encoder->ctx.mem);
   }
 
-  return qpack_encoder_write_indexed(encoder, rbuf, 0x10, absidx - base, 4);
+  return qpack_write_number(rbuf, 0x10, absidx - base, 4, encoder->ctx.mem);
 }
 
 static int qpack_encoder_write_indexed_name(nghttp3_qpack_encoder *encoder,
@@ -1754,12 +1868,7 @@ int nghttp3_qpack_context_dtable_set_dtable_cap(nghttp3_qpack_context *ctx,
   size_t i;
   nghttp3_mem *mem = ctx->mem;
 
-  /* TODO Take into account that cap does not exceed
-     SETTINGS_QPACK_MAX_TABLE_CAPACITY */
-  if (ctx->max_dtable_size <= cap) {
-    ctx->max_dtable_size = cap;
-    return 0;
-  }
+  ctx->max_dtable_size = cap;
 
   while (ctx->dtable_size > cap) {
     i = nghttp3_ringbuf_len(&ctx->dtable);
@@ -2122,7 +2231,8 @@ size_t nghttp3_qpack_encoder_get_num_blocked(nghttp3_qpack_encoder *encoder) {
 int nghttp3_qpack_encoder_write_header_block_prefix(
     nghttp3_qpack_encoder *encoder, nghttp3_buf *pbuf, size_t max_cnt,
     size_t base) {
-  size_t max_ents = encoder->ctx.max_dtable_size / NGHTTP3_QPACK_ENTRY_OVERHEAD;
+  size_t max_ents =
+      encoder->ctx.hard_max_dtable_size / NGHTTP3_QPACK_ENTRY_OVERHEAD;
   size_t ricnt = max_cnt == 0 ? 0 : (max_cnt % (2 * max_ents)) + 1;
   int sign = base < max_cnt;
   size_t delta_base = sign ? max_cnt - base - 1 : base - max_cnt;
@@ -2531,6 +2641,10 @@ ssize_t nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
       }
 
       if (decoder->opcode == NGHTTP3_QPACK_ES_OPCODE_SET_DTABLE_CAP) {
+        if (decoder->rstate.left > decoder->ctx.hard_max_dtable_size) {
+          rv = NGHTTP3_ERR_QPACK_FATAL;
+          goto fail;
+        }
         DEBUGF("qpack::decode: Set dtable capacity to %zu\n",
                decoder->rstate.left);
         rv = nghttp3_qpack_context_dtable_set_dtable_cap(&decoder->ctx,
@@ -3371,7 +3485,7 @@ int nghttp3_qpack_decoder_compute_ricnt(nghttp3_qpack_decoder *decoder,
     return 0;
   }
 
-  max_ents = decoder->ctx.max_dtable_size / NGHTTP3_QPACK_ENTRY_OVERHEAD;
+  max_ents = decoder->ctx.hard_max_dtable_size / NGHTTP3_QPACK_ENTRY_OVERHEAD;
   full = 2 * max_ents;
 
   if (encricnt > full) {

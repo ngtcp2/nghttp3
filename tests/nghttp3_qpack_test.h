@@ -31,6 +31,7 @@
 
 void test_nghttp3_qpack_encoder_encode(void);
 void test_nghttp3_qpack_encoder_still_blocked(void);
+void test_nghttp3_qpack_encoder_set_dtable_cap(void);
 void test_nghttp3_qpack_decoder_feedback(void);
 
 #endif /* NGTCP2_QPCK_TEST_H */

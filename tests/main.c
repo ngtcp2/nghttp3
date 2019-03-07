@@ -58,6 +58,8 @@ int main() {
                    test_nghttp3_qpack_encoder_encode) ||
       !CU_add_test(pSuite, "qpack_encoder_still_blocked",
                    test_nghttp3_qpack_encoder_still_blocked) ||
+      !CU_add_test(pSuite, "qpack_encoder_set_dtable_cap",
+                   test_nghttp3_qpack_encoder_set_dtable_cap) ||
       !CU_add_test(pSuite, "qpack_decoder_feedback",
                    test_nghttp3_qpack_decoder_feedback)) {
     CU_cleanup_registry();

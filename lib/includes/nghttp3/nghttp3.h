@@ -513,6 +513,22 @@ NGHTTP3_EXTERN ssize_t nghttp3_qpack_encoder_read_decoder(
 /**
  * @function
  *
+ * `nghttp3_qpack_encoder_set_max_dtable_size` sets max dynamic table
+ * size to |max_dtable_size|.
+ *
+ * This function returns the number of bytes read, or one of the
+ * following negative error codes:
+ *
+ * :enum:`NGHTTP3_ERR_INVALID_ARGUMENT`
+ *     |max_dtable_size| exceeds the hard limit that decoder specifies.
+ */
+NGHTTP3_EXTERN int
+nghttp3_qpack_encoder_set_max_dtable_size(nghttp3_qpack_encoder *encoder,
+                                          size_t max_dtable_size);
+
+/**
+ * @function
+ *
  * `nghttp3_qpack_encoder_ack_header` tells |encoder| that header
  * block for a stream denoted by |stream_id| was acknowledged by
  * decoder.  This function is provided for debugging purpose only.  In

@@ -140,6 +140,13 @@ typedef struct {
      NGHTTP3_QPACK_ENTRY_OVERHEAD bytes overhead per each entry. */
   size_t dtable_size;
   size_t dtable_sum;
+  /* hard_max_dtable_size is the maximum size of dynamic table.  In
+     HTTP/3, it is notified by decoder as
+     SETTINGS_QPACK_MAX_TABLE_CAPACITY.  Any value lower than or equal
+     to SETTINGS_QPACK_MAX_TABLE_CAPACITY is OK because encoder has
+     the authority to decide how many entries are inserted into
+     dynamic table. */
+  size_t hard_max_dtable_size;
   /* dtable_size is the effective maximum size of dynamic table. */
   size_t max_dtable_size;
   /* next_absidx is the next absolute index for nghttp3_qpack_entry.
@@ -187,6 +194,13 @@ typedef enum {
   NGHTTP3_QPACK_DS_OPCODE_STREAM_CANCEL,
 } nghttp3_qpack_decoder_stream_opcode;
 
+typedef enum {
+  NGHTTP3_QPACK_ENCODER_FLAG_NONE = 0x00,
+  /* NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP indicates that
+     Set Dynamic Table Capacity is required. */
+  NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP = 0x01,
+} nghttp3_qpack_encoder_flag;
+
 struct nghttp3_qpack_encoder {
   nghttp3_qpack_context ctx;
   /* dtable_map is a map of hash to nghttp3_qpack_entry to provide
@@ -215,6 +229,14 @@ struct nghttp3_qpack_encoder {
   /* rstate is a set of intermediate state which are used to process
      decoder stream. */
   nghttp3_qpack_read_state rstate;
+  /* min_dtable_update is the minimum dynamic table size required. */
+  size_t min_dtable_update;
+  /* last_max_dtable_update is the dynamic table size last
+     requested. */
+  size_t last_max_dtable_update;
+  /* flags is bitwise OR of zero or more of
+     nghttp3_qpack_encoder_flag. */
+  uint8_t flags;
 };
 
 int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
@@ -244,11 +266,10 @@ nghttp3_qpack_lookup_result
 nghttp3_qpack_lookup_stable(const nghttp3_nv *nv, int32_t token,
                             nghttp3_qpack_indexing_mode indexing_mode);
 
-nghttp3_qpack_lookup_result
-nghttp3_qpack_lookup_dtable(nghttp3_qpack_map *dtable_map, const nghttp3_nv *nv,
-                            int32_t token,
-                            nghttp3_qpack_indexing_mode indexing_mode,
-                            uint32_t hash, size_t krcnt, int allow_blocking);
+nghttp3_qpack_lookup_result nghttp3_qpack_encoder_lookup_dtable(
+    nghttp3_qpack_encoder *encoder, const nghttp3_nv *nv, int32_t token,
+    nghttp3_qpack_indexing_mode indexing_mode, uint32_t hash, size_t krcnt,
+    int allow_blocking);
 
 int nghttp3_qpack_encoder_write_header_block_prefix(
     nghttp3_qpack_encoder *encoder, nghttp3_buf *pbuf, size_t max_cnt,
@@ -305,6 +326,26 @@ int nghttp3_qpack_encoder_unblock(nghttp3_qpack_encoder *encoder,
 nghttp3_qpack_stream *
 nghttp3_qpack_encoder_find_stream(nghttp3_qpack_encoder *encoder,
                                   int64_t stream_id);
+
+/*
+ * nghttp3_qpack_encoder_shrink_dtable shrinks dynamic table so that
+ * the dynamic table size is less than or equal to maximum size.
+ */
+void nghttp3_qpack_encoder_shrink_dtable(nghttp3_qpack_encoder *encoder);
+
+/*
+ * nghttp3_qpack_encoder_process_dtable_update processes pending
+ * dynamic table size update.
+ */
+int nghttp3_qpack_encoder_process_dtable_update(nghttp3_qpack_encoder *encoder,
+                                                nghttp3_buf *ebuf);
+
+/*
+ * nghttp3_qpack_encoder_write_set_dtable_cap writes Set Dynamic Table
+ * Capacity. to |ebuf|.  |cap| is the capacity of dynamic table.
+ */
+int nghttp3_qpack_encoder_write_set_dtable_cap(nghttp3_qpack_encoder *encoder,
+                                               nghttp3_buf *ebuf, size_t cap);
 
 int nghttp3_qpack_context_dtable_set_dtable_cap(nghttp3_qpack_context *ctx,
                                                 size_t cap);
