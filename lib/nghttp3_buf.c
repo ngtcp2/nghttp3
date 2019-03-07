@@ -75,3 +75,10 @@ int nghttp3_buf_reserve(nghttp3_buf *buf, size_t size, nghttp3_mem *mem) {
 
   return 0;
 }
+
+void nghttp3_buf_swap(nghttp3_buf *a, nghttp3_buf *b) {
+  nghttp3_buf c = *a;
+
+  *a = *b;
+  *b = c;
+}

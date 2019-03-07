@@ -499,11 +499,25 @@ NGHTTP3_EXTERN int nghttp3_qpack_encoder_encode(
 /**
  * @function
  *
+ * `nghttp3_qpack_encoder_read_decoder` reads decoder stream.  The
+ * buffer pointed by |src| of length |srclen| contains decoder stream.
+ *
+ * This function returns the number of bytes read, or one of the
+ * following negative error codes:
+ *
+ * TBD
+ */
+NGHTTP3_EXTERN ssize_t nghttp3_qpack_encoder_read_decoder(
+    nghttp3_qpack_encoder *encoder, const uint8_t *src, size_t srclen);
+
+/**
+ * @function
+ *
  * `nghttp3_qpack_encoder_ack_header` tells |encoder| that header
  * block for a stream denoted by |stream_id| was acknowledged by
- * decoder.  This function is provided mainly for debugging.  In
+ * decoder.  This function is provided for debugging purpose only.  In
  * HTTP/3, |encoder| knows acknowledgement of header block by reading
- * decoder stream.
+ * decoder stream with `nghttp3_qpack_encoder_read_decoder()`.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -517,10 +531,11 @@ nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
 /**
  * @function
  *
- * `nghttp3_qpack_encoder_inc_insert_count` increments known received
- * count of |encoder| by one.  This function is provided mainly for
- * debugging.  In HTTP/3, |encoder| increments known received count by
- * reading decoder stream.
+ * `nghttp3_qpack_encoder_add_insert_count` increments known received
+ * count of |encoder| by |n|.  This function is provided for debugging
+ * purpose only.  In HTTP/3, |encoder| increments known received count
+ * by reading decoder stream with
+ * `nghttp3_qpack_encoder_read_decoder()`.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -528,18 +543,36 @@ nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
  * TBD
  */
 NGHTTP3_EXTERN int
-nghttp3_qpack_encoder_inc_insert_count(nghttp3_qpack_encoder *encoder);
+nghttp3_qpack_encoder_add_insert_count(nghttp3_qpack_encoder *encoder,
+                                       size_t n);
 
 /**
  * @function
  *
  * `nghttp3_qpack_encoder_ack_everything` tells |encoder| that all
  * encoded header blocks are acknowledged.  This function is provided
- * mainly for debugging.  In HTTP/3, |encoder| knows this by reading
- * decoder stream.
+ * for debugging purpose only.  In HTTP/3, |encoder| knows this by
+ * reading decoder stream with `nghttp3_qpack_encoder_read_decoder()`.
  */
 NGHTTP3_EXTERN void
 nghttp3_qpack_encoder_ack_everything(nghttp3_qpack_encoder *encoder);
+
+/**
+ * @function
+ *
+ * `nghttp3_qpack_encoder_cancel_stream` tells |encoder| that stream
+ * denoted by |stream_id| is cancelled.  This function is provided for
+ * debugging purpose only.  In HTTP/3, |encoder| knows this by reading
+ * decoder stream with `nghttp3_qpack_encoder_read_decoder()`.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * TBD
+ */
+NGHTTP3_EXTERN int
+nghttp3_qpack_encoder_cancel_stream(nghttp3_qpack_encoder *encoder,
+                                    int64_t stream_id);
 
 /**
  * @function
@@ -564,8 +597,8 @@ typedef struct nghttp3_qpack_stream_context nghttp3_qpack_stream_context;
  * @function
  *
  * `nghttp3_qpack_stream_context_new` initializes stream context.
- * |psctx| must be non-NULL pointer.  |mem| is a memory allocator.
- * This function allocates memory for
+ * |psctx| must be non-NULL pointer.  |stream_id| is stream ID.  |mem|
+ * is a memory allocator.  This function allocates memory for
  * :type:`nghttp3_qpack_stream_context` itself and assigns its pointer
  * to |*psctx| if it succeeds.
  *
@@ -577,7 +610,7 @@ typedef struct nghttp3_qpack_stream_context nghttp3_qpack_stream_context;
  */
 NGHTTP3_EXTERN int
 nghttp3_qpack_stream_context_new(nghttp3_qpack_stream_context **psctx,
-                                 nghttp3_mem *mem);
+                                 int64_t stream_id, nghttp3_mem *mem);
 
 /**
  * @function
@@ -639,7 +672,7 @@ NGHTTP3_EXTERN void nghttp3_qpack_decoder_del(nghttp3_qpack_decoder *decoder);
  * @function
  *
  * `nghttp3_qpack_decoder_read_encoder` reads encoder stream.  The
- * buffer pointed by |in| of length |inlen| contains encoder stream.
+ * buffer pointed by |src| of length |srclen| contains encoder stream.
  *
  * This function returns the number of bytes read, or one of the
  * following negative error codes:
@@ -647,7 +680,7 @@ NGHTTP3_EXTERN void nghttp3_qpack_decoder_del(nghttp3_qpack_decoder *decoder);
  * TBD
  */
 NGHTTP3_EXTERN ssize_t nghttp3_qpack_decoder_read_encoder(
-    nghttp3_qpack_decoder *decoder, const uint8_t *in, size_t inlen);
+    nghttp3_qpack_decoder *decoder, const uint8_t *src, size_t srclen);
 
 /**
  * @function
@@ -718,6 +751,46 @@ NGHTTP3_EXTERN ssize_t nghttp3_qpack_decoder_read_request(
     nghttp3_qpack_decoder *decoder, nghttp3_qpack_stream_context *sctx,
     nghttp3_qpack_nv *nv, uint8_t *pflags, const uint8_t *src, size_t srclen,
     int fin);
+
+/**
+ * @function
+ *
+ * `nghttp3_qpack_decoder_write_decoder` writes decoder stream into
+ * |dbuf|.
+ *
+ * The buffer pointed by |dbuf| can be empty buffer.  It is fine to
+ * pass a buffer initialized by nghttp3_buf_init(buf).  This function
+ * allocates memory for these buffers as necessary.  In particular, it
+ * frees and expands buffer if the current capacity of buffer is not
+ * enough.  If begin field of any buffer is not NULL, it must be
+ * allocated by the same memory allocator passed to
+ * `nghttp3_qpack_encoder_new()`.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :enum:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory
+ * TBD
+ */
+NGHTTP3_EXTERN int
+nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
+                                    nghttp3_buf *dbuf);
+
+/**
+ * @function
+ *
+ * `nghttp3_qpack_decoder_cancel_stream` cancels header decoding for
+ * stream denoted by |stream_id|.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * TBD
+ */
+NGHTTP3_EXTERN int
+nghttp3_qpack_decoder_cancel_stream(nghttp3_qpack_decoder *decoder,
+                                    int64_t stream_id);
 
 /**
  * @function

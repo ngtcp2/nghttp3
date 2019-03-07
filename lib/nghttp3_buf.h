@@ -44,4 +44,9 @@ size_t nghttp3_buf_cap(const nghttp3_buf *buf);
 
 int nghttp3_buf_reserve(nghttp3_buf *buf, size_t size, nghttp3_mem *mem);
 
+/*
+ * nghttp3_buf_swap swaps |a| and |b|.
+ */
+void nghttp3_buf_swap(nghttp3_buf *a, nghttp3_buf *b);
+
 #endif /* NGHTTP3_BUF_H */

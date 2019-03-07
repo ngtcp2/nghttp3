@@ -49,7 +49,7 @@ extern Config config;
 Request::Request(int64_t stream_id, const nghttp3_buf *buf)
     : buf(*buf), stream_id(stream_id) {
   auto mem = nghttp3_mem_default();
-  nghttp3_qpack_stream_context_new(&sctx, mem);
+  nghttp3_qpack_stream_context_new(&sctx, stream_id, mem);
 }
 
 Request::~Request() { nghttp3_qpack_stream_context_del(sctx); }

@@ -57,7 +57,9 @@ int main() {
   if (!CU_add_test(pSuite, "qpack_encoder_encode",
                    test_nghttp3_qpack_encoder_encode) ||
       !CU_add_test(pSuite, "qpack_encoder_still_blocked",
-                   test_nghttp3_qpack_encoder_still_blocked)) {
+                   test_nghttp3_qpack_encoder_still_blocked) ||
+      !CU_add_test(pSuite, "qpack_decoder_feedback",
+                   test_nghttp3_qpack_decoder_feedback)) {
     CU_cleanup_registry();
     return (int)CU_get_error();
   }

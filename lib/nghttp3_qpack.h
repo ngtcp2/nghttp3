@@ -151,11 +151,41 @@ typedef struct {
   uint8_t bad;
 } nghttp3_qpack_context;
 
+typedef struct {
+  nghttp3_qpack_huffman_decode_context huffman_ctx;
+  nghttp3_buf namebuf;
+  nghttp3_buf valuebuf;
+  nghttp3_rcbuf *name;
+  nghttp3_rcbuf *value;
+  uint64_t left;
+  size_t prefix;
+  size_t shift;
+  size_t absidx;
+  int never;
+  int dynamic;
+  int huffman_encoded;
+} nghttp3_qpack_read_state;
+
+void nghttp3_qpack_read_state_free(nghttp3_qpack_read_state *rstate);
+
+void nghttp3_qpack_read_state_reset(nghttp3_qpack_read_state *rstate);
+
 #define NGHTTP3_QPACK_MAP_SIZE 128
 
 typedef struct {
   nghttp3_qpack_entry *table[NGHTTP3_QPACK_MAP_SIZE];
 } nghttp3_qpack_map;
+
+typedef enum {
+  NGHTTP3_QPACK_DS_STATE_OPCODE,
+  NGHTTP3_QPACK_DS_STATE_READ_NUMBER,
+} nghttp3_qpack_decoder_stream_state;
+
+typedef enum {
+  NGHTTP3_QPACK_DS_OPCODE_ICNT_INCREMENT,
+  NGHTTP3_QPACK_DS_OPCODE_HEADER_ACK,
+  NGHTTP3_QPACK_DS_OPCODE_STREAM_CANCEL,
+} nghttp3_qpack_decoder_stream_opcode;
 
 struct nghttp3_qpack_encoder {
   nghttp3_qpack_context ctx;
@@ -178,6 +208,13 @@ struct nghttp3_qpack_encoder {
   size_t max_blocked;
   /* krcnt is Known Received Count. */
   size_t krcnt;
+  /* state is a current state of reading decoder stream. */
+  nghttp3_qpack_decoder_stream_state state;
+  /* opcode is a decoder stream opcode being processed. */
+  nghttp3_qpack_decoder_stream_opcode opcode;
+  /* rstate is a set of intermediate state which are used to process
+     decoder stream. */
+  nghttp3_qpack_read_state rstate;
 };
 
 int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
@@ -260,7 +297,10 @@ int nghttp3_qpack_encoder_block_stream(nghttp3_qpack_encoder *encoder,
                                        nghttp3_qpack_stream *stream);
 
 int nghttp3_qpack_encoder_unblock_stream(nghttp3_qpack_encoder *encoder,
-                                         size_t max_cnt);
+                                         nghttp3_qpack_stream *stream);
+
+int nghttp3_qpack_encoder_unblock(nghttp3_qpack_encoder *encoder,
+                                  size_t max_cnt);
 
 nghttp3_qpack_stream *
 nghttp3_qpack_encoder_find_stream(nghttp3_qpack_encoder *encoder,
@@ -350,25 +390,6 @@ typedef enum {
   NGHTTP3_QPACK_RS_OPCODE_LITERAL,
 } nghttp3_qpack_request_stream_opcode;
 
-typedef struct {
-  nghttp3_qpack_huffman_decode_context huffman_ctx;
-  nghttp3_buf namebuf;
-  nghttp3_buf valuebuf;
-  nghttp3_rcbuf *name;
-  nghttp3_rcbuf *value;
-  uint64_t left;
-  size_t prefix;
-  size_t shift;
-  size_t absidx;
-  int never;
-  int dynamic;
-  int huffman_encoded;
-} nghttp3_qpack_read_state;
-
-void nghttp3_qpack_read_state_free(nghttp3_qpack_read_state *rstate);
-
-void nghttp3_qpack_read_state_reset(nghttp3_qpack_read_state *rstate);
-
 struct nghttp3_qpack_decoder {
   nghttp3_qpack_context ctx;
   /* max_blocked is the maximum number of stream which can be
@@ -381,6 +402,10 @@ struct nghttp3_qpack_decoder {
   /* rstate is a set of intermediate state which are used to process
      encoder stream. */
   nghttp3_qpack_read_state rstate;
+  /* dbuf is decoder stream. */
+  nghttp3_buf dbuf;
+  /* written_icnt is Insert Count written to decoder stream so far. */
+  size_t written_icnt;
 };
 
 int nghttp3_qpack_decoder_init(nghttp3_qpack_decoder *decoder,
@@ -408,6 +433,7 @@ struct nghttp3_qpack_stream_context {
   nghttp3_mem *mem;
   /* opcode is a request stream opcode being processed. */
   nghttp3_qpack_request_stream_opcode opcode;
+  int64_t stream_id;
   /* ricnt is Required Insert Count to decode this header block. */
   size_t ricnt;
   /* base is Base in Header Block Prefix. */
@@ -417,7 +443,7 @@ struct nghttp3_qpack_stream_context {
 };
 
 void nghttp3_qpack_stream_context_init(nghttp3_qpack_stream_context *sctx,
-                                       nghttp3_mem *mem);
+                                       int64_t stream_id, nghttp3_mem *mem);
 
 void nghttp3_qpack_stream_context_free(nghttp3_qpack_stream_context *sctx);
 
@@ -444,5 +470,9 @@ void nghttp3_qpack_decoder_emit_indexed_name(nghttp3_qpack_decoder *decoder,
 void nghttp3_qpack_decoder_emit_literal(nghttp3_qpack_decoder *decoder,
                                         nghttp3_qpack_stream_context *sctx,
                                         nghttp3_qpack_nv *nv);
+
+int nghttp3_qpack_decoder_write_header_ack(
+    nghttp3_qpack_decoder *decoder, nghttp3_buf *dbuf,
+    const nghttp3_qpack_stream_context *sctx);
 
 #endif /* NGHTTP3_QPACK_H */
