@@ -245,6 +245,19 @@ int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
 
 void nghttp3_qpack_encoder_free(nghttp3_qpack_encoder *encoder);
 
+/*
+ * nghttp3_qpack_encoder_encode_nv encodes |nv|.  It writes request
+ * stream into |rbuf| and writes encoder stream into |ebuf|.  |nv| is
+ * a header field to encode.  |base| is base.  |allow_blocking| is
+ * nonzero if this stream can be blocked (or it has been blocked
+ * already).
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
                                     size_t *pmax_cnt, size_t *pmin_cnt,
                                     nghttp3_buf *rbuf, nghttp3_buf *ebuf,
@@ -275,38 +288,137 @@ int nghttp3_qpack_encoder_write_header_block_prefix(
     nghttp3_qpack_encoder *encoder, nghttp3_buf *pbuf, size_t max_cnt,
     size_t base);
 
+/*
+ * nghttp3_qpack_encoder_write_static_indexed writes Indexed Header
+ * Field to |rbuf|.  |absidx| is an absolute index into static table.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_write_static_indexed(nghttp3_qpack_encoder *encoder,
                                                nghttp3_buf *rbuf,
                                                size_t absidx);
 
+/*
+ * nghttp3_qpack_encoder_write_dynamic_indexed writes Indexed Header
+ * Field to |rbuf|.  |absidx| is an absolute index into dynamic table.
+ * |base| is base.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_write_dynamic_indexed(nghttp3_qpack_encoder *encoder,
                                                 nghttp3_buf *rbuf,
                                                 size_t absidx, size_t base);
 
+/*
+ * nghttp3_qpack_encoder_write_static_indexed writes Literal Header
+ * Field With Name Reference to |rbuf|.  |absidx| is an absolute index
+ * into static table to reference a name.  |nv| is a header field to
+ * encode.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_write_static_indexed_name(
     nghttp3_qpack_encoder *encoder, nghttp3_buf *rbuf, size_t absidx,
     const nghttp3_nv *nv);
 
+/*
+ * nghttp3_qpack_encoder_write_dynamic_indexed writes Literal Header
+ * Field With Name Reference to |rbuf|.  |absidx| is an absolute index
+ * into dynamic table to reference a name.  |base| is a base.  |nv| is
+ * a header field to encode.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_write_dynamic_indexed_name(
     nghttp3_qpack_encoder *encoder, nghttp3_buf *rbuf, size_t absidx,
     size_t base, const nghttp3_nv *nv);
 
+/*
+ * nghttp3_qpack_encoder_write_literal writes Literal Header Field
+ * Without Name Reference to |rbuf|.  |nv| is a header field to
+ * encode.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_write_literal(nghttp3_qpack_encoder *encoder,
                                         nghttp3_buf *rbuf,
                                         const nghttp3_nv *nv);
 
+/*
+ * nghttp3_qpack_encoder_write_static_insert writes Insert With Name
+ * Reference to |ebuf|.  |absidx| is an absolute index into static
+ * table to reference a name.  |nv| is a header field to insert.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_write_static_insert(nghttp3_qpack_encoder *encoder,
                                               nghttp3_buf *ebuf, size_t absidx,
                                               const nghttp3_nv *nv);
 
+/*
+ * nghttp3_qpack_encoder_write_dynamic_insert writes Insert With Name
+ * Reference to |ebuf|.  |absidx| is an absolute index into dynamic
+ * table to reference a name.  |nv| is a header field to insert.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_write_dynamic_insert(nghttp3_qpack_encoder *encoder,
                                                nghttp3_buf *ebuf, size_t absidx,
                                                const nghttp3_nv *nv);
 
+/*
+ * nghttp3_qpack_encoder_write_duplicate_insert writes Duplicate to
+ * |ebuf|.  |absidx| is an absolute index into dynamic table to
+ * reference an entry.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_write_duplicate_insert(nghttp3_qpack_encoder *encoder,
                                                  nghttp3_buf *ebuf,
                                                  size_t absidx);
 
+/*
+ * nghttp3_qpack_encoder_write_literal_insert writes Insert Without
+ * Name Reference to |ebuf|.  |nv| is a header field to insert.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_write_literal_insert(nghttp3_qpack_encoder *encoder,
                                                nghttp3_buf *ebuf,
                                                const nghttp3_nv *nv);
@@ -314,9 +426,27 @@ int nghttp3_qpack_encoder_write_literal_insert(nghttp3_qpack_encoder *encoder,
 int nghttp3_qpack_encoder_stream_is_blocked(nghttp3_qpack_encoder *encoder,
                                             nghttp3_qpack_stream *stream);
 
+/*
+ * nghttp3_qpack_encoder_block_stream blocks |stream|.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_block_stream(nghttp3_qpack_encoder *encoder,
                                        nghttp3_qpack_stream *stream);
 
+/*
+ * nghttp3_qpack_encoder_unblock_stream unblocks |stream|.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_unblock_stream(nghttp3_qpack_encoder *encoder,
                                          nghttp3_qpack_stream *stream);
 
@@ -335,7 +465,14 @@ void nghttp3_qpack_encoder_shrink_dtable(nghttp3_qpack_encoder *encoder);
 
 /*
  * nghttp3_qpack_encoder_process_dtable_update processes pending
- * dynamic table size update.
+ * dynamic table size update.  It might write encoder stream into
+ * |ebuf|.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
  */
 int nghttp3_qpack_encoder_process_dtable_update(nghttp3_qpack_encoder *encoder,
                                                 nghttp3_buf *ebuf);
@@ -343,6 +480,12 @@ int nghttp3_qpack_encoder_process_dtable_update(nghttp3_qpack_encoder *encoder,
 /*
  * nghttp3_qpack_encoder_write_set_dtable_cap writes Set Dynamic Table
  * Capacity. to |ebuf|.  |cap| is the capacity of dynamic table.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
  */
 int nghttp3_qpack_encoder_write_set_dtable_cap(nghttp3_qpack_encoder *encoder,
                                                nghttp3_buf *ebuf, size_t cap);
@@ -350,23 +493,73 @@ int nghttp3_qpack_encoder_write_set_dtable_cap(nghttp3_qpack_encoder *encoder,
 int nghttp3_qpack_context_dtable_set_dtable_cap(nghttp3_qpack_context *ctx,
                                                 size_t cap);
 
+/*
+ * nghttp3_qpack_context_dtable_add adds |qnv| to dynamic table.  If
+ * |ctx| is a part of encoder, |dtable_map| is not NULL.  |hash| is a
+ * hash value of name.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_context_dtable_add(nghttp3_qpack_context *ctx,
                                      nghttp3_qpack_nv *qnv,
                                      nghttp3_qpack_map *dtable_map,
                                      uint32_t hash);
 
+/*
+ * nghttp3_qpack_encoder_dtable_static_add adds |nv| to dynamic table
+ * by referencing static table entry at an absolute index |absidx|.
+ * The hash of name is given as |hash|.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_dtable_static_add(nghttp3_qpack_encoder *encoder,
                                             size_t absidx, const nghttp3_nv *nv,
                                             uint32_t hash);
 
+/*
+ * nghttp3_qpack_encoder_dtable_dynamic_add adds |nv| to dynamic table
+ * by referencing dynamic table entry at an absolute index |absidx|.
+ * The hash of name is given as |hash|.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_dtable_dynamic_add(nghttp3_qpack_encoder *encoder,
                                              size_t absidx,
                                              const nghttp3_nv *nv,
                                              uint32_t hash);
 
+/*
+ * nghttp3_qpack_encoder_dtable_duplicate_add duplicates dynamic table
+ * entry at an absolute index |absidx|.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_dtable_duplicate_add(nghttp3_qpack_encoder *encoder,
                                                size_t absidx);
 
+/*
+ * nghttp3_qpack_encoder_dtable_literal_add adds |nv| to dynamic
+ * table.  |token| is a token of name and is -1 if it has no token
+ * value defined.  |hash| is a hash of name.
+ *
+ * NGHTTP3_ERR_NOMEM Out of memory.
+ */
 int nghttp3_qpack_encoder_dtable_literal_add(nghttp3_qpack_encoder *encoder,
                                              const nghttp3_nv *nv,
                                              int32_t token, uint32_t hash);

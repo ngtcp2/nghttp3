@@ -70,7 +70,9 @@ extern "C" {
 typedef enum {
   NGHTTP3_ERR_INVALID_ARGUMENT = -101,
   NGHTTP3_ERR_QPACK_FATAL = -401,
-  NGHTTP3_ERR_QPACK_DECODER_STREAM = -402,
+  NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED = -402,
+  NGHTTP3_ERR_QPACK_ENCODER_STREAM = -403,
+  NGHTTP3_ERR_QPACK_DECODER_STREAM = -404,
   NGHTTP3_ERR_FATAL = -500,
   NGHTTP3_ERR_NOMEM = -501
 } nghttp2_lib_error;
@@ -490,7 +492,9 @@ NGHTTP3_EXTERN void nghttp3_qpack_encoder_del(nghttp3_qpack_encoder *encoder);
  *
  * :enum:`NGHTTP3_ERR_NOMEM`
  *     Out of memory
- * TBD
+ * :enum:`NGHTTP3_ERR_QPACK_FATAL`
+ *      |encoder| is in unrecoverable error state and cannot be used
+ *      anymore.
  */
 NGHTTP3_EXTERN int nghttp3_qpack_encoder_encode(
     nghttp3_qpack_encoder *encoder, nghttp3_buf *pbuf, nghttp3_buf *rbuf,
@@ -505,7 +509,13 @@ NGHTTP3_EXTERN int nghttp3_qpack_encoder_encode(
  * This function returns the number of bytes read, or one of the
  * following negative error codes:
  *
- * TBD
+ * :enum:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory
+ * :enum:`NGHTTP3_ERR_QPACK_FATAL`
+ *     |encoder| is in unrecoverable error state and cannot be used
+ *     anymore.
+ * :enum:`NGHTTP3_ERR_QPACK_DECODER_STREAM`
+ *     |encoder| is unable to process input because it is malformed.
  */
 NGHTTP3_EXTERN ssize_t nghttp3_qpack_encoder_read_decoder(
     nghttp3_qpack_encoder *encoder, const uint8_t *src, size_t srclen);
@@ -538,7 +548,10 @@ nghttp3_qpack_encoder_set_max_dtable_size(nghttp3_qpack_encoder *encoder,
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * TBD
+ * :enum:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
+ * :enum:`NGHTTP3_QPACK_DECODER_STREAM`
+ *     stream denoted by |stream_id| is not found.
  */
 NGHTTP3_EXTERN int
 nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
@@ -556,7 +569,10 @@ nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * TBD
+ * :enum:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
+ * :enum:`NGHTTP3_QPACK_DECODER_STREAM`
+ *     |n| is too large.
  */
 NGHTTP3_EXTERN int
 nghttp3_qpack_encoder_add_insert_count(nghttp3_qpack_encoder *encoder,
@@ -584,7 +600,13 @@ nghttp3_qpack_encoder_ack_everything(nghttp3_qpack_encoder *encoder);
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * TBD
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :enum:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
+ * :enum:`NGHTTP3_QPACK_DECODER_STREAM`
+ *     stream denoted by |stream_id| is not found.
  */
 NGHTTP3_EXTERN int
 nghttp3_qpack_encoder_cancel_stream(nghttp3_qpack_encoder *encoder,

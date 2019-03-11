@@ -1058,6 +1058,17 @@ void nghttp3_qpack_encoder_shrink_dtable(nghttp3_qpack_encoder *encoder) {
   }
 }
 
+/*
+ * qpack_encoder_add_stream_ref adds another dynamic table reference
+ * to a stream denoted by |stream_id|.  |max_cnt| and |min_cnt| is the
+ * maximum and minimum insert count it references respectively.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 static int qpack_encoder_add_stream_ref(nghttp3_qpack_encoder *encoder,
                                         int64_t stream_id, size_t max_cnt,
                                         size_t min_cnt) {
@@ -1076,6 +1087,7 @@ static int qpack_encoder_add_stream_ref(nghttp3_qpack_encoder *encoder,
     nghttp3_qpack_stream_init(stream, stream_id);
     rv = nghttp3_map_insert(&encoder->stream_refs, &stream->me);
     if (rv != 0) {
+      assert(rv == NGHTTP3_ERR_NOMEM);
       nghttp3_mem_free(mem, stream);
       return rv;
     }
@@ -1123,6 +1135,17 @@ static void qpack_encoder_remove_stream(nghttp3_qpack_encoder *encoder,
   }
 }
 
+/*
+ * reserve_buf ensures that |buf| contains at least |extra_size| of
+ * free space.  In other words, if this function succeeds,
+ * nghttp2_buf_left(buf) >= extra_size holds.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 static int reserve_buf(nghttp3_buf *buf, size_t extra_size, nghttp3_mem *mem) {
   size_t left = nghttp3_buf_left(buf);
   size_t n = 4096, need;
@@ -1197,6 +1220,17 @@ fail:
   return rv;
 }
 
+/*
+ * qpack_write_number writes variable integer to |rbuf|.  |num| is an
+ * integer to write.  |prefix| is a prefix of variable integer
+ * encoding.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 static int qpack_write_number(nghttp3_buf *rbuf, uint8_t fb, uint64_t num,
                               size_t prefix, nghttp3_mem *mem) {
   int rv;
@@ -1643,14 +1677,14 @@ void nghttp3_qpack_stream_pop_ref(nghttp3_qpack_stream *stream,
 int nghttp3_qpack_encoder_write_static_indexed(nghttp3_qpack_encoder *encoder,
                                                nghttp3_buf *rbuf,
                                                size_t absidx) {
-  DEBUGF("qpack::encode: Indexed Header field (static) absidx=%zu\n", absidx);
+  DEBUGF("qpack::encode: Indexed Header Field (static) absidx=%zu\n", absidx);
   return qpack_write_number(rbuf, 0xc0, absidx, 6, encoder->ctx.mem);
 }
 
 int nghttp3_qpack_encoder_write_dynamic_indexed(nghttp3_qpack_encoder *encoder,
                                                 nghttp3_buf *rbuf,
                                                 size_t absidx, size_t base) {
-  DEBUGF("qpack::encode: Indexed Header field (dynamic) absidx=%zu base=%zu\n",
+  DEBUGF("qpack::encode: Indexed Header Field (dynamic) absidx=%zu base=%zu\n",
          absidx, base);
 
   if (absidx < base) {
@@ -1661,6 +1695,18 @@ int nghttp3_qpack_encoder_write_dynamic_indexed(nghttp3_qpack_encoder *encoder,
   return qpack_write_number(rbuf, 0x10, absidx - base, 4, encoder->ctx.mem);
 }
 
+/*
+ * qpack_encoder_write_indexed_name writes generic indexed name.  |fb|
+ * is the first byte.  |nameidx| is an index of referenced name.
+ * |prefix| is a prefix of variable integer encoding.  |nv| is a
+ * header field to encode.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 static int qpack_encoder_write_indexed_name(nghttp3_qpack_encoder *encoder,
                                             nghttp3_buf *buf, uint8_t fb,
                                             size_t nameidx, size_t prefix,
@@ -1739,6 +1785,18 @@ int nghttp3_qpack_encoder_write_dynamic_indexed_name(
                                           nv);
 }
 
+/*
+ * qpack_encoder_write_literal writes generic literal header field
+ * representation.  |fb| is a first byte.  |prefix| is a prefix of
+ * variable integer encoding for name length.  |nv| is a header field
+ * to encode.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 static int qpack_encoder_write_literal(nghttp3_qpack_encoder *encoder,
                                        nghttp3_buf *buf, uint8_t fb,
                                        size_t prefix, const nghttp3_nv *nv) {
@@ -1898,9 +1956,7 @@ int nghttp3_qpack_context_dtable_add(nghttp3_qpack_context *ctx,
   mem = ctx->mem;
   space = table_space(qnv->name->len, qnv->value->len);
 
-  if (space > ctx->max_dtable_size) {
-    return NGHTTP3_ERR_QPACK_FATAL;
-  }
+  assert(space <= ctx->max_dtable_size);
 
   while (ctx->dtable_size + space > ctx->max_dtable_size) {
     i = nghttp3_ringbuf_len(&ctx->dtable);
@@ -2206,7 +2262,7 @@ int nghttp3_qpack_encoder_cancel_stream(nghttp3_qpack_encoder *encoder,
   int rv;
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_QPACK_FATAL;
+    return NGHTTP3_ERR_QPACK_DECODER_STREAM;
   }
 
   if (nghttp3_qpack_encoder_stream_is_blocked(encoder, stream)) {
@@ -2282,8 +2338,8 @@ int nghttp3_qpack_encoder_write_header_block_prefix(
  * This function stores the decoded integer in |*dest| if it succeeds,
  * including partial decoding (in this case, number of shift to make
  * in the next call will be stored in |rstate->shift|) and returns
- * number of bytes processed, or returns negative error codes,
- * indicating decoding error.
+ * number of bytes processed, or returns negative error code
+ * NGHTTP3_ERR_QPACK_FATAL, indicating decoding error.
  */
 static ssize_t qpack_read_varint(int *fin, nghttp3_qpack_read_state *rstate,
                                  const uint8_t *begin, const uint8_t *end) {
@@ -2379,7 +2435,8 @@ ssize_t nghttp3_qpack_encoder_read_decoder(nghttp3_qpack_encoder *encoder,
     case NGHTTP3_QPACK_DS_STATE_READ_NUMBER:
       nread = qpack_read_varint(&rfin, &encoder->rstate, p, end);
       if (nread < 0) {
-        rv = (int)nread;
+        assert(nread == NGHTTP3_ERR_QPACK_FATAL);
+        rv = NGHTTP3_ERR_QPACK_DECODER_STREAM;
         goto fail;
       }
 
@@ -2893,6 +2950,11 @@ int nghttp3_qpack_decoder_dtable_static_add(nghttp3_qpack_decoder *decoder) {
 
   shd = &stable[decoder->rstate.absidx];
 
+  if (table_space(shd->name.len, decoder->rstate.value->len) >
+      decoder->ctx.max_dtable_size) {
+    return NGHTTP3_ERR_QPACK_ENCODER_STREAM;
+  }
+
   qnv.name = (nghttp3_rcbuf *)&shd->name;
   qnv.value = decoder->rstate.value;
   qnv.token = shd->token;
@@ -2911,6 +2973,11 @@ int nghttp3_qpack_decoder_dtable_dynamic_add(nghttp3_qpack_decoder *decoder) {
   nghttp3_qpack_entry *ent;
 
   ent = nghttp3_qpack_context_dtable_get(&decoder->ctx, decoder->rstate.absidx);
+
+  if (table_space(ent->nv.name->len, decoder->rstate.value->len) >
+      decoder->ctx.max_dtable_size) {
+    return NGHTTP3_ERR_QPACK_ENCODER_STREAM;
+  }
 
   qnv.name = ent->nv.name;
   qnv.value = decoder->rstate.value;
@@ -2937,6 +3004,11 @@ int nghttp3_qpack_decoder_dtable_duplicate_add(nghttp3_qpack_decoder *decoder) {
 
   ent = nghttp3_qpack_context_dtable_get(&decoder->ctx, decoder->rstate.absidx);
 
+  if (table_space(ent->nv.name->len, ent->nv.value->len) >
+      decoder->ctx.max_dtable_size) {
+    return NGHTTP3_ERR_QPACK_ENCODER_STREAM;
+  }
+
   qnv = ent->nv;
   nghttp3_rcbuf_incref(qnv.name);
   nghttp3_rcbuf_incref(qnv.value);
@@ -2956,6 +3028,11 @@ int nghttp3_qpack_decoder_dtable_literal_add(nghttp3_qpack_decoder *decoder) {
   DEBUGF("qpack::decode: Insert Without Name Reference: name=%*s value=%*s\n",
          (int)decoder->rstate.name->len, decoder->rstate.name->base,
          (int)decoder->rstate.value->len, decoder->rstate.value->base);
+
+  if (table_space(decoder->rstate.name->len, decoder->rstate.value->len) >
+      decoder->ctx.max_dtable_size) {
+    return NGHTTP3_ERR_QPACK_ENCODER_STREAM;
+  }
 
   qnv.name = decoder->rstate.name;
   qnv.value = decoder->rstate.value;
