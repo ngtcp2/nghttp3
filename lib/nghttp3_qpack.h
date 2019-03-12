@@ -49,9 +49,17 @@
    header value this library can decode. */
 #define NGHTTP3_QPACK_MAX_VALUELEN 65536
 
+/* nghttp3_qpack_indexing_mode is a indexing strategy. */
 typedef enum {
+  /* NGHTTP3_QPACK_INDEXING_MODE_LITERAL means that header field
+     should not be inserted into dynamic table. */
   NGHTTP3_QPACK_INDEXING_MODE_LITERAL,
+  /* NGHTTP3_QPACK_INDEXING_MODE_STORE means that header field can be
+     inserted into dynamic table. */
   NGHTTP3_QPACK_INDEXING_MODE_STORE,
+  /* NGHTTP3_QPACK_INDEXING_MODE_NEVER means that header field should
+     not be inserted into dynamic table and this must be true for all
+     forwarding paths. */
   NGHTTP3_QPACK_INDEXING_MODE_NEVER,
 } nghttp3_qpack_indexing_mode;
 
@@ -190,17 +198,23 @@ typedef struct {
   nghttp3_qpack_entry *table[NGHTTP3_QPACK_MAP_SIZE];
 } nghttp3_qpack_map;
 
+/* nghttp3_qpack_decoder_stream_state is a set of states when decoding
+   decoder stream. */
 typedef enum {
   NGHTTP3_QPACK_DS_STATE_OPCODE,
   NGHTTP3_QPACK_DS_STATE_READ_NUMBER,
 } nghttp3_qpack_decoder_stream_state;
 
+/* nghttp3_qpack_decoder_stream_opcode is opcode used in decoder
+   stream. */
 typedef enum {
   NGHTTP3_QPACK_DS_OPCODE_ICNT_INCREMENT,
   NGHTTP3_QPACK_DS_OPCODE_HEADER_ACK,
   NGHTTP3_QPACK_DS_OPCODE_STREAM_CANCEL,
 } nghttp3_qpack_decoder_stream_opcode;
 
+/* nghttp3_qpack_encoder_flag is a set of flags used by
+   nghttp3_qpack_encoder. */
 typedef enum {
   NGHTTP3_QPACK_ENCODER_FLAG_NONE = 0x00,
   /* NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP indicates that
@@ -246,10 +260,26 @@ struct nghttp3_qpack_encoder {
   uint8_t flags;
 };
 
+/*
+ * nghttp3_qpack_encoder_init initializes |encoder|.
+ * |max_dtable_size| is the maximum size of dynamic table.
+ * |max_blocked| is the maximum number of stream which can be blocked.
+ * |mem| is a memory allocator.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
                                size_t max_dtable_size, size_t max_blocked,
                                nghttp3_mem *mem);
 
+/*
+ * nghttp3_qpack_encoder_free frees memory allocated for |encoder|.
+ * This function does not free memory pointed by |encoder|.
+ */
 void nghttp3_qpack_encoder_free(nghttp3_qpack_encoder *encoder);
 
 /*
@@ -271,6 +301,7 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
                                     const nghttp3_nv *nv, size_t base,
                                     int allow_blocking);
 
+/* nghttp3_qpack_lookup_result stores a result of table lookup. */
 typedef struct {
   /* index is an index of matched entry.  -1 if no match is made. */
   ssize_t index;
@@ -282,10 +313,23 @@ typedef struct {
   ssize_t pb_index;
 } nghttp3_qpack_lookup_result;
 
+/*
+ * nghttp3_qpack_lookup_stable searches |nv| in static table.  |token|
+ * is a token of nv->name and it is -1 if there is no corresponding
+ * token defined.  |indexing_mode| provides indexing strategy.
+ */
 nghttp3_qpack_lookup_result
 nghttp3_qpack_lookup_stable(const nghttp3_nv *nv, int32_t token,
                             nghttp3_qpack_indexing_mode indexing_mode);
 
+/*
+ * nghttp3_qpack_encoder_lookup_dtable searches |nv| in dynamic table.
+ * |token| is a token of nv->name and it is -1 if there is no
+ * corresponding token defined.  |indexing_mode| provides indexing
+ * strategy.  |hash| is a hash of nv->name.  |krcnt| is Known Received
+ * Count.  |allow_blocking| is nonzero if this stream can be blocked
+ * (or it has been blocked already).
+ */
 nghttp3_qpack_lookup_result nghttp3_qpack_encoder_lookup_dtable(
     nghttp3_qpack_encoder *encoder, const nghttp3_nv *nv, int32_t token,
     nghttp3_qpack_indexing_mode indexing_mode, uint32_t hash, size_t krcnt,

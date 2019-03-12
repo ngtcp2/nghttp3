@@ -865,6 +865,16 @@ static void encoder_qpack_map_find(nghttp3_qpack_encoder *encoder,
   }
 }
 
+/*
+ * qpack_context_init initializes |ctx|.  |max_dtable_size| is the
+ * maximum size of dynamic table.  |mem| is a memory allocator.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 static int qpack_context_init(nghttp3_qpack_context *ctx,
                               size_t max_dtable_size, nghttp3_mem *mem) {
   int rv;
