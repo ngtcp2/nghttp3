@@ -1452,7 +1452,7 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
   }
 
   dres = nghttp3_qpack_encoder_lookup_dtable(
-      encoder, nv, token, indexing_mode, hash, encoder->krcnt, allow_blocking);
+      encoder, nv, token, hash, indexing_mode, encoder->krcnt, allow_blocking);
 
   just_index =
       indexing_mode == NGHTTP3_QPACK_INDEXING_MODE_STORE && dres.pb_index == -1;
@@ -1600,7 +1600,7 @@ nghttp3_qpack_lookup_stable(const nghttp3_nv *nv, int32_t token,
 
 nghttp3_qpack_lookup_result nghttp3_qpack_encoder_lookup_dtable(
     nghttp3_qpack_encoder *encoder, const nghttp3_nv *nv, int32_t token,
-    nghttp3_qpack_indexing_mode indexing_mode, uint32_t hash, size_t krcnt,
+    uint32_t hash, nghttp3_qpack_indexing_mode indexing_mode, size_t krcnt,
     int allow_blocking) {
   nghttp3_qpack_lookup_result res = {-1, 0, -1};
   int exact_match = 0;

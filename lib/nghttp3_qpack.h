@@ -325,14 +325,14 @@ nghttp3_qpack_lookup_stable(const nghttp3_nv *nv, int32_t token,
 /*
  * nghttp3_qpack_encoder_lookup_dtable searches |nv| in dynamic table.
  * |token| is a token of nv->name and it is -1 if there is no
- * corresponding token defined.  |indexing_mode| provides indexing
- * strategy.  |hash| is a hash of nv->name.  |krcnt| is Known Received
- * Count.  |allow_blocking| is nonzero if this stream can be blocked
- * (or it has been blocked already).
+ * corresponding token defined.  |hash| is a hash of nv->name.
+ * |indexing_mode| provides indexing strategy.  |krcnt| is Known
+ * Received Count.  |allow_blocking| is nonzero if this stream can be
+ * blocked (or it has been blocked already).
  */
 nghttp3_qpack_lookup_result nghttp3_qpack_encoder_lookup_dtable(
     nghttp3_qpack_encoder *encoder, const nghttp3_nv *nv, int32_t token,
-    nghttp3_qpack_indexing_mode indexing_mode, uint32_t hash, size_t krcnt,
+    uint32_t hash, nghttp3_qpack_indexing_mode indexing_mode, size_t krcnt,
     int allow_blocking);
 
 int nghttp3_qpack_encoder_write_header_block_prefix(
