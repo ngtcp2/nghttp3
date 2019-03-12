@@ -2757,6 +2757,11 @@ ssize_t nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
         return p - src;
       }
 
+      if (decoder->rstate.left > NGHTTP3_QPACK_MAX_NAMELEN) {
+        rv = NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE;
+        goto fail;
+      }
+
       if (decoder->rstate.huffman_encoded) {
         decoder->state = NGHTTP3_QPACK_ES_STATE_READ_NAME_HUFFMAN;
         nghttp3_qpack_huffman_decode_context_init(&decoder->rstate.huffman_ctx);
@@ -2829,6 +2834,11 @@ ssize_t nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
 
       if (!rfin) {
         return p - src;
+      }
+
+      if (decoder->rstate.left > NGHTTP3_QPACK_MAX_VALUELEN) {
+        rv = NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE;
+        goto fail;
       }
 
       if (decoder->rstate.huffman_encoded) {

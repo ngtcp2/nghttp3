@@ -42,6 +42,13 @@
 
 #define NGHTTP3_QPACK_INT_MAX ((1ull << 62) - 1)
 
+/* NGHTTP3_QPACK_MAX_NAMELEN is the maximum (compressed) length of
+   header name this library can decode. */
+#define NGHTTP3_QPACK_MAX_NAMELEN 256
+/* NGHTTP3_QPACK_MAX_VALUELEN is the maximum (compressed) length of
+   header value this library can decode. */
+#define NGHTTP3_QPACK_MAX_VALUELEN 65536
+
 typedef enum {
   NGHTTP3_QPACK_INDEXING_MODE_LITERAL,
   NGHTTP3_QPACK_INDEXING_MODE_STORE,
