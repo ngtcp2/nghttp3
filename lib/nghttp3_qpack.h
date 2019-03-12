@@ -335,8 +335,19 @@ nghttp3_qpack_lookup_result nghttp3_qpack_encoder_lookup_dtable(
     uint32_t hash, nghttp3_qpack_indexing_mode indexing_mode, size_t krcnt,
     int allow_blocking);
 
+/*
+ * nghttp3_qpack_encoder_write_header_block_prefix writes Header Block
+ * Prefix into |pbuf|.  |ricnt| is Required Insert Count.  |base| is
+ * Base.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_write_header_block_prefix(
-    nghttp3_qpack_encoder *encoder, nghttp3_buf *pbuf, size_t max_cnt,
+    nghttp3_qpack_encoder *encoder, nghttp3_buf *pbuf, size_t ricnt,
     size_t base);
 
 /*
@@ -501,9 +512,24 @@ int nghttp3_qpack_encoder_block_stream(nghttp3_qpack_encoder *encoder,
 int nghttp3_qpack_encoder_unblock_stream(nghttp3_qpack_encoder *encoder,
                                          nghttp3_qpack_stream *stream);
 
+/*
+ * nghttp3_qpack_encoder_unblock unblocks stream whose max_cnt is less
+ * than or equal to |max_cnt|.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_encoder_unblock(nghttp3_qpack_encoder *encoder,
                                   size_t max_cnt);
 
+/*
+ * nghttp3_qpack_encoder_find_stream returns stream whose stream ID is
+ * |stream_id|.  This function returns NULL if there is no such
+ * stream.
+ */
 nghttp3_qpack_stream *
 nghttp3_qpack_encoder_find_stream(nghttp3_qpack_encoder *encoder,
                                   int64_t stream_id);
@@ -540,9 +566,6 @@ int nghttp3_qpack_encoder_process_dtable_update(nghttp3_qpack_encoder *encoder,
  */
 int nghttp3_qpack_encoder_write_set_dtable_cap(nghttp3_qpack_encoder *encoder,
                                                nghttp3_buf *ebuf, size_t cap);
-
-int nghttp3_qpack_context_dtable_set_dtable_cap(nghttp3_qpack_context *ctx,
-                                                size_t cap);
 
 /*
  * nghttp3_qpack_context_dtable_add adds |qnv| to dynamic table.  If
@@ -693,11 +716,34 @@ struct nghttp3_qpack_decoder {
   size_t written_icnt;
 };
 
+/*
+ * nghttp3_qpack_decoder_init initializes |decoder|.
+ * |max_dtable_size| is the maximum size of dynamic table.
+ * |max_blocked| is the maximum number of stream which can be blocked.
+ * |mem| is a memory allocator.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_decoder_init(nghttp3_qpack_decoder *decoder,
                                size_t max_dtable_size, size_t max_blocked,
                                nghttp3_mem *mem);
 
+/*
+ * nghttp3_qpack_decoder_free frees memory allocated for |decoder|.
+ * This function does not free memory pointed by |decoder|.
+ */
 void nghttp3_qpack_decoder_free(nghttp3_qpack_decoder *decoder);
+
+/*
+ * nghttp3_qpack_decoder_set_dtable_cap sets |cap| as maximum dynamic
+ * table size.
+ */
+void nghttp3_qpack_decoder_set_dtable_cap(nghttp3_qpack_decoder *decoder,
+                                          size_t cap);
 
 int nghttp3_qpack_decoder_dtable_indexed_add(nghttp3_qpack_decoder *decoder);
 
