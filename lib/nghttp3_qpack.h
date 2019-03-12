@@ -638,19 +638,50 @@ int nghttp3_qpack_encoder_dtable_literal_add(nghttp3_qpack_encoder *encoder,
                                              const nghttp3_nv *nv,
                                              int32_t token, uint32_t hash);
 
+/*
+ * nghttp3_qpack_context_dtable_get returns dynamic table entry whose
+ * absolute index is |absidx|.  This function assumes that such entry
+ * exists.
+ */
 nghttp3_qpack_entry *
 nghttp3_qpack_context_dtable_get(nghttp3_qpack_context *ctx, size_t absidx);
 
+/*
+ * nghttp3_qpack_context_dtable_top returns latest dynamic table
+ * entry.  This function assumes dynamic table is not empty.
+ */
 nghttp3_qpack_entry *
 nghttp3_qpack_context_dtable_top(nghttp3_qpack_context *ctx);
 
+/*
+ * nghttp3_qpack_entry_init initializes |ent|.  |qnv| is a header
+ * field.  |sum| is the sum of table space occupied by all entries
+ * inserted so far.  It does not include this entry.  |absidx| is an
+ * absolute index of this entry.  |hash| is a hash of header field
+ * name.  This function increases reference count of qnv->nv.name and
+ * qnv->nv.value.
+ */
 void nghttp3_qpack_entry_init(nghttp3_qpack_entry *ent, nghttp3_qpack_nv *qnv,
                               size_t sum, size_t absidx, uint32_t hash);
 
+/*
+ * nghttp3_qpack_entry_free frees memory allocated for |ent|.
+ */
 void nghttp3_qpack_entry_free(nghttp3_qpack_entry *ent);
 
+/*
+ * nghttp3_qpack_put_varint_len returns the required number of bytes
+ * to encode |n| with |prefix| bits.
+ */
 size_t nghttp3_qpack_put_varint_len(uint64_t n, size_t prefix);
 
+/*
+ * nghttp3_qpack_put_varint encodes |n| using variable integer
+ * encoding with |prefix| bits into |buf|.  This function assumes the
+ * buffer pointed by |buf| has enough space.  This function returns
+ * the one byte beyond the last write (buf +
+ * nghttp3_qpack_put_varint_len(n, prefix)).
+ */
 uint8_t *nghttp3_qpack_put_varint(uint8_t *buf, uint64_t n, size_t prefix);
 
 typedef enum {

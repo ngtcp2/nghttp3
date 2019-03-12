@@ -1321,6 +1321,11 @@ static uint32_t qpack_hash_name(const nghttp3_nv *nv) {
   return h;
 }
 
+/*
+ * qpack_encoder_decide_indexing_mode determines and returns indexing
+ * mode for header field |nv|.  |token| is a token of header field
+ * name.
+ */
 static nghttp3_qpack_indexing_mode
 qpack_encoder_decide_indexing_mode(nghttp3_qpack_encoder *encoder,
                                    const nghttp3_nv *nv, int32_t token) {
@@ -1355,6 +1360,11 @@ qpack_encoder_decide_indexing_mode(nghttp3_qpack_encoder *encoder,
   return NGHTTP3_QPACK_INDEXING_MODE_STORE;
 }
 
+/*
+ * qpack_encoder_can_index returns nonzero if an entry which occupies
+ * |need| bytes can be inserted into dynamic table.  |min_cnt| is the
+ * minimum insert count which blocked stream requires.
+ */
 static int qpack_encoder_can_index(nghttp3_qpack_encoder *encoder, size_t need,
                                    size_t min_cnt) {
   size_t avail = 0;
@@ -1397,12 +1407,23 @@ static int qpack_encoder_can_index(nghttp3_qpack_encoder *encoder, size_t need,
   return 0;
 }
 
+/*
+ * qpack_encoder_can_index_nv returns nonzero if header field |nv| can
+ * be inserted into dynamic table.  |min_cnt| is the minimum insert
+ * count which blocked stream requires.
+ */
 static int qpack_encoder_can_index_nv(nghttp3_qpack_encoder *encoder,
                                       const nghttp3_nv *nv, size_t min_cnt) {
   return qpack_encoder_can_index(
       encoder, table_space(nv->namelen, nv->valuelen), min_cnt);
 }
 
+/*
+ * qpack_encoder_can_index_duplicate returns nonzero if an entry at
+ * |absidx| in dynamic table can be inserted to dynamic table as
+ * duplicate.  |min_cnt| is the minimum insert count which blocked
+ * stream requires.
+ */
 static int qpack_encoder_can_index_duplicate(nghttp3_qpack_encoder *encoder,
                                              size_t absidx, size_t min_cnt) {
   nghttp3_qpack_entry *ent =
@@ -1412,6 +1433,10 @@ static int qpack_encoder_can_index_duplicate(nghttp3_qpack_encoder *encoder,
       encoder, table_space(ent->nv.name->len, ent->nv.value->len), min_cnt);
 }
 
+/*
+ * qpack_context_check_draining returns nonzero if an entry at
+ * |absidx| in dynamic table is one of draining entries.
+ */
 static int qpack_context_check_draining(nghttp3_qpack_context *ctx,
                                         size_t absidx) {
   const size_t safe =
@@ -2112,6 +2137,7 @@ nghttp3_qpack_context_dtable_get(nghttp3_qpack_context *ctx, size_t absidx) {
 
 nghttp3_qpack_entry *
 nghttp3_qpack_context_dtable_top(nghttp3_qpack_context *ctx) {
+  assert(nghttp3_ringbuf_len(&ctx->dtable));
   return *(nghttp3_qpack_entry **)nghttp3_ringbuf_get(&ctx->dtable, 0);
 }
 
