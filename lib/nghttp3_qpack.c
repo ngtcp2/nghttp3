@@ -921,14 +921,8 @@ static int max_cnt_greater(const nghttp3_ksl_key *lhs,
          (ls->max_cnt == rs->max_cnt && ls->me.key < rs->me.key);
 }
 
-static nghttp3_qpack_entry_ref inf_ref = {
-    NULL,
-    0,
-    0,
-};
-
 static nghttp3_qpack_stream inf_stream = {
-    {NGHTTP3_PQ_BAD_INDEX}, {NULL, UINT64_MAX}, &inf_ref, 0, 0,
+    {NGHTTP3_PQ_BAD_INDEX}, {NULL, UINT64_MAX}, NULL, 0, 0,
 };
 
 int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
