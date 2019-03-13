@@ -684,6 +684,8 @@ size_t nghttp3_qpack_put_varint_len(uint64_t n, size_t prefix);
  */
 uint8_t *nghttp3_qpack_put_varint(uint8_t *buf, uint64_t n, size_t prefix);
 
+/* nghttp3_qpack_encoder_stream_state is a set of states for encoder
+   stream decoding. */
 typedef enum {
   NGHTTP3_QPACK_ES_STATE_OPCODE,
   NGHTTP3_QPACK_ES_STATE_READ_INDEX,
@@ -697,6 +699,8 @@ typedef enum {
   NGHTTP3_QPACK_ES_STATE_READ_VALUE,
 } nghttp3_qpack_encoder_stream_state;
 
+/* nghttp3_qpack_encoder_stream_opcode is a set of opcodes used in
+   encoder stream. */
 typedef enum {
   NGHTTP3_QPACK_ES_OPCODE_INSERT_INDEXED,
   NGHTTP3_QPACK_ES_OPCODE_INSERT,
@@ -704,6 +708,8 @@ typedef enum {
   NGHTTP3_QPACK_ES_OPCODE_SET_DTABLE_CAP,
 } nghttp3_qpack_encoder_stream_opcode;
 
+/* nghttp3_qpack_request_stream_state is a set of states for request
+   stream decoding. */
 typedef enum {
   NGHTTP3_QPACK_RS_STATE_RICNT,
   NGHTTP3_QPACK_RS_STATE_DBASE_SIGN,
@@ -721,6 +727,8 @@ typedef enum {
   NGHTTP3_QPACK_RS_STATE_BLOCKED,
 } nghttp3_qpack_request_stream_state;
 
+/* nghttp3_qpack_request_stream_opcode is a set of opcodes used in
+   request stream. */
 typedef enum {
   NGHTTP3_QPACK_RS_OPCODE_INDEXED,
   NGHTTP3_QPACK_RS_OPCODE_INDEXED_PB,
@@ -776,14 +784,79 @@ void nghttp3_qpack_decoder_free(nghttp3_qpack_decoder *decoder);
 void nghttp3_qpack_decoder_set_dtable_cap(nghttp3_qpack_decoder *decoder,
                                           size_t cap);
 
+/*
+ * nghttp3_qpack_decoder_dtable_indexed_add adds entry received in
+ * Insert With Name Reference to dynamic table.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ * NGHTTP3_ERR_QPACK_ENCODER_STREAM
+ *     Space required for a decoded entry exceeds max dynamic table
+ *     size.
+ */
 int nghttp3_qpack_decoder_dtable_indexed_add(nghttp3_qpack_decoder *decoder);
 
+/*
+ * nghttp3_qpack_decoder_dtable_static_add adds entry received in
+ * Insert With Name Reference (static) to dynamic table.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ * NGHTTP3_ERR_QPACK_ENCODER_STREAM
+ *     Space required for a decoded entry exceeds max dynamic table
+ *     size.
+ */
 int nghttp3_qpack_decoder_dtable_static_add(nghttp3_qpack_decoder *decoder);
 
+/*
+ * nghttp3_qpack_decoder_dtable_dynamic_add adds entry received in
+ * Insert With Name Reference (dynamic) to dynamic table.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ * NGHTTP3_ERR_QPACK_ENCODER_STREAM
+ *     Space required for a decoded entry exceeds max dynamic table
+ *     size.
+ */
 int nghttp3_qpack_decoder_dtable_dynamic_add(nghttp3_qpack_decoder *decoder);
 
+/*
+ * nghttp3_qpack_decoder_dtable_duplicate_add adds entry received in
+ * Duplicate to dynamic table.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ * NGHTTP3_ERR_QPACK_ENCODER_STREAM
+ *     Space required for a decoded entry exceeds max dynamic table
+ *     size.
+ */
 int nghttp3_qpack_decoder_dtable_duplicate_add(nghttp3_qpack_decoder *decoder);
 
+/*
+ * nghttp3_qpack_decoder_dtable_literal_add adds entry received in
+ * Insert Without Name Reference to dynamic table.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ * NGHTTP3_ERR_QPACK_ENCODER_STREAM
+ *     Space required for a decoded entry exceeds max dynamic table
+ *     size.
+ */
 int nghttp3_qpack_decoder_dtable_literal_add(nghttp3_qpack_decoder *decoder);
 
 struct nghttp3_qpack_stream_context {
@@ -804,20 +877,71 @@ struct nghttp3_qpack_stream_context {
   int dbase_sign;
 };
 
+/*
+ * nghttp3_qpack_stream_context_init initializes |sctx|.
+ */
 void nghttp3_qpack_stream_context_init(nghttp3_qpack_stream_context *sctx,
                                        int64_t stream_id, nghttp3_mem *mem);
 
+/*
+ * nghttp3_qpack_stream_context_free frees memory allocated for
+ * |sctx|.  This function does not free memory pointed by |sctx|.
+ */
 void nghttp3_qpack_stream_context_free(nghttp3_qpack_stream_context *sctx);
 
-int nghttp3_qpack_decoder_compute_ricnt(nghttp3_qpack_decoder *decoder,
-                                        size_t *dest, size_t encricnt);
+/*
+ * nghttp3_qpack_decoder_reconstruct_ricnt reconstructs Required
+ * Insert Count from the encoded form |encricnt| and stores Required
+ * Insert Count in |*dest|.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED
+ *     Unable to reconstruct Required Insert Count.
+ */
+int nghttp3_qpack_decoder_reconstruct_ricnt(nghttp3_qpack_decoder *decoder,
+                                            size_t *dest, size_t encricnt);
 
+/*
+ * nghttp3_qpack_decoder_rel2abs converts relative index rstate->left
+ * received in encoder stream to absolute index and stores it in
+ * rstate->absidx.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_QPACK_ENCODER_STREAM
+ *     Relative index is invalid.
+ */
 int nghttp3_qpack_decoder_rel2abs(nghttp3_qpack_decoder *decoder,
                                   nghttp3_qpack_read_state *rstate);
 
+/*
+ * nghttp3_qpack_decoder_brel2abs converts Base relative index
+ * rstate->left received in request stream to absolute index and
+ * stores it in rstate->absidx.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED
+ *     Base relative index is invalid.
+ */
 int nghttp3_qpack_decoder_brel2abs(nghttp3_qpack_decoder *decoder,
                                    nghttp3_qpack_stream_context *sctx);
 
+/*
+ * nghttp3_qpack_decoder_pbrel2abs converts Post-Base relative index
+ * rstate->left received in request stream to absolute index and
+ * stores it in rstate->absidx.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED
+ *     Post-Base relative index is invalid.
+ */
 int nghttp3_qpack_decoder_pbrel2abs(nghttp3_qpack_decoder *decoder,
                                     nghttp3_qpack_stream_context *sctx);
 
@@ -833,6 +957,16 @@ void nghttp3_qpack_decoder_emit_literal(nghttp3_qpack_decoder *decoder,
                                         nghttp3_qpack_stream_context *sctx,
                                         nghttp3_qpack_nv *nv);
 
+/*
+ * nghttp3_qpack_decoder_write_header_ack writes Header
+ * Acknowledgement to |dbuf|.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *     Out of memory.
+ */
 int nghttp3_qpack_decoder_write_header_ack(
     nghttp3_qpack_decoder *decoder, nghttp3_buf *dbuf,
     const nghttp3_qpack_stream_context *sctx);

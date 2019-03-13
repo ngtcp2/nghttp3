@@ -716,7 +716,13 @@ NGHTTP3_EXTERN void nghttp3_qpack_decoder_del(nghttp3_qpack_decoder *decoder);
  * This function returns the number of bytes read, or one of the
  * following negative error codes:
  *
- * TBD
+ * :enum:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
+ * :enum:`NGHTTP3_ERR_QPACK_FATAL`
+ *     |decoder| is in unrecoverable error state and cannot be used
+ *     anymore.
+ * :enum:`NGHTTP3_ERR_QPACK_ENCODER_STREAM`
+ *     Could not interpret encoder stream instruction.
  */
 NGHTTP3_EXTERN ssize_t nghttp3_qpack_decoder_read_encoder(
     nghttp3_qpack_decoder *decoder, const uint8_t *src, size_t srclen);
@@ -784,7 +790,15 @@ typedef enum {
  * This function returns the number of bytes read, or one of the
  * following negative error codes:
  *
- * TBD
+ * :enum:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
+ * :enum:`NGHTTP3_ERR_QPACK_FATAL`
+ *     |decoder| is in unrecoverable error state and cannot be used
+ *     anymore.
+ * :enum:`NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED`
+ *     Could not interpret header block instruction.
+ * :enum:`NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE`
+ *     Header field is too large.
  */
 NGHTTP3_EXTERN ssize_t nghttp3_qpack_decoder_read_request(
     nghttp3_qpack_decoder *decoder, nghttp3_qpack_stream_context *sctx,
@@ -810,7 +824,6 @@ NGHTTP3_EXTERN ssize_t nghttp3_qpack_decoder_read_request(
  *
  * :enum:`NGHTTP3_ERR_NOMEM`
  *     Out of memory
- * TBD
  */
 NGHTTP3_EXTERN int
 nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
@@ -825,7 +838,8 @@ nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * TBD
+ * :enum:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
  */
 NGHTTP3_EXTERN int
 nghttp3_qpack_decoder_cancel_stream(nghttp3_qpack_decoder *decoder,

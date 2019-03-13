@@ -83,6 +83,22 @@ extern const nghttp3_qpack_huffman_decode_node qpack_huffman_decode_table[][16];
 void nghttp3_qpack_huffman_decode_context_init(
     nghttp3_qpack_huffman_decode_context *ctx);
 
+/*
+ * nghttp3_qpack_huffman_decode decodes huffman encoded byte string
+ * stored in |src| of length |srclen|.  |ctx| is a decoding context.
+ * |ctx| remembers the decoding state, and caller can call this
+ * function multiple times to feed each chunk of huffman encoded
+ * substring.  |fin| must be nonzero if |src| contains the last chunk
+ * of huffman string.  The decoded string is written to the buffer
+ * pointed by |dest|.  This function assumes that the buffer pointed
+ * by |dest| contains enough memory to store decoded byte string.
+ *
+ * This function returns the number of bytes written to |dest|, or one
+ * of the following negative error codes:
+ *
+ * NGHTTP3_ERR_QPACK_FATAL
+ *     Could not decode huffman string.
+ */
 ssize_t nghttp3_qpack_huffman_decode(nghttp3_qpack_huffman_decode_context *ctx,
                                      uint8_t *dest, const uint8_t *src,
                                      size_t srclen, int fin);
