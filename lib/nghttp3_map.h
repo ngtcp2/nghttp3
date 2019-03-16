@@ -46,7 +46,7 @@ typedef struct nghttp3_map_entry {
 
 typedef struct {
   nghttp3_map_entry **table;
-  nghttp3_mem *mem;
+  const nghttp3_mem *mem;
   size_t size;
   uint32_t tablelen;
 } nghttp3_map;
@@ -60,7 +60,7 @@ typedef struct {
  * NGHTTP3_ERR_NOMEM
  *   Out of memory
  */
-int nghttp3_map_init(nghttp3_map *map, nghttp3_mem *mem);
+int nghttp3_map_init(nghttp3_map *map, const nghttp3_mem *mem);
 
 /*
  * Deallocates any resources allocated for |map|. The stored entries

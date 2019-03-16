@@ -42,11 +42,33 @@ void nghttp3_buf_wrap_init(nghttp3_buf *buf, uint8_t *src, size_t len);
  */
 size_t nghttp3_buf_cap(const nghttp3_buf *buf);
 
-int nghttp3_buf_reserve(nghttp3_buf *buf, size_t size, nghttp3_mem *mem);
+int nghttp3_buf_reserve(nghttp3_buf *buf, size_t size, const nghttp3_mem *mem);
 
 /*
  * nghttp3_buf_swap swaps |a| and |b|.
  */
 void nghttp3_buf_swap(nghttp3_buf *a, nghttp3_buf *b);
+
+typedef enum {
+  /* NGHTTP3_BUF_TYPE_PRIVATE indicates that memory is allocated for
+     this buffer only and should be freed after its use. */
+  NGHTTP3_BUF_TYPE_PRIVATE,
+  /* NGHTTP3_BUF_TYPE_SHARED indicates that buffer points to shared
+     memory. */
+  NGHTTP3_BUF_TYPE_SHARED,
+  /* NGHTTP3_BUF_TYPE_ALIEN indicates that the buffer points to a
+     memory which comes from outside of the library. */
+  NGHTTP3_BUF_TYPE_ALIEN,
+} nghttp3_buf_type;
+
+typedef struct {
+  nghttp3_buf buf;
+  nghttp3_buf_type type;
+} nghttp3_typed_buf;
+
+void nghttp3_typed_buf_init(nghttp3_typed_buf *tbuf, const nghttp3_buf *buf,
+                            nghttp3_buf_type type);
+
+void nghttp3_typed_buf_free(nghttp3_typed_buf *tbuf);
 
 #endif /* NGHTTP3_BUF_H */

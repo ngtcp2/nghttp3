@@ -35,10 +35,11 @@
 
 /* Convenient wrapper functions to call allocator function in
    |mem|. */
-void *nghttp3_mem_malloc(nghttp3_mem *mem, size_t size);
-void nghttp3_mem_free(nghttp3_mem *mem, void *ptr);
-void nghttp3_mem_free2(nghttp3_free free_func, void *ptr, void *mem_user_data);
-void *nghttp3_mem_calloc(nghttp3_mem *mem, size_t nmemb, size_t size);
-void *nghttp3_mem_realloc(nghttp3_mem *mem, void *ptr, size_t size);
+void *nghttp3_mem_malloc(const nghttp3_mem *mem, size_t size);
+void nghttp3_mem_free(const nghttp3_mem *mem, void *ptr);
+void nghttp3_mem_free2(const nghttp3_free free_func, void *ptr,
+                       void *mem_user_data);
+void *nghttp3_mem_calloc(const nghttp3_mem *mem, size_t nmemb, size_t size);
+void *nghttp3_mem_realloc(const nghttp3_mem *mem, void *ptr, size_t size);
 
 #endif /* NGHTTP3_MEM_H */

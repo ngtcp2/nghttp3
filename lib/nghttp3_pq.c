@@ -30,7 +30,8 @@
 
 #include "nghttp3_macro.h"
 
-void nghttp3_pq_init(nghttp3_pq *pq, nghttp3_less less, nghttp3_mem *mem) {
+void nghttp3_pq_init(nghttp3_pq *pq, nghttp3_less less,
+                     const nghttp3_mem *mem) {
   pq->mem = mem;
   pq->capacity = 0;
   pq->q = NULL;

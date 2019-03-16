@@ -37,7 +37,7 @@
 typedef struct {
   /* buf points to the underlying buffer. */
   uint8_t *buf;
-  nghttp3_mem *mem;
+  const nghttp3_mem *mem;
   /* nmemb is the number of elements that can be stored in this ring
      buffer. */
   size_t nmemb;
@@ -61,7 +61,7 @@ typedef struct {
  *     Out of memory.
  */
 int nghttp3_ringbuf_init(nghttp3_ringbuf *rb, size_t nmemb, size_t size,
-                         nghttp3_mem *mem);
+                         const nghttp3_mem *mem);
 
 /*
  * nghttp3_ringbuf_free frees resources allocated for |rb|.  This

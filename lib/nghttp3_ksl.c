@@ -34,7 +34,7 @@
 #include "nghttp3_mem.h"
 
 int nghttp3_ksl_init(nghttp3_ksl *ksl, nghttp3_ksl_compar compar,
-                     const nghttp3_ksl_key *inf_key, nghttp3_mem *mem) {
+                     const nghttp3_ksl_key *inf_key, const nghttp3_mem *mem) {
   nghttp3_ksl_blk *head;
 
   ksl->head = nghttp3_mem_malloc(mem, sizeof(nghttp3_ksl_blk));
@@ -61,7 +61,7 @@ int nghttp3_ksl_init(nghttp3_ksl *ksl, nghttp3_ksl_compar compar,
 /*
  * free_blk frees |blk| recursively.
  */
-static void free_blk(nghttp3_ksl_blk *blk, nghttp3_mem *mem) {
+static void free_blk(nghttp3_ksl_blk *blk, const nghttp3_mem *mem) {
   size_t i;
 
   if (!blk->leaf) {

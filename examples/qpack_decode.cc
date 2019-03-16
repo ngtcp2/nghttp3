@@ -113,7 +113,7 @@ std::tuple<Headers, int> Decoder::read_request(Request &req) {
   uint8_t flags;
   Headers headers;
 
-  for (; nghttp3_buf_len(&req.buf);) {
+  for (;;) {
     auto nread = nghttp3_qpack_decoder_read_request(
         dec_, req.sctx, &nv, &flags, req.buf.pos, nghttp3_buf_len(&req.buf), 1);
     if (nread < 0) {

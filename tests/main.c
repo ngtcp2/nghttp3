@@ -33,6 +33,7 @@
 #include <CUnit/Basic.h>
 /* include test cases' include files here */
 #include "nghttp3_qpack_test.h"
+#include "nghttp3_conn_test.h"
 
 static int init_suite1(void) { return 0; }
 
@@ -61,7 +62,15 @@ int main() {
       !CU_add_test(pSuite, "qpack_encoder_set_dtable_cap",
                    test_nghttp3_qpack_encoder_set_dtable_cap) ||
       !CU_add_test(pSuite, "qpack_decoder_feedback",
-                   test_nghttp3_qpack_decoder_feedback)) {
+                   test_nghttp3_qpack_decoder_feedback) ||
+      !CU_add_test(pSuite, "conn_read_control",
+                   test_nghttp3_conn_read_control) ||
+      !CU_add_test(pSuite, "conn_write_control",
+                   test_nghttp3_conn_write_control) ||
+      !CU_add_test(pSuite, "conn_submit_request",
+                   test_nghttp3_conn_submit_request) ||
+      !CU_add_test(pSuite, "conn_http_request",
+                   test_nghttp3_conn_http_request)) {
     CU_cleanup_registry();
     return (int)CU_get_error();
   }

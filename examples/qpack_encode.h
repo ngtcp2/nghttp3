@@ -45,7 +45,7 @@ public:
              int64_t stream_id, const nghttp3_nv *nva, size_t len);
 
 private:
-  nghttp3_mem *mem_;
+  const nghttp3_mem *mem_;
   nghttp3_qpack_encoder *enc_;
   size_t max_dtable_size_;
   size_t max_blocked_;

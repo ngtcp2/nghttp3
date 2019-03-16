@@ -54,7 +54,7 @@ typedef struct {
   /* The pointer to the pointer to the item stored */
   nghttp3_pq_entry **q;
   /* Memory allocator */
-  nghttp3_mem *mem;
+  const nghttp3_mem *mem;
   /* The number of items stored */
   size_t length;
   /* The maximum number of items this pq can store. This is
@@ -67,7 +67,7 @@ typedef struct {
 /*
  * Initializes priority queue |pq| with compare function |cmp|.
  */
-void nghttp3_pq_init(nghttp3_pq *pq, nghttp3_less less, nghttp3_mem *mem);
+void nghttp3_pq_init(nghttp3_pq *pq, nghttp3_less less, const nghttp3_mem *mem);
 
 /*
  * Deallocates any resources allocated for |pq|.  The stored items are

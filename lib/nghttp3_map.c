@@ -32,7 +32,7 @@
 
 #define INITIAL_TABLE_LENGTH 256
 
-int nghttp3_map_init(nghttp3_map *map, nghttp3_mem *mem) {
+int nghttp3_map_init(nghttp3_map *map, const nghttp3_mem *mem) {
   map->mem = mem;
   map->tablelen = INITIAL_TABLE_LENGTH;
   map->table =

@@ -53,24 +53,25 @@ static void *default_realloc(void *ptr, size_t size, void *mem_user_data) {
 static nghttp3_mem mem_default = {NULL, default_malloc, default_free,
                                   default_calloc, default_realloc};
 
-nghttp3_mem *nghttp3_mem_default(void) { return &mem_default; }
+const nghttp3_mem *nghttp3_mem_default(void) { return &mem_default; }
 
-void *nghttp3_mem_malloc(nghttp3_mem *mem, size_t size) {
+void *nghttp3_mem_malloc(const nghttp3_mem *mem, size_t size) {
   return mem->malloc(size, mem->mem_user_data);
 }
 
-void nghttp3_mem_free(nghttp3_mem *mem, void *ptr) {
+void nghttp3_mem_free(const nghttp3_mem *mem, void *ptr) {
   mem->free(ptr, mem->mem_user_data);
 }
 
-void nghttp3_mem_free2(nghttp3_free free_func, void *ptr, void *mem_user_data) {
+void nghttp3_mem_free2(const nghttp3_free free_func, void *ptr,
+                       void *mem_user_data) {
   free_func(ptr, mem_user_data);
 }
 
-void *nghttp3_mem_calloc(nghttp3_mem *mem, size_t nmemb, size_t size) {
+void *nghttp3_mem_calloc(const nghttp3_mem *mem, size_t nmemb, size_t size) {
   return mem->calloc(nmemb, size, mem->mem_user_data);
 }
 
-void *nghttp3_mem_realloc(nghttp3_mem *mem, void *ptr, size_t size) {
+void *nghttp3_mem_realloc(const nghttp3_mem *mem, void *ptr, size_t size) {
   return mem->realloc(ptr, size, mem->mem_user_data);
 }

@@ -126,7 +126,7 @@ struct nghttp3_ksl {
   nghttp3_ksl_compar compar;
   nghttp3_ksl_key inf_key;
   size_t n;
-  nghttp3_mem *mem;
+  const nghttp3_mem *mem;
 };
 
 /*
@@ -140,7 +140,7 @@ struct nghttp3_ksl {
  *   Out of memory.
  */
 int nghttp3_ksl_init(nghttp3_ksl *ksl, nghttp3_ksl_compar compar,
-                     const nghttp3_ksl_key *inf_key, nghttp3_mem *mem);
+                     const nghttp3_ksl_key *inf_key, const nghttp3_mem *mem);
 
 /*
  * nghttp3_ksl_free frees resources allocated for |ksl|.  If |ksl| is

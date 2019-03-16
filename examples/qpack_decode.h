@@ -76,7 +76,7 @@ public:
   size_t get_num_blocked() const;
 
 private:
-  nghttp3_mem *mem_;
+  const nghttp3_mem *mem_;
   nghttp3_qpack_decoder *dec_;
   std::priority_queue<std::shared_ptr<Request>,
                       std::vector<std::shared_ptr<Request>>,

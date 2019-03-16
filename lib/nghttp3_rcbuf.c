@@ -31,7 +31,7 @@
 #include "nghttp3_str.h"
 
 int nghttp3_rcbuf_new(nghttp3_rcbuf **rcbuf_ptr, size_t size,
-                      nghttp3_mem *mem) {
+                      const nghttp3_mem *mem) {
   uint8_t *p;
 
   p = nghttp3_mem_malloc(mem, sizeof(nghttp3_rcbuf) + size);
@@ -51,7 +51,7 @@ int nghttp3_rcbuf_new(nghttp3_rcbuf **rcbuf_ptr, size_t size,
 }
 
 int nghttp3_rcbuf_new2(nghttp3_rcbuf **rcbuf_ptr, const uint8_t *src,
-                       size_t srclen, nghttp3_mem *mem) {
+                       size_t srclen, const nghttp3_mem *mem) {
   int rv;
 
   rv = nghttp3_rcbuf_new(rcbuf_ptr, srclen + 1, mem);

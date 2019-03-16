@@ -31,7 +31,7 @@
 #include "nghttp3_macro.h"
 
 int nghttp3_ringbuf_init(nghttp3_ringbuf *rb, size_t nmemb, size_t size,
-                         nghttp3_mem *mem) {
+                         const nghttp3_mem *mem) {
   assert(1 == __builtin_popcount((unsigned int)nmemb));
 
   rb->buf = nghttp3_mem_malloc(mem, nmemb * size);
@@ -109,12 +109,10 @@ int nghttp3_ringbuf_reserve(nghttp3_ringbuf *rb, size_t nmemb) {
     return 0;
   }
 
-  buf = nghttp3_mem_malloc(rb->mem, nmemb * rb->size);
+  buf = nghttp3_mem_realloc(rb->mem, rb->buf, nmemb * rb->size);
   if (buf == NULL) {
     return NGHTTP3_ERR_NOMEM;
   }
-
-  memcpy(buf, rb->buf, nmemb * rb->size);
 
   rb->buf = buf;
   rb->nmemb = nmemb;

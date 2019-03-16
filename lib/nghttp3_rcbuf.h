@@ -55,7 +55,8 @@ struct nghttp3_rcbuf {
  * NGHTTP3_ERR_NOMEM:
  *     Out of memory.
  */
-int nghttp3_rcbuf_new(nghttp3_rcbuf **rcbuf_ptr, size_t size, nghttp3_mem *mem);
+int nghttp3_rcbuf_new(nghttp3_rcbuf **rcbuf_ptr, size_t size,
+                      const nghttp3_mem *mem);
 
 /*
  * Like nghttp3_rcbuf_new(), but initializes the buffer with |src| of
@@ -71,7 +72,7 @@ int nghttp3_rcbuf_new(nghttp3_rcbuf **rcbuf_ptr, size_t size, nghttp3_mem *mem);
  *     Out of memory.
  */
 int nghttp3_rcbuf_new2(nghttp3_rcbuf **rcbuf_ptr, const uint8_t *src,
-                       size_t srclen, nghttp3_mem *mem);
+                       size_t srclen, const nghttp3_mem *mem);
 
 /*
  * Frees |rcbuf| itself, regardless of its reference cout.

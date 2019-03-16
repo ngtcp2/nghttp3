@@ -28,17 +28,12 @@
 
 #include "nghttp3_qpack.h"
 #include "nghttp3_macro.h"
-
-#define MAKE_NV(NAME, VALUE)                                                   \
-  {                                                                            \
-    (uint8_t *)(NAME), (uint8_t *)(VALUE), sizeof((NAME)) - 1,                 \
-        sizeof((VALUE)) - 1, NGHTTP3_NV_FLAG_NONE                              \
-  }
+#include "nghttp3_test_helper.h"
 
 static void check_decode_header(nghttp3_qpack_decoder *dec, nghttp3_buf *pbuf,
                                 nghttp3_buf *rbuf, nghttp3_buf *ebuf,
                                 int64_t stream_id, const nghttp3_nv *nva,
-                                size_t nvlen, nghttp3_mem *mem) {
+                                size_t nvlen, const nghttp3_mem *mem) {
   ssize_t nread;
   nghttp3_qpack_stream_context sctx;
   nghttp3_qpack_nv qnv;
@@ -95,7 +90,7 @@ static void check_decode_header(nghttp3_qpack_decoder *dec, nghttp3_buf *pbuf,
 
 static void decode_header_block(nghttp3_qpack_decoder *dec, nghttp3_buf *pbuf,
                                 nghttp3_buf *rbuf, int64_t stream_id,
-                                nghttp3_mem *mem) {
+                                const nghttp3_mem *mem) {
   ssize_t nread;
   nghttp3_qpack_stream_context sctx;
   nghttp3_qpack_nv qnv;
@@ -140,7 +135,7 @@ static void decode_header_block(nghttp3_qpack_decoder *dec, nghttp3_buf *pbuf,
 }
 
 void test_nghttp3_qpack_encoder_encode(void) {
-  nghttp3_mem *mem = nghttp3_mem_default();
+  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_qpack_encoder enc;
   nghttp3_qpack_decoder dec;
   nghttp3_nv nva[] = {
@@ -230,7 +225,7 @@ void test_nghttp3_qpack_encoder_encode(void) {
 }
 
 void test_nghttp3_qpack_encoder_still_blocked(void) {
-  nghttp3_mem *mem = nghttp3_mem_default();
+  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_qpack_encoder enc;
   nghttp3_nv nva1[] = {
       MAKE_NV(":status", "103"),
@@ -293,7 +288,7 @@ void test_nghttp3_qpack_encoder_still_blocked(void) {
 }
 
 void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
-  nghttp3_mem *mem = nghttp3_mem_default();
+  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_qpack_encoder enc;
   nghttp3_qpack_decoder dec;
   nghttp3_buf pbuf, rbuf, ebuf;
@@ -530,7 +525,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
 }
 
 void test_nghttp3_qpack_decoder_feedback(void) {
-  nghttp3_mem *mem = nghttp3_mem_default();
+  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_qpack_encoder enc;
   nghttp3_qpack_decoder dec;
   nghttp3_buf pbuf1, rbuf1, pbuf2, rbuf2, pbuf3, rbuf3, ebuf, dbuf;

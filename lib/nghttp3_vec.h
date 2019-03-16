@@ -2,8 +2,7 @@
  * nghttp3
  *
  * Copyright (c) 2019 nghttp3 contributors
- * Copyright (c) 2017 ngtcp2 contributors
- * Copyright (c) 2012 nghttp2 contributors
+ * Copyright (c) 2018 ngtcp2 contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -24,8 +23,8 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef NGHTTP3_STR_H
-#define NGHTTP3_STR_H
+#ifndef NGHTTP3_VEC_H
+#define NGHTTP3_VEC_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -33,8 +32,9 @@
 
 #include <nghttp3/nghttp3.h>
 
-uint8_t *nghttp3_cpymem(uint8_t *dest, const uint8_t *src, size_t n);
+/*
+ * nghttp3_vec_len returns the sum of length in |vec| of |n| elements.
+ */
+size_t nghttp3_vec_len(const nghttp3_vec *vec, size_t n);
 
-void nghttp3_downcase(uint8_t *s, size_t len);
-
-#endif /* NGHTTP3_STR_H */
+#endif /* NGHTTP3_VEC_H */

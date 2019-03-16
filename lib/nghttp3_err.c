@@ -44,3 +44,10 @@ const char *nghttp3_strerror(int liberr) {
     return "(unknown)";
   }
 }
+
+int nghttp3_err_malformed_frame(int64_t type) {
+  if (type > 0xfe) {
+    return NGHTTP3_ERR_HTTP_MALFORMED_FRAME - 0xff;
+  }
+  return NGHTTP3_ERR_HTTP_MALFORMED_FRAME - (int)type;
+}

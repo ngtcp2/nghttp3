@@ -2,8 +2,6 @@
  * nghttp3
  *
  * Copyright (c) 2019 nghttp3 contributors
- * Copyright (c) 2017 ngtcp2 contributors
- * Copyright (c) 2012 nghttp2 contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -24,17 +22,17 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef NGHTTP3_STR_H
-#define NGHTTP3_STR_H
+#ifndef NGHTTP3_TEST_HELPER
+#define NGHTTP3_TEST_HELPER
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif /* HAVE_CONFIG_H */
 
-#include <nghttp3/nghttp3.h>
+#define MAKE_NV(NAME, VALUE)                                                   \
+  {                                                                            \
+    (uint8_t *)(NAME), (uint8_t *)(VALUE), sizeof((NAME)) - 1,                 \
+        sizeof((VALUE)) - 1, NGHTTP3_NV_FLAG_NONE                              \
+  }
 
-uint8_t *nghttp3_cpymem(uint8_t *dest, const uint8_t *src, size_t n);
-
-void nghttp3_downcase(uint8_t *s, size_t len);
-
-#endif /* NGHTTP3_STR_H */
+#endif /* NGHTTP3_TEST_HELPER */

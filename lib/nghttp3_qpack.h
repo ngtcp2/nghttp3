@@ -41,6 +41,8 @@
 #include "nghttp3_qpack_huffman.h"
 
 #define NGHTTP3_QPACK_INT_MAX ((1ull << 62) - 1)
+#define NGHTTP3_QPACK_MAX_MAX_TABLE_CAPACITY ((1u << 30) - 1)
+#define NGHTTP3_QPACK_MAX_BLOCKED_STREAMS ((1u << 16) - 1)
 
 /* NGHTTP3_QPACK_MAX_NAMELEN is the maximum (compressed) length of
    header name this library can decode. */
@@ -135,13 +137,14 @@ typedef struct {
 
 void nghttp3_qpack_stream_init(nghttp3_qpack_stream *stream, int64_t stream_id);
 
-void nghttp3_qpack_stream_free(nghttp3_qpack_stream *stream, nghttp3_mem *mem);
+void nghttp3_qpack_stream_free(nghttp3_qpack_stream *stream,
+                               const nghttp3_mem *mem);
 
 void nghttp3_qpack_stream_add_ref(nghttp3_qpack_stream *stream,
                                   nghttp3_qpack_entry_ref *ref);
 
 void nghttp3_qpack_stream_pop_ref(nghttp3_qpack_stream *stream,
-                                  nghttp3_mem *mem);
+                                  const nghttp3_mem *mem);
 
 #define NGHTTP3_QPACK_ENTRY_OVERHEAD 32
 
@@ -149,7 +152,7 @@ typedef struct {
   /* dtable is a dynamic table */
   nghttp3_ringbuf dtable;
   /* mem is memory allocator */
-  nghttp3_mem *mem;
+  const nghttp3_mem *mem;
   /* dtable_size is abstracted buffer size of dtable as described in
      the spec. This is the sum of length of name/value in dtable +
      NGHTTP3_QPACK_ENTRY_OVERHEAD bytes overhead per each entry. */
@@ -274,7 +277,7 @@ struct nghttp3_qpack_encoder {
  */
 int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
                                size_t max_dtable_size, size_t max_blocked,
-                               nghttp3_mem *mem);
+                               const nghttp3_mem *mem);
 
 /*
  * nghttp3_qpack_encoder_free frees memory allocated for |encoder|.
@@ -769,7 +772,7 @@ struct nghttp3_qpack_decoder {
  */
 int nghttp3_qpack_decoder_init(nghttp3_qpack_decoder *decoder,
                                size_t max_dtable_size, size_t max_blocked,
-                               nghttp3_mem *mem);
+                               const nghttp3_mem *mem);
 
 /*
  * nghttp3_qpack_decoder_free frees memory allocated for |decoder|.
@@ -865,7 +868,7 @@ struct nghttp3_qpack_stream_context {
   /* rstate is a set of intermediate state which are used to process
      request stream. */
   nghttp3_qpack_read_state rstate;
-  nghttp3_mem *mem;
+  const nghttp3_mem *mem;
   /* opcode is a request stream opcode being processed. */
   nghttp3_qpack_request_stream_opcode opcode;
   int64_t stream_id;
@@ -881,13 +884,16 @@ struct nghttp3_qpack_stream_context {
  * nghttp3_qpack_stream_context_init initializes |sctx|.
  */
 void nghttp3_qpack_stream_context_init(nghttp3_qpack_stream_context *sctx,
-                                       int64_t stream_id, nghttp3_mem *mem);
+                                       int64_t stream_id,
+                                       const nghttp3_mem *mem);
 
 /*
  * nghttp3_qpack_stream_context_free frees memory allocated for
  * |sctx|.  This function does not free memory pointed by |sctx|.
  */
 void nghttp3_qpack_stream_context_free(nghttp3_qpack_stream_context *sctx);
+
+void nghttp3_qpack_stream_context_reset(nghttp3_qpack_stream_context *sctx);
 
 /*
  * nghttp3_qpack_decoder_reconstruct_ricnt reconstructs Required

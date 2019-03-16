@@ -46,7 +46,12 @@ OBJECTS = \
 	nghttp3_qpack_huffman.c \
 	nghttp3_qpack_huffman_data.c \
 	nghttp3_err.c \
-	nghttp3_debug.c
+	nghttp3_debug.c \
+	nghttp3_conn.c \
+	nghttp3_stream.c \
+	nghttp3_frame.c \
+	nghttp3_tnode.c \
+	nghttp3_vec.c
 HFILES = \
 	nghttp3_rcbuf.h \
 	nghttp3_mem.h \
@@ -60,7 +65,12 @@ HFILES = \
 	nghttp3_qpack.h \
 	nghttp3_qpack_huffman.h \
 	nghttp3_err.h \
-	nghttp3_debug.h
+	nghttp3_debug.h \
+	nghttp3_conn.h \
+	nghttp3_stream.h \
+	nghttp3_frame.h \
+	nghttp3_tnode.h \
+	nghttp3_vec.h
 
 libnghttp3_la_SOURCES = $(HFILES) $(OBJECTS)
 libnghttp3_la_LDFLAGS = -no-undefined \
