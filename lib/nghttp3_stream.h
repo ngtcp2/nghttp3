@@ -302,4 +302,10 @@ int nghttp3_stream_empty_headers_allowed(nghttp3_stream *stream);
  */
 int nghttp3_stream_uni(int64_t stream_id);
 
+/*
+ * nghttp3_client_stream_uni returns nonzero if stream identified by
+ * |stream_id| is client initiated bidirectional stream.
+ */
+int nghttp3_client_stream_bidi(int64_t stream_id);
+
 #endif /* NGHTTP3_STREAM_H */

@@ -967,3 +967,7 @@ int nghttp3_stream_empty_headers_allowed(nghttp3_stream *stream) {
 }
 
 int nghttp3_stream_uni(int64_t stream_id) { return (stream_id & 0x2) != 0; }
+
+int nghttp3_client_stream_bidi(int64_t stream_id) {
+  return (stream_id & 0x3) == 0;
+}
