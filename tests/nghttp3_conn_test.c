@@ -273,39 +273,17 @@ void test_nghttp3_conn_submit_request(void) {
 
   CU_ASSERT(0 == rv);
 
-  /* This will write QPACK encoder stream; just stream type */
+  /* This will write QPACK decoder stream; just stream type */
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(6 == stream_id);
+  CU_ASSERT(10 == stream_id);
   CU_ASSERT(1 == sveccnt);
-  CU_ASSERT(1 == nghttp3_ringbuf_len(&conn->tx.qenc->outq));
-  CU_ASSERT(0 == conn->tx.qenc->outq_idx);
-  CU_ASSERT(0 == conn->tx.qenc->outq_offset);
+  CU_ASSERT(1 == nghttp3_ringbuf_len(&conn->tx.qdec->outq));
+  CU_ASSERT(0 == conn->tx.qdec->outq_idx);
+  CU_ASSERT(0 == conn->tx.qdec->outq_offset);
 
   /* Calling twice will return the same result */
-  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
-                                       nghttp3_arraylen(vec));
-
-  CU_ASSERT(6 == stream_id);
-  CU_ASSERT(1 == sveccnt);
-
-  rv = nghttp3_conn_add_write_offset(conn, 6, vec[0].len);
-
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(1 == nghttp3_ringbuf_len(&conn->tx.qenc->outq));
-  CU_ASSERT(0 == conn->tx.qenc->outq_idx);
-  CU_ASSERT(vec[0].len == conn->tx.qenc->outq_offset);
-
-  rv = nghttp3_conn_add_ack_offset(conn, 6, vec[0].len);
-
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(0 == nghttp3_ringbuf_len(&conn->tx.qenc->outq));
-  CU_ASSERT(0 == conn->tx.qenc->outq_idx);
-  CU_ASSERT(0 == conn->tx.qenc->outq_offset);
-  CU_ASSERT(0 == conn->tx.qenc->ack_offset);
-
-  /* This will write QPACK decoder stream; just stream type */
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
@@ -315,8 +293,30 @@ void test_nghttp3_conn_submit_request(void) {
   rv = nghttp3_conn_add_write_offset(conn, 10, vec[0].len);
 
   CU_ASSERT(0 == rv);
+  CU_ASSERT(1 == nghttp3_ringbuf_len(&conn->tx.qdec->outq));
+  CU_ASSERT(0 == conn->tx.qdec->outq_idx);
+  CU_ASSERT(vec[0].len == conn->tx.qdec->outq_offset);
 
   rv = nghttp3_conn_add_ack_offset(conn, 10, vec[0].len);
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(0 == nghttp3_ringbuf_len(&conn->tx.qdec->outq));
+  CU_ASSERT(0 == conn->tx.qdec->outq_idx);
+  CU_ASSERT(0 == conn->tx.qdec->outq_offset);
+  CU_ASSERT(0 == conn->tx.qdec->ack_offset);
+
+  /* This will write QPACK encoder stream; just stream type */
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(6 == stream_id);
+  CU_ASSERT(1 == sveccnt);
+
+  rv = nghttp3_conn_add_write_offset(conn, 6, vec[0].len);
+
+  CU_ASSERT(0 == rv);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 6, vec[0].len);
 
   CU_ASSERT(0 == rv);
 

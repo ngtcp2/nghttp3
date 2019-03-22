@@ -1210,17 +1210,17 @@ ssize_t nghttp3_conn_writev_stream(nghttp3_conn *conn, int64_t *pstream_id,
     }
   }
 
-  if (conn->tx.qenc && !nghttp3_stream_is_blocked(conn->tx.qenc)) {
+  if (conn->tx.qdec && !nghttp3_stream_is_blocked(conn->tx.qdec)) {
     ncnt =
-        conn_writev_stream(conn, pstream_id, pfin, vec, veccnt, conn->tx.qenc);
+        conn_writev_stream(conn, pstream_id, pfin, vec, veccnt, conn->tx.qdec);
     if (ncnt) {
       return ncnt;
     }
   }
 
-  if (conn->tx.qdec && !nghttp3_stream_is_blocked(conn->tx.qdec)) {
+  if (conn->tx.qenc && !nghttp3_stream_is_blocked(conn->tx.qenc)) {
     ncnt =
-        conn_writev_stream(conn, pstream_id, pfin, vec, veccnt, conn->tx.qdec);
+        conn_writev_stream(conn, pstream_id, pfin, vec, veccnt, conn->tx.qenc);
     if (ncnt) {
       return ncnt;
     }
