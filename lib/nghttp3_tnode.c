@@ -70,29 +70,41 @@ void nghttp3_tnode_unschedule(nghttp3_tnode *tnode) {
   tnode->pe.index = NGHTTP3_PQ_BAD_INDEX;
 }
 
+static int tnode_schedule(nghttp3_tnode *tnode, nghttp3_tnode *parent,
+                          uint64_t base_cycle, size_t nwrite) {
+  uint64_t penalty =
+      (uint64_t)nwrite * NGHTTP3_MAX_WEIGHT + tnode->pending_penalty;
+
+  tnode->cycle = base_cycle + penalty / tnode->weight;
+  tnode->pending_penalty = (uint32_t)(penalty % tnode->weight);
+
+  return nghttp3_pq_push(&parent->pq, &tnode->pe);
+}
+
 int nghttp3_tnode_schedule(nghttp3_tnode *tnode, size_t nwrite) {
   nghttp3_tnode *parent = tnode->parent, *top;
   uint64_t cycle;
-  uint64_t penalty;
 
   /* TODO At the moment, we use single level dependency.  All streams
      depend on root. */
 
-  assert(tnode->pe.index == NGHTTP3_PQ_BAD_INDEX);
-
-  if (!nghttp3_pq_empty(&parent->pq)) {
-    top = nghttp3_struct_of(nghttp3_pq_top(&parent->pq), nghttp3_tnode, pe);
-    cycle = top->cycle;
+  if (tnode->pe.index == NGHTTP3_PQ_BAD_INDEX) {
+    if (!nghttp3_pq_empty(&parent->pq)) {
+      top = nghttp3_struct_of(nghttp3_pq_top(&parent->pq), nghttp3_tnode, pe);
+      cycle = top->cycle;
+    } else {
+      cycle = 0;
+    }
   } else {
     cycle = tnode->cycle;
+    nghttp3_tnode_unschedule(tnode);
   }
 
-  penalty = (uint64_t)nwrite * NGHTTP3_MAX_WEIGHT + tnode->pending_penalty;
+  return tnode_schedule(tnode, parent, cycle, nwrite);
+}
 
-  tnode->cycle = cycle + penalty / tnode->weight;
-  tnode->pending_penalty = (uint32_t)(penalty % tnode->weight);
-
-  return nghttp3_pq_push(&parent->pq, &tnode->pe);
+int nghttp3_tnode_is_scheduled(nghttp3_tnode *tnode) {
+  return tnode->pe.index != NGHTTP3_PQ_BAD_INDEX;
 }
 
 nghttp3_tnode *nghttp3_tnode_get_next(nghttp3_tnode *node) {

@@ -1391,6 +1391,8 @@ int nghttp3_conn_block_stream(nghttp3_conn *conn, int64_t stream_id) {
 
   stream->flags |= NGHTTP3_STREAM_FLAG_FC_BLOCKED;
 
+  nghttp3_stream_unschedule(stream);
+
   return 0;
 }
 
@@ -1403,7 +1405,11 @@ int nghttp3_conn_unblock_stream(nghttp3_conn *conn, int64_t stream_id) {
 
   stream->flags &= (uint16_t)~NGHTTP3_STREAM_FLAG_FC_BLOCKED;
 
-  return 0;
+  if (nghttp3_stream_is_blocked(stream)) {
+    return 0;
+  }
+
+  return nghttp3_stream_ensure_scheduled(stream);
 }
 
 int nghttp3_conn_resume_stream(nghttp3_conn *conn, int64_t stream_id) {
@@ -1415,7 +1421,11 @@ int nghttp3_conn_resume_stream(nghttp3_conn *conn, int64_t stream_id) {
 
   stream->flags &= (uint16_t)~NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED;
 
-  return 0;
+  if (nghttp3_stream_is_blocked(stream)) {
+    return 0;
+  }
+
+  return nghttp3_stream_ensure_scheduled(stream);
 }
 
 int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id) {

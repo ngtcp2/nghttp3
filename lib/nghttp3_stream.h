@@ -268,7 +268,19 @@ int nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n);
 
 int nghttp3_stream_add_ack_offset(nghttp3_stream *stream, size_t n);
 
+/*
+ * nghttp3_stream_schedule schedules |stream|.  This function works
+ * whether |stream| has already been scheduled or not.  If it has been
+ * scheduled already, it is rescheduled by delaying its pending
+ * penalty.
+ */
 int nghttp3_stream_schedule(nghttp3_stream *stream);
+
+/*
+ * nghttp3_stream_ensure_scheduled schedules |stream| if it has not
+ * been scheduled.
+ */
+int nghttp3_stream_ensure_scheduled(nghttp3_stream *stream);
 
 void nghttp3_stream_unschedule(nghttp3_stream *stream);
 

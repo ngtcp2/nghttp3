@@ -68,14 +68,16 @@ void nghttp3_tnode_free(nghttp3_tnode *tnode);
 void nghttp3_tnode_unschedule(nghttp3_tnode *tnode);
 
 /*
- * nghttp3_tnode_schedule schedules |node|.
- *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * TBD
+ * nghttp3_tnode_schedule schedules |tnode| using |nwrite| as penalty.
+ * If |tnode| has already been scheduled, it is rescheduled by the
+ * amount of |nwrite|.
  */
 int nghttp3_tnode_schedule(nghttp3_tnode *tnode, size_t nwrite);
+
+/*
+ * nghttp3_tnode_is_scheduled returns nonzero if |tnode| is scheduled.
+ */
+int nghttp3_tnode_is_scheduled(nghttp3_tnode *tnode);
 
 /*
  * nghttp3_tnode_get_next returns node which has highest priority.

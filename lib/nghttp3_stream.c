@@ -758,8 +758,6 @@ int nghttp3_stream_add_ack_offset(nghttp3_stream *stream, size_t n) {
 int nghttp3_stream_schedule(nghttp3_stream *stream) {
   int rv;
 
-  nghttp3_tnode_unschedule(&stream->node);
-
   rv = nghttp3_tnode_schedule(&stream->node, stream->unscheduled_nwrite);
   if (rv != 0) {
     return rv;
@@ -768,6 +766,14 @@ int nghttp3_stream_schedule(nghttp3_stream *stream) {
   stream->unscheduled_nwrite = 0;
 
   return 0;
+}
+
+int nghttp3_stream_ensure_scheduled(nghttp3_stream *stream) {
+  if (nghttp3_tnode_is_scheduled(&stream->node)) {
+    return 0;
+  }
+
+  return nghttp3_stream_schedule(stream);
 }
 
 void nghttp3_stream_unschedule(nghttp3_stream *stream) {
