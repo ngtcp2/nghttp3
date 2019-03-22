@@ -950,7 +950,9 @@ NGHTTP3_EXTERN void nghttp3_set_debug_vprintf_callback(
 struct nghttp3_conn;
 typedef struct nghttp3_conn nghttp3_conn;
 
-/*
+/**
+ * @functypedef
+ *
  * :type:`nghttp3_acked_stream_data` is a callback function which is
  * invoked when data sent on stream denoted by |stream_id| supplied
  * from application is acknowledged by remote endpoint.  The number of
@@ -965,7 +967,9 @@ typedef int (*nghttp3_acked_stream_data)(nghttp3_conn *conn, int64_t stream_id,
                                          size_t datalen, void *stream_user_data,
                                          void *user_data);
 
-/*
+/**
+ * @functypedef
+ *
  * :type:`nghttp3_conn_stream_close` is a callback function which is
  * invoked when a stream identified by |stream_id| is closed.
  *
@@ -1192,7 +1196,9 @@ typedef union {
   nghttp3_frame_duplicate_push duplicate_push;
 } nghttp3_frame;
 
-/*
+/**
+ * @function
+ *
  * nghttp3_conn_read_stream reads data |src| of length |srclen| on
  * stream identified by |stream_id|.  It returns the number of bytes
  * consumed.  The "consumed" means that application can increase flow
