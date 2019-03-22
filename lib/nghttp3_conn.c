@@ -620,15 +620,13 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
 ssize_t nghttp3_conn_read_qpack_encoder(nghttp3_conn *conn, const uint8_t *src,
                                         size_t srclen) {
   ssize_t nread = nghttp3_qpack_decoder_read_encoder(&conn->qdec, src, srclen);
-  size_t nconsumed = 0;
   nghttp3_stream *stream;
   nghttp3_buf *buf;
+  int rv;
 
   if (nread < 0) {
     return nread;
   }
-
-  nconsumed += (size_t)nread;
 
   for (; !nghttp3_pq_empty(&conn->qpack_blocked_streams);) {
     stream = nghttp3_struct_of(nghttp3_pq_top(&conn->qpack_blocked_streams),
@@ -653,7 +651,15 @@ ssize_t nghttp3_conn_read_qpack_encoder(nghttp3_conn *conn, const uint8_t *src,
       }
 
       buf->pos += nread;
-      nconsumed += (size_t)nread;
+
+      if (conn->callbacks.deferred_consume) {
+        rv = conn->callbacks.deferred_consume(conn, stream->stream_id,
+                                              (size_t)nread, stream->user_data,
+                                              conn->user_data);
+        if (rv != 0) {
+          return NGHTTP3_ERR_CALLBACK_FAILURE;
+        }
+      }
 
       if (nghttp3_buf_len(buf) == 0) {
         nghttp3_buf_free(buf, stream->mem);
@@ -666,7 +672,7 @@ ssize_t nghttp3_conn_read_qpack_encoder(nghttp3_conn *conn, const uint8_t *src,
     }
   }
 
-  return (ssize_t)nconsumed;
+  return nread;
 }
 
 ssize_t nghttp3_conn_read_qpack_decoder(nghttp3_conn *conn, const uint8_t *src,

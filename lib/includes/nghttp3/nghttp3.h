@@ -981,6 +981,23 @@ typedef int (*nghttp3_recv_data)(nghttp3_conn *conn, int64_t stream_id,
                                  const uint8_t *data, size_t datalen,
                                  void *stream_user_data, void *user_data);
 
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_deferred_consume` is a callback function which is
+ * invoked when the library consumed |consumed| bytes for a stream
+ * identified by |stream_id|.  This callback is used to notify the
+ * consumed bytes for stream blocked by QPACK decoder.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
+typedef int (*nghttp3_deferred_consume)(nghttp3_conn *conn, int64_t stream_id,
+                                        size_t consumed, void *stream_user_data,
+                                        void *user_data);
+
 typedef enum {
   NGHTTP3_HEADERS_TYPE_NONE,
   NGHTTP3_HEADERS_TYPE_HEADER,
@@ -1004,6 +1021,7 @@ typedef struct {
   nghttp3_acked_stream_data acked_stream_data;
   nghttp3_stream_close stream_close;
   nghttp3_recv_data recv_data;
+  nghttp3_deferred_consume deferred_consume;
   nghttp3_begin_headers begin_headers;
   nghttp3_recv_header recv_header;
   nghttp3_end_headers end_headers;
@@ -1178,9 +1196,8 @@ typedef union {
  * nghttp3_conn_read_stream reads data |src| of length |srclen| on
  * stream identified by |stream_id|.  It returns the number of bytes
  * consumed.  The "consumed" means that application can increase flow
- * control credit of underlying QUIC connection by that amount.  The
- * return value might be larger than |srclen| because we might have
- * buffered, unprocessed data.  If |fin| is nonzero, this is the last
+ * control credit (both stream and connection) of underlying QUIC
+ * connection by that amount.  If |fin| is nonzero, this is the last
  * data from remote endpoint in this stream.
  */
 NGHTTP3_EXTERN ssize_t nghttp3_conn_read_stream(nghttp3_conn *conn,
