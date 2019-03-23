@@ -167,6 +167,9 @@ typedef struct {
   size_t hard_max_dtable_size;
   /* dtable_size is the effective maximum size of dynamic table. */
   size_t max_dtable_size;
+  /* max_blocked is the maximum number of stream which can be
+     blocked. */
+  size_t max_blocked;
   /* next_absidx is the next absolute index for nghttp3_qpack_entry.
      It is equivalent to insert count. */
   size_t next_absidx;
@@ -241,9 +244,6 @@ struct nghttp3_qpack_encoder {
      min_cnt to know that an entry can be evicted from dynamic
      table.  */
   nghttp3_pq refsq;
-  /* max_blocked is the maximum number of stream which can be
-     blocked. */
-  size_t max_blocked;
   /* krcnt is Known Received Count. */
   size_t krcnt;
   /* state is a current state of reading decoder stream. */
@@ -742,9 +742,6 @@ typedef enum {
 
 struct nghttp3_qpack_decoder {
   nghttp3_qpack_context ctx;
-  /* max_blocked is the maximum number of stream which can be
-     blocked. */
-  size_t max_blocked;
   /* state is a current state of reading encoder stream. */
   nghttp3_qpack_encoder_stream_state state;
   /* opcode is an encoder stream opcode being processed. */
