@@ -265,6 +265,9 @@ int nghttp3_stream_write_data(nghttp3_stream *stream,
 int nghttp3_stream_write_settings(nghttp3_stream *stream,
                                   nghttp3_frame_entry *frent);
 
+int nghttp3_stream_write_priority(nghttp3_stream *stream,
+                                  nghttp3_frame_entry *frent);
+
 int nghttp3_stream_ensure_chunk(nghttp3_stream *stream, size_t need);
 
 nghttp3_buf *nghttp3_stream_get_chunk(nghttp3_stream *stream);

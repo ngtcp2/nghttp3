@@ -1346,12 +1346,25 @@ typedef int (*nghttp3_read_data_callback)(nghttp3_conn *conn, int64_t stream_id,
                                           void *user_data);
 
 typedef struct {
+  nghttp3_elem_dep_type elem_dep_type;
+  int64_t elem_dep_id;
+  uint32_t weight;
+} nghttp3_priority;
+
+NGHTTP3_EXTERN nghttp3_priority *
+nghttp3_priority_init(nghttp3_priority *pri,
+                      nghttp3_elem_dep_type elem_dep_type, int64_t elem_dep_id,
+                      uint32_t weight);
+
+typedef struct {
   nghttp3_read_data_callback read_data;
 } nghttp3_data_reader;
 
-NGHTTP3_EXTERN int nghttp3_conn_submit_request(
-    nghttp3_conn *conn, int64_t stream_id, const nghttp3_nv *nva, size_t nvlen,
-    const nghttp3_data_reader *dr, void *stream_user_data);
+NGHTTP3_EXTERN int
+nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
+                            const nghttp3_priority *pri, const nghttp3_nv *nva,
+                            size_t nvlen, const nghttp3_data_reader *dr,
+                            void *stream_user_data);
 
 NGHTTP3_EXTERN int nghttp3_conn_submit_push_promise(nghttp3_conn *conn,
                                                     int64_t *ppush_id,

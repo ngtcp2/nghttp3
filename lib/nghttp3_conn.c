@@ -1597,11 +1597,13 @@ static int conn_submit_headers_data(nghttp3_conn *conn, nghttp3_stream *stream,
 }
 
 int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
+                                const nghttp3_priority *pri,
                                 const nghttp3_nv *nva, size_t nvlen,
                                 const nghttp3_data_reader *dr,
                                 void *stream_user_data) {
   nghttp3_stream *stream;
   int rv;
+  nghttp3_frame_entry frent;
 
   assert(conn->tx.qenc);
 
@@ -1613,6 +1615,28 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
   /* TODO Check GOAWAY last stream ID */
   if (nghttp3_stream_uni(stream_id)) {
     return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  if (pri != NULL) {
+    if (pri->weight < 1 || 256 < pri->weight) {
+      return NGHTTP3_ERR_INVALID_ARGUMENT;
+    }
+
+    switch (pri->elem_dep_type) {
+    case NGHTTP3_ELEM_DEP_TYPE_REQUEST:
+      if (pri->elem_dep_id >= stream_id) {
+        return NGHTTP3_ERR_INVALID_ARGUMENT;
+      }
+      break;
+    case NGHTTP3_ELEM_DEP_TYPE_PLACEHOLDER:
+      if ((uint64_t)pri->elem_dep_id >=
+          conn->remote.settings.num_placeholders) {
+        return NGHTTP3_ERR_INVALID_ARGUMENT;
+      }
+      break;
+    default:
+      break;
+    }
   }
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
@@ -1627,6 +1651,19 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
   stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_END;
   stream->user_data = stream_user_data;
+
+  if (pri) {
+    frent.fr.hd.type = NGHTTP3_FRAME_PRIORITY;
+    frent.fr.priority.pt = NGHTTP3_PRI_ELEM_TYPE_CURRENT;
+    frent.fr.priority.dt = pri->elem_dep_type;
+    frent.fr.priority.pri_elem_id = 0;
+    frent.fr.priority.elem_dep_id = pri->elem_dep_id;
+
+    rv = nghttp3_stream_frq_add(stream, &frent);
+    if (rv != 0) {
+      return rv;
+    }
+  }
 
   return conn_submit_headers_data(conn, stream, nva, nvlen, dr);
 }
@@ -1779,4 +1816,14 @@ int nghttp3_placeholder_new(nghttp3_placeholder **pph, int64_t ph_id,
 
 void nghttp3_placeholder_del(nghttp3_placeholder *ph, const nghttp3_mem *mem) {
   nghttp3_mem_free(mem, ph);
+}
+
+nghttp3_priority *nghttp3_priority_init(nghttp3_priority *pri,
+                                        nghttp3_elem_dep_type type,
+                                        int64_t elem_dep_id, uint32_t weight) {
+  pri->elem_dep_type = type;
+  pri->elem_dep_id = elem_dep_id;
+  pri->weight = weight;
+
+  return pri;
 }

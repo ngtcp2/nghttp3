@@ -241,6 +241,7 @@ void test_nghttp3_conn_submit_request(void) {
   userdata ud;
   nghttp3_data_reader dr;
   int fin;
+  nghttp3_priority pri;
 
   memset(&callbacks, 0, sizeof(callbacks));
   memset(&ud, 0, sizeof(ud));
@@ -264,8 +265,9 @@ void test_nghttp3_conn_submit_request(void) {
   CU_ASSERT(NGHTTP3_STREAM_TYPE_QPACK_DECODER == conn->tx.qdec->type);
 
   dr.read_data = step_read_data;
-  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr,
-                                   NULL);
+  rv = nghttp3_conn_submit_request(
+      conn, 0, nghttp3_priority_init(&pri, NGHTTP3_ELEM_DEP_TYPE_ROOT, 0, 256),
+      nva, nghttp3_arraylen(nva), &dr, NULL);
 
   CU_ASSERT(0 == rv);
 
@@ -400,8 +402,8 @@ void test_nghttp3_conn_http_request(void) {
   nghttp3_conn_bind_qpack_streams(sv, 7, 11);
 
   dr.read_data = step_read_data;
-  rv = nghttp3_conn_submit_request(cl, 0, reqnva, nghttp3_arraylen(reqnva), &dr,
-                                   NULL);
+  rv = nghttp3_conn_submit_request(cl, 0, NULL, reqnva,
+                                   nghttp3_arraylen(reqnva), &dr, NULL);
 
   CU_ASSERT(0 == rv);
 
