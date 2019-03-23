@@ -34,5 +34,6 @@ void test_nghttp3_conn_write_control(void);
 void test_nghttp3_conn_submit_request(void);
 void test_nghttp3_conn_http_request(void);
 void test_nghttp3_conn_recv_request_priority(void);
+void test_nghttp3_conn_recv_control_priority(void);
 
 #endif /* NGTCP2_CONN_TEST_H */

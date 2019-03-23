@@ -99,6 +99,11 @@ nghttp3_placeholder *nghttp3_conn_find_placeholder(nghttp3_conn *conn,
 int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
                                int64_t stream_id);
 
+int nghttp3_conn_create_stream_dependency(nghttp3_conn *conn,
+                                          nghttp3_stream **pstream,
+                                          int64_t stream_id, uint32_t weight,
+                                          nghttp3_tnode *parent);
+
 int nghttp3_conn_create_placeholder(nghttp3_conn *conn,
                                     nghttp3_placeholder **pph, int64_t ph_id,
                                     uint32_t weight, nghttp3_tnode *parent);
@@ -122,6 +127,9 @@ ssize_t nghttp3_conn_read_qpack_decoder(nghttp3_conn *conn, const uint8_t *src,
                                         size_t srclen);
 
 int nghttp3_conn_on_request_priority(nghttp3_conn *conn, nghttp3_stream *stream,
+                                     const nghttp3_frame_priority *fr);
+
+int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
                                      const nghttp3_frame_priority *fr);
 
 int nghttp3_conn_on_data(nghttp3_conn *conn, nghttp3_stream *stream,

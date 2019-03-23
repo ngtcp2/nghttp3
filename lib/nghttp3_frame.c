@@ -126,7 +126,7 @@ size_t nghttp3_frame_write_priority_len(size_t *ppayloadlen,
   size_t payloadlen = 2;
 
   switch (fr->pt) {
-  case NGHTTP3_PRI_ELEM_TYPE_REQUSET:
+  case NGHTTP3_PRI_ELEM_TYPE_REQUEST:
   case NGHTTP3_PRI_ELEM_TYPE_PUSH:
   case NGHTTP3_PRI_ELEM_TYPE_PLACEHOLDER:
     payloadlen += nghttp3_put_varint_len(fr->pri_elem_id);

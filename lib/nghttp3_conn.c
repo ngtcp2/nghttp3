@@ -440,7 +440,10 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
 
       switch (rstate->fr.hd.type) {
       case NGHTTP3_FRAME_PRIORITY:
-        if (rstate->left == 0) {
+        if (!conn->server) {
+          return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+        }
+        if (rstate->left < 3) {
           return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
         }
         rstate->state = NGHTTP3_CTRL_STREAM_STATE_PRIORITY;
@@ -484,8 +487,99 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       }
       break;
     case NGHTTP3_CTRL_STREAM_STATE_PRIORITY:
-      /* TODO Not implemented yet */
-      rstate->state = NGHTTP3_CTRL_STREAM_STATE_IGN_FRAME;
+      if (nghttp3_frame_pri_elem_type(*p) == NGHTTP3_PRI_ELEM_TYPE_CURRENT) {
+        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+      }
+      rstate->fr.priority.pt = nghttp3_frame_pri_elem_type(*p);
+      rstate->fr.priority.dt = nghttp3_frame_elem_dep_type(*p);
+
+      ++p;
+      ++nconsumed;
+      --rstate->left;
+
+      rstate->state = NGHTTP3_CTRL_STREAM_STATE_PRIORITY_PRI_ELEM_ID;
+      if (p == end) {
+        return (ssize_t)nconsumed;
+      }
+      /* Fall through */
+    case NGHTTP3_CTRL_STREAM_STATE_PRIORITY_PRI_ELEM_ID:
+      len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
+      nread = nghttp3_read_varint(rvint, p, (size_t)(end - p),
+                                  (int64_t)len == rstate->left);
+      if (nread < 0) {
+        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+      }
+
+      p += nread;
+      nconsumed += (size_t)nread;
+      rstate->left -= nread;
+      if (rvint->left) {
+        return (ssize_t)nconsumed;
+      }
+
+      rstate->fr.priority.pri_elem_id = rvint->acc;
+      nghttp3_varint_read_state_reset(rvint);
+
+      if (rstate->fr.priority.dt == NGHTTP3_ELEM_DEP_TYPE_ROOT) {
+        if (rstate->left != 1) {
+          return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+        }
+        rstate->state = NGHTTP3_CTRL_STREAM_STATE_PRIORITY_WEIGHT;
+        break;
+      }
+
+      if (rstate->left < 2) {
+        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+      }
+
+      rstate->state = NGHTTP3_CTRL_STREAM_STATE_PRIORITY_ELEM_DEP_ID;
+
+      if (p == end) {
+        return (ssize_t)nconsumed;
+      }
+      /* Fall through */
+    case NGHTTP3_CTRL_STREAM_STATE_PRIORITY_ELEM_DEP_ID:
+      len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
+      nread = nghttp3_read_varint(rvint, p, (size_t)(end - p),
+                                  (int64_t)len == rstate->left);
+      if (nread < 0) {
+        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+      }
+
+      p += nread;
+      nconsumed += (size_t)nread;
+      rstate->left -= nread;
+      if (rvint->left) {
+        return (ssize_t)nconsumed;
+      }
+
+      rstate->fr.priority.elem_dep_id = rvint->acc;
+      nghttp3_varint_read_state_reset(rvint);
+
+      if (rstate->left != 1) {
+        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+      }
+
+      rstate->state = NGHTTP3_CTRL_STREAM_STATE_PRIORITY_WEIGHT;
+      if (p == end) {
+        return (ssize_t)nconsumed;
+      }
+      /* Fall through */
+    case NGHTTP3_CTRL_STREAM_STATE_PRIORITY_WEIGHT:
+      assert(p != end);
+      assert(rstate->left == 1);
+
+      rstate->fr.priority.weight = (uint32_t)(*p) + 1;
+
+      ++p;
+      ++nconsumed;
+
+      rv = nghttp3_conn_on_control_priority(conn, &rstate->fr.priority);
+      if (rv != 0) {
+        return rv;
+      }
+
+      nghttp3_stream_read_state_reset(rstate);
       break;
     case NGHTTP3_CTRL_STREAM_STATE_CANCEL_PUSH:
       /* TODO Not implemented yet */
@@ -894,7 +988,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
       assert(p != end);
       assert(rstate->left == 1);
 
-      rstate->fr.priority.weight = (uint32_t)(*p + 1);
+      rstate->fr.priority.weight = (uint32_t)(*p) + 1;
 
       ++p;
       ++nconsumed;
@@ -1028,8 +1122,8 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
       if (rv != 0) {
         return rv;
       }
-    } else if (nghttp3_tnode_find_ascendant(&dep_stream->node, &tnode->nid) !=
-               NULL) {
+    } else if (tnode && nghttp3_tnode_find_ascendant(&dep_stream->node,
+                                                     &tnode->nid) != NULL) {
       nghttp3_tnode_remove(&dep_stream->node);
       nghttp3_tnode_insert(&dep_stream->node, tnode->parent);
 
@@ -1058,8 +1152,8 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
       if (rv != 0) {
         return rv;
       }
-    } else if (nghttp3_tnode_find_ascendant(&dep_ph->node, &tnode->nid) !=
-               NULL) {
+    } else if (tnode && nghttp3_tnode_find_ascendant(&dep_ph->node,
+                                                     &tnode->nid) != NULL) {
       nghttp3_tnode_remove(&dep_ph->node);
       nghttp3_tnode_insert(&dep_ph->node, tnode->parent);
 
@@ -1120,11 +1214,124 @@ int nghttp3_conn_on_request_priority(nghttp3_conn *conn, nghttp3_stream *stream,
   stream->node.weight = fr->weight;
   nghttp3_tnode_insert(&stream->node, dep_tnode);
 
-  if (nghttp3_stream_require_schedule(stream)) {
+  if (nghttp3_stream_require_schedule(stream) ||
+      nghttp3_tnode_has_active_descendant(&stream->node)) {
     rv = nghttp3_stream_schedule(stream);
     if (rv != 0) {
       return rv;
     }
+  }
+
+  return 0;
+}
+
+int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
+                                     const nghttp3_frame_priority *fr) {
+  nghttp3_node_id nid, dep_nid;
+  nghttp3_tnode *dep_tnode = NULL, *tnode = NULL;
+  nghttp3_stream *stream;
+  nghttp3_placeholder *ph;
+  int rv;
+
+  nghttp3_node_id_init(&nid, fr->pt, fr->pri_elem_id);
+  nghttp3_node_id_init(&dep_nid, fr->dt, fr->elem_dep_id);
+
+  switch (nid.type) {
+  case NGHTTP3_NODE_ID_TYPE_STREAM:
+    if (!nghttp3_client_stream_bidi(nid.id)) {
+      return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+    }
+    if (nid.id > conn->rx.max_client_stream_id_bidi) {
+      return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+    }
+    stream = nghttp3_conn_find_stream(conn, nid.id);
+    if (stream) {
+      tnode = &stream->node;
+    }
+    break;
+  case NGHTTP3_NODE_ID_TYPE_PUSH:
+    /* TODO Not implemented */
+    return 0;
+  case NGHTTP3_NODE_ID_TYPE_PLACEHOLDER:
+    if ((uint64_t)nid.id >= conn->local.settings.num_placeholders) {
+      return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+    }
+    ph = nghttp3_conn_find_placeholder(conn, nid.id);
+    if (ph) {
+      tnode = &ph->node;
+    }
+    break;
+  default:
+    /* Unreachable */
+    assert(0);
+  }
+
+  if (nghttp3_node_id_eq(&nid, &dep_nid)) {
+    return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+  }
+
+  if (tnode && tnode->weight == fr->weight &&
+      nghttp3_node_id_eq(&tnode->parent->nid, &dep_nid)) {
+    return 0;
+  }
+
+  rv = conn_ensure_dependency(conn, &dep_tnode, &dep_nid, tnode);
+  if (rv != 0) {
+    return rv;
+  }
+
+  assert(dep_tnode != NULL);
+
+  if (tnode == NULL) {
+    switch (nid.type) {
+    case NGHTTP3_NODE_ID_TYPE_STREAM:
+      rv = nghttp3_conn_create_stream_dependency(conn, &stream, nid.id,
+                                                 fr->weight, dep_tnode);
+      if (rv != 0) {
+        return rv;
+      }
+      tnode = &stream->node;
+      break;
+    case NGHTTP3_NODE_ID_TYPE_PLACEHOLDER:
+      rv = nghttp3_conn_create_placeholder(conn, &ph, nid.id, fr->weight,
+                                           dep_tnode);
+      if (rv != 0) {
+        return rv;
+      }
+      tnode = &ph->node;
+      break;
+    default:
+      /* Unreachable */
+      assert(0);
+    }
+    return 0;
+  }
+
+  nghttp3_tnode_remove(tnode);
+  tnode->weight = fr->weight;
+  nghttp3_tnode_insert(tnode, dep_tnode);
+
+  switch (nid.type) {
+  case NGHTTP3_NODE_ID_TYPE_STREAM:
+    if (nghttp3_stream_require_schedule(stream) ||
+        nghttp3_tnode_has_active_descendant(tnode)) {
+      rv = nghttp3_stream_schedule(stream);
+      if (rv != 0) {
+        return rv;
+      }
+    }
+    break;
+  case NGHTTP3_NODE_ID_TYPE_PLACEHOLDER:
+    if (nghttp3_tnode_has_active_descendant(tnode)) {
+      rv = nghttp3_tnode_schedule(tnode, 0);
+      if (rv != 0) {
+        return rv;
+      }
+    }
+    break;
+  default:
+    /* Unreachable */
+    assert(0);
   }
 
   return 0;
@@ -1277,15 +1484,22 @@ static int conn_stream_acked_data(nghttp3_stream *stream, int64_t stream_id,
 
 int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
                                int64_t stream_id) {
+  return nghttp3_conn_create_stream_dependency(
+      conn, pstream, stream_id, NGHTTP3_DEFAULT_WEIGHT, &conn->root);
+}
+
+int nghttp3_conn_create_stream_dependency(nghttp3_conn *conn,
+                                          nghttp3_stream **pstream,
+                                          int64_t stream_id, uint32_t weight,
+                                          nghttp3_tnode *parent) {
   nghttp3_stream *stream;
   int rv;
   nghttp3_stream_callbacks callbacks = {
       conn_stream_acked_data,
   };
 
-  rv = nghttp3_stream_new(&stream, stream_id, conn->next_seq,
-                          NGHTTP3_DEFAULT_WEIGHT, &conn->root, &callbacks,
-                          conn->mem);
+  rv = nghttp3_stream_new(&stream, stream_id, conn->next_seq, weight, parent,
+                          &callbacks, conn->mem);
   if (rv != 0) {
     return rv;
   }
