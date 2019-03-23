@@ -51,6 +51,9 @@ struct nghttp3_tnode {
   nghttp3_pq_entry pe;
   nghttp3_pq pq;
   nghttp3_tnode *parent;
+  nghttp3_tnode *first_child;
+  nghttp3_tnode *next_sibling;
+  size_t num_children;
   int64_t id;
   uint64_t seq;
   uint64_t cycle;
@@ -84,5 +87,27 @@ int nghttp3_tnode_is_scheduled(nghttp3_tnode *tnode);
  * This function returns NULL if there is no node.
  */
 nghttp3_tnode *nghttp3_tnode_get_next(nghttp3_tnode *node);
+
+/*
+ * nghttp3_tnode_insert inserts |tnode| as a first child of |parent|.
+ * |tnode| might have its descendants.  If |cycle| is not UINT64_MAX,
+ * |tnode| is also pushed to parent->pq with |cycle| relative to the
+ * highest prioritized element.
+ */
+int nghttp3_tnode_insert(nghttp3_tnode *tnode, nghttp3_tnode *parent,
+                         uint64_t cycle);
+
+/*
+ * nghttp3_tnode_remove removes |tnode| along with its subtree from
+ * its parent.
+ */
+void nghttp3_tnode_remove(nghttp3_tnode *tnode);
+
+/*
+ * nghttp3_tnode_squash removes |tnode| from its parent.  The weight
+ * of |tnode| is distributed to the direct descendants of |tnode|.
+ * They are inserted to the former parent of |tnode|.
+ */
+int nghttp3_tnode_squash(nghttp3_tnode *tnode);
 
 #endif /* NGHTTP3_TNODE_H */

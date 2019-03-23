@@ -34,6 +34,7 @@
 /* include test cases' include files here */
 #include "nghttp3_qpack_test.h"
 #include "nghttp3_conn_test.h"
+#include "nghttp3_tnode_test.h"
 
 static int init_suite1(void) { return 0; }
 
@@ -70,7 +71,8 @@ int main() {
       !CU_add_test(pSuite, "conn_submit_request",
                    test_nghttp3_conn_submit_request) ||
       !CU_add_test(pSuite, "conn_http_request",
-                   test_nghttp3_conn_http_request)) {
+                   test_nghttp3_conn_http_request) ||
+      !CU_add_test(pSuite, "tnode_mutation", test_nghttp3_tnode_mutation)) {
     CU_cleanup_registry();
     return (int)CU_get_error();
   }
