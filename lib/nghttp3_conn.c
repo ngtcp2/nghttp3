@@ -1630,6 +1630,14 @@ void nghttp3_conn_qpack_blocked_streams_pop(nghttp3_conn *conn) {
   nghttp3_pq_pop(&conn->qpack_blocked_streams);
 }
 
+void nghttp3_conn_set_max_client_stream_id_bidi(nghttp3_conn *conn,
+                                                int64_t max_stream_id) {
+  assert(conn->server);
+  assert(conn->rx.max_client_stream_id_bidi <= max_stream_id);
+
+  conn->rx.max_client_stream_id_bidi = max_stream_id;
+}
+
 void nghttp3_conn_settings_default(nghttp3_conn_settings *settings) {
   memset(settings, 0, sizeof(nghttp3_conn_settings));
   settings->max_header_list_size = NGHTTP3_VARINT_MAX;

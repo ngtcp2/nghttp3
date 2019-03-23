@@ -76,6 +76,13 @@ struct nghttp3_conn {
     nghttp3_stream *qenc;
     nghttp3_stream *qdec;
   } tx;
+
+  struct {
+    /* max_client_stream_id_bidi is the maximum client initiated
+       bidirectional stream ID the remote endpoint can issue.  This
+       field is used on server side only. */
+    int64_t max_client_stream_id_bidi;
+  } rx;
 };
 
 nghttp3_stream *nghttp3_conn_find_stream(nghttp3_conn *conn, int64_t stream_id);
