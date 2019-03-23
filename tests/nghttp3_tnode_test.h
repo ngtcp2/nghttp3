@@ -30,5 +30,6 @@
 #endif /* HAVE_CONFIG_H */
 
 void test_nghttp3_tnode_mutation(void);
+void test_nghttp3_tnode_schedule(void);
 
 #endif /* NGTCP2_TNODE_TEST_H */

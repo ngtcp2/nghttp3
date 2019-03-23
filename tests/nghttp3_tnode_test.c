@@ -204,3 +204,91 @@ void test_nghttp3_tnode_mutation(void) {
   nghttp3_tnode_free(a);
   nghttp3_tnode_free(root);
 }
+
+void test_nghttp3_tnode_schedule(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_tnode nodes[3];
+  nghttp3_tnode *root = &nodes[0], *a = &nodes[1], *b = &nodes[2];
+  nghttp3_node_id rnid, snid;
+  int rv;
+
+  nghttp3_node_id_init(&rnid, NGHTTP3_NODE_ID_TYPE_ROOT, 0);
+  nghttp3_node_id_init(&snid, NGHTTP3_NODE_ID_TYPE_STREAM, 0);
+
+  /* Unscheduled internal node should be scheduled */
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(b, &snid, 0, 100, root, mem);
+  nghttp3_tnode_init(a, &snid, 0, 15, b, mem);
+
+  rv = nghttp3_tnode_schedule(a, 0);
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(nghttp3_tnode_is_scheduled(b));
+  CU_ASSERT(nghttp3_tnode_is_scheduled(a));
+  CU_ASSERT(0 == b->cycle);
+  CU_ASSERT(0 == a->cycle);
+
+  nghttp3_tnode_free(b);
+  nghttp3_tnode_free(a);
+  nghttp3_tnode_free(root);
+
+  /* Scheduled internal node is updated if nwrite > 0 */
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(b, &snid, 0, 100, root, mem);
+  nghttp3_tnode_init(a, &snid, 0, 15, b, mem);
+
+  rv = nghttp3_tnode_schedule(b, 0);
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(0 == b->cycle);
+
+  rv = nghttp3_tnode_schedule(a, 1000);
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(nghttp3_tnode_is_scheduled(b));
+  CU_ASSERT(nghttp3_tnode_is_scheduled(a));
+  CU_ASSERT(b->cycle > 0);
+
+  nghttp3_tnode_free(b);
+  nghttp3_tnode_free(a);
+  nghttp3_tnode_free(root);
+
+  /* Unschedule inactive internal node */
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(b, &snid, 0, 100, root, mem);
+  nghttp3_tnode_init(a, &snid, 0, 15, b, mem);
+
+  nghttp3_tnode_schedule(a, 0);
+
+  CU_ASSERT(nghttp3_tnode_is_scheduled(b));
+  CU_ASSERT(nghttp3_tnode_is_scheduled(a));
+
+  nghttp3_tnode_unschedule(a);
+
+  CU_ASSERT(!nghttp3_tnode_is_scheduled(b));
+  CU_ASSERT(!nghttp3_tnode_is_scheduled(a));
+
+  nghttp3_tnode_free(b);
+  nghttp3_tnode_free(a);
+  nghttp3_tnode_free(root);
+
+  /* Active internal node remains scheduled */
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(b, &snid, 0, 100, root, mem);
+  nghttp3_tnode_init(a, &snid, 0, 15, b, mem);
+
+  nghttp3_tnode_schedule(b, 0);
+  nghttp3_tnode_schedule(a, 0);
+
+  CU_ASSERT(nghttp3_tnode_is_scheduled(b));
+  CU_ASSERT(nghttp3_tnode_is_scheduled(a));
+
+  nghttp3_tnode_unschedule(a);
+
+  CU_ASSERT(nghttp3_tnode_is_scheduled(b));
+  CU_ASSERT(!nghttp3_tnode_is_scheduled(a));
+
+  nghttp3_tnode_free(b);
+  nghttp3_tnode_free(a);
+  nghttp3_tnode_free(root);
+}

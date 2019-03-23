@@ -66,6 +66,7 @@ void nghttp3_tnode_init(nghttp3_tnode *tnode, const nghttp3_node_id *nid,
   tnode->parent = parent;
   tnode->first_child = NULL;
   tnode->num_children = 0;
+  tnode->active = 0;
 
   if (parent) {
     tnode->next_sibling = parent->first_child;
@@ -85,13 +86,15 @@ void nghttp3_tnode_unschedule(nghttp3_tnode *tnode) {
     return;
   }
 
+  tnode->active = 0;
+
   for (parent = tnode->parent; parent; tnode = parent, parent = tnode->parent) {
     assert(tnode->pe.index != NGHTTP3_PQ_BAD_INDEX);
 
     nghttp3_pq_remove(&parent->pq, &tnode->pe);
     tnode->pe.index = NGHTTP3_PQ_BAD_INDEX;
 
-    if (!nghttp3_pq_empty(&parent->pq)) {
+    if (parent->active || !nghttp3_pq_empty(&parent->pq)) {
       return;
     }
   }
@@ -123,6 +126,8 @@ int nghttp3_tnode_schedule(nghttp3_tnode *tnode, size_t nwrite) {
   nghttp3_tnode *parent;
   uint64_t cycle;
   int rv;
+
+  tnode->active = 1;
 
   for (parent = tnode->parent; parent; tnode = parent, parent = tnode->parent) {
     if (tnode->pe.index == NGHTTP3_PQ_BAD_INDEX) {
@@ -213,6 +218,7 @@ int nghttp3_tnode_squash(nghttp3_tnode *tnode) {
 
     nghttp3_pq_remove(&tnode->pq, &node->pe);
     node->pe.index = NGHTTP3_PQ_BAD_INDEX;
+    node->active = 0;
 
     rv = nghttp3_tnode_schedule(node, 0);
     if (rv != 0) {

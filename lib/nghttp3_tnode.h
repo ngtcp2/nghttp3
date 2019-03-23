@@ -70,6 +70,10 @@ struct nghttp3_tnode {
   uint64_t cycle;
   uint32_t pending_penalty;
   uint32_t weight;
+  /* active is nonzero if this node is scheduled by itself. In other
+     words, it is not scheduled just because one of its descendants is
+     scheduled. */
+  int active;
 };
 
 void nghttp3_tnode_init(nghttp3_tnode *tnode, const nghttp3_node_id *nid,
