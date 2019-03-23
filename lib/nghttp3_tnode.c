@@ -29,6 +29,17 @@
 #include "nghttp3_macro.h"
 #include "nghttp3_stream.h"
 
+nghttp3_node_id *nghttp3_node_id_init(nghttp3_node_id *nid,
+                                      nghttp3_node_id_type type, int64_t id) {
+  nid->type = type;
+  nid->id = id;
+  return nid;
+}
+
+int nghttp3_node_id_eq(const nghttp3_node_id *a, const nghttp3_node_id *b) {
+  return a->type == b->type && a->id == b->id;
+}
+
 static int cycle_less(const nghttp3_pq_entry *lhsx,
                       const nghttp3_pq_entry *rhsx) {
   const nghttp3_tnode *lhs = nghttp3_struct_of(lhsx, nghttp3_tnode, pe);
@@ -41,14 +52,13 @@ static int cycle_less(const nghttp3_pq_entry *lhsx,
   return rhs->cycle - lhs->cycle <= NGHTTP3_TNODE_MAX_CYCLE_GAP;
 }
 
-void nghttp3_tnode_init(nghttp3_tnode *tnode, nghttp3_id_type id_type,
-                        int64_t id, uint64_t seq, uint32_t weight,
-                        nghttp3_tnode *parent, const nghttp3_mem *mem) {
+void nghttp3_tnode_init(nghttp3_tnode *tnode, const nghttp3_node_id *nid,
+                        uint64_t seq, uint32_t weight, nghttp3_tnode *parent,
+                        const nghttp3_mem *mem) {
   nghttp3_pq_init(&tnode->pq, cycle_less, mem);
 
   tnode->pe.index = NGHTTP3_PQ_BAD_INDEX;
-  tnode->id = id;
-  tnode->id_type = id_type;
+  tnode->nid = *nid;
   tnode->seq = seq;
   tnode->cycle = 0;
   tnode->pending_penalty = 0;

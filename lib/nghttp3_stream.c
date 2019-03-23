@@ -40,13 +40,16 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
                        const nghttp3_mem *mem) {
   int rv;
   nghttp3_stream *stream = nghttp3_mem_calloc(mem, 1, sizeof(nghttp3_stream));
+  nghttp3_node_id nid;
 
   if (stream == NULL) {
     return NGHTTP3_ERR_NOMEM;
   }
 
-  nghttp3_tnode_init(&stream->node, NGHTTP3_ID_TYPE_STREAM, stream_id, seq,
-                     weight, parent, mem);
+  nghttp3_tnode_init(
+      &stream->node,
+      nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_STREAM, stream_id), seq,
+      weight, parent, mem);
 
   rv = nghttp3_ringbuf_init(&stream->frq, 16, sizeof(nghttp3_frame_entry), mem);
   if (rv != 0) {

@@ -99,14 +99,16 @@ static int conn_new(nghttp3_conn **pconn,
                     const nghttp3_mem *mem, void *user_data) {
   int rv;
   nghttp3_conn *conn;
+  nghttp3_node_id nid;
 
   conn = nghttp3_mem_calloc(mem, 1, sizeof(nghttp3_conn));
   if (conn == NULL) {
     return NGHTTP3_ERR_NOMEM;
   }
 
-  nghttp3_tnode_init(&conn->root, NGHTTP3_ID_TYPE_ROOT, 0, 0,
-                     NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(&conn->root,
+                     nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_ROOT, 0),
+                     0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
 
   rv = nghttp3_map_init(&conn->streams, mem);
   if (rv != 0) {

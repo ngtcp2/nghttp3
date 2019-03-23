@@ -38,11 +38,21 @@
 #define NGHTTP3_TNODE_MAX_CYCLE_GAP ((1llu << 24) * 256 + 255)
 
 typedef enum {
-  NGHTTP3_ID_TYPE_STREAM,
-  NGHTTP3_ID_TYPE_PUSH,
-  NGHTTP3_ID_TYPE_PLACEHOLDER,
-  NGHTTP3_ID_TYPE_ROOT,
-} nghttp3_id_type;
+  NGHTTP3_NODE_ID_TYPE_STREAM,
+  NGHTTP3_NODE_ID_TYPE_PUSH,
+  NGHTTP3_NODE_ID_TYPE_PLACEHOLDER,
+  NGHTTP3_NODE_ID_TYPE_ROOT,
+} nghttp3_node_id_type;
+
+typedef struct {
+  nghttp3_node_id_type type;
+  int64_t id;
+} nghttp3_node_id;
+
+nghttp3_node_id *nghttp3_node_id_init(nghttp3_node_id *nid,
+                                      nghttp3_node_id_type type, int64_t id);
+
+int nghttp3_node_id_eq(const nghttp3_node_id *a, const nghttp3_node_id *b);
 
 struct nghttp3_tnode;
 typedef struct nghttp3_tnode nghttp3_tnode;
@@ -54,17 +64,16 @@ struct nghttp3_tnode {
   nghttp3_tnode *first_child;
   nghttp3_tnode *next_sibling;
   size_t num_children;
-  int64_t id;
+  nghttp3_node_id nid;
   uint64_t seq;
   uint64_t cycle;
   uint32_t pending_penalty;
   uint32_t weight;
-  nghttp3_id_type id_type;
 };
 
-void nghttp3_tnode_init(nghttp3_tnode *tnode, nghttp3_id_type id_type,
-                        int64_t id, uint64_t seq, uint32_t weight,
-                        nghttp3_tnode *parent, const nghttp3_mem *mem);
+void nghttp3_tnode_init(nghttp3_tnode *tnode, const nghttp3_node_id *nid,
+                        uint64_t seq, uint32_t weight, nghttp3_tnode *parent,
+                        const nghttp3_mem *mem);
 
 void nghttp3_tnode_free(nghttp3_tnode *tnode);
 

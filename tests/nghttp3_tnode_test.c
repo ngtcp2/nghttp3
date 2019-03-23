@@ -35,12 +35,15 @@ void test_nghttp3_tnode_mutation(void) {
   nghttp3_tnode nodes[6];
   nghttp3_tnode *root = &nodes[0], *a = &nodes[1], *b = &nodes[2],
                 *c = &nodes[3], *d = &nodes[4], *e = &nodes[5];
+  nghttp3_node_id rnid, snid;
   int rv;
 
+  nghttp3_node_id_init(&rnid, NGHTTP3_NODE_ID_TYPE_ROOT, 0);
+  nghttp3_node_id_init(&snid, NGHTTP3_NODE_ID_TYPE_STREAM, 0);
+
   /* Insert a node to empty root */
-  nghttp3_tnode_init(root, NGHTTP3_ID_TYPE_ROOT, 0, 0, NGHTTP3_DEFAULT_WEIGHT,
-                     NULL, mem);
-  nghttp3_tnode_init(a, NGHTTP3_ID_TYPE_STREAM, 0, 0, 12, NULL, mem);
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(a, &snid, 0, 12, NULL, mem);
 
   rv = nghttp3_tnode_insert(a, root, UINT64_MAX);
 
@@ -57,11 +60,10 @@ void test_nghttp3_tnode_mutation(void) {
   nghttp3_tnode_free(root);
 
   /* Insert a node to root which has descendants */
-  nghttp3_tnode_init(root, NGHTTP3_ID_TYPE_ROOT, 0, 0, NGHTTP3_DEFAULT_WEIGHT,
-                     NULL, mem);
-  nghttp3_tnode_init(c, NGHTTP3_ID_TYPE_STREAM, 0, 0, 19, root, mem);
-  nghttp3_tnode_init(b, NGHTTP3_ID_TYPE_STREAM, 0, 0, 99, root, mem);
-  nghttp3_tnode_init(a, NGHTTP3_ID_TYPE_STREAM, 0, 0, 12, NULL, mem);
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(c, &snid, 0, 19, root, mem);
+  nghttp3_tnode_init(b, &snid, 0, 99, root, mem);
+  nghttp3_tnode_init(a, &snid, 0, 12, NULL, mem);
 
   rv = nghttp3_tnode_insert(a, root, UINT64_MAX);
 
@@ -78,9 +80,8 @@ void test_nghttp3_tnode_mutation(void) {
   nghttp3_tnode_free(root);
 
   /* Insert a node with cycle to a root */
-  nghttp3_tnode_init(root, NGHTTP3_ID_TYPE_ROOT, 0, 0, NGHTTP3_DEFAULT_WEIGHT,
-                     NULL, mem);
-  nghttp3_tnode_init(a, NGHTTP3_ID_TYPE_STREAM, 0, 0, 12, NULL, mem);
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(a, &snid, 0, 12, NULL, mem);
 
   rv = nghttp3_tnode_insert(a, root, 1033);
 
@@ -93,10 +94,9 @@ void test_nghttp3_tnode_mutation(void) {
   nghttp3_tnode_free(root);
 
   /* Insert a node with cycle to a root with non-empty pq */
-  nghttp3_tnode_init(root, NGHTTP3_ID_TYPE_ROOT, 0, 0, NGHTTP3_DEFAULT_WEIGHT,
-                     NULL, mem);
-  nghttp3_tnode_init(b, NGHTTP3_ID_TYPE_STREAM, 0, 0, 99, root, mem);
-  nghttp3_tnode_init(a, NGHTTP3_ID_TYPE_STREAM, 0, 0, 12, NULL, mem);
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(b, &snid, 0, 99, root, mem);
+  nghttp3_tnode_init(a, &snid, 0, 12, NULL, mem);
 
   nghttp3_tnode_schedule(b, 1000);
 
@@ -112,9 +112,8 @@ void test_nghttp3_tnode_mutation(void) {
   nghttp3_tnode_free(root);
 
   /* Remove a node from root */
-  nghttp3_tnode_init(root, NGHTTP3_ID_TYPE_ROOT, 0, 0, NGHTTP3_DEFAULT_WEIGHT,
-                     NULL, mem);
-  nghttp3_tnode_init(a, NGHTTP3_ID_TYPE_STREAM, 0, 0, 1, root, mem);
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(a, &snid, 0, 1, root, mem);
 
   nghttp3_tnode_remove(a);
 
@@ -130,11 +129,10 @@ void test_nghttp3_tnode_mutation(void) {
   nghttp3_tnode_free(root);
 
   /* Remove a node with siblings from root */
-  nghttp3_tnode_init(root, NGHTTP3_ID_TYPE_ROOT, 0, 0, NGHTTP3_DEFAULT_WEIGHT,
-                     NULL, mem);
-  nghttp3_tnode_init(c, NGHTTP3_ID_TYPE_STREAM, 0, 0, 250, root, mem);
-  nghttp3_tnode_init(a, NGHTTP3_ID_TYPE_STREAM, 0, 0, 249, root, mem);
-  nghttp3_tnode_init(b, NGHTTP3_ID_TYPE_STREAM, 0, 0, 112, root, mem);
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(c, &snid, 0, 250, root, mem);
+  nghttp3_tnode_init(a, &snid, 0, 249, root, mem);
+  nghttp3_tnode_init(b, &snid, 0, 112, root, mem);
 
   nghttp3_tnode_remove(a);
 
@@ -150,9 +148,8 @@ void test_nghttp3_tnode_mutation(void) {
   nghttp3_tnode_free(root);
 
   /* Remove a scheduled node from root */
-  nghttp3_tnode_init(root, NGHTTP3_ID_TYPE_ROOT, 0, 0, NGHTTP3_DEFAULT_WEIGHT,
-                     NULL, mem);
-  nghttp3_tnode_init(a, NGHTTP3_ID_TYPE_STREAM, 0, 0, 1, root, mem);
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(a, &snid, 0, 1, root, mem);
 
   nghttp3_tnode_schedule(a, 1200);
 
@@ -168,11 +165,10 @@ void test_nghttp3_tnode_mutation(void) {
   nghttp3_tnode_free(root);
 
   /* Squash a node from root */
-  nghttp3_tnode_init(root, NGHTTP3_ID_TYPE_ROOT, 0, 0, NGHTTP3_DEFAULT_WEIGHT,
-                     NULL, mem);
-  nghttp3_tnode_init(a, NGHTTP3_ID_TYPE_STREAM, 0, 0, 128, root, mem);
-  nghttp3_tnode_init(c, NGHTTP3_ID_TYPE_STREAM, 0, 0, 5, a, mem);
-  nghttp3_tnode_init(b, NGHTTP3_ID_TYPE_STREAM, 0, 0, 3, a, mem);
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(a, &snid, 0, 128, root, mem);
+  nghttp3_tnode_init(c, &snid, 0, 5, a, mem);
+  nghttp3_tnode_init(b, &snid, 0, 3, a, mem);
 
   nghttp3_tnode_squash(a);
 
@@ -192,13 +188,12 @@ void test_nghttp3_tnode_mutation(void) {
   nghttp3_tnode_free(root);
 
   /* Squash a node with siblings from root */
-  nghttp3_tnode_init(root, NGHTTP3_ID_TYPE_ROOT, 0, 0, NGHTTP3_DEFAULT_WEIGHT,
-                     NULL, mem);
-  nghttp3_tnode_init(e, NGHTTP3_ID_TYPE_STREAM, 0, 0, 128, root, mem);
-  nghttp3_tnode_init(a, NGHTTP3_ID_TYPE_STREAM, 0, 0, 1, root, mem);
-  nghttp3_tnode_init(b, NGHTTP3_ID_TYPE_STREAM, 0, 0, 129, root, mem);
-  nghttp3_tnode_init(d, NGHTTP3_ID_TYPE_STREAM, 0, 0, 9, a, mem);
-  nghttp3_tnode_init(c, NGHTTP3_ID_TYPE_STREAM, 0, 0, 12, a, mem);
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(e, &snid, 0, 128, root, mem);
+  nghttp3_tnode_init(a, &snid, 0, 1, root, mem);
+  nghttp3_tnode_init(b, &snid, 0, 129, root, mem);
+  nghttp3_tnode_init(d, &snid, 0, 9, a, mem);
+  nghttp3_tnode_init(c, &snid, 0, 12, a, mem);
 
   nghttp3_tnode_squash(a);
 
@@ -219,13 +214,12 @@ void test_nghttp3_tnode_mutation(void) {
   nghttp3_tnode_free(root);
 
   /* Squash a scheduled node with scheduled siblings from root */
-  nghttp3_tnode_init(root, NGHTTP3_ID_TYPE_ROOT, 0, 0, NGHTTP3_DEFAULT_WEIGHT,
-                     NULL, mem);
-  nghttp3_tnode_init(e, NGHTTP3_ID_TYPE_STREAM, 0, 0, 128, root, mem);
-  nghttp3_tnode_init(a, NGHTTP3_ID_TYPE_STREAM, 0, 0, 1, root, mem);
-  nghttp3_tnode_init(b, NGHTTP3_ID_TYPE_STREAM, 0, 0, 129, root, mem);
-  nghttp3_tnode_init(d, NGHTTP3_ID_TYPE_STREAM, 0, 0, 9, a, mem);
-  nghttp3_tnode_init(c, NGHTTP3_ID_TYPE_STREAM, 0, 0, 12, a, mem);
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(e, &snid, 0, 128, root, mem);
+  nghttp3_tnode_init(a, &snid, 0, 1, root, mem);
+  nghttp3_tnode_init(b, &snid, 0, 129, root, mem);
+  nghttp3_tnode_init(d, &snid, 0, 9, a, mem);
+  nghttp3_tnode_init(c, &snid, 0, 12, a, mem);
 
   nghttp3_tnode_schedule(a, 1000);
   nghttp3_tnode_schedule(c, 100);
