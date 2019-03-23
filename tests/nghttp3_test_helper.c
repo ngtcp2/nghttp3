@@ -22,26 +22,26 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef NGHTTP3_TEST_HELPER
-#define NGHTTP3_TEST_HELPER
+#include "nghttp3_test_helper.h"
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif /* HAVE_CONFIG_H */
+#include <assert.h>
 
-#include "nghttp3_buf.h"
-#include "nghttp3_frame.h"
+void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr) {
+  size_t payloadlen;
+  int rv = 0;
 
-#define MAKE_NV(NAME, VALUE)                                                   \
-  {                                                                            \
-    (uint8_t *)(NAME), (uint8_t *)(VALUE), sizeof((NAME)) - 1,                 \
-        sizeof((VALUE)) - 1, NGHTTP3_NV_FLAG_NONE                              \
+  switch (fr->hd.type) {
+  case NGHTTP3_FRAME_SETTINGS:
+    nghttp3_frame_write_settings_len(&payloadlen, &fr->settings);
+    fr->hd.length = (int64_t)payloadlen;
+    rv = nghttp3_frame_write_settings(dest, &fr->settings);
+    break;
+  case NGHTTP3_FRAME_PRIORITY:
+    nghttp3_frame_write_priority_len(&payloadlen, &fr->priority);
+    fr->hd.length = (int64_t)payloadlen;
+    rv = nghttp3_frame_write_priority(dest, &fr->priority);
+    break;
   }
 
-/*
- * nghttp3_write_frame writes |fr| to |dest|.  This function
- * calculates the payload length and assigns it to fr->hd.length;
- */
-void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr);
-
-#endif /* NGHTTP3_TEST_HELPER */
+  assert(0 == rv);
+}

@@ -243,3 +243,7 @@ nghttp3_tnode *nghttp3_tnode_find_ascendant(nghttp3_tnode *tnode,
 
   return tnode;
 }
+
+int nghttp3_tnode_has_active_descendant(nghttp3_tnode *tnode) {
+  return !nghttp3_pq_empty(&tnode->pq);
+}

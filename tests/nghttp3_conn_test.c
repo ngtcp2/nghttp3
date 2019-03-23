@@ -129,7 +129,6 @@ void test_nghttp3_conn_read_control(void) {
   ssize_t nconsumed;
   nghttp3_settings_entry *iv;
   size_t i;
-  size_t payloadlen;
 
   memset(&callbacks, 0, sizeof(callbacks));
   nghttp3_conn_settings_default(&settings);
@@ -137,6 +136,7 @@ void test_nghttp3_conn_read_control(void) {
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
+  fr.settings.hd.type = NGHTTP3_FRAME_SETTINGS;
   iv = fr.settings.iv;
   iv[0].id = NGHTTP3_SETTINGS_ID_MAX_HEADER_LIST_SIZE;
   iv[0].value = 65536;
@@ -148,11 +148,7 @@ void test_nghttp3_conn_read_control(void) {
   iv[3].value = 99;
   fr.settings.niv = 4;
 
-  nghttp3_frame_write_settings_len(&payloadlen, &fr.settings);
-  fr.settings.hd.length = (int64_t)payloadlen;
-  rv = nghttp3_frame_write_settings(&buf, &fr.settings);
-
-  CU_ASSERT(0 == rv);
+  nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
   rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
 
@@ -482,14 +478,17 @@ void test_nghttp3_conn_recv_request_priority(void) {
   uint8_t rawbuf[256];
   nghttp3_buf buf;
   nghttp3_frame_priority fr;
-  size_t payloadlen;
   ssize_t sconsumed;
   nghttp3_stream *stream;
   nghttp3_tnode *parent;
+  nghttp3_placeholder *ph;
 
   memset(&callbacks, 0, sizeof(callbacks));
   nghttp3_conn_settings_default(&settings);
 
+  settings.num_placeholders = 2;
+
+  /* Depends on stream which has not been created yet */
   nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
 
   fr.hd.type = NGHTTP3_FRAME_PRIORITY;
@@ -498,10 +497,8 @@ void test_nghttp3_conn_recv_request_priority(void) {
   fr.elem_dep_id = 0;
   fr.weight = 199;
 
-  nghttp3_frame_write_priority_len(&payloadlen, &fr);
-  fr.hd.length = (int64_t)payloadlen;
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
-  nghttp3_frame_write_priority(&buf, &fr);
+  nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
   sconsumed = nghttp3_conn_read_stream(conn, 4, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
@@ -527,16 +524,45 @@ void test_nghttp3_conn_recv_request_priority(void) {
   fr.elem_dep_id = 0;
   fr.weight = 199;
 
-  nghttp3_frame_write_priority_len(&payloadlen, &fr);
-  fr.hd.length = (int64_t)payloadlen;
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
-  nghttp3_frame_write_priority(&buf, &fr);
+  nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
   CU_ASSERT(NGHTTP3_ERR_HTTP_MALFORMED_FRAME - NGHTTP3_FRAME_PRIORITY ==
             sconsumed);
+
+  nghttp3_conn_del(conn);
+
+  /* Depends on placeholder which has not been created yet */
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+
+  fr.hd.type = NGHTTP3_FRAME_PRIORITY;
+  fr.pt = NGHTTP3_PRI_ELEM_TYPE_CURRENT;
+  fr.dt = NGHTTP3_ELEM_DEP_TYPE_PLACEHOLDER;
+  fr.elem_dep_id = 1;
+  fr.weight = 99;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
+
+  ph = nghttp3_conn_find_placeholder(conn, 1);
+
+  CU_ASSERT(NULL != ph);
+  CU_ASSERT(NGHTTP3_DEFAULT_WEIGHT == ph->node.weight);
+  CU_ASSERT(!nghttp3_tnode_is_scheduled(&ph->node));
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  CU_ASSERT(&ph->node == stream->node.parent);
+  CU_ASSERT(99 == stream->node.weight);
+  CU_ASSERT(!nghttp3_tnode_is_scheduled(&stream->node));
 
   nghttp3_conn_del(conn);
 }

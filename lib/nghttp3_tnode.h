@@ -129,4 +129,6 @@ int nghttp3_tnode_squash(nghttp3_tnode *tnode);
 nghttp3_tnode *nghttp3_tnode_find_ascendant(nghttp3_tnode *tnode,
                                             const nghttp3_node_id *nid);
 
+int nghttp3_tnode_has_active_descendant(nghttp3_tnode *tnode);
+
 #endif /* NGHTTP3_TNODE_H */

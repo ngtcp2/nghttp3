@@ -122,6 +122,12 @@ void nghttp3_frame_headers_free(nghttp3_frame_headers *fr,
                                 const nghttp3_mem *mem);
 
 /*
+ * nghttp3_frame_pri_elem_type returns Prioritized Element Type from
+ * the first byte |c| of PRIORITY frame.
+ */
+nghttp3_pri_elem_type nghttp3_frame_pri_elem_type(uint8_t c);
+
+/*
  * nghttp3_frame_elem_dep_type returns Element Dependency Type from
  * the first byte |c| of PRIORITY frame.
  */

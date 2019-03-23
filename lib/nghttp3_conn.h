@@ -42,6 +42,11 @@
    table size for QPACK encoder. */
 #define NGHTTP3_QPACK_ENCODER_MAX_TABLE_CAPACITY 16384
 
+typedef struct {
+  nghttp3_map_entry me;
+  nghttp3_tnode node;
+} nghttp3_placeholder;
+
 typedef enum {
   NGHTTP3_CONN_FLAG_NONE = 0x0000,
   NGHTTP3_CONN_FLAG_SETTINGS_RECVED = 0x0001,
@@ -54,6 +59,7 @@ struct nghttp3_conn {
   nghttp3_tnode root;
   nghttp3_conn_callbacks callbacks;
   nghttp3_map streams;
+  nghttp3_map placeholders;
   nghttp3_qpack_decoder qdec;
   nghttp3_qpack_encoder qenc;
   nghttp3_pq qpack_blocked_streams;
@@ -87,8 +93,15 @@ struct nghttp3_conn {
 
 nghttp3_stream *nghttp3_conn_find_stream(nghttp3_conn *conn, int64_t stream_id);
 
+nghttp3_placeholder *nghttp3_conn_find_placeholder(nghttp3_conn *conn,
+                                                   int64_t ph_id);
+
 int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
                                int64_t stream_id);
+
+int nghttp3_conn_create_placeholder(nghttp3_conn *conn,
+                                    nghttp3_placeholder **pph, int64_t ph_id,
+                                    uint32_t weight, nghttp3_tnode *parent);
 
 ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
                                const uint8_t *src, size_t srclen, int fin);
@@ -108,8 +121,8 @@ ssize_t nghttp3_conn_read_qpack_encoder(nghttp3_conn *conn, const uint8_t *src,
 ssize_t nghttp3_conn_read_qpack_decoder(nghttp3_conn *conn, const uint8_t *src,
                                         size_t srclen);
 
-int nghttp3_conn_on_priority(nghttp3_conn *conn, nghttp3_stream *stream,
-                             const nghttp3_frame_priority *fr);
+int nghttp3_conn_on_request_priority(nghttp3_conn *conn, nghttp3_stream *stream,
+                                     const nghttp3_frame_priority *fr);
 
 int nghttp3_conn_on_data(nghttp3_conn *conn, nghttp3_stream *stream,
                          const uint8_t *data, size_t datalen);
@@ -130,5 +143,11 @@ void nghttp3_conn_qpack_blocked_streams_pop(nghttp3_conn *conn);
  * returns NULL if there is no such stream.
  */
 nghttp3_stream *nghttp3_conn_get_next_tx_stream(nghttp3_conn *conn);
+
+int nghttp3_placeholder_new(nghttp3_placeholder **pph, int64_t ph_id,
+                            uint64_t seq, uint32_t weight,
+                            nghttp3_tnode *parent, const nghttp3_mem *mem);
+
+void nghttp3_placeholder_del(nghttp3_placeholder *ph, const nghttp3_mem *mem);
 
 #endif /* NGHTTP3_CONN_H */
