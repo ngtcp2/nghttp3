@@ -174,3 +174,7 @@ void nghttp3_frame_headers_free(nghttp3_frame_headers *fr,
 
   nghttp3_nva_del(fr->nva, mem);
 }
+
+nghttp3_elem_dep_type nghttp3_frame_elem_dep_type(uint8_t c) {
+  return (c >> 4) & 0x3;
+}

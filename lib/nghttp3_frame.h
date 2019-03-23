@@ -101,4 +101,10 @@ void nghttp3_nva_del(nghttp3_nv *nva, const nghttp3_mem *mem);
 void nghttp3_frame_headers_free(nghttp3_frame_headers *fr,
                                 const nghttp3_mem *mem);
 
+/*
+ * nghttp3_frame_elem_dep_type returns Element Dependency Type from
+ * the first byte |c| of PRIORITY frame.
+ */
+nghttp3_elem_dep_type nghttp3_frame_elem_dep_type(uint8_t c);
+
 #endif /* NGHTTP3_FRAME_H */

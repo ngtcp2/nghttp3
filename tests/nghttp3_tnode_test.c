@@ -45,7 +45,7 @@ void test_nghttp3_tnode_mutation(void) {
   nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
   nghttp3_tnode_init(a, &snid, 0, 12, NULL, mem);
 
-  rv = nghttp3_tnode_insert(a, root, UINT64_MAX);
+  nghttp3_tnode_insert(a, root);
 
   CU_ASSERT(0 == rv);
   CU_ASSERT(a == root->first_child);
@@ -65,7 +65,7 @@ void test_nghttp3_tnode_mutation(void) {
   nghttp3_tnode_init(b, &snid, 0, 99, root, mem);
   nghttp3_tnode_init(a, &snid, 0, 12, NULL, mem);
 
-  rv = nghttp3_tnode_insert(a, root, UINT64_MAX);
+  nghttp3_tnode_insert(a, root);
 
   CU_ASSERT(0 == rv);
   CU_ASSERT(a == root->first_child);
@@ -75,38 +75,6 @@ void test_nghttp3_tnode_mutation(void) {
   CU_ASSERT(b == a->next_sibling);
 
   nghttp3_tnode_free(c);
-  nghttp3_tnode_free(b);
-  nghttp3_tnode_free(a);
-  nghttp3_tnode_free(root);
-
-  /* Insert a node with cycle to a root */
-  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
-  nghttp3_tnode_init(a, &snid, 0, 12, NULL, mem);
-
-  rv = nghttp3_tnode_insert(a, root, 1033);
-
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(1 == nghttp3_pq_size(&root->pq));
-  CU_ASSERT(&a->pe == nghttp3_pq_top(&root->pq));
-  CU_ASSERT(1033 == a->cycle);
-
-  nghttp3_tnode_free(a);
-  nghttp3_tnode_free(root);
-
-  /* Insert a node with cycle to a root with non-empty pq */
-  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
-  nghttp3_tnode_init(b, &snid, 0, 99, root, mem);
-  nghttp3_tnode_init(a, &snid, 0, 12, NULL, mem);
-
-  nghttp3_tnode_schedule(b, 1000);
-
-  rv = nghttp3_tnode_insert(a, root, 109);
-
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(2 == nghttp3_pq_size(&root->pq));
-  CU_ASSERT(&b->pe == nghttp3_pq_top(&root->pq));
-  CU_ASSERT(b->cycle + 109 == a->cycle);
-
   nghttp3_tnode_free(b);
   nghttp3_tnode_free(a);
   nghttp3_tnode_free(root);

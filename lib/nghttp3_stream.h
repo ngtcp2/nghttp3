@@ -68,6 +68,9 @@ typedef enum {
   NGHTTP3_REQ_STREAM_STATE_HEADERS,
   NGHTTP3_REQ_STREAM_STATE_PUSH_PROMISE,
   NGHTTP3_REQ_STREAM_STATE_DUPLICATE_PUSH,
+  NGHTTP3_REQ_STREAM_STATE_PRIORITY,
+  NGHTTP3_REQ_STREAM_STATE_PRIORITY_ELEM_DEP_ID,
+  NGHTTP3_REQ_STREAM_STATE_PRIORITY_WEIGHT,
   NGHTTP3_REQ_STREAM_STATE_IGN_FRAME,
 } nghttp3_req_stream_state;
 
@@ -111,6 +114,8 @@ typedef enum {
   NGHTTP3_HTTP_STATE_NONE,
   NGHTTP3_HTTP_STATE_REQ_INITIAL,
   NGHTTP3_HTTP_STATE_REQ_BEGIN,
+  NGHTTP3_HTTP_STATE_REQ_PRIORITY_BEGIN,
+  NGHTTP3_HTTP_STATE_REQ_PRIORITY_END,
   NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN,
   NGHTTP3_HTTP_STATE_REQ_HEADERS_END,
   NGHTTP3_HTTP_STATE_REQ_DATA_BEGIN,
@@ -134,6 +139,8 @@ typedef enum {
 typedef enum {
   NGHTTP3_HTTP_EVENT_DATA_BEGIN,
   NGHTTP3_HTTP_EVENT_DATA_END,
+  NGHTTP3_HTTP_EVENT_PRIORITY_BEGIN,
+  NGHTTP3_HTTP_EVENT_PRIORITY_END,
   NGHTTP3_HTTP_EVENT_HEADERS_BEGIN,
   NGHTTP3_HTTP_EVENT_HEADERS_END,
   NGHTTP3_HTTP_EVENT_PUSH_PROMISE_BEGIN,
@@ -267,6 +274,12 @@ int nghttp3_stream_is_blocked(nghttp3_stream *stream);
 int nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n);
 
 int nghttp3_stream_add_ack_offset(nghttp3_stream *stream, size_t n);
+
+/*
+ * nghttp3_stream_require_schedule returns nonzero if |stream| should
+ * be scheduled.  In other words, it has something to send.
+ */
+int nghttp3_stream_require_schedule(nghttp3_stream *stream);
 
 /*
  * nghttp3_stream_schedule schedules |stream|.  This function works

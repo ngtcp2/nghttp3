@@ -38,10 +38,11 @@
 #define NGHTTP3_TNODE_MAX_CYCLE_GAP ((1llu << 24) * 256 + 255)
 
 typedef enum {
-  NGHTTP3_NODE_ID_TYPE_STREAM,
-  NGHTTP3_NODE_ID_TYPE_PUSH,
-  NGHTTP3_NODE_ID_TYPE_PLACEHOLDER,
-  NGHTTP3_NODE_ID_TYPE_ROOT,
+  /* Use the same value with nghttp3_elem_dep_type. */
+  NGHTTP3_NODE_ID_TYPE_STREAM = NGHTTP3_ELEM_DEP_TYPE_REQUEST,
+  NGHTTP3_NODE_ID_TYPE_PUSH = NGHTTP3_ELEM_DEP_TYPE_PUSH,
+  NGHTTP3_NODE_ID_TYPE_PLACEHOLDER = NGHTTP3_ELEM_DEP_TYPE_PLACEHOLDER,
+  NGHTTP3_NODE_ID_TYPE_ROOT = NGHTTP3_ELEM_DEP_TYPE_ROOT,
 } nghttp3_node_id_type;
 
 typedef struct {
@@ -99,12 +100,9 @@ nghttp3_tnode *nghttp3_tnode_get_next(nghttp3_tnode *node);
 
 /*
  * nghttp3_tnode_insert inserts |tnode| as a first child of |parent|.
- * |tnode| might have its descendants.  If |cycle| is not UINT64_MAX,
- * |tnode| is also pushed to parent->pq with |cycle| relative to the
- * highest prioritized element.
+ * |tnode| might have its descendants.
  */
-int nghttp3_tnode_insert(nghttp3_tnode *tnode, nghttp3_tnode *parent,
-                         uint64_t cycle);
+void nghttp3_tnode_insert(nghttp3_tnode *tnode, nghttp3_tnode *parent);
 
 /*
  * nghttp3_tnode_remove removes |tnode| along with its subtree from
@@ -118,5 +116,13 @@ void nghttp3_tnode_remove(nghttp3_tnode *tnode);
  * They are inserted to the former parent of |tnode|.
  */
 int nghttp3_tnode_squash(nghttp3_tnode *tnode);
+
+/*
+ * nghttp3_tnode_find_ascendant returns an ascendant of |tnode| whose
+ * node ID is |nid|.  If no such node exists, this function returns
+ * NULL.
+ */
+nghttp3_tnode *nghttp3_tnode_find_ascendant(nghttp3_tnode *tnode,
+                                            const nghttp3_node_id *nid);
 
 #endif /* NGHTTP3_TNODE_H */

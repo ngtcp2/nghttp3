@@ -1137,7 +1137,7 @@ typedef struct {
   nghttp3_elem_dep_type dt;
   int64_t pri_elem_id;
   int64_t elem_dep_id;
-  int32_t weight;
+  uint32_t weight;
 } nghttp3_frame_priority;
 
 typedef struct {

@@ -85,9 +85,16 @@ void nghttp3_tnode_unschedule(nghttp3_tnode *tnode) {
     return;
   }
 
-  nghttp3_pq_remove(&parent->pq, &tnode->pe);
+  for (parent = tnode->parent; parent; tnode = parent, parent = tnode->parent) {
+    assert(tnode->pe.index != NGHTTP3_PQ_BAD_INDEX);
 
-  tnode->pe.index = NGHTTP3_PQ_BAD_INDEX;
+    nghttp3_pq_remove(&parent->pq, &tnode->pe);
+    tnode->pe.index = NGHTTP3_PQ_BAD_INDEX;
+
+    if (!nghttp3_pq_empty(&parent->pq)) {
+      return;
+    }
+  }
 }
 
 static int tnode_schedule(nghttp3_tnode *tnode, nghttp3_tnode *parent,
@@ -113,20 +120,27 @@ static uint64_t tnode_get_first_cycle(nghttp3_tnode *tnode) {
 }
 
 int nghttp3_tnode_schedule(nghttp3_tnode *tnode, size_t nwrite) {
-  nghttp3_tnode *parent = tnode->parent;
+  nghttp3_tnode *parent;
   uint64_t cycle;
+  int rv;
 
-  /* TODO At the moment, we use single level dependency.  All streams
-     depend on root. */
+  for (parent = tnode->parent; parent; tnode = parent, parent = tnode->parent) {
+    if (tnode->pe.index == NGHTTP3_PQ_BAD_INDEX) {
+      cycle = tnode_get_first_cycle(parent);
+    } else if (nwrite != 0) {
+      cycle = tnode->cycle;
+      nghttp3_tnode_unschedule(tnode);
+    } else {
+      return 0;
+    }
 
-  if (tnode->pe.index == NGHTTP3_PQ_BAD_INDEX) {
-    cycle = tnode_get_first_cycle(parent);
-  } else {
-    cycle = tnode->cycle;
-    nghttp3_tnode_unschedule(tnode);
+    rv = tnode_schedule(tnode, parent, cycle, nwrite);
+    if (rv != 0) {
+      return rv;
+    }
   }
 
-  return tnode_schedule(tnode, parent, cycle, nwrite);
+  return 0;
 }
 
 int nghttp3_tnode_is_scheduled(nghttp3_tnode *tnode) {
@@ -141,8 +155,7 @@ nghttp3_tnode *nghttp3_tnode_get_next(nghttp3_tnode *node) {
   return nghttp3_struct_of(nghttp3_pq_top(&node->pq), nghttp3_tnode, pe);
 }
 
-int nghttp3_tnode_insert(nghttp3_tnode *tnode, nghttp3_tnode *parent,
-                         uint64_t cycle) {
+void nghttp3_tnode_insert(nghttp3_tnode *tnode, nghttp3_tnode *parent) {
   assert(tnode->parent == NULL);
   assert(tnode->next_sibling == NULL);
   assert(tnode->pe.index == NGHTTP3_PQ_BAD_INDEX);
@@ -151,14 +164,6 @@ int nghttp3_tnode_insert(nghttp3_tnode *tnode, nghttp3_tnode *parent,
   parent->first_child = tnode;
   tnode->parent = parent;
   ++parent->num_children;
-
-  if (cycle == UINT64_MAX) {
-    return 0;
-  }
-
-  tnode->cycle = tnode_get_first_cycle(parent) + cycle;
-
-  return nghttp3_pq_push(&parent->pq, &tnode->pe);
 }
 
 void nghttp3_tnode_remove(nghttp3_tnode *tnode) {
@@ -167,8 +172,7 @@ void nghttp3_tnode_remove(nghttp3_tnode *tnode) {
   assert(parent);
 
   if (tnode->pe.index != NGHTTP3_PQ_BAD_INDEX) {
-    nghttp3_pq_remove(&parent->pq, &tnode->pe);
-    tnode->pe.index = NGHTTP3_PQ_BAD_INDEX;
+    nghttp3_tnode_unschedule(tnode);
   }
 
   for (p = &parent->first_child; *p != tnode; p = &(*p)->next_sibling)
@@ -181,14 +185,12 @@ void nghttp3_tnode_remove(nghttp3_tnode *tnode) {
 
 int nghttp3_tnode_squash(nghttp3_tnode *tnode) {
   nghttp3_tnode *parent = tnode->parent, *node, **p;
-  uint64_t base_cycle = tnode_get_first_cycle(tnode);
   int rv;
 
   assert(parent);
 
   if (tnode->pe.index != NGHTTP3_PQ_BAD_INDEX) {
-    nghttp3_pq_remove(&parent->pq, &tnode->pe);
-    tnode->pe.index = NGHTTP3_PQ_BAD_INDEX;
+    nghttp3_tnode_unschedule(tnode);
   }
 
   for (p = &parent->first_child; *p != tnode; p = &(*p)->next_sibling)
@@ -210,10 +212,9 @@ int nghttp3_tnode_squash(nghttp3_tnode *tnode) {
     }
 
     nghttp3_pq_remove(&tnode->pq, &node->pe);
+    node->pe.index = NGHTTP3_PQ_BAD_INDEX;
 
-    node->cycle = tnode_get_first_cycle(parent) + node->cycle - base_cycle;
-
-    rv = nghttp3_pq_push(&parent->pq, &node->pe);
+    rv = nghttp3_tnode_schedule(node, 0);
     if (rv != 0) {
       return rv;
     }
@@ -226,4 +227,13 @@ int nghttp3_tnode_squash(nghttp3_tnode *tnode) {
   tnode->parent = tnode->next_sibling = tnode->first_child = NULL;
 
   return 0;
+}
+
+nghttp3_tnode *nghttp3_tnode_find_ascendant(nghttp3_tnode *tnode,
+                                            const nghttp3_node_id *nid) {
+  for (tnode = tnode->parent; tnode && !nghttp3_node_id_eq(nid, &tnode->nid);
+       tnode = tnode->parent)
+    ;
+
+  return tnode;
 }

@@ -183,7 +183,7 @@ ssize_t nghttp3_read_varint(nghttp3_varint_read_state *rvint,
     }
 
     if (fin) {
-      return NGHTTP3_ERR_HTTP_MALFORMED_FRAME;
+      return NGHTTP3_ERR_INVALID_ARGUMENT;
     }
 
     rvint->acc = nghttp3_get_varint_fb(src);
@@ -203,7 +203,7 @@ ssize_t nghttp3_read_varint(nghttp3_varint_read_state *rvint,
   nread += n;
 
   if (fin && rvint->left) {
-    return NGHTTP3_ERR_HTTP_MALFORMED_FRAME;
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
   return (ssize_t)nread;
@@ -597,6 +597,12 @@ int nghttp3_stream_is_blocked(nghttp3_stream *stream) {
          (stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED);
 }
 
+int nghttp3_stream_require_schedule(nghttp3_stream *stream) {
+  return (nghttp3_ringbuf_len(&stream->outq) ||
+          nghttp3_ringbuf_len(&stream->frq)) &&
+         !nghttp3_stream_is_blocked(stream);
+}
+
 ssize_t nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
                               nghttp3_vec *vec, size_t veccnt) {
   nghttp3_ringbuf *outq = &stream->outq;
@@ -836,6 +842,23 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
   case NGHTTP3_HTTP_STATE_NONE:
     return NGHTTP3_ERR_HTTP_INTERNAL;
   case NGHTTP3_HTTP_STATE_REQ_INITIAL:
+    switch (event) {
+    case NGHTTP3_HTTP_EVENT_HEADERS_BEGIN:
+      stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN;
+      return 0;
+    case NGHTTP3_HTTP_EVENT_PRIORITY_BEGIN:
+      stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_PRIORITY_BEGIN;
+      return 0;
+    default:
+      return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+    }
+  case NGHTTP3_HTTP_STATE_REQ_PRIORITY_BEGIN:
+    if (event != NGHTTP3_HTTP_EVENT_PRIORITY_END) {
+      return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL;
+    }
+    stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_PRIORITY_END;
+    return 0;
+  case NGHTTP3_HTTP_STATE_REQ_PRIORITY_END:
     if (event != NGHTTP3_HTTP_EVENT_HEADERS_BEGIN) {
       return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
     }
