@@ -72,6 +72,26 @@ size_t nghttp3_frame_write_settings_len(size_t *pppayloadlen,
                                         const nghttp3_frame_settings *fr);
 
 /*
+ * nghttp3_frame_write_priority writes PRIORITY frame |fr| to |dest|.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOBUF
+ *     |dest| is too short to write |fr|.
+ */
+int nghttp3_frame_write_priority(nghttp3_buf *dest,
+                                 const nghttp3_frame_priority *fr);
+
+/*
+ * nghttp3_frame_write_priority_len returns the number of bytes
+ * required to write |fr|.  fr->hd.length is ignored.  This function
+ * stores payload length in |*ppayloadlen|.
+ */
+size_t nghttp3_frame_write_priority_len(size_t *ppayloadlen,
+                                        const nghttp3_frame_priority *fr);
+
+/*
  * nghttp3_nva_copy copies name/value pairs from |nva|, which contains
  * |nvlen| pairs, to |*nva_ptr|, which is dynamically allocated so
  * that all items can be stored.  The resultant name and value in

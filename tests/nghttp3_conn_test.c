@@ -473,3 +473,70 @@ void test_nghttp3_conn_http_request(void) {
   nghttp3_conn_del(sv);
   nghttp3_conn_del(cl);
 }
+
+void test_nghttp3_conn_recv_request_priority(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  nghttp3_conn_callbacks callbacks;
+  nghttp3_conn_settings settings;
+  uint8_t rawbuf[256];
+  nghttp3_buf buf;
+  nghttp3_frame_priority fr;
+  size_t payloadlen;
+  ssize_t sconsumed;
+  nghttp3_stream *stream;
+  nghttp3_tnode *parent;
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  nghttp3_conn_settings_default(&settings);
+
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+
+  fr.hd.type = NGHTTP3_FRAME_PRIORITY;
+  fr.pt = NGHTTP3_PRI_ELEM_TYPE_CURRENT;
+  fr.dt = NGHTTP3_ELEM_DEP_TYPE_REQUEST;
+  fr.elem_dep_id = 0;
+  fr.weight = 199;
+
+  nghttp3_frame_write_priority_len(&payloadlen, &fr);
+  fr.hd.length = (int64_t)payloadlen;
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_frame_write_priority(&buf, &fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 4, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 4);
+  parent = stream->node.parent;
+
+  CU_ASSERT(NGHTTP3_NODE_ID_TYPE_STREAM == parent->nid.type);
+  CU_ASSERT(0 == parent->nid.id);
+  CU_ASSERT(199 == stream->node.weight);
+  CU_ASSERT(!nghttp3_tnode_is_scheduled(&stream->node));
+
+  nghttp3_conn_del(conn);
+
+  /* Making dependency to itself is not allowed */
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+
+  fr.hd.type = NGHTTP3_FRAME_PRIORITY;
+  fr.pt = NGHTTP3_PRI_ELEM_TYPE_CURRENT;
+  fr.dt = NGHTTP3_ELEM_DEP_TYPE_REQUEST;
+  fr.elem_dep_id = 0;
+  fr.weight = 199;
+
+  nghttp3_frame_write_priority_len(&payloadlen, &fr);
+  fr.hd.length = (int64_t)payloadlen;
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_frame_write_priority(&buf, &fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT(NGHTTP3_ERR_HTTP_MALFORMED_FRAME - NGHTTP3_FRAME_PRIORITY ==
+            sconsumed);
+
+  nghttp3_conn_del(conn);
+}

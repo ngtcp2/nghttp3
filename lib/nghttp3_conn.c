@@ -874,7 +874,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
       assert(p != end);
       assert(rstate->left == 1);
 
-      rstate->fr.priority.weight = *p;
+      rstate->fr.priority.weight = (uint32_t)(*p + 1);
 
       ++p;
       ++nconsumed;
@@ -1042,6 +1042,7 @@ int nghttp3_conn_on_priority(nghttp3_conn *conn, nghttp3_stream *stream,
   }
 
   nghttp3_tnode_remove(&stream->node);
+  stream->node.weight = fr->weight;
   nghttp3_tnode_insert(&stream->node, dep_tnode);
 
   if (nghttp3_stream_require_schedule(stream)) {

@@ -93,6 +93,64 @@ size_t nghttp3_frame_write_settings_len(size_t *ppayloadlen,
          nghttp3_put_varint_len((int64_t)payloadlen) + payloadlen;
 }
 
+int nghttp3_frame_write_priority(nghttp3_buf *dest,
+                                 const nghttp3_frame_priority *fr) {
+  size_t len = nghttp3_put_varint_len(NGHTTP3_FRAME_PRIORITY) +
+               nghttp3_put_varint_len((int64_t)fr->hd.length) +
+               (size_t)fr->hd.length;
+  uint8_t *p;
+
+  if (nghttp3_buf_left(dest) < len) {
+    return NGHTTP3_ERR_NOBUF;
+  }
+
+  p = dest->last;
+  p = nghttp3_put_varint(p, NGHTTP3_FRAME_PRIORITY);
+  p = nghttp3_put_varint(p, (int64_t)fr->hd.length);
+  *p++ = (uint8_t)((fr->pt << 6) | (fr->dt << 4));
+  if (fr->pt != NGHTTP3_PRI_ELEM_TYPE_CURRENT) {
+    p = nghttp3_put_varint(p, fr->pri_elem_id);
+  }
+  if (fr->dt != NGHTTP3_ELEM_DEP_TYPE_ROOT) {
+    p = nghttp3_put_varint(p, fr->elem_dep_id);
+  }
+  *p++ = (uint8_t)(fr->weight - 1);
+
+  dest->last = p;
+
+  return 0;
+}
+
+size_t nghttp3_frame_write_priority_len(size_t *ppayloadlen,
+                                        const nghttp3_frame_priority *fr) {
+  size_t payloadlen = 2;
+
+  switch (fr->pt) {
+  case NGHTTP3_PRI_ELEM_TYPE_REQUSET:
+  case NGHTTP3_PRI_ELEM_TYPE_PUSH:
+  case NGHTTP3_PRI_ELEM_TYPE_PLACEHOLDER:
+    payloadlen += nghttp3_put_varint_len(fr->pri_elem_id);
+    break;
+  case NGHTTP3_PRI_ELEM_TYPE_CURRENT:
+    break;
+  }
+
+  switch (fr->dt) {
+  case NGHTTP3_ELEM_DEP_TYPE_REQUEST:
+  case NGHTTP3_ELEM_DEP_TYPE_PUSH:
+  case NGHTTP3_ELEM_DEP_TYPE_PLACEHOLDER:
+    payloadlen += nghttp3_put_varint_len(fr->elem_dep_id);
+    break;
+  case NGHTTP3_ELEM_DEP_TYPE_ROOT:
+    break;
+  }
+
+  *ppayloadlen = payloadlen;
+
+  return nghttp3_put_varint_len(NGHTTP3_FRAME_PRIORITY) +
+         nghttp3_put_varint_len((int64_t)payloadlen) + payloadlen;
+}
+
 int nghttp3_nva_copy(nghttp3_nv **pnva, const nghttp3_nv *nva, size_t nvlen,
                      const nghttp3_mem *mem) {
   size_t i;
