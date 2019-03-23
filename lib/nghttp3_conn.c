@@ -222,7 +222,7 @@ ssize_t nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
     } else {
       /* client doesn't expect to receive new bidirectional stream
          from server. */
-      return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL;
+      return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
     }
   }
 
@@ -247,7 +247,7 @@ static ssize_t conn_read_type(nghttp3_conn *conn, nghttp3_stream *stream,
 
   nread = nghttp3_read_varint(rvint, src, srclen, fin);
   if (nread < 0) {
-    return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL;
+    return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
   }
 
   if (rvint->left) {
@@ -377,7 +377,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       assert(end - p > 0);
       nread = nghttp3_read_varint(rvint, p, (size_t)(end - p), /* fin = */ 0);
       if (nread < 0) {
-        return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL;
+        return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
       }
 
       p += nread;
@@ -717,7 +717,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
       assert(end - p > 0);
       nread = nghttp3_read_varint(rvint, p, (size_t)(end - p), fin);
       if (nread < 0) {
-        return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL;
+        return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
       }
 
       p += nread;
@@ -955,7 +955,7 @@ almost_done:
     switch (rstate->state) {
     case NGHTTP3_REQ_STREAM_STATE_FRAME_TYPE:
       if (rvint->left) {
-        return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL;
+        return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
       }
       return nghttp3_stream_transit_rx_http_state(stream,
                                                   NGHTTP3_HTTP_EVENT_MSG_END);
@@ -1151,7 +1151,7 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
   case NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY:
     if (ent->value > NGHTTP3_QPACK_MAX_MAX_TABLE_CAPACITY) {
       /* TODO What is the best error code for this situation? */
-      return NGHTTP3_ERR_HTTP_INTERNAL;
+      return NGHTTP3_ERR_HTTP_INTERNAL_ERROR;
     }
     dest->qpack_max_table_capacity = (uint32_t)ent->value;
     max_table_capacity =
@@ -1165,7 +1165,7 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
   case NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS:
     if (ent->value > NGHTTP3_QPACK_MAX_BLOCKED_STREAMS) {
       /* TODO What is the best error code for this situation? */
-      return NGHTTP3_ERR_HTTP_INTERNAL;
+      return NGHTTP3_ERR_HTTP_INTERNAL_ERROR;
     }
     dest->qpack_blocked_streams = (uint16_t)ent->value;
     rv = nghttp3_qpack_encoder_set_max_blocked(&conn->qenc,
