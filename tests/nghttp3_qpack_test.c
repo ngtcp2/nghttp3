@@ -180,9 +180,8 @@ void test_nghttp3_qpack_encoder_encode(void) {
   CU_ASSERT(nghttp3_qpack_encoder_stream_is_blocked(&enc, stream));
   CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked(&enc));
 
-  ref = stream->ref;
+  ref = nghttp3_ringbuf_get(&stream->refs, 0);
 
-  CU_ASSERT(NULL != ref);
   CU_ASSERT(5 == ref->max_cnt);
   CU_ASSERT(1 == ref->min_cnt);
   CU_ASSERT(5 == stream->max_cnt);
@@ -238,6 +237,7 @@ void test_nghttp3_qpack_encoder_still_blocked(void) {
   int rv;
   nghttp3_buf pbuf, rbuf, ebuf;
   nghttp3_qpack_stream *stream;
+  nghttp3_qpack_entry_ref *ref;
 
   nghttp3_buf_init(&pbuf);
   nghttp3_buf_init(&rbuf);
@@ -260,9 +260,14 @@ void test_nghttp3_qpack_encoder_still_blocked(void) {
 
   stream = nghttp3_qpack_encoder_find_stream(&enc, 0);
 
-  CU_ASSERT(NULL != stream->ref->next);
-  CU_ASSERT(stream->ref->max_cnt != stream->max_cnt);
-  CU_ASSERT(stream->ref->next->max_cnt == stream->max_cnt);
+  ref = nghttp3_ringbuf_get(&stream->refs, 0);
+
+  CU_ASSERT(nghttp3_ringbuf_len(&stream->refs) > 1);
+  CU_ASSERT(ref->max_cnt != stream->max_cnt);
+
+  ref = nghttp3_ringbuf_get(&stream->refs, 1);
+
+  CU_ASSERT(ref->max_cnt == stream->max_cnt);
 
   rv = nghttp3_qpack_encoder_ack_header(&enc, 0);
 
@@ -271,9 +276,10 @@ void test_nghttp3_qpack_encoder_still_blocked(void) {
 
   stream = nghttp3_qpack_encoder_find_stream(&enc, 0);
 
-  CU_ASSERT(NULL != stream->ref);
-  CU_ASSERT(NULL == stream->ref->next);
-  CU_ASSERT(stream->ref->max_cnt == stream->max_cnt);
+  ref = nghttp3_ringbuf_get(&stream->refs, 0);
+
+  CU_ASSERT(1 == nghttp3_ringbuf_len(&stream->refs));
+  CU_ASSERT(ref->max_cnt == stream->max_cnt);
 
   rv = nghttp3_qpack_encoder_ack_header(&enc, 0);
 

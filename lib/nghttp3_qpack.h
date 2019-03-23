@@ -100,16 +100,12 @@ typedef struct {
   int32_t token;
 } nghttp3_qpack_static_header;
 
-struct nghttp3_qpack_entry_ref;
-typedef struct nghttp3_qpack_entry_ref nghttp3_qpack_entry_ref;
-
 /*
  * nghttp3_qpack_entry_ref is created per encoded header block and
  * includes the required insert count and the minimum insert count of
  * dynamic table entry it refers to.
  */
-struct nghttp3_qpack_entry_ref {
-  nghttp3_qpack_entry_ref *next;
+typedef struct {
   /* max_cnt is the required insert count. */
   size_t max_cnt;
   /* min_cnt is the minimum insert count of dynamic table entry it
@@ -117,34 +113,35 @@ struct nghttp3_qpack_entry_ref {
      dynamic header table entry this encoded block refers to plus
      1. */
   size_t min_cnt;
-};
+} nghttp3_qpack_entry_ref;
 
-void nghttp3_qpack_entry_ref_init(nghttp3_qpack_entry_ref *ref, size_t max_cnt,
-                                  size_t min_cnt);
+nghttp3_qpack_entry_ref *
+nghttp3_qpack_entry_ref_init(nghttp3_qpack_entry_ref *ref, size_t max_cnt,
+                             size_t min_cnt);
 
 typedef struct {
   nghttp3_pq_entry pe;
   nghttp3_map_entry me;
-  /* ref is a linked list of nghttp3_qpack_entry_ref.  HTTP allows
-     multiple header blocks (e.g., non-final response headers, final
-     response headers, and trailers). */
-  nghttp3_qpack_entry_ref *ref;
+  /* refs is an array of nghttp3_qpack_entry_ref in the order of the
+     time they are encoded.  HTTP/3 allows multiple header blocks
+     (e.g., non-final response headers, final response headers,
+     trailers, and push promises) per stream. */
+  nghttp3_ringbuf refs;
   /* max_cnt is maximum max_cnt in ref. */
   size_t max_cnt;
   /* min_cnt is minimum min_cnt in ref. */
   size_t min_cnt;
 } nghttp3_qpack_stream;
 
-void nghttp3_qpack_stream_init(nghttp3_qpack_stream *stream, int64_t stream_id);
+int nghttp3_qpack_stream_init(nghttp3_qpack_stream *stream, int64_t stream_id,
+                              const nghttp3_mem *mem);
 
-void nghttp3_qpack_stream_free(nghttp3_qpack_stream *stream,
-                               const nghttp3_mem *mem);
+void nghttp3_qpack_stream_free(nghttp3_qpack_stream *stream);
 
-void nghttp3_qpack_stream_add_ref(nghttp3_qpack_stream *stream,
-                                  nghttp3_qpack_entry_ref *ref);
+int nghttp3_qpack_stream_add_ref(nghttp3_qpack_stream *stream,
+                                 const nghttp3_qpack_entry_ref *ref);
 
-void nghttp3_qpack_stream_pop_ref(nghttp3_qpack_stream *stream,
-                                  const nghttp3_mem *mem);
+void nghttp3_qpack_stream_pop_ref(nghttp3_qpack_stream *stream);
 
 #define NGHTTP3_QPACK_ENTRY_OVERHEAD 32
 
