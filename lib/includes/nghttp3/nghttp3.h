@@ -1372,10 +1372,10 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_push_promise(nghttp3_conn *conn,
                                                     const nghttp3_nv *nva,
                                                     size_t nvlen);
 
-NGHTTP3_EXTERN int nghttp3_conn_submit_info_response(nghttp3_conn *conn,
-                                                     int64_t stream_id,
-                                                     const nghttp3_nv *nva,
-                                                     size_t nvlen);
+NGHTTP3_EXTERN int nghttp3_conn_submit_info(nghttp3_conn *conn,
+                                            int64_t stream_id,
+                                            const nghttp3_nv *nva,
+                                            size_t nvlen);
 
 NGHTTP3_EXTERN int nghttp3_conn_submit_response(nghttp3_conn *conn,
                                                 int64_t stream_id,

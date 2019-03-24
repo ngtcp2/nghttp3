@@ -1882,11 +1882,32 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
   return conn_submit_headers_data(conn, stream, nva, nvlen, dr);
 }
 
+int nghttp3_conn_submit_info(nghttp3_conn *conn, int64_t stream_id,
+                             const nghttp3_nv *nva, size_t nvlen) {
+  nghttp3_stream *stream;
+
+  /* TODO Verify that it is allowed to send info (non-final response)
+     now. */
+  assert(conn->tx.qenc);
+
+  if (!conn->server) {
+    return NGHTTP3_ERR_INVALID_STATE;
+  }
+
+  stream = nghttp3_conn_find_stream(conn, stream_id);
+  if (stream == NULL) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  return conn_submit_headers_data(conn, stream, nva, nvlen, NULL);
+}
+
 int nghttp3_conn_submit_response(nghttp3_conn *conn, int64_t stream_id,
                                  const nghttp3_nv *nva, size_t nvlen,
                                  const nghttp3_data_reader *dr) {
   nghttp3_stream *stream;
 
+  /* TODO Verify that it is allowed to send response now. */
   assert(conn->tx.qenc);
 
   if (!conn->server) {
@@ -1899,6 +1920,21 @@ int nghttp3_conn_submit_response(nghttp3_conn *conn, int64_t stream_id,
   }
 
   return conn_submit_headers_data(conn, stream, nva, nvlen, dr);
+}
+
+int nghttp3_conn_submit_trailer(nghttp3_conn *conn, int64_t stream_id,
+                                const nghttp3_nv *nva, size_t nvlen) {
+  nghttp3_stream *stream;
+
+  /* TODO Verify that it is allowed to send trailer now. */
+  assert(conn->tx.qenc);
+
+  stream = nghttp3_conn_find_stream(conn, stream_id);
+  if (stream == NULL) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  return conn_submit_headers_data(conn, stream, nva, nvlen, NULL);
 }
 
 int nghttp3_conn_block_stream(nghttp3_conn *conn, int64_t stream_id) {
