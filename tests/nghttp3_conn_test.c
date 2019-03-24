@@ -140,8 +140,8 @@ void test_nghttp3_conn_read_control(void) {
   iv = fr.settings.iv;
   iv[0].id = NGHTTP3_SETTINGS_ID_MAX_HEADER_LIST_SIZE;
   iv[0].value = 65536;
-  iv[1].id = NGHTTP3_SETTINGS_ID_NUM_PLACEHOLDERS;
-  iv[1].value = 1000000009;
+  iv[1].id = 1000000009;
+  iv[1].value = 1000000007;
   iv[2].id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY;
   iv[2].value = 4096;
   iv[3].id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS;
@@ -159,7 +159,7 @@ void test_nghttp3_conn_read_control(void) {
 
   CU_ASSERT(nconsumed == (ssize_t)nghttp3_buf_len(&buf));
   CU_ASSERT(65536 == conn->remote.settings.max_header_list_size);
-  CU_ASSERT(1000000009 == conn->remote.settings.num_placeholders);
+  CU_ASSERT(0 == conn->remote.settings.num_placeholders);
   CU_ASSERT(4096 == conn->remote.settings.qpack_max_table_capacity);
   CU_ASSERT(99 == conn->remote.settings.qpack_blocked_streams);
 
@@ -178,7 +178,7 @@ void test_nghttp3_conn_read_control(void) {
   }
 
   CU_ASSERT(65536 == conn->remote.settings.max_header_list_size);
-  CU_ASSERT(1000000009 == conn->remote.settings.num_placeholders);
+  CU_ASSERT(0 == conn->remote.settings.num_placeholders);
   CU_ASSERT(4096 == conn->remote.settings.qpack_max_table_capacity);
   CU_ASSERT(99 == conn->remote.settings.qpack_blocked_streams);
 

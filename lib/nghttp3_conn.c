@@ -180,6 +180,10 @@ int nghttp3_conn_client_new(nghttp3_conn **pconn,
                             const nghttp3_conn_callbacks *callbacks,
                             const nghttp3_conn_settings *settings,
                             const nghttp3_mem *mem, void *user_data) {
+  if (settings->num_placeholders) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
   return conn_new(pconn, /* server = */ 0, callbacks, settings, mem, user_data);
 }
 
@@ -690,6 +694,10 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       }
 
       rstate->state = NGHTTP3_CTRL_STREAM_STATE_SETTINGS_VALUE;
+
+      if (p == end) {
+        return (ssize_t)nconsumed;
+      }
       /* Fall through */
     case NGHTTP3_CTRL_STREAM_STATE_SETTINGS_VALUE:
       len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
@@ -1472,6 +1480,9 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
     dest->max_header_list_size = (uint64_t)ent->value;
     break;
   case NGHTTP3_SETTINGS_ID_NUM_PLACEHOLDERS:
+    if (conn->server) {
+      return NGHTTP3_ERR_HTTP_WRONG_SETTING_DIRECTION;
+    }
     dest->num_placeholders = (uint64_t)ent->value;
     break;
   case NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY:
