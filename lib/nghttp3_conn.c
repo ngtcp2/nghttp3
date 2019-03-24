@@ -2000,6 +2000,61 @@ void nghttp3_conn_set_max_client_stream_id_bidi(nghttp3_conn *conn,
   conn->rx.max_client_stream_id_bidi = max_stream_id;
 }
 
+int nghttp3_conn_submit_priority(nghttp3_conn *conn, nghttp3_pri_elem_type pt,
+                                 int64_t pri_elem_id, nghttp3_elem_dep_type dt,
+                                 int64_t elem_dep_id, uint32_t weight) {
+  nghttp3_frame_entry frent;
+
+  if (conn->server || conn->tx.ctrl == NULL) {
+    return NGHTTP3_ERR_INVALID_STATE;
+  }
+
+  if (pri_elem_id < 0 || elem_dep_id < 0) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  if (weight < 1 || 256 < weight) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  switch (pt) {
+  case NGHTTP3_PRI_ELEM_TYPE_REQUEST:
+  case NGHTTP3_PRI_ELEM_TYPE_PUSH:
+    break;
+  case NGHTTP3_PRI_ELEM_TYPE_PLACEHOLDER:
+    if ((uint64_t)pri_elem_id >= conn->remote.settings.num_placeholders) {
+      return NGHTTP3_ERR_INVALID_ARGUMENT;
+    }
+    break;
+  default:
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  switch (dt) {
+  case NGHTTP3_ELEM_DEP_TYPE_REQUEST:
+  case NGHTTP3_ELEM_DEP_TYPE_PUSH:
+    break;
+  case NGHTTP3_ELEM_DEP_TYPE_PLACEHOLDER:
+    if ((uint64_t)elem_dep_id >= conn->remote.settings.num_placeholders) {
+      return NGHTTP3_ERR_INVALID_ARGUMENT;
+    }
+    break;
+  case NGHTTP3_ELEM_DEP_TYPE_ROOT:
+    break;
+  default:
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  frent.fr.hd.type = NGHTTP3_FRAME_PRIORITY;
+  frent.fr.priority.pt = pt;
+  frent.fr.priority.dt = dt;
+  frent.fr.priority.pri_elem_id = pri_elem_id;
+  frent.fr.priority.elem_dep_id = elem_dep_id;
+  frent.fr.priority.weight = weight;
+
+  return nghttp3_stream_frq_add(conn->tx.ctrl, &frent);
+}
+
 void nghttp3_conn_settings_default(nghttp3_conn_settings *settings) {
   memset(settings, 0, sizeof(nghttp3_conn_settings));
   settings->max_header_list_size = NGHTTP3_VARINT_MAX;

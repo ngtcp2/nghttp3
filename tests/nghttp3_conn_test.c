@@ -349,6 +349,92 @@ void test_nghttp3_conn_submit_request(void) {
   nghttp3_conn_del(conn);
 }
 
+static void conn_read_write(nghttp3_conn *cl, nghttp3_conn *sv) {
+  nghttp3_vec vec[256];
+  ssize_t sveccnt;
+  ssize_t sconsumed;
+  int64_t stream_id;
+  int fin;
+  int rv;
+  size_t i, j;
+  nghttp3_conn *sender = cl, *receiver = sv;
+
+  for (j = 0; j < 2; ++j) {
+    for (;;) {
+      sveccnt = nghttp3_conn_writev_stream(sender, &stream_id, &fin, vec,
+                                           nghttp3_arraylen(vec));
+
+      CU_ASSERT(sveccnt >= 0);
+
+      if (sveccnt <= 0) {
+        break;
+      }
+
+      rv = nghttp3_conn_add_write_offset(sender, stream_id,
+                                         nghttp3_vec_len(vec, (size_t)sveccnt));
+
+      CU_ASSERT(0 == rv);
+
+      for (i = 0; i < (size_t)sveccnt; ++i) {
+        sconsumed = nghttp3_conn_read_stream(receiver, stream_id, vec[i].base,
+                                             vec[i].len,
+                                             fin && i == (size_t)sveccnt - 1);
+        CU_ASSERT(sconsumed >= 0);
+      }
+
+      rv = nghttp3_conn_add_ack_offset(sender, stream_id,
+                                       nghttp3_vec_len(vec, (size_t)sveccnt));
+
+      CU_ASSERT(0 == rv);
+    }
+
+    sender = sv;
+    receiver = cl;
+  }
+}
+
+void test_nghttp3_conn_submit_priority(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *cl, *sv;
+  nghttp3_conn_callbacks callbacks;
+  nghttp3_conn_settings settings;
+  int rv;
+  nghttp3_placeholder *ph;
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  nghttp3_conn_settings_default(&settings);
+
+  nghttp3_conn_client_new(&cl, &callbacks, &settings, mem, NULL);
+
+  settings.num_placeholders = 10;
+  nghttp3_conn_server_new(&sv, &callbacks, &settings, mem, NULL);
+
+  nghttp3_conn_set_max_client_stream_id_bidi(sv, 396);
+
+  nghttp3_conn_bind_control_stream(cl, 2);
+  nghttp3_conn_bind_control_stream(sv, 3);
+
+  nghttp3_conn_bind_qpack_streams(cl, 6, 10);
+  nghttp3_conn_bind_qpack_streams(sv, 7, 11);
+
+  conn_read_write(cl, sv);
+
+  rv = nghttp3_conn_submit_priority(cl, NGHTTP3_PRI_ELEM_TYPE_PLACEHOLDER, 7,
+                                    NGHTTP3_ELEM_DEP_TYPE_ROOT, 0, 249);
+
+  CU_ASSERT(0 == rv);
+
+  conn_read_write(cl, sv);
+
+  ph = nghttp3_conn_find_placeholder(sv, 7);
+
+  CU_ASSERT(&sv->root == ph->node.parent);
+  CU_ASSERT(249 == ph->node.weight);
+
+  nghttp3_conn_del(sv);
+  nghttp3_conn_del(cl);
+}
+
 void test_nghttp3_conn_http_request(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *cl, *sv;

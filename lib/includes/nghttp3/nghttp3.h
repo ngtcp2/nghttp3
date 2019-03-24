@@ -1388,6 +1388,26 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_trailer(nghttp3_conn *conn,
                                                const nghttp3_nv *nva,
                                                size_t nvlen);
 
+/**
+ * @function
+ *
+ * `nghttp3_conn_submit_priority` submits priority change to the
+ * connection |conn|.  |pt| specifies the type of ID |pri_elem_id|.
+ * :enum:`NGHTTP3_PRI_ELEM_TYPE_CURRENT` cannot be used in this
+ * function.  |dt| specifies the type of ID |elem_dep_id|.  |weight|
+ * must be [1, 256], inclusive.  function can be called with client
+ * |conn|.  This function makes node identified by |pri_elem_id|
+ * depend on another node identified by |elem_dep_id|.  It is an error
+ * to attempt to make a dependency to itself.
+ *
+ * Before calling this function, control stream must be bound to a
+ * stream ID using `nghttp3_conn_bind_control_stream()`.
+ */
+NGHTTP3_EXTERN int
+nghttp3_conn_submit_priority(nghttp3_conn *conn, nghttp3_pri_elem_type pt,
+                             int64_t pri_elem_id, nghttp3_elem_dep_type dt,
+                             int64_t elem_dep_id, uint32_t weight);
+
 #ifdef __cplusplus
 }
 #endif
