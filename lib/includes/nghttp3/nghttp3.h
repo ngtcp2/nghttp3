@@ -185,7 +185,12 @@ typedef struct {
   nghttp3_realloc realloc;
 } nghttp3_mem;
 
-/* The default, system standard memory allocator */
+/**
+ * @function
+ *
+ * `nghttp3_mem_default` returns the default memory allocator which
+ * uses malloc/calloc/realloc/free.
+ */
 NGHTTP3_EXTERN const nghttp3_mem *nghttp3_mem_default(void);
 
 /**
@@ -983,6 +988,19 @@ typedef int (*nghttp3_acked_stream_data)(nghttp3_conn *conn, int64_t stream_id,
 typedef int (*nghttp3_stream_close)(nghttp3_conn *conn, int64_t stream_id,
                                     void *stream_user_data, void *user_data);
 
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_recv_data` is a callback function which is invoked
+ * when a part of request or response body on stream identified by
+ * |stream_id| is received.  |data| points to the received data and
+ * its length is |datalen|.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
 typedef int (*nghttp3_recv_data)(nghttp3_conn *conn, int64_t stream_id,
                                  const uint8_t *data, size_t datalen,
                                  void *stream_user_data, void *user_data);
