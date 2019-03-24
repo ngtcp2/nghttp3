@@ -104,7 +104,7 @@ static int ricnt_less(const nghttp3_pq_entry *lhsx,
   return lhs->qpack_sctx.ricnt < rhs->qpack_sctx.ricnt;
 }
 
-static int conn_new(nghttp3_conn **pconn,
+static int conn_new(nghttp3_conn **pconn, int server,
                     const nghttp3_conn_callbacks *callbacks,
                     const nghttp3_conn_settings *settings,
                     const nghttp3_mem *mem, void *user_data) {
@@ -145,17 +145,25 @@ static int conn_new(nghttp3_conn **pconn,
 
   nghttp3_pq_init(&conn->qpack_blocked_streams, ricnt_less, mem);
 
+  rv = nghttp3_idtr_init(&conn->remote.bidi.idtr, server, mem);
+  if (rv != 0) {
+    goto remote_bidi_idtr_init_fail;
+  }
+
   conn->callbacks = *callbacks;
   conn->local.settings = *settings;
   nghttp3_conn_settings_default(&conn->remote.settings);
   conn->mem = mem;
   conn->user_data = user_data;
   conn->next_seq = 0;
+  conn->server = server;
 
   *pconn = conn;
 
   return 0;
 
+remote_bidi_idtr_init_fail:
+  nghttp3_qpack_encoder_free(&conn->qenc);
 qenc_init_fail:
   nghttp3_qpack_decoder_free(&conn->qdec);
 qdec_init_fail:
@@ -172,7 +180,7 @@ int nghttp3_conn_client_new(nghttp3_conn **pconn,
                             const nghttp3_conn_callbacks *callbacks,
                             const nghttp3_conn_settings *settings,
                             const nghttp3_mem *mem, void *user_data) {
-  return conn_new(pconn, callbacks, settings, mem, user_data);
+  return conn_new(pconn, /* server = */ 0, callbacks, settings, mem, user_data);
 }
 
 int nghttp3_conn_server_new(nghttp3_conn **pconn,
@@ -181,12 +189,10 @@ int nghttp3_conn_server_new(nghttp3_conn **pconn,
                             const nghttp3_mem *mem, void *user_data) {
   int rv;
 
-  rv = conn_new(pconn, callbacks, settings, mem, user_data);
+  rv = conn_new(pconn, /* server = */ 1, callbacks, settings, mem, user_data);
   if (rv != 0) {
     return rv;
   }
-
-  (*pconn)->server = 1;
 
   return 0;
 }
@@ -214,6 +220,8 @@ void nghttp3_conn_del(nghttp3_conn *conn) {
   if (conn == NULL) {
     return;
   }
+
+  nghttp3_idtr_free(&conn->remote.bidi.idtr);
 
   nghttp3_pq_free(&conn->qpack_blocked_streams);
 
@@ -245,6 +253,10 @@ ssize_t nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
       return rv;
     }
     if (conn->server) {
+      if (nghttp3_client_stream_bidi(stream_id)) {
+        rv = nghttp3_idtr_open(&conn->remote.bidi.idtr, stream_id);
+        assert(rv == 0);
+      }
       stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
       stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
     } else if (nghttp3_stream_uni(stream_id)) {
@@ -1118,6 +1130,8 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
   nghttp3_placeholder *dep_ph;
   int rv;
 
+  assert(conn->server);
+
   switch (dep_nid->type) {
   case NGHTTP3_NODE_ID_TYPE_STREAM:
     if (!nghttp3_client_stream_bidi(dep_nid->id)) {
@@ -1129,6 +1143,12 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
 
     dep_stream = nghttp3_conn_find_stream(conn, dep_nid->id);
     if (dep_stream == NULL) {
+      rv = nghttp3_idtr_open(&conn->remote.bidi.idtr, dep_nid->id);
+      if (rv == NGHTTP3_ERR_STREAM_IN_USE) {
+        /* Stream has been closed; use root instead. */
+        dep_tnode = &conn->root;
+        return 0;
+      }
       rv = nghttp3_conn_create_stream(conn, &dep_stream, dep_nid->id);
       if (rv != 0) {
         return rv;
@@ -1219,6 +1239,9 @@ int nghttp3_conn_on_request_priority(nghttp3_conn *conn, nghttp3_stream *stream,
     return rv;
   }
 
+  /* dep_tnode might not have dep_nid because already closed stream is
+     replaced with root */
+
   assert(dep_tnode != NULL);
 
   nghttp3_tnode_remove(&stream->node);
@@ -1244,6 +1267,8 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
   nghttp3_placeholder *ph;
   int rv;
 
+  assert(conn->server);
+
   nghttp3_node_id_init(&nid, fr->pt, fr->pri_elem_id);
   nghttp3_node_id_init(&dep_nid, fr->dt, fr->elem_dep_id);
 
@@ -1258,6 +1283,8 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
     stream = nghttp3_conn_find_stream(conn, nid.id);
     if (stream) {
       tnode = &stream->node;
+    } else if (nghttp3_idtr_is_open(&conn->remote.bidi.idtr, nid.id)) {
+      return 0;
     }
     break;
   case NGHTTP3_NODE_ID_TYPE_PUSH:
@@ -1290,6 +1317,9 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
   if (rv != 0) {
     return rv;
   }
+
+  /* dep_tnode might not have dep_nid because already closed stream is
+     replaced with root */
 
   assert(dep_tnode != NULL);
 

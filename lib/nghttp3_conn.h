@@ -35,6 +35,7 @@
 #include "nghttp3_map.h"
 #include "nghttp3_qpack.h"
 #include "nghttp3_tnode.h"
+#include "nghttp3_idtr.h"
 
 #define NGHTTP3_VARINT_MAX ((1ull << 62) - 1)
 
@@ -74,6 +75,9 @@ struct nghttp3_conn {
   } local;
 
   struct {
+    struct {
+      nghttp3_idtr idtr;
+    } bidi;
     nghttp3_conn_settings settings;
   } remote;
 
