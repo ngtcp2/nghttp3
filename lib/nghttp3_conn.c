@@ -32,7 +32,7 @@
 #include "nghttp3_macro.h"
 #include "nghttp3_err.h"
 
-static int stream_get_headers_type(nghttp3_stream *stream) {
+static nghttp3_headers_type stream_get_headers_type(nghttp3_stream *stream) {
   switch (stream->rx.hstate) {
   case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
   case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
@@ -1216,7 +1216,7 @@ int nghttp3_conn_on_request_priority(nghttp3_conn *conn, nghttp3_stream *stream,
   nghttp3_tnode *dep_tnode = NULL;
   int rv;
 
-  nghttp3_node_id_init(&dep_nid, fr->dt, fr->elem_dep_id);
+  nghttp3_node_id_init(&dep_nid, (nghttp3_node_id_type)fr->dt, fr->elem_dep_id);
 
   if (nghttp3_node_id_eq(&stream->node.nid, &dep_nid)) {
     return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
@@ -1272,8 +1272,8 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
 
   assert(conn->server);
 
-  nghttp3_node_id_init(&nid, fr->pt, fr->pri_elem_id);
-  nghttp3_node_id_init(&dep_nid, fr->dt, fr->elem_dep_id);
+  nghttp3_node_id_init(&nid, (nghttp3_node_id_type)fr->pt, fr->pri_elem_id);
+  nghttp3_node_id_init(&dep_nid, (nghttp3_node_id_type)fr->dt, fr->elem_dep_id);
 
   switch (nid.type) {
   case NGHTTP3_NODE_ID_TYPE_STREAM:

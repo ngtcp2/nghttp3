@@ -289,7 +289,7 @@ static void typed_buf_shared_init(nghttp3_typed_buf *tbuf,
 }
 
 int nghttp3_stream_write_stream_type(nghttp3_stream *stream) {
-  size_t len = nghttp3_put_varint_len(stream->type);
+  size_t len = nghttp3_put_varint_len((int64_t)stream->type);
   nghttp3_buf *chunk;
   nghttp3_typed_buf tbuf;
   int rv;
@@ -302,7 +302,7 @@ int nghttp3_stream_write_stream_type(nghttp3_stream *stream) {
   chunk = nghttp3_stream_get_chunk(stream);
   typed_buf_shared_init(&tbuf, chunk);
 
-  chunk->last = nghttp3_put_varint(chunk->last, stream->type);
+  chunk->last = nghttp3_put_varint(chunk->last, (int64_t)stream->type);
   tbuf.buf.last = chunk->last;
 
   return nghttp3_stream_outq_add(stream, &tbuf);

@@ -36,7 +36,6 @@ void test_nghttp3_tnode_mutation(void) {
   nghttp3_tnode *root = &nodes[0], *a = &nodes[1], *b = &nodes[2],
                 *c = &nodes[3], *d = &nodes[4], *e = &nodes[5];
   nghttp3_node_id rnid, snid;
-  int rv;
 
   nghttp3_node_id_init(&rnid, NGHTTP3_NODE_ID_TYPE_ROOT, 0);
   nghttp3_node_id_init(&snid, NGHTTP3_NODE_ID_TYPE_STREAM, 0);
@@ -47,7 +46,6 @@ void test_nghttp3_tnode_mutation(void) {
 
   nghttp3_tnode_insert(a, root);
 
-  CU_ASSERT(0 == rv);
   CU_ASSERT(a == root->first_child);
   CU_ASSERT(NULL == root->next_sibling);
   CU_ASSERT(1 == root->num_children);
@@ -67,7 +65,6 @@ void test_nghttp3_tnode_mutation(void) {
 
   nghttp3_tnode_insert(a, root);
 
-  CU_ASSERT(0 == rv);
   CU_ASSERT(a == root->first_child);
   CU_ASSERT(3 == root->num_children);
   CU_ASSERT(nghttp3_pq_empty(&root->pq));
