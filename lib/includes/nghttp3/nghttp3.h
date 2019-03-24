@@ -1391,6 +1391,15 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_trailer(nghttp3_conn *conn,
 /**
  * @function
  *
+ * `nghttp3_conn_end_stream` signals that application finished
+ * providing outgoing data to a stream identified by |stream_id|.
+ */
+NGHTTP3_EXTERN int nghttp3_conn_end_stream(nghttp3_conn *conn,
+                                           int64_t stream_id);
+
+/**
+ * @function
+ *
  * `nghttp3_conn_submit_priority` submits priority change to the
  * connection |conn|.  |pt| specifies the type of ID |pri_elem_id|.
  * :enum:`NGHTTP3_PRI_ELEM_TYPE_CURRENT` cannot be used in this

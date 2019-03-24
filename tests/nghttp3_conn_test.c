@@ -493,6 +493,10 @@ void test_nghttp3_conn_http_request(void) {
 
   CU_ASSERT(0 == rv);
 
+  rv = nghttp3_conn_end_stream(cl, 0);
+
+  CU_ASSERT(0 == rv);
+
   for (;;) {
     sveccnt = nghttp3_conn_writev_stream(cl, &stream_id, &fin, vec,
                                          nghttp3_arraylen(vec));
@@ -523,6 +527,10 @@ void test_nghttp3_conn_http_request(void) {
 
   rv = nghttp3_conn_submit_response(sv, 0, respnva, nghttp3_arraylen(respnva),
                                     &dr);
+
+  CU_ASSERT(0 == rv);
+
+  rv = nghttp3_conn_end_stream(sv, 0);
 
   CU_ASSERT(0 == rv);
 

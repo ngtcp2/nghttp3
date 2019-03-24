@@ -102,9 +102,9 @@ typedef enum {
   /* NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED indicates that application
      is temporarily unable to provide data. */
   NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED = 0x0004,
-  /* NGHTTP3_STREAM_FLAG_DATA_EOF indicates that application finished
-     to feed data. */
-  NGHTTP3_STREAM_FLAG_DATA_EOF = 0x0008,
+  /* NGHTTP3_STREAM_FLAG_WRITE_END_STREAM indicates that application
+     finished to feed outgoing data. */
+  NGHTTP3_STREAM_FLAG_WRITE_END_STREAM = 0x0008,
   /* NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED indicates that stream is
      blocked due to QPACK decoding. */
   NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED = 0x0010,
@@ -262,7 +262,7 @@ int nghttp3_stream_outq_add(nghttp3_stream *stream,
 int nghttp3_stream_write_headers(nghttp3_stream *stream,
                                  nghttp3_frame_entry *frent);
 
-int nghttp3_stream_write_data(nghttp3_stream *stream,
+int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
                               nghttp3_frame_entry *frent);
 
 int nghttp3_stream_write_settings(nghttp3_stream *stream,

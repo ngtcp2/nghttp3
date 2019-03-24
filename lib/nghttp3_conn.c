@@ -48,6 +48,17 @@ static int stream_get_headers_type(nghttp3_stream *stream) {
   }
 }
 
+/*
+ * conn_remote_stream_uni returns nonzero if |stream_id| is remote
+ * unidirectional stream ID.
+ */
+static int conn_remote_stream_uni(nghttp3_conn *conn, int64_t stream_id) {
+  if (conn->server) {
+    return (stream_id & 0x03) == 0x02;
+  }
+  return (stream_id & 0x03) == 0x03;
+}
+
 static int conn_call_begin_headers(nghttp3_conn *conn, nghttp3_stream *stream) {
   int rv;
 
@@ -2089,6 +2100,37 @@ int nghttp3_conn_submit_priority(nghttp3_conn *conn, nghttp3_pri_elem_type pt,
   frent.fr.priority.weight = weight;
 
   return nghttp3_stream_frq_add(conn->tx.ctrl, &frent);
+}
+
+int nghttp3_conn_end_stream(nghttp3_conn *conn, int64_t stream_id) {
+  nghttp3_stream *stream;
+
+  if (conn_remote_stream_uni(conn, stream_id)) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  stream = nghttp3_conn_find_stream(conn, stream_id);
+  if (stream == NULL) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  if (nghttp3_stream_uni(stream_id)) {
+    switch (stream->type) {
+    case NGHTTP3_STREAM_TYPE_CONTROL:
+    case NGHTTP3_STREAM_TYPE_PUSH:
+    case NGHTTP3_STREAM_TYPE_QPACK_ENCODER:
+    case NGHTTP3_STREAM_TYPE_QPACK_DECODER:
+      return NGHTTP3_ERR_INVALID_ARGUMENT;
+    }
+  }
+
+  if (stream->flags & NGHTTP3_STREAM_FLAG_WRITE_END_STREAM) {
+    return NGHTTP3_ERR_INVALID_STATE;
+  }
+
+  stream->flags |= NGHTTP3_STREAM_FLAG_WRITE_END_STREAM;
+
+  return 0;
 }
 
 void nghttp3_conn_settings_default(nghttp3_conn_settings *settings) {

@@ -231,6 +231,7 @@ int nghttp3_stream_frq_add(nghttp3_stream *stream,
 int nghttp3_stream_fill_outq(nghttp3_stream *stream) {
   nghttp3_ringbuf *frq = &stream->frq;
   nghttp3_frame_entry *frent;
+  int data_eof;
   int rv;
 
   for (; nghttp3_ringbuf_len(frq) && !nghttp3_stream_outq_is_full(stream);) {
@@ -258,11 +259,11 @@ int nghttp3_stream_fill_outq(nghttp3_stream *stream) {
       break;
     case NGHTTP3_FRAME_DATA:
       for (; !nghttp3_stream_outq_is_full(stream);) {
-        rv = nghttp3_stream_write_data(stream, frent);
+        rv = nghttp3_stream_write_data(stream, &data_eof, frent);
         if (rv != 0) {
           return rv;
         }
-        if (stream->flags & NGHTTP3_STREAM_FLAG_DATA_EOF) {
+        if (data_eof) {
           break;
         }
         if (stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED) {
@@ -478,7 +479,7 @@ fail:
   return rv;
 }
 
-int nghttp3_stream_write_data(nghttp3_stream *stream,
+int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
                               nghttp3_frame_entry *frent) {
   int rv;
   size_t len;
@@ -492,10 +493,11 @@ int nghttp3_stream_write_data(nghttp3_stream *stream,
   uint32_t flags = 0;
   nghttp3_frame_hd hd;
 
-  assert(!(stream->flags & NGHTTP3_STREAM_FLAG_DATA_EOF));
   assert(!(stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED));
   assert(read_data);
   assert(conn);
+
+  *peof = 0;
 
   rv = read_data(conn, stream->stream_id, &data, &datalen, &flags,
                  stream->user_data, conn->user_data);
@@ -510,7 +512,7 @@ int nghttp3_stream_write_data(nghttp3_stream *stream,
   assert(datalen || flags & NGHTTP3_DATA_FLAG_EOF);
 
   if (flags & NGHTTP3_DATA_FLAG_EOF) {
-    stream->flags |= NGHTTP3_STREAM_FLAG_DATA_EOF;
+    *peof = 1;
   }
 
   hd.type = NGHTTP3_FRAME_DATA;
@@ -673,7 +675,7 @@ ssize_t nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
 
   /* TODO Rework this if we have finished implementing HTTP
      messaging */
-  *pfin = i == len && (stream->flags & NGHTTP3_STREAM_FLAG_DATA_EOF);
+  *pfin = i == len && (stream->flags & NGHTTP3_STREAM_FLAG_WRITE_END_STREAM);
 
   return vec - vbegin;
 }
