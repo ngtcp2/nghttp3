@@ -109,4 +109,9 @@ uint8_t *nghttp3_put_varint(uint8_t *p, int64_t n);
  */
 size_t nghttp3_put_varint_len(int64_t n);
 
+/*
+ * nghttp3_ord_stream_id returns the ordinal number of |stream_id|.
+ */
+uint64_t nghttp3_ord_stream_id(int64_t stream_id);
+
 #endif /* NGHTTP3_CONV_H */

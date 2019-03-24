@@ -1366,11 +1366,11 @@ typedef enum {
  * @function
  *
  * `nghttp3_conn_set_max_client_stream_id_bidi` tells |conn| the
- * maximum bidirectional stream ID that client can open.
+ * cumulative number of bidirectional streams that client can open.
  */
 NGHTTP3_EXTERN void
-nghttp3_conn_set_max_client_stream_id_bidi(nghttp3_conn *conn,
-                                           int64_t max_stream_id);
+nghttp3_conn_set_max_client_streams_bidi(nghttp3_conn *conn,
+                                         uint64_t max_streams);
 
 /**
  * @functypedef

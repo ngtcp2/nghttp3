@@ -31,6 +31,7 @@
 #include "nghttp3_mem.h"
 #include "nghttp3_macro.h"
 #include "nghttp3_err.h"
+#include "nghttp3_conv.h"
 
 static nghttp3_headers_type stream_get_headers_type(nghttp3_stream *stream) {
   switch (stream->rx.hstate) {
@@ -1148,7 +1149,7 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
     if (!nghttp3_client_stream_bidi(dep_nid->id)) {
       return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
     }
-    if (dep_nid->id > conn->rx.max_client_stream_id_bidi) {
+    if (nghttp3_ord_stream_id(dep_nid->id) > conn->rx.max_client_streams_bidi) {
       return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
     }
 
@@ -1288,7 +1289,7 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
     if (!nghttp3_client_stream_bidi(nid.id)) {
       return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
     }
-    if (nid.id > conn->rx.max_client_stream_id_bidi) {
+    if (nghttp3_ord_stream_id(nid.id) > conn->rx.max_client_streams_bidi) {
       return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
     }
     stream = nghttp3_conn_find_stream(conn, nid.id);
@@ -2082,12 +2083,12 @@ void nghttp3_conn_qpack_blocked_streams_pop(nghttp3_conn *conn) {
   nghttp3_pq_pop(&conn->qpack_blocked_streams);
 }
 
-void nghttp3_conn_set_max_client_stream_id_bidi(nghttp3_conn *conn,
-                                                int64_t max_stream_id) {
+void nghttp3_conn_set_max_client_streams_bidi(nghttp3_conn *conn,
+                                              uint64_t max_streams) {
   assert(conn->server);
-  assert(conn->rx.max_client_stream_id_bidi <= max_stream_id);
+  assert(conn->rx.max_client_streams_bidi <= max_streams);
 
-  conn->rx.max_client_stream_id_bidi = max_stream_id;
+  conn->rx.max_client_streams_bidi = max_streams;
 }
 
 int nghttp3_conn_submit_priority(nghttp3_conn *conn, nghttp3_pri_elem_type pt,

@@ -409,7 +409,7 @@ void test_nghttp3_conn_submit_priority(void) {
   settings.num_placeholders = 10;
   nghttp3_conn_server_new(&sv, &callbacks, &settings, mem, NULL);
 
-  nghttp3_conn_set_max_client_stream_id_bidi(sv, 396);
+  nghttp3_conn_set_max_client_streams_bidi(sv, 100);
 
   nghttp3_conn_bind_control_stream(cl, 2);
   nghttp3_conn_bind_control_stream(sv, 3);
@@ -586,6 +586,7 @@ void test_nghttp3_conn_recv_request_priority(void) {
 
   /* Depends on stream which has not been created yet */
   nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 2);
 
   fr.hd.type = NGHTTP3_FRAME_PRIORITY;
   fr.pt = NGHTTP3_PRI_ELEM_TYPE_CURRENT;
@@ -684,7 +685,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
   /* Making dependency between 2 streams which have not been
      created */
   nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
-  nghttp3_conn_set_max_client_stream_id_bidi(conn, 4);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 2);
 
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
@@ -760,7 +761,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
 
   /* Making dependency to its descendant */
   nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
-  nghttp3_conn_set_max_client_stream_id_bidi(conn, 4);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 2);
 
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
@@ -807,7 +808,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
 
   /* Making dependency between stream and root */
   nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
-  nghttp3_conn_set_max_client_stream_id_bidi(conn, 100);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 100);
 
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
@@ -841,7 +842,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
 
   /* Using NGHTTP3_PRI_ELEM_TYPE_CURRENT is an error */
   nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
-  nghttp3_conn_set_max_client_stream_id_bidi(conn, 100);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 100);
 
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 

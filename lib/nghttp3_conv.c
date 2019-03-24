@@ -124,3 +124,7 @@ size_t nghttp3_put_varint_len(int64_t n) {
   assert(n < 4611686018427387904LL);
   return 8;
 }
+
+uint64_t nghttp3_ord_stream_id(int64_t stream_id) {
+  return (uint64_t)(stream_id >> 2) + 1;
+}
