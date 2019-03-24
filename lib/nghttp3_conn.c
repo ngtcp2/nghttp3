@@ -328,8 +328,8 @@ static ssize_t conn_read_type(nghttp3_conn *conn, nghttp3_stream *stream,
     stream->type = NGHTTP3_STREAM_TYPE_QPACK_DECODER;
     break;
   default:
-    /* TODO Handle reserved stream type */
-    return NGHTTP3_ERR_HTTP_UNKNOWN_STREAM_TYPE;
+    stream->type = NGHTTP3_STREAM_TYPE_UNKNOWN;
+    break;
   }
 
   stream->flags |= NGHTTP3_STREAM_FLAG_TYPE_IDENTIFIED;
@@ -383,6 +383,9 @@ ssize_t nghttp3_conn_read_uni(nghttp3_conn *conn, nghttp3_stream *stream,
       return NGHTTP3_ERR_HTTP_CLOSED_CRITICAL_STREAM;
     }
     nconsumed = nghttp3_conn_read_qpack_decoder(conn, src, srclen);
+    break;
+  case NGHTTP3_STREAM_TYPE_UNKNOWN:
+    nconsumed = (ssize_t)srclen;
     break;
   default:
     /* unreachable */
@@ -1793,8 +1796,6 @@ int nghttp3_conn_add_write_offset(nghttp3_conn *conn, int64_t stream_id,
   if ((!nghttp3_stream_uni(stream_id) ||
        stream->type == NGHTTP3_STREAM_TYPE_PUSH) &&
       nghttp3_stream_require_schedule(stream)) {
-    assert(stream->type == 0);
-
     return nghttp3_stream_schedule(stream);
   }
 
@@ -2033,7 +2034,8 @@ int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id) {
   }
 
   if (nghttp3_stream_uni(stream_id) &&
-      stream->type != NGHTTP3_STREAM_TYPE_PUSH) {
+      stream->type != NGHTTP3_STREAM_TYPE_PUSH &&
+      stream->type != NGHTTP3_STREAM_TYPE_UNKNOWN) {
     return NGHTTP3_ERR_HTTP_CLOSED_CRITICAL_STREAM;
   }
 
@@ -2151,6 +2153,8 @@ int nghttp3_conn_end_stream(nghttp3_conn *conn, int64_t stream_id) {
     case NGHTTP3_STREAM_TYPE_QPACK_ENCODER:
     case NGHTTP3_STREAM_TYPE_QPACK_DECODER:
       return NGHTTP3_ERR_INVALID_ARGUMENT;
+    default:
+      break;
     }
   }
 
