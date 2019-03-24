@@ -77,6 +77,12 @@ AC_ARG_ENABLE(asan,
                    [Enable AddressSanitizer (ASAN)]),
     [asan=$enableval], [asan=no])
 
+AC_ARG_ENABLE([lib-only],
+    [AS_HELP_STRING([--enable-lib-only],
+                    [Build libnghttp3 only.])],
+    [lib_only=$enableval], [lib_only=no])
+
+
 # Checks for programs
 AC_PROG_CC
 AC_PROG_CXX
@@ -120,6 +126,13 @@ if test "x${have_cunit}" = "xyes"; then
 fi
 
 AM_CONDITIONAL([HAVE_CUNIT], [ test "x${have_cunit}" = "xyes" ])
+
+enable_examples=yes
+if test "x${lib_only}" = "xyes"; then
+  enable_examples=no
+fi
+
+AM_CONDITIONAL([ENABLE_EXAMPLES], [ test "x${enable_examples}" = "xyes" ])
 
 # Checks for header files.
 AC_CHECK_HEADERS([ \
@@ -299,4 +312,6 @@ AC_MSG_NOTICE([summary of build options:
       CUnit:          ${have_cunit} (CFLAGS='${CUNIT_CFLAGS}' LIBS='${CUNIT_LIBS}')
     Debug:
       Debug:          ${debug} (CFLAGS='${DEBUGCFLAGS}')
+    Libray only:      ${lib_only}
+    Examples:         ${enable_examples}
 ])
