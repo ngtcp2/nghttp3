@@ -87,6 +87,10 @@ const char *nghttp3_strerror(int liberr) {
   case NGHTTP3_ERR_CALLBACK_FAILURE:
     return "ERR_CALLBACK_FAILURE";
   default:
+    if (NGHTTP3_ERR_HTTP_MALFORMED_FRAME >= liberr &&
+        liberr > NGHTTP3_ERR_HTTP_MALFORMED_FRAME - 256) {
+      return "ERR_HTTP_MALFORMED_FRAME";
+    }
     return "(unknown)";
   }
 }
