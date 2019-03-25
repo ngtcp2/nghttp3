@@ -46,8 +46,8 @@ typedef struct {
 } userdata;
 
 static int acked_stream_data(nghttp3_conn *conn, int64_t stream_id,
-                             size_t datalen, void *stream_user_data,
-                             void *user_data) {
+                             size_t datalen, void *user_data,
+                             void *stream_user_data) {
   userdata *ud = user_data;
 
   (void)conn;
@@ -60,8 +60,8 @@ static int acked_stream_data(nghttp3_conn *conn, int64_t stream_id,
 }
 
 static int begin_headers(nghttp3_conn *conn, int64_t stream_id,
-                         nghttp3_headers_type type, void *stream_user_data,
-                         void *user_data) {
+                         nghttp3_headers_type type, void *user_data,
+                         void *stream_user_data) {
   (void)conn;
   (void)stream_id;
   (void)type;
@@ -72,7 +72,7 @@ static int begin_headers(nghttp3_conn *conn, int64_t stream_id,
 
 static int recv_header(nghttp3_conn *conn, int64_t stream_id, int32_t token,
                        nghttp3_rcbuf *name, nghttp3_rcbuf *value, uint8_t flags,
-                       void *stream_user_data, void *user_data) {
+                       void *user_data, void *stream_user_data) {
   (void)conn;
   (void)stream_id;
   (void)token;
@@ -84,8 +84,8 @@ static int recv_header(nghttp3_conn *conn, int64_t stream_id, int32_t token,
   return 0;
 }
 
-static int end_headers(nghttp3_conn *conn, int64_t stream_id,
-                       void *stream_user_data, void *user_data) {
+static int end_headers(nghttp3_conn *conn, int64_t stream_id, void *user_data,
+                       void *stream_user_data) {
   (void)conn;
   (void)stream_id;
   (void)stream_user_data;
@@ -95,8 +95,8 @@ static int end_headers(nghttp3_conn *conn, int64_t stream_id,
 
 static int step_read_data(nghttp3_conn *conn, int64_t stream_id,
                           const uint8_t **pdata, size_t *pdatalen,
-                          uint32_t *pflags, void *stream_user_data,
-                          void *user_data) {
+                          uint32_t *pflags, void *user_data,
+                          void *stream_user_data) {
   userdata *ud = user_data;
   size_t n = nghttp3_min(ud->data.left, ud->data.step);
 

@@ -1012,8 +1012,8 @@ typedef struct nghttp3_conn nghttp3_conn;
  * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_acked_stream_data)(nghttp3_conn *conn, int64_t stream_id,
-                                         size_t datalen, void *stream_user_data,
-                                         void *user_data);
+                                         size_t datalen, void *user_data,
+                                         void *stream_user_data);
 
 /**
  * @functypedef
@@ -1027,7 +1027,7 @@ typedef int (*nghttp3_acked_stream_data)(nghttp3_conn *conn, int64_t stream_id,
  * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_stream_close)(nghttp3_conn *conn, int64_t stream_id,
-                                    void *stream_user_data, void *user_data);
+                                    void *user_data, void *stream_user_data);
 
 /**
  * @functypedef
@@ -1044,7 +1044,7 @@ typedef int (*nghttp3_stream_close)(nghttp3_conn *conn, int64_t stream_id,
  */
 typedef int (*nghttp3_recv_data)(nghttp3_conn *conn, int64_t stream_id,
                                  const uint8_t *data, size_t datalen,
-                                 void *stream_user_data, void *user_data);
+                                 void *user_data, void *stream_user_data);
 
 /**
  * @functypedef
@@ -1060,8 +1060,8 @@ typedef int (*nghttp3_recv_data)(nghttp3_conn *conn, int64_t stream_id,
  * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_deferred_consume)(nghttp3_conn *conn, int64_t stream_id,
-                                        size_t consumed, void *stream_user_data,
-                                        void *user_data);
+                                        size_t consumed, void *user_data,
+                                        void *stream_user_data);
 
 typedef enum {
   NGHTTP3_HEADERS_TYPE_NONE,
@@ -1071,16 +1071,16 @@ typedef enum {
 } nghttp3_headers_type;
 
 typedef int (*nghttp3_begin_headers)(nghttp3_conn *conn, int64_t stream_id,
-                                     nghttp3_headers_type type,
-                                     void *stream_user_data, void *user_data);
+                                     nghttp3_headers_type type, void *user_data,
+                                     void *stream_user_data);
 
 typedef int (*nghttp3_recv_header)(nghttp3_conn *conn, int64_t stream_id,
                                    int32_t token, nghttp3_rcbuf *name,
                                    nghttp3_rcbuf *value, uint8_t flags,
-                                   void *stream_user_data, void *user_data);
+                                   void *user_data, void *stream_user_data);
 
 typedef int (*nghttp3_end_headers)(nghttp3_conn *conn, int64_t stream_id,
-                                   void *stream_user_data, void *user_data);
+                                   void *user_data, void *stream_user_data);
 
 typedef struct {
   nghttp3_acked_stream_data acked_stream_data;
@@ -1402,8 +1402,8 @@ nghttp3_conn_set_max_client_streams_bidi(nghttp3_conn *conn,
 typedef int (*nghttp3_read_data_callback)(nghttp3_conn *conn, int64_t stream_id,
                                           const uint8_t **pdata,
                                           size_t *pdatalen, uint32_t *pflags,
-                                          void *stream_user_data,
-                                          void *user_data);
+                                          void *user_data,
+                                          void *stream_user_data);
 
 typedef struct {
   nghttp3_elem_dep_type elem_dep_type;

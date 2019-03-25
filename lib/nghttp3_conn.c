@@ -69,7 +69,7 @@ static int conn_call_begin_headers(nghttp3_conn *conn, nghttp3_stream *stream) {
 
   rv = conn->callbacks.begin_headers(conn, stream->stream_id,
                                      stream_get_headers_type(stream),
-                                     stream->user_data, conn->user_data);
+                                     conn->user_data, stream->user_data);
   if (rv != 0) {
     /* TODO Allow ignore headers */
     return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -85,8 +85,8 @@ static int conn_call_end_headers(nghttp3_conn *conn, nghttp3_stream *stream) {
     return 0;
   }
 
-  rv = conn->callbacks.end_headers(conn, stream->stream_id, stream->user_data,
-                                   conn->user_data);
+  rv = conn->callbacks.end_headers(conn, stream->stream_id, conn->user_data,
+                                   stream->user_data);
   if (rv != 0) {
     /* TODO Allow ignore headers */
     return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -806,8 +806,8 @@ ssize_t nghttp3_conn_read_qpack_encoder(nghttp3_conn *conn, const uint8_t *src,
 
       if (conn->callbacks.deferred_consume) {
         rv = conn->callbacks.deferred_consume(conn, stream->stream_id,
-                                              (size_t)nread, stream->user_data,
-                                              conn->user_data);
+                                              (size_t)nread, conn->user_data,
+                                              stream->user_data);
         if (rv != 0) {
           return NGHTTP3_ERR_CALLBACK_FAILURE;
         }
@@ -1148,7 +1148,7 @@ int nghttp3_conn_on_data(nghttp3_conn *conn, nghttp3_stream *stream,
   }
 
   rv = conn->callbacks.recv_data(conn, stream->stream_id, data, datalen,
-                                 stream->user_data, conn->user_data);
+                                 conn->user_data, stream->user_data);
   if (rv != 0) {
     return NGHTTP3_ERR_CALLBACK_FAILURE;
   }
@@ -1465,7 +1465,7 @@ static ssize_t conn_decode_headers(nghttp3_conn *conn, nghttp3_stream *stream,
       if (conn->callbacks.recv_header) {
         rv = conn->callbacks.recv_header(conn, stream->stream_id, nv.token,
                                          nv.name, nv.value, nv.flags,
-                                         stream->user_data, conn->user_data);
+                                         conn->user_data, stream->user_data);
       } else {
         rv = 0;
       }
@@ -1552,8 +1552,8 @@ static int conn_stream_acked_data(nghttp3_stream *stream, int64_t stream_id,
     return 0;
   }
 
-  rv = conn->callbacks.acked_stream_data(conn, stream_id, datalen, user_data,
-                                         conn->user_data);
+  rv = conn->callbacks.acked_stream_data(conn, stream_id, datalen,
+                                         conn->user_data, user_data);
   if (rv != 0) {
     return NGHTTP3_ERR_CALLBACK_FAILURE;
   }
@@ -2081,8 +2081,8 @@ int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id) {
   }
 
   if (conn->callbacks.stream_close) {
-    rv = conn->callbacks.stream_close(conn, stream_id, stream->user_data,
-                                      conn->user_data);
+    rv = conn->callbacks.stream_close(conn, stream_id, conn->user_data,
+                                      stream->user_data);
     if (rv != 0) {
       return NGHTTP3_ERR_CALLBACK_FAILURE;
     }
