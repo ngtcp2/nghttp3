@@ -59,12 +59,10 @@ static int acked_stream_data(nghttp3_conn *conn, int64_t stream_id,
   return 0;
 }
 
-static int begin_headers(nghttp3_conn *conn, int64_t stream_id,
-                         nghttp3_headers_type type, void *user_data,
+static int begin_headers(nghttp3_conn *conn, int64_t stream_id, void *user_data,
                          void *stream_user_data) {
   (void)conn;
   (void)stream_id;
-  (void)type;
   (void)stream_user_data;
   (void)user_data;
   return 0;

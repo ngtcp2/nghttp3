@@ -1063,16 +1063,8 @@ typedef int (*nghttp3_deferred_consume)(nghttp3_conn *conn, int64_t stream_id,
                                         size_t consumed, void *user_data,
                                         void *stream_user_data);
 
-typedef enum {
-  NGHTTP3_HEADERS_TYPE_NONE,
-  NGHTTP3_HEADERS_TYPE_HEADER,
-  NGHTTP3_HEADERS_TYPE_TRAILER,
-  NGHTTP3_HEADERS_TYPE_PUSH_PROMISE,
-} nghttp3_headers_type;
-
 typedef int (*nghttp3_begin_headers)(nghttp3_conn *conn, int64_t stream_id,
-                                     nghttp3_headers_type type, void *user_data,
-                                     void *stream_user_data);
+                                     void *user_data, void *stream_user_data);
 
 typedef int (*nghttp3_recv_header)(nghttp3_conn *conn, int64_t stream_id,
                                    int32_t token, nghttp3_rcbuf *name,
@@ -1090,6 +1082,12 @@ typedef struct {
   nghttp3_begin_headers begin_headers;
   nghttp3_recv_header recv_header;
   nghttp3_end_headers end_headers;
+  nghttp3_begin_headers begin_trailers;
+  nghttp3_recv_header recv_trailer;
+  nghttp3_end_headers end_trailers;
+  nghttp3_begin_headers begin_push_promise;
+  nghttp3_recv_header recv_push_promise;
+  nghttp3_end_headers end_push_promise;
 } nghttp3_conn_callbacks;
 
 typedef struct {

@@ -33,22 +33,6 @@
 #include "nghttp3_err.h"
 #include "nghttp3_conv.h"
 
-static nghttp3_headers_type stream_get_headers_type(nghttp3_stream *stream) {
-  switch (stream->rx.hstate) {
-  case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
-  case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
-    return NGHTTP3_HEADERS_TYPE_HEADER;
-  case NGHTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN:
-  case NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:
-    return NGHTTP3_HEADERS_TYPE_TRAILER;
-  case NGHTTP3_HTTP_STATE_RESP_PUSH_PROMISE_BEGIN:
-    return NGHTTP3_HEADERS_TYPE_PUSH_PROMISE;
-  default:
-    /* Unreachable */
-    assert(0);
-  }
-}
-
 /*
  * conn_remote_stream_uni returns nonzero if |stream_id| is remote
  * unidirectional stream ID.
@@ -67,9 +51,8 @@ static int conn_call_begin_headers(nghttp3_conn *conn, nghttp3_stream *stream) {
     return 0;
   }
 
-  rv = conn->callbacks.begin_headers(conn, stream->stream_id,
-                                     stream_get_headers_type(stream),
-                                     conn->user_data, stream->user_data);
+  rv = conn->callbacks.begin_headers(conn, stream->stream_id, conn->user_data,
+                                     stream->user_data);
   if (rv != 0) {
     /* TODO Allow ignore headers */
     return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -87,6 +70,77 @@ static int conn_call_end_headers(nghttp3_conn *conn, nghttp3_stream *stream) {
 
   rv = conn->callbacks.end_headers(conn, stream->stream_id, conn->user_data,
                                    stream->user_data);
+  if (rv != 0) {
+    /* TODO Allow ignore headers */
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
+  return 0;
+}
+
+static int conn_call_begin_trailers(nghttp3_conn *conn,
+                                    nghttp3_stream *stream) {
+  int rv;
+
+  if (!conn->callbacks.begin_trailers) {
+    return 0;
+  }
+
+  rv = conn->callbacks.begin_trailers(conn, stream->stream_id, conn->user_data,
+                                      stream->user_data);
+  if (rv != 0) {
+    /* TODO Allow ignore headers */
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
+  return 0;
+}
+
+static int conn_call_end_trailers(nghttp3_conn *conn, nghttp3_stream *stream) {
+  int rv;
+
+  if (!conn->callbacks.end_trailers) {
+    return 0;
+  }
+
+  rv = conn->callbacks.end_trailers(conn, stream->stream_id, conn->user_data,
+                                    stream->user_data);
+  if (rv != 0) {
+    /* TODO Allow ignore headers */
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
+  return 0;
+}
+
+static int conn_call_begin_push_promise(nghttp3_conn *conn,
+                                        nghttp3_stream *stream) {
+  int rv;
+
+  if (!conn->callbacks.begin_push_promise) {
+    return 0;
+  }
+
+  rv = conn->callbacks.begin_push_promise(conn, stream->stream_id,
+                                          conn->user_data, stream->user_data);
+  if (rv != 0) {
+    /* TODO Allow ignore headers */
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
+  return 0;
+}
+
+static int conn_call_end_push_promise(nghttp3_conn *conn,
+                                      nghttp3_stream *stream) {
+  int rv;
+
+  if (!conn->callbacks.end_push_promise) {
+    return 0;
+  }
+
+  rv = conn->callbacks.end_push_promise(conn, stream->stream_id,
+                                        conn->user_data, stream->user_data);
   if (rv != 0) {
     /* TODO Allow ignore headers */
     return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -939,7 +993,23 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
           break;
         }
 
-        rv = conn_call_begin_headers(conn, stream);
+        switch (stream->rx.hstate) {
+        case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
+        case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
+          rv = conn_call_begin_headers(conn, stream);
+          break;
+        case NGHTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN:
+        case NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:
+          rv = conn_call_begin_trailers(conn, stream);
+          break;
+        case NGHTTP3_HTTP_STATE_RESP_PUSH_PROMISE_BEGIN:
+          rv = conn_call_begin_push_promise(conn, stream);
+          break;
+        default:
+          /* Unreachable */
+          assert(0);
+        }
+
         if (rv != 0) {
           return rv;
         }
@@ -1096,9 +1166,21 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
         goto almost_done;
       }
 
-      rv = conn_call_end_headers(conn, stream);
-      if (rv != 0) {
-        return rv;
+      switch (stream->rx.hstate) {
+      case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
+      case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
+        rv = conn_call_end_headers(conn, stream);
+        break;
+      case NGHTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN:
+      case NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:
+        rv = conn_call_end_trailers(conn, stream);
+        break;
+      case NGHTTP3_HTTP_STATE_RESP_PUSH_PROMISE_BEGIN:
+        rv = conn_call_end_push_promise(conn, stream);
+        break;
+      default:
+        /* Unreachable */
+        assert(0);
       }
 
       rv = nghttp3_stream_transit_rx_http_state(stream,
@@ -1421,8 +1503,26 @@ static ssize_t conn_decode_headers(nghttp3_conn *conn, nghttp3_stream *stream,
   nghttp3_qpack_nv nv;
   uint8_t flags;
   nghttp3_buf buf;
+  nghttp3_recv_header recv_header;
 
   assert(srclen);
+
+  switch (stream->rx.hstate) {
+  case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
+  case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
+    recv_header = conn->callbacks.recv_header;
+    break;
+  case NGHTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN:
+  case NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:
+    recv_header = conn->callbacks.recv_trailer;
+    break;
+  case NGHTTP3_HTTP_STATE_RESP_PUSH_PROMISE_BEGIN:
+    recv_header = conn->callbacks.recv_push_promise;
+    break;
+  default:
+    /* Unreachable */
+    assert(0);
+  }
 
   nghttp3_buf_wrap_init(&buf, (uint8_t *)src, srclen);
   buf.last = buf.end;
@@ -1462,10 +1562,9 @@ static ssize_t conn_decode_headers(nghttp3_conn *conn, nghttp3_stream *stream,
     }
 
     if (flags & NGHTTP3_QPACK_DECODE_FLAG_EMIT) {
-      if (conn->callbacks.recv_header) {
-        rv = conn->callbacks.recv_header(conn, stream->stream_id, nv.token,
-                                         nv.name, nv.value, nv.flags,
-                                         conn->user_data, stream->user_data);
+      if (recv_header) {
+        rv = recv_header(conn, stream->stream_id, nv.token, nv.name, nv.value,
+                         nv.flags, conn->user_data, stream->user_data);
       } else {
         rv = 0;
       }
