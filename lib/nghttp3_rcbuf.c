@@ -92,7 +92,7 @@ void nghttp3_rcbuf_decref(nghttp3_rcbuf *rcbuf) {
   }
 }
 
-nghttp3_vec nghttp3_rcbuf_get_buf(nghttp3_rcbuf *rcbuf) {
+nghttp3_vec nghttp3_rcbuf_get_buf(const nghttp3_rcbuf *rcbuf) {
   nghttp3_vec res = {rcbuf->base, rcbuf->len};
   return res;
 }

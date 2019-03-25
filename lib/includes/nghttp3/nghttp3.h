@@ -279,7 +279,7 @@ NGHTTP3_EXTERN void nghttp3_rcbuf_decref(nghttp3_rcbuf *rcbuf);
  * `nghttp3_rcbuf_get_buf` returns the underlying buffer managed by
  * |rcbuf|.
  */
-NGHTTP3_EXTERN nghttp3_vec nghttp3_rcbuf_get_buf(nghttp3_rcbuf *rcbuf);
+NGHTTP3_EXTERN nghttp3_vec nghttp3_rcbuf_get_buf(const nghttp3_rcbuf *rcbuf);
 
 /**
  * @function
@@ -1075,9 +1075,9 @@ typedef int (*nghttp3_begin_headers)(nghttp3_conn *conn, int64_t stream_id,
                                      void *stream_user_data, void *user_data);
 
 typedef int (*nghttp3_recv_header)(nghttp3_conn *conn, int64_t stream_id,
-                                   nghttp3_rcbuf *name, nghttp3_rcbuf *value,
-                                   uint8_t flags, void *stream_user_data,
-                                   void *user_data);
+                                   int32_t token, nghttp3_rcbuf *name,
+                                   nghttp3_rcbuf *value, uint8_t flags,
+                                   void *stream_user_data, void *user_data);
 
 typedef int (*nghttp3_end_headers)(nghttp3_conn *conn, int64_t stream_id,
                                    void *stream_user_data, void *user_data);
@@ -1365,7 +1365,7 @@ typedef enum {
 /**
  * @function
  *
- * `nghttp3_conn_set_max_client_stream_id_bidi` tells |conn| the
+ * `nghttp3_conn_set_max_client_streams_bidi` tells |conn| the
  * cumulative number of bidirectional streams that client can open.
  */
 NGHTTP3_EXTERN void
@@ -1476,6 +1476,51 @@ NGHTTP3_EXTERN int
 nghttp3_conn_submit_priority(nghttp3_conn *conn, nghttp3_pri_elem_type pt,
                              int64_t pri_elem_id, nghttp3_elem_dep_type dt,
                              int64_t elem_dep_id, uint32_t weight);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_set_stream_user_data` sets |stream_user_data| to the
+ * stream identified by |stream_id|.
+ */
+NGHTTP3_EXTERN int nghttp3_conn_set_stream_user_data(nghttp3_conn *conn,
+                                                     int64_t stream_id,
+                                                     void *stream_user_data);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_get_num_placeholders` returns the number of
+ * placeholders that remote endpoint permits.
+ */
+NGHTTP3_EXTERN uint64_t
+nghttp3_conn_get_remote_num_placeholders(nghttp3_conn *conn);
+
+/**
+ * @function
+ *
+ * `nghttp3_vec_len` returns the sum of length in |vec| of |cnt|
+ * elements.
+ */
+NGHTTP3_EXTERN size_t nghttp3_vec_len(const nghttp3_vec *vec, size_t cnt);
+
+/**
+ * @function
+ *
+ * `nghttp3_vec_empty` returns nonzero if |vec| of |cnt| elements has
+ * 0 length data.
+ */
+NGHTTP3_EXTERN int nghttp3_vec_empty(const nghttp3_vec *vec, size_t cnt);
+
+/**
+ * @function
+ *
+ * `nghttp3_vec_consume` removes first |len| bytes from |*pvec| of
+ * |*pcnt| elements.  The adjusted vector and number of elements are
+ * stored in |*pvec| and |*pcnt| respectively.
+ */
+NGHTTP3_EXTERN void nghttp3_vec_consume(nghttp3_vec **pvec, size_t *pcnt,
+                                        size_t len);
 
 #ifdef __cplusplus
 }

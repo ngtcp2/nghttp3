@@ -252,6 +252,7 @@ ssize_t nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
   if (stream == NULL) {
+    /* TODO Assert idtr */
     /* QUIC transport ensures that this is new stream. */
     rv = nghttp3_conn_create_stream(conn, &stream, stream_id);
     if (rv != 0) {
@@ -909,6 +910,10 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
         }
         /* DATA frame might be empty. */
         if (rstate->left == 0) {
+          rv = nghttp3_stream_transit_rx_http_state(
+              stream, NGHTTP3_HTTP_EVENT_DATA_END);
+          assert(0 == rv);
+
           nghttp3_stream_read_state_reset(rstate);
           break;
         }
@@ -925,7 +930,13 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
           if (rv != 0) {
             return rv;
           }
-          busy = 1;
+
+          rv = nghttp3_stream_transit_rx_http_state(
+              stream, NGHTTP3_HTTP_EVENT_HEADERS_END);
+          assert(0 == rv);
+
+          nghttp3_stream_read_state_reset(rstate);
+          break;
         }
 
         rv = conn_call_begin_headers(conn, stream);
@@ -1093,6 +1104,18 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
       rv = nghttp3_stream_transit_rx_http_state(stream,
                                                 NGHTTP3_HTTP_EVENT_HEADERS_END);
       assert(0 == rv);
+
+      nghttp3_stream_read_state_reset(rstate);
+      break;
+    case NGHTTP3_REQ_STREAM_STATE_IGN_FRAME:
+      len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
+      p += len;
+      nconsumed += len;
+      rstate->left -= (int64_t)len;
+
+      if (rstate->left) {
+        goto almost_done;
+      }
 
       nghttp3_stream_read_state_reset(rstate);
       break;
@@ -1440,9 +1463,9 @@ static ssize_t conn_decode_headers(nghttp3_conn *conn, nghttp3_stream *stream,
 
     if (flags & NGHTTP3_QPACK_DECODE_FLAG_EMIT) {
       if (conn->callbacks.recv_header) {
-        rv = conn->callbacks.recv_header(conn, stream->stream_id, nv.name,
-                                         nv.value, nv.flags, stream->user_data,
-                                         conn->user_data);
+        rv = conn->callbacks.recv_header(conn, stream->stream_id, nv.token,
+                                         nv.name, nv.value, nv.flags,
+                                         stream->user_data, conn->user_data);
       } else {
         rv = 0;
       }
@@ -1728,6 +1751,7 @@ ssize_t nghttp3_conn_writev_stream(nghttp3_conn *conn, int64_t *pstream_id,
                                    int *pfin, nghttp3_vec *vec, size_t veccnt) {
   ssize_t ncnt;
   nghttp3_stream *stream;
+  int rv;
 
   *pfin = 0;
 
@@ -1744,6 +1768,11 @@ ssize_t nghttp3_conn_writev_stream(nghttp3_conn *conn, int64_t *pstream_id,
   }
 
   if (conn->tx.qdec && !nghttp3_stream_is_blocked(conn->tx.qdec)) {
+    rv = nghttp3_stream_write_qpack_decoder_stream(conn->tx.qdec);
+    if (rv != 0) {
+      return rv;
+    }
+
     ncnt =
         conn_writev_stream(conn, pstream_id, pfin, vec, veccnt, conn->tx.qdec);
     if (ncnt) {
@@ -2059,9 +2088,16 @@ int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id) {
     }
   }
 
+  rv = nghttp3_tnode_squash(&stream->node);
+  if (rv != 0) {
+    return rv;
+  }
+
   rv = nghttp3_map_remove(&conn->streams, (key_type)stream_id);
 
-  assert(rv);
+  assert(0 == rv);
+
+  nghttp3_stream_del(stream);
 
   return 0;
 }
@@ -2177,6 +2213,23 @@ int nghttp3_conn_end_stream(nghttp3_conn *conn, int64_t stream_id) {
   stream->flags |= NGHTTP3_STREAM_FLAG_WRITE_END_STREAM;
 
   return 0;
+}
+
+int nghttp3_conn_set_stream_user_data(nghttp3_conn *conn, int64_t stream_id,
+                                      void *stream_user_data) {
+  nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
+
+  if (stream == NULL) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  stream->user_data = stream_user_data;
+
+  return 0;
+}
+
+uint64_t nghttp3_conn_get_remote_num_placeholders(nghttp3_conn *conn) {
+  return conn->remote.settings.num_placeholders;
 }
 
 void nghttp3_conn_settings_default(nghttp3_conn_settings *settings) {

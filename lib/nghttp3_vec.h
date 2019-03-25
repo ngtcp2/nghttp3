@@ -32,9 +32,4 @@
 
 #include <nghttp3/nghttp3.h>
 
-/*
- * nghttp3_vec_len returns the sum of length in |vec| of |n| elements.
- */
-size_t nghttp3_vec_len(const nghttp3_vec *vec, size_t n);
-
 #endif /* NGHTTP3_VEC_H */

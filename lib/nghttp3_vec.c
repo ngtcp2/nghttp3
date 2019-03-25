@@ -24,6 +24,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "nghttp3_vec.h"
+#include "nghttp3_macro.h"
 
 size_t nghttp3_vec_len(const nghttp3_vec *vec, size_t n) {
   size_t i;
@@ -34,4 +35,31 @@ size_t nghttp3_vec_len(const nghttp3_vec *vec, size_t n) {
   }
 
   return res;
+}
+
+int nghttp3_vec_empty(const nghttp3_vec *vec, size_t cnt) {
+  size_t i;
+
+  for (i = 0; i < cnt && vec[i].len == 0; ++i)
+    ;
+
+  return i == cnt;
+}
+
+void nghttp3_vec_consume(nghttp3_vec **pvec, size_t *pcnt, size_t len) {
+  nghttp3_vec *v = *pvec;
+  size_t cnt = *pcnt;
+  size_t n;
+
+  for (; cnt > 0; --cnt, ++v) {
+    n = nghttp3_min(v->len, len);
+    v->base += n;
+    v->len -= n;
+    if (v->len) {
+      break;
+    }
+  }
+
+  *pvec = v;
+  *pcnt = cnt;
 }

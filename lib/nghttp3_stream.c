@@ -564,6 +564,40 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
   return 0;
 }
 
+int nghttp3_stream_write_qpack_decoder_stream(nghttp3_stream *stream) {
+  nghttp3_qpack_decoder *qdec;
+  nghttp3_buf dbuf;
+  int rv;
+  nghttp3_typed_buf tbuf;
+
+  assert(stream->conn);
+  assert(stream->conn->tx.qdec == stream);
+
+  qdec = &stream->conn->qdec;
+
+  assert(qdec);
+
+  nghttp3_buf_init(&dbuf);
+
+  rv = nghttp3_qpack_decoder_write_decoder(qdec, &dbuf);
+  if (rv != 0) {
+    return rv;
+  }
+
+  if (nghttp3_buf_len(&dbuf) == 0) {
+    return 0;
+  }
+
+  nghttp3_typed_buf_init(&tbuf, &dbuf, NGHTTP3_BUF_TYPE_PRIVATE);
+  rv = nghttp3_stream_outq_add(stream, &tbuf);
+  if (rv != 0) {
+    nghttp3_buf_free(&dbuf, stream->mem);
+    return rv;
+  }
+
+  return 0;
+}
+
 int nghttp3_stream_outq_is_full(nghttp3_stream *stream) {
   /* TODO Verify that the limit is reasonable. */
   return nghttp3_ringbuf_len(&stream->outq) >= 32;

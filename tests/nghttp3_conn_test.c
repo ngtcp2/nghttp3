@@ -70,11 +70,12 @@ static int begin_headers(nghttp3_conn *conn, int64_t stream_id,
   return 0;
 }
 
-static int recv_header(nghttp3_conn *conn, int64_t stream_id,
+static int recv_header(nghttp3_conn *conn, int64_t stream_id, int32_t token,
                        nghttp3_rcbuf *name, nghttp3_rcbuf *value, uint8_t flags,
                        void *stream_user_data, void *user_data) {
   (void)conn;
   (void)stream_id;
+  (void)token;
   (void)name;
   (void)value;
   (void)flags;
