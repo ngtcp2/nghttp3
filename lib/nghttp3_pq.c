@@ -88,7 +88,7 @@ int nghttp3_pq_push(nghttp3_pq *pq, nghttp3_pq_entry *item) {
   return 0;
 }
 
-nghttp3_pq_entry *nghttp3_pq_top(nghttp3_pq *pq) {
+nghttp3_pq_entry *nghttp3_pq_top(const nghttp3_pq *pq) {
   assert(pq->length);
   return pq->q[0];
 }
@@ -147,7 +147,7 @@ void nghttp3_pq_remove(nghttp3_pq *pq, nghttp3_pq_entry *item) {
   }
 }
 
-int nghttp3_pq_empty(nghttp3_pq *pq) { return pq->length == 0; }
+int nghttp3_pq_empty(const nghttp3_pq *pq) { return pq->length == 0; }
 
 size_t nghttp3_pq_size(nghttp3_pq *pq) { return pq->length; }
 

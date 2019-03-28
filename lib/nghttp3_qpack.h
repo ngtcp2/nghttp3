@@ -101,11 +101,13 @@ typedef struct {
 } nghttp3_qpack_static_header;
 
 /*
- * nghttp3_qpack_entry_ref is created per encoded header block and
- * includes the required insert count and the minimum insert count of
- * dynamic table entry it refers to.
+ * nghttp3_qpack_header_block_ref is created per encoded header block
+ * and includes the required insert count and the minimum insert count
+ * of dynamic table entry it refers to.
  */
 typedef struct {
+  nghttp3_pq_entry max_cnts_pe;
+  nghttp3_pq_entry min_cnts_pe;
   /* max_cnt is the required insert count. */
   size_t max_cnt;
   /* min_cnt is the minimum insert count of dynamic table entry it
@@ -113,33 +115,37 @@ typedef struct {
      dynamic header table entry this encoded block refers to plus
      1. */
   size_t min_cnt;
-} nghttp3_qpack_entry_ref;
+} nghttp3_qpack_header_block_ref;
 
-nghttp3_qpack_entry_ref *
-nghttp3_qpack_entry_ref_init(nghttp3_qpack_entry_ref *ref, size_t max_cnt,
-                             size_t min_cnt);
+int nghttp3_qpack_header_block_ref_new(nghttp3_qpack_header_block_ref **pref,
+                                       size_t max_cnt, size_t min_cnt,
+                                       const nghttp3_mem *mem);
+
+void nghttp3_qpack_header_block_ref_del(nghttp3_qpack_header_block_ref *ref,
+                                        const nghttp3_mem *mem);
 
 typedef struct {
-  nghttp3_pq_entry pe;
   nghttp3_map_entry me;
-  /* refs is an array of nghttp3_qpack_entry_ref in the order of the
-     time they are encoded.  HTTP/3 allows multiple header blocks
-     (e.g., non-final response headers, final response headers,
-     trailers, and push promises) per stream. */
+  /* refs is an array of pointer to nghttp3_qpack_header_block_ref in
+     the order of the time they are encoded.  HTTP/3 allows multiple
+     header blocks (e.g., non-final response headers, final response
+     headers, trailers, and push promises) per stream. */
   nghttp3_ringbuf refs;
-  /* max_cnt is maximum max_cnt in ref. */
-  size_t max_cnt;
-  /* min_cnt is minimum min_cnt in ref. */
-  size_t min_cnt;
+  /* max_cnts is a priority queue sorted by descending order of
+     max_cnt of nghttp3_qpack_header_block_ref. */
+  nghttp3_pq max_cnts;
 } nghttp3_qpack_stream;
 
 int nghttp3_qpack_stream_init(nghttp3_qpack_stream *stream, int64_t stream_id,
                               const nghttp3_mem *mem);
 
-void nghttp3_qpack_stream_free(nghttp3_qpack_stream *stream);
+void nghttp3_qpack_stream_free(nghttp3_qpack_stream *stream,
+                               const nghttp3_mem *mem);
+
+size_t nghttp3_qpack_stream_get_max_cnt(const nghttp3_qpack_stream *stream);
 
 int nghttp3_qpack_stream_add_ref(nghttp3_qpack_stream *stream,
-                                 const nghttp3_qpack_entry_ref *ref);
+                                 nghttp3_qpack_header_block_ref *ref);
 
 void nghttp3_qpack_stream_pop_ref(nghttp3_qpack_stream *stream);
 
@@ -237,10 +243,10 @@ struct nghttp3_qpack_encoder {
      descending order of max_cnt, to search the unblocked streams by
      received known count. */
   nghttp3_ksl blocked_refs;
-  /* refsq is a priority queue of nghttp3_qpack_stream ordered by
-     min_cnt to know that an entry can be evicted from dynamic
-     table.  */
-  nghttp3_pq refsq;
+  /* min_cnts is a priority queue of nghttp3_qpack_header_block_ref
+     sorted by ascending order of min_cnt to know that an entry can be
+     evicted from dynamic table.  */
+  nghttp3_pq min_cnts;
   /* krcnt is Known Received Count. */
   size_t krcnt;
   /* state is a current state of reading decoder stream. */
@@ -533,6 +539,8 @@ int nghttp3_qpack_encoder_unblock(nghttp3_qpack_encoder *encoder,
 nghttp3_qpack_stream *
 nghttp3_qpack_encoder_find_stream(nghttp3_qpack_encoder *encoder,
                                   int64_t stream_id);
+
+size_t nghttp3_qpack_encoder_get_min_cnt(nghttp3_qpack_encoder *encoder);
 
 /*
  * nghttp3_qpack_encoder_shrink_dtable shrinks dynamic table so that

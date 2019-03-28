@@ -90,7 +90,7 @@ int nghttp3_pq_push(nghttp3_pq *pq, nghttp3_pq_entry *item);
  * Returns item at the top of the queue |pq|.  It is undefined if the
  * queue is empty.
  */
-nghttp3_pq_entry *nghttp3_pq_top(nghttp3_pq *pq);
+nghttp3_pq_entry *nghttp3_pq_top(const nghttp3_pq *pq);
 
 /*
  * Pops item at the top of the queue |pq|. The popped item is not
@@ -101,7 +101,7 @@ void nghttp3_pq_pop(nghttp3_pq *pq);
 /*
  * Returns nonzero if the queue |pq| is empty.
  */
-int nghttp3_pq_empty(nghttp3_pq *pq);
+int nghttp3_pq_empty(const nghttp3_pq *pq);
 
 /*
  * Returns the number of items in the queue |pq|.
