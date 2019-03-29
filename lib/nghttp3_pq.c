@@ -149,9 +149,9 @@ void nghttp3_pq_remove(nghttp3_pq *pq, nghttp3_pq_entry *item) {
 
 int nghttp3_pq_empty(const nghttp3_pq *pq) { return pq->length == 0; }
 
-size_t nghttp3_pq_size(nghttp3_pq *pq) { return pq->length; }
+size_t nghttp3_pq_size(const nghttp3_pq *pq) { return pq->length; }
 
-int nghttp3_pq_each(nghttp3_pq *pq, nghttp3_pq_item_cb fun, void *arg) {
+int nghttp3_pq_each(const nghttp3_pq *pq, nghttp3_pq_item_cb fun, void *arg) {
   size_t i;
 
   if (pq->length == 0) {

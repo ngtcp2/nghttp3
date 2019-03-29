@@ -75,7 +75,7 @@ void nghttp3_map_free(nghttp3_map *map);
  * given the |entry| object. The |ptr| will be passed to the |func| as
  * send argument. The return value of the |func| will be ignored.
  */
-void nghttp3_map_each_free(nghttp3_map *map,
+void nghttp3_map_each_free(const nghttp3_map *map,
                            int (*func)(nghttp3_map_entry *entry, void *ptr),
                            void *ptr);
 
@@ -102,7 +102,7 @@ int nghttp3_map_insert(nghttp3_map *map, nghttp3_map_entry *entry);
  * Returns the entry associated by the key |key|.  If there is no such
  * entry, this function returns NULL.
  */
-nghttp3_map_entry *nghttp3_map_find(nghttp3_map *map, key_type key);
+nghttp3_map_entry *nghttp3_map_find(const nghttp3_map *map, key_type key);
 
 /*
  * Removes the entry associated by the key |key| from the |map|.  The
@@ -124,7 +124,7 @@ void nghttp3_map_clear(nghttp3_map *map);
 /*
  * Returns the number of items stored in the map |map|.
  */
-size_t nghttp3_map_size(nghttp3_map *map);
+size_t nghttp3_map_size(const nghttp3_map *map);
 
 /*
  * Applies the function |func| to each entry in the |map| with the
@@ -140,7 +140,7 @@ size_t nghttp3_map_size(nghttp3_map *map);
  * Don't use this function to free each entry. Use
  * nghttp3_map_each_free() instead.
  */
-int nghttp3_map_each(nghttp3_map *map,
+int nghttp3_map_each(const nghttp3_map *map,
                      int (*func)(nghttp3_map_entry *entry, void *ptr),
                      void *ptr);
 

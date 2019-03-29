@@ -50,7 +50,7 @@ void nghttp3_map_free(nghttp3_map *map) {
   nghttp3_mem_free(map->mem, map->table);
 }
 
-void nghttp3_map_each_free(nghttp3_map *map,
+void nghttp3_map_each_free(const nghttp3_map *map,
                            int (*func)(nghttp3_map_entry *entry, void *ptr),
                            void *ptr) {
   uint32_t i;
@@ -65,7 +65,7 @@ void nghttp3_map_each_free(nghttp3_map *map,
   }
 }
 
-int nghttp3_map_each(nghttp3_map *map,
+int nghttp3_map_each(const nghttp3_map *map,
                      int (*func)(nghttp3_map_entry *entry, void *ptr),
                      void *ptr) {
   int rv;
@@ -170,7 +170,7 @@ int nghttp3_map_insert(nghttp3_map *map, nghttp3_map_entry *new_entry) {
   return 0;
 }
 
-nghttp3_map_entry *nghttp3_map_find(nghttp3_map *map, key_type key) {
+nghttp3_map_entry *nghttp3_map_find(const nghttp3_map *map, key_type key) {
   uint32_t h;
   nghttp3_map_entry *entry;
   h = hash(key, map->tablelen);
@@ -210,4 +210,4 @@ void nghttp3_map_clear(nghttp3_map *map) {
   map->size = 0;
 }
 
-size_t nghttp3_map_size(nghttp3_map *map) { return map->size; }
+size_t nghttp3_map_size(const nghttp3_map *map) { return map->size; }
