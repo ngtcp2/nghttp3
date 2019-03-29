@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # This scripts reads static table entries [1] and generates
-# nghttp3_hd_static_entry table.  This table is used in
-# lib/nghttp3_hd.c.
+# token_stable and stable.  This table is used in lib/nghttp3_qpack.c.
 #
 # [1] https://quicwg.org/base-drafts/draft-ietf-quic-qpack.html#rfc.appendix.A
 
@@ -73,8 +72,8 @@ print()
 
 print('static nghttp3_qpack_static_entry token_stable[] = {')
 for i, ent in enumerate(token_entries):
-    print('MAKE_STATIC_ENT("{}", "{}", {}, {}, {}u),'\
-          .format(ent.name, ent.value, ent.idx, to_enum_hd(ent.name), hd_map_hash(ent.name)))
+    print('MAKE_STATIC_ENT({}, {}, {}u),'\
+          .format(ent.idx, to_enum_hd(ent.name), hd_map_hash(ent.name)))
 print('};')
 
 print()

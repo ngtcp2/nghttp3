@@ -85,10 +85,6 @@ struct nghttp3_qpack_entry {
 
 /* The entry used for static table. */
 typedef struct {
-  /* TODO We don't need name */
-  nghttp3_rcbuf name;
-  /* TODO We don't need rcbuf here */
-  nghttp3_rcbuf value;
   size_t absidx;
   int32_t token;
   uint32_t hash;
