@@ -906,10 +906,7 @@ static int map_stream_free(nghttp3_map_entry *entry, void *ptr) {
   const nghttp3_mem *mem = ptr;
   nghttp3_qpack_stream *stream =
       nghttp3_struct_of(entry, nghttp3_qpack_stream, me);
-
-  nghttp3_qpack_stream_free(stream, mem);
-  nghttp3_mem_free(mem, stream);
-
+  nghttp3_qpack_stream_del(stream, mem);
   return 0;
 }
 
@@ -1031,21 +1028,15 @@ static int qpack_encoder_add_stream_ref(nghttp3_qpack_encoder *encoder,
   int rv;
 
   if (stream == NULL) {
-    stream = nghttp3_mem_malloc(mem, sizeof(nghttp3_qpack_stream));
-    if (stream == NULL) {
-      return NGHTTP3_ERR_NOMEM;
-    }
-    rv = nghttp3_qpack_stream_init(stream, stream_id, mem);
+    rv = nghttp3_qpack_stream_new(&stream, stream_id, mem);
     if (rv != 0) {
       assert(rv == NGHTTP3_ERR_NOMEM);
-      nghttp3_mem_free(mem, stream);
       return rv;
     }
     rv = nghttp3_map_insert(&encoder->streams, &stream->me);
     if (rv != 0) {
       assert(rv == NGHTTP3_ERR_NOMEM);
-      nghttp3_qpack_stream_free(stream, mem);
-      nghttp3_mem_free(mem, stream);
+      nghttp3_qpack_stream_del(stream, mem);
       return rv;
     }
   } else {
@@ -1641,13 +1632,20 @@ static int ref_max_cnt_greater(const nghttp3_pq_entry *lhsx,
   return lhs->max_cnt > rhs->max_cnt;
 }
 
-int nghttp3_qpack_stream_init(nghttp3_qpack_stream *stream, int64_t stream_id,
-                              const nghttp3_mem *mem) {
+int nghttp3_qpack_stream_new(nghttp3_qpack_stream **pstream, int64_t stream_id,
+                             const nghttp3_mem *mem) {
   int rv;
+  nghttp3_qpack_stream *stream;
+
+  stream = nghttp3_mem_malloc(mem, sizeof(nghttp3_qpack_stream));
+  if (stream == NULL) {
+    return NGHTTP3_ERR_NOMEM;
+  }
 
   rv = nghttp3_ringbuf_init(&stream->refs, 4,
                             sizeof(nghttp3_qpack_header_block_ref *), mem);
   if (rv != 0) {
+    nghttp3_mem_free(mem, stream);
     return rv;
   }
 
@@ -1656,11 +1654,13 @@ int nghttp3_qpack_stream_init(nghttp3_qpack_stream *stream, int64_t stream_id,
   stream->me.next = NULL;
   stream->me.key = (uint64_t)stream_id;
 
+  *pstream = stream;
+
   return 0;
 }
 
-void nghttp3_qpack_stream_free(nghttp3_qpack_stream *stream,
-                               const nghttp3_mem *mem) {
+void nghttp3_qpack_stream_del(nghttp3_qpack_stream *stream,
+                              const nghttp3_mem *mem) {
   nghttp3_qpack_header_block_ref *ref;
   size_t i, len;
 
@@ -1678,6 +1678,8 @@ void nghttp3_qpack_stream_free(nghttp3_qpack_stream *stream,
   }
 
   nghttp3_ringbuf_free(&stream->refs);
+
+  nghttp3_mem_free(mem, stream);
 }
 
 size_t nghttp3_qpack_stream_get_max_cnt(const nghttp3_qpack_stream *stream) {
@@ -2272,8 +2274,7 @@ int nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
 
   qpack_encoder_remove_stream(encoder, stream);
 
-  nghttp3_qpack_stream_free(stream, mem);
-  nghttp3_mem_free(mem, stream);
+  nghttp3_qpack_stream_del(stream, mem);
 
   return 0;
 }
@@ -2317,8 +2318,7 @@ int nghttp3_qpack_encoder_cancel_stream(nghttp3_qpack_encoder *encoder,
 
   qpack_encoder_remove_stream(encoder, stream);
 
-  nghttp3_qpack_stream_free(stream, mem);
-  nghttp3_mem_free(mem, stream);
+  nghttp3_qpack_stream_del(stream, mem);
 
   return 0;
 }

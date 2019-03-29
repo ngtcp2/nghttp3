@@ -132,11 +132,11 @@ typedef struct {
   nghttp3_pq max_cnts;
 } nghttp3_qpack_stream;
 
-int nghttp3_qpack_stream_init(nghttp3_qpack_stream *stream, int64_t stream_id,
-                              const nghttp3_mem *mem);
+int nghttp3_qpack_stream_new(nghttp3_qpack_stream **pstream, int64_t stream_id,
+                             const nghttp3_mem *mem);
 
-void nghttp3_qpack_stream_free(nghttp3_qpack_stream *stream,
-                               const nghttp3_mem *mem);
+void nghttp3_qpack_stream_del(nghttp3_qpack_stream *stream,
+                              const nghttp3_mem *mem);
 
 size_t nghttp3_qpack_stream_get_max_cnt(const nghttp3_qpack_stream *stream);
 
