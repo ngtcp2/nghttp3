@@ -239,10 +239,10 @@ struct nghttp3_qpack_encoder {
   /* streams is a map of stream ID to nghttp3_qpack_stream to keep
      track of unacknowledged streams. */
   nghttp3_map streams;
-  /* blocked_refs is an ordered list of nghttp3_qpack_stream, in
+  /* blocked_streams is an ordered list of nghttp3_qpack_stream, in
      descending order of max_cnt, to search the unblocked streams by
      received known count. */
-  nghttp3_ksl blocked_refs;
+  nghttp3_ksl blocked_streams;
   /* min_cnts is a priority queue of nghttp3_qpack_header_block_ref
      sorted by ascending order of min_cnt to know that an entry can be
      evicted from dynamic table.  */

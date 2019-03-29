@@ -965,10 +965,10 @@ int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
     goto streams_init_fail;
   }
 
-  rv = nghttp3_ksl_init(&encoder->blocked_refs, max_cnt_greater,
+  rv = nghttp3_ksl_init(&encoder->blocked_streams, max_cnt_greater,
                         nghttp3_ksl_key_ptr(&key, &inf_stream), mem);
   if (rv != 0) {
-    goto blocked_refs_init_fail;
+    goto blocked_streams_init_fail;
   }
 
   qpack_map_init(&encoder->dtable_map);
@@ -985,7 +985,7 @@ int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
 
   return 0;
 
-blocked_refs_init_fail:
+blocked_streams_init_fail:
   nghttp3_map_free(&encoder->streams);
 streams_init_fail:
   qpack_context_free(&encoder->ctx);
@@ -1006,7 +1006,7 @@ static int map_stream_free(nghttp3_map_entry *entry, void *ptr) {
 
 void nghttp3_qpack_encoder_free(nghttp3_qpack_encoder *encoder) {
   nghttp3_pq_free(&encoder->min_cnts);
-  nghttp3_ksl_free(&encoder->blocked_refs);
+  nghttp3_ksl_free(&encoder->blocked_streams);
   nghttp3_map_each_free(&encoder->streams, map_stream_free,
                         (void *)encoder->ctx.mem);
   nghttp3_map_free(&encoder->streams);
@@ -1244,7 +1244,7 @@ int nghttp3_qpack_encoder_encode(nghttp3_qpack_encoder *encoder,
       stream && nghttp3_qpack_encoder_stream_is_blocked(encoder, stream);
   allow_blocking =
       blocked_stream ||
-      encoder->ctx.max_blocked > nghttp3_ksl_len(&encoder->blocked_refs);
+      encoder->ctx.max_blocked > nghttp3_ksl_len(&encoder->blocked_streams);
 
   DEBUGF("qpack::encode: stream %ld blocked=%d allow_blocking=%d\n", stream_id,
          blocked_stream, allow_blocking);
@@ -2274,7 +2274,7 @@ int nghttp3_qpack_encoder_block_stream(nghttp3_qpack_encoder *encoder,
                                        nghttp3_qpack_stream *stream) {
   nghttp3_ksl_key key;
 
-  return nghttp3_ksl_insert(&encoder->blocked_refs, NULL,
+  return nghttp3_ksl_insert(&encoder->blocked_streams, NULL,
                             nghttp3_ksl_key_ptr(&key, stream), stream);
 }
 
@@ -2283,13 +2283,13 @@ int nghttp3_qpack_encoder_unblock_stream(nghttp3_qpack_encoder *encoder,
   nghttp3_ksl_key key;
   nghttp3_ksl_it it;
 
-  it = nghttp3_ksl_lower_bound(&encoder->blocked_refs,
+  it = nghttp3_ksl_lower_bound(&encoder->blocked_streams,
                                nghttp3_ksl_key_ptr(&key, stream));
 
   assert(!nghttp3_ksl_it_end(&it));
   assert(nghttp3_ksl_it_get(&it) == stream);
 
-  return nghttp3_ksl_remove(&encoder->blocked_refs, NULL, &key);
+  return nghttp3_ksl_remove(&encoder->blocked_streams, NULL, &key);
 }
 
 int nghttp3_qpack_encoder_unblock(nghttp3_qpack_encoder *encoder,
@@ -2301,12 +2301,12 @@ int nghttp3_qpack_encoder_unblock(nghttp3_qpack_encoder *encoder,
   nghttp3_qpack_stream needle = {{NULL, 0}, {0}, {pe, NULL, 1, 0, NULL}};
   nghttp3_ksl_it it;
 
-  it = nghttp3_ksl_lower_bound(&encoder->blocked_refs,
+  it = nghttp3_ksl_lower_bound(&encoder->blocked_streams,
                                nghttp3_ksl_key_ptr(&key, &needle));
 
   for (; !nghttp3_ksl_it_end(&it);) {
     key = nghttp3_ksl_it_key(&it);
-    rv = nghttp3_ksl_remove(&encoder->blocked_refs, &it, &key);
+    rv = nghttp3_ksl_remove(&encoder->blocked_streams, &it, &key);
     if (rv != 0) {
       return rv;
     }
@@ -2380,7 +2380,7 @@ int nghttp3_qpack_encoder_add_insert_count(nghttp3_qpack_encoder *encoder,
 void nghttp3_qpack_encoder_ack_everything(nghttp3_qpack_encoder *encoder) {
   encoder->krcnt = encoder->ctx.next_absidx;
 
-  nghttp3_ksl_clear(&encoder->blocked_refs);
+  nghttp3_ksl_clear(&encoder->blocked_streams);
   nghttp3_pq_clear(&encoder->min_cnts);
   nghttp3_map_each_free(&encoder->streams, map_stream_free,
                         (void *)encoder->ctx.mem);
@@ -2413,7 +2413,7 @@ int nghttp3_qpack_encoder_cancel_stream(nghttp3_qpack_encoder *encoder,
 }
 
 size_t nghttp3_qpack_encoder_get_num_blocked(nghttp3_qpack_encoder *encoder) {
-  return nghttp3_ksl_len(&encoder->blocked_refs);
+  return nghttp3_ksl_len(&encoder->blocked_streams);
 }
 
 int nghttp3_qpack_encoder_write_header_block_prefix(
