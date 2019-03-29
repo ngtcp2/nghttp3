@@ -236,9 +236,9 @@ struct nghttp3_qpack_encoder {
   /* dtable_map is a map of hash to nghttp3_qpack_entry to provide
      fast access to an entry in dynamic table. */
   nghttp3_qpack_map dtable_map;
-  /* stream_refs is a map of stream ID to nghttp3_qpack_stream to keep
+  /* streams is a map of stream ID to nghttp3_qpack_stream to keep
      track of unacknowledged streams. */
-  nghttp3_map stream_refs;
+  nghttp3_map streams;
   /* blocked_refs is an ordered list of nghttp3_qpack_stream, in
      descending order of max_cnt, to search the unblocked streams by
      received known count. */
