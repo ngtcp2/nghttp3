@@ -1320,8 +1320,9 @@ qpack_encoder_decide_indexing_mode(nghttp3_qpack_encoder *encoder,
 static int qpack_encoder_can_index(nghttp3_qpack_encoder *encoder, size_t need,
                                    size_t min_cnt) {
   size_t avail = 0;
-  size_t i, len;
-  nghttp3_qpack_entry *ent;
+  size_t len;
+  size_t gmin_cnt;
+  nghttp3_qpack_entry *min_ent, *last_ent;
   nghttp3_ringbuf *dtable = &encoder->ctx.dtable;
 
   if (encoder->ctx.max_dtable_size > encoder->ctx.dtable_size) {
@@ -1331,30 +1332,26 @@ static int qpack_encoder_can_index(nghttp3_qpack_encoder *encoder, size_t need,
     }
   }
 
-  len = nghttp3_ringbuf_len(dtable);
-  assert(len);
-
-  for (i = len; i > 0; --i) {
-    ent = *(nghttp3_qpack_entry **)nghttp3_ringbuf_get(dtable, i - 1);
-    if (ent->absidx + 1 == min_cnt) {
-      return 0;
-    }
-    assert(ent->absidx + 1 < min_cnt);
-    if (!nghttp3_pq_empty(&encoder->min_cnts)) {
-      if (ent->absidx + 1 == nghttp3_qpack_encoder_get_min_cnt(encoder)) {
-        return 0;
-      }
-    }
-    avail += table_space(ent->nv.name->len, ent->nv.value->len);
-    if (need <= avail) {
-      return 1;
-    }
+  if (!nghttp3_pq_empty(&encoder->min_cnts)) {
+    gmin_cnt = nghttp3_qpack_encoder_get_min_cnt(encoder);
+    min_cnt = nghttp3_min(min_cnt, gmin_cnt);
   }
 
-  /* Unreachable */
-  assert(0);
+  if (min_cnt == SIZE_MAX) {
+    return encoder->ctx.max_dtable_size >= need;
+  }
 
-  return 0;
+  min_ent = nghttp3_qpack_context_dtable_get(&encoder->ctx, min_cnt - 1);
+
+  len = nghttp3_ringbuf_len(&encoder->ctx.dtable);
+  assert(len);
+  last_ent = *(nghttp3_qpack_entry **)nghttp3_ringbuf_get(dtable, len - 1);
+
+  if (min_ent == last_ent) {
+    return 0;
+  }
+
+  return avail + min_ent->sum - last_ent->sum >= need;
 }
 
 /*
