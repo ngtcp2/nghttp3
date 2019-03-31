@@ -77,6 +77,10 @@ struct nghttp3_conn {
   struct {
     struct {
       nghttp3_idtr idtr;
+      /* max_client_streams is the cumulative number of client
+         initiated bidirectional stream ID the remote endpoint can
+         issue.  This field is used on server side only. */
+      uint64_t max_client_streams;
     } bidi;
     nghttp3_conn_settings settings;
   } remote;
@@ -86,13 +90,6 @@ struct nghttp3_conn {
     nghttp3_stream *qenc;
     nghttp3_stream *qdec;
   } tx;
-
-  struct {
-    /* max_client_streams_bidi is the cumulative number of client
-       initiated bidirectional stream ID the remote endpoint can
-       issue.  This field is used on server side only. */
-    uint64_t max_client_streams_bidi;
-  } rx;
 };
 
 nghttp3_stream *nghttp3_conn_find_stream(nghttp3_conn *conn, int64_t stream_id);
