@@ -265,6 +265,15 @@ int nghttp3_stream_outq_add(nghttp3_stream *stream,
 int nghttp3_stream_write_headers(nghttp3_stream *stream,
                                  nghttp3_frame_entry *frent);
 
+int nghttp3_stream_write_push_promise(nghttp3_stream *stream,
+                                      nghttp3_frame_entry *frent);
+
+int nghttp3_stream_write_header_block(nghttp3_stream *stream,
+                                      nghttp3_qpack_encoder *qenc,
+                                      nghttp3_stream *qenc_stream,
+                                      int64_t frame_type, int64_t push_id,
+                                      const nghttp3_nv *nva, size_t nvlen);
+
 int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
                               nghttp3_frame_entry *frent);
 
@@ -325,9 +334,21 @@ int nghttp3_stream_empty_headers_allowed(nghttp3_stream *stream);
 int nghttp3_stream_uni(int64_t stream_id);
 
 /*
- * nghttp3_client_stream_uni returns nonzero if stream identified by
+ * nghttp3_client_stream_bidi returns nonzero if stream identified by
  * |stream_id| is client initiated bidirectional stream.
  */
 int nghttp3_client_stream_bidi(int64_t stream_id);
+
+/*
+ * nghttp3_client_stream_uni returns nonzero if stream identified by
+ * |stream_id| is client initiated unidirectional stream.
+ */
+int nghttp3_client_stream_uni(int64_t stream_id);
+
+/*
+ * nghttp3_server_stream_uni returns nonzero if stream identified by
+ * |stream_id| is server initiated unidirectional stream.
+ */
+int nghttp3_server_stream_uni(int64_t stream_id);
 
 #endif /* NGHTTP3_STREAM_H */

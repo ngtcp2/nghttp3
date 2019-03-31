@@ -233,6 +233,15 @@ void nghttp3_frame_headers_free(nghttp3_frame_headers *fr,
   nghttp3_nva_del(fr->nva, mem);
 }
 
+void nghttp3_frame_push_promise_free(nghttp3_frame_push_promise *fr,
+                                     const nghttp3_mem *mem) {
+  if (fr == NULL) {
+    return;
+  }
+
+  nghttp3_nva_del(fr->nva, mem);
+}
+
 nghttp3_pri_elem_type nghttp3_frame_pri_elem_type(uint8_t c) { return c >> 6; }
 
 nghttp3_elem_dep_type nghttp3_frame_elem_dep_type(uint8_t c) {

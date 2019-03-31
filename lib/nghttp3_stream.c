@@ -134,6 +134,9 @@ static void delete_frq(nghttp3_ringbuf *frq, const nghttp3_mem *mem) {
     case NGHTTP3_FRAME_HEADERS:
       nghttp3_frame_headers_free(&frent->fr.headers, mem);
       break;
+    case NGHTTP3_FRAME_PUSH_PROMISE:
+      nghttp3_frame_push_promise_free(&frent->fr.push_promise, mem);
+      break;
     default:
       break;
     }
@@ -256,6 +259,13 @@ int nghttp3_stream_fill_outq(nghttp3_stream *stream) {
         return rv;
       }
       nghttp3_frame_headers_free(&frent->fr.headers, stream->mem);
+      break;
+    case NGHTTP3_FRAME_PUSH_PROMISE:
+      rv = nghttp3_stream_write_push_promise(stream, frent);
+      if (rv != 0) {
+        return rv;
+      }
+      nghttp3_frame_push_promise_free(&frent->fr.push_promise, stream->mem);
       break;
     case NGHTTP3_FRAME_DATA:
       for (; !nghttp3_stream_outq_is_full(stream);) {
@@ -400,35 +410,60 @@ int nghttp3_stream_write_priority(nghttp3_stream *stream,
 }
 int nghttp3_stream_write_headers(nghttp3_stream *stream,
                                  nghttp3_frame_entry *frent) {
-  nghttp3_qpack_encoder *qenc;
-  nghttp3_stream *qenc_stream;
   nghttp3_frame_headers *fr = &frent->fr.headers;
+  nghttp3_conn *conn = stream->conn;
+
+  assert(conn);
+
+  return nghttp3_stream_write_header_block(stream, &conn->qenc, conn->tx.qenc,
+                                           NGHTTP3_FRAME_HEADERS, 0, fr->nva,
+                                           fr->nvlen);
+}
+
+int nghttp3_stream_write_push_promise(nghttp3_stream *stream,
+                                      nghttp3_frame_entry *frent) {
+  nghttp3_frame_push_promise *fr = &frent->fr.push_promise;
+  nghttp3_conn *conn = stream->conn;
+
+  assert(conn);
+
+  return nghttp3_stream_write_header_block(stream, &conn->qenc, conn->tx.qenc,
+                                           NGHTTP3_FRAME_PUSH_PROMISE,
+                                           fr->push_id, fr->nva, fr->nvlen);
+}
+
+int nghttp3_stream_write_header_block(nghttp3_stream *stream,
+                                      nghttp3_qpack_encoder *qenc,
+                                      nghttp3_stream *qenc_stream,
+                                      int64_t frame_type, int64_t push_id,
+                                      const nghttp3_nv *nva, size_t nvlen) {
   nghttp3_buf pbuf, rbuf, ebuf;
   int rv;
   size_t len;
   nghttp3_buf *chunk;
   nghttp3_typed_buf tbuf;
   nghttp3_frame_hd hd;
-
-  assert(stream->conn);
-
-  qenc = &stream->conn->qenc;
-  qenc_stream = stream->conn->tx.qenc;
+  size_t push_idlen = 0;
 
   nghttp3_buf_init(&pbuf);
   nghttp3_buf_init(&rbuf);
   nghttp3_buf_init(&ebuf);
 
   rv = nghttp3_qpack_encoder_encode(qenc, &pbuf, &rbuf, &ebuf,
-                                    stream->stream_id, fr->nva, fr->nvlen);
+                                    stream->stream_id, nva, nvlen);
   if (rv != 0) {
     goto fail;
   }
 
-  hd.type = NGHTTP3_FRAME_HEADERS;
-  hd.length = (int64_t)(nghttp3_buf_len(&pbuf) + nghttp3_buf_len(&rbuf));
+  if (frame_type == NGHTTP3_FRAME_PUSH_PROMISE) {
+    push_idlen = nghttp3_put_varint_len(push_id);
+  }
 
-  len = nghttp3_frame_write_hd_len(&hd);
+  hd.type = frame_type;
+  hd.length =
+      (int64_t)(nghttp3_buf_len(&pbuf) + nghttp3_buf_len(&rbuf) + push_idlen);
+
+  len = nghttp3_frame_write_hd_len(&hd) + push_idlen;
 
   rv = nghttp3_stream_ensure_chunk(stream, len);
   if (rv != 0) {
@@ -441,6 +476,10 @@ int nghttp3_stream_write_headers(nghttp3_stream *stream,
   rv = nghttp3_frame_write_hd(chunk, &hd);
   if (rv != 0) {
     goto fail;
+  }
+
+  if (push_idlen) {
+    chunk->last = nghttp3_put_varint(chunk->last, push_id);
   }
 
   tbuf.buf.last = chunk->last;
@@ -1080,4 +1119,12 @@ int nghttp3_stream_uni(int64_t stream_id) { return (stream_id & 0x2) != 0; }
 
 int nghttp3_client_stream_bidi(int64_t stream_id) {
   return (stream_id & 0x3) == 0;
+}
+
+int nghttp3_client_stream_uni(int64_t stream_id) {
+  return (stream_id & 0x3) == 0x2;
+}
+
+int nghttp3_server_stream_uni(int64_t stream_id) {
+  return (stream_id & 0x3) == 0x3;
 }

@@ -36,6 +36,8 @@ const char *nghttp3_strerror(int liberr) {
     return "ERR_WOULDBLOCK";
   case NGHTTP3_ERR_STREAM_IN_USE:
     return "ERR_STREAM_IN_USE";
+  case NGHTTP3_ERR_PUSH_ID_BLOCKED:
+    return "ERR_PUSH_ID_BLOCKED";
   case NGHTTP3_ERR_QPACK_FATAL:
     return "ERR_QPACK_FATAL";
   case NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED:

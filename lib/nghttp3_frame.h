@@ -122,6 +122,13 @@ void nghttp3_frame_headers_free(nghttp3_frame_headers *fr,
                                 const nghttp3_mem *mem);
 
 /*
+ * nghttp3_frame_push_promise_free frees memory allocated for |fr|.
+ * It assumes that fr->nva is created by nghttp3_nva_copy() or NULL.
+ */
+void nghttp3_frame_push_promise_free(nghttp3_frame_push_promise *fr,
+                                     const nghttp3_mem *mem);
+
+/*
  * nghttp3_frame_pri_elem_type returns Prioritized Element Type from
  * the first byte |c| of PRIORITY frame.
  */

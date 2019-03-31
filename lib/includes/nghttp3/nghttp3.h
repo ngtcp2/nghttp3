@@ -73,6 +73,7 @@ typedef enum {
   NGHTTP3_ERR_INVALID_STATE = -103,
   NGHTTP3_ERR_WOULDBLOCKED = -104,
   NGHTTP3_ERR_STREAM_IN_USE = -105,
+  NGHTTP3_ERR_PUSH_ID_BLOCKED = -106,
   NGHTTP3_ERR_QPACK_FATAL = -401,
   NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED = -402,
   NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR = -403,
@@ -1224,6 +1225,8 @@ typedef struct {
 
 typedef struct {
   nghttp3_frame_hd hd;
+  nghttp3_nv *nva;
+  size_t nvlen;
   int64_t push_id;
 } nghttp3_frame_push_promise;
 
@@ -1445,6 +1448,19 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_trailer(nghttp3_conn *conn,
                                                int64_t stream_id,
                                                const nghttp3_nv *nva,
                                                size_t nvlen);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_bind_push_stream` binds the stream identified by
+ * |stream_id| to the push identified by |push_id|.  |stream_id| must
+ * be a server initiated unidirectional stream.  |push_id| must be
+ * obtained from `nghttp3_conn_submit_push_promise()`.  To send
+ * response to this push, call `nghttp3_conn_submit_response()`.
+ */
+NGHTTP3_EXTERN int nghttp3_conn_bind_push_stream(nghttp3_conn *conn,
+                                                 int64_t push_id,
+                                                 int64_t stream_id);
 
 /**
  * @function

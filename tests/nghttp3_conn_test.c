@@ -392,6 +392,74 @@ static void conn_read_write(nghttp3_conn *cl, nghttp3_conn *sv) {
   }
 }
 
+void test_nghttp3_conn_submit_push_promise(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  nghttp3_conn_callbacks callbacks;
+  nghttp3_conn_settings settings;
+  const nghttp3_nv nva[] = {
+      MAKE_NV(":path", "/"),
+      MAKE_NV(":authority", "example.com"),
+      MAKE_NV(":scheme", "https"),
+      MAKE_NV(":method", "GET"),
+  };
+  nghttp3_stream *stream;
+  nghttp3_push_promise *pp;
+  int64_t push_id;
+  int rv;
+  nghttp3_vec vec[256];
+  int fin;
+  int64_t stream_id;
+  ssize_t sveccnt;
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  nghttp3_conn_settings_default(&settings);
+
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  conn->local.uni.max_pushes = 1;
+  conn->remote.bidi.max_client_streams = 1;
+  nghttp3_conn_bind_qpack_streams(conn, 7, 11);
+
+  nghttp3_conn_create_stream(conn, &stream, 0);
+
+  rv = nghttp3_conn_submit_push_promise(conn, &push_id, 0, nva,
+                                        nghttp3_arraylen(nva));
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(0 == push_id);
+
+  for (;;) {
+    sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                         nghttp3_arraylen(vec));
+
+    CU_ASSERT(sveccnt >= 0);
+
+    if (sveccnt <= 0) {
+      break;
+    }
+
+    rv = nghttp3_conn_add_write_offset(conn, stream_id,
+                                       nghttp3_vec_len(vec, (size_t)sveccnt));
+
+    CU_ASSERT(0 == rv);
+  }
+
+  rv = nghttp3_conn_bind_push_stream(conn, push_id, 15);
+
+  CU_ASSERT(0 == rv);
+
+  pp = nghttp3_conn_find_push_promise(conn, push_id);
+  stream = nghttp3_conn_find_stream(conn, 15);
+
+  CU_ASSERT(stream == pp->stream);
+  CU_ASSERT(nghttp3_node_id_eq(&pp->node.nid, &stream->node.nid));
+  CU_ASSERT(NULL == stream->node.parent);
+  CU_ASSERT(NULL == stream->node.first_child);
+  CU_ASSERT(NULL == stream->node.next_sibling);
+
+  nghttp3_conn_del(conn);
+}
+
 void test_nghttp3_conn_submit_priority(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *cl, *sv;
@@ -577,6 +645,7 @@ void test_nghttp3_conn_recv_request_priority(void) {
   nghttp3_stream *stream;
   nghttp3_tnode *parent;
   nghttp3_placeholder *ph;
+  nghttp3_push_promise *pp;
 
   memset(&callbacks, 0, sizeof(callbacks));
   nghttp3_conn_settings_default(&settings);
@@ -661,6 +730,79 @@ void test_nghttp3_conn_recv_request_priority(void) {
   CU_ASSERT(!nghttp3_tnode_is_scheduled(&stream->node));
 
   nghttp3_conn_del(conn);
+
+  /* Depends on push ID which has not been created yet */
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+
+  fr.hd.type = NGHTTP3_FRAME_PRIORITY;
+  fr.pt = NGHTTP3_PRI_ELEM_TYPE_CURRENT;
+  fr.dt = NGHTTP3_ELEM_DEP_TYPE_PUSH;
+  fr.elem_dep_id = 0;
+  fr.weight = 77;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT(NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED == sconsumed);
+
+  nghttp3_conn_del(conn);
+
+  /* Depends on existing push ID */
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  conn->local.uni.max_pushes = 10;
+  nghttp3_conn_create_push_promise(conn, &pp, 9, NGHTTP3_DEFAULT_WEIGHT,
+                                   &conn->root);
+  conn->local.uni.next_push_id = 10;
+
+  fr.hd.type = NGHTTP3_FRAME_PRIORITY;
+  fr.pt = NGHTTP3_PRI_ELEM_TYPE_CURRENT;
+  fr.dt = NGHTTP3_ELEM_DEP_TYPE_PUSH;
+  fr.elem_dep_id = 9;
+  fr.weight = 123;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  CU_ASSERT(&pp->node == stream->node.parent);
+  CU_ASSERT(123 == stream->node.weight);
+  CU_ASSERT(!nghttp3_tnode_is_scheduled(&stream->node));
+
+  nghttp3_conn_del(conn);
+
+  /* Depends on closed push ID */
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  conn->local.uni.max_pushes = 10;
+  conn->local.uni.next_push_id = 10;
+
+  fr.hd.type = NGHTTP3_FRAME_PRIORITY;
+  fr.pt = NGHTTP3_PRI_ELEM_TYPE_CURRENT;
+  fr.dt = NGHTTP3_ELEM_DEP_TYPE_PUSH;
+  fr.elem_dep_id = 9;
+  fr.weight = 123;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  CU_ASSERT(&conn->root == stream->node.parent);
+
+  nghttp3_conn_del(conn);
 }
 
 void test_nghttp3_conn_recv_control_priority(void) {
@@ -675,6 +817,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
   nghttp3_stream *stream;
   nghttp3_tnode *parent;
   nghttp3_placeholder *ph;
+  nghttp3_push_promise *pp;
 
   memset(&callbacks, 0, sizeof(callbacks));
   nghttp3_conn_settings_default(&settings);
@@ -864,6 +1007,113 @@ void test_nghttp3_conn_recv_control_priority(void) {
 
   CU_ASSERT(NGHTTP3_ERR_HTTP_MALFORMED_FRAME - NGHTTP3_FRAME_PRIORITY ==
             sconsumed);
+
+  nghttp3_conn_del(conn);
+
+  /* Changing dependency of closed push ID has no effect */
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  conn->local.uni.max_pushes = 10;
+  conn->local.uni.next_push_id = 10;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.hd.type = NGHTTP3_FRAME_SETTINGS;
+  fr.settings.niv = 0;
+
+  nghttp3_write_frame(&buf, &fr);
+
+  fr.hd.type = NGHTTP3_FRAME_PRIORITY;
+  fr.priority.pt = NGHTTP3_PRI_ELEM_TYPE_PUSH;
+  fr.priority.dt = NGHTTP3_ELEM_DEP_TYPE_PLACEHOLDER;
+  fr.priority.pri_elem_id = 9;
+  fr.priority.elem_dep_id = 0;
+  fr.priority.weight = 7;
+
+  nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
+  CU_ASSERT(NULL == nghttp3_conn_find_placeholder(conn, 0));
+
+  nghttp3_conn_del(conn);
+
+  /* Making a dependency to a closed push ID */
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  conn->local.uni.max_pushes = 10;
+  conn->local.uni.next_push_id = 10;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.hd.type = NGHTTP3_FRAME_SETTINGS;
+  fr.settings.niv = 0;
+
+  nghttp3_write_frame(&buf, &fr);
+
+  fr.hd.type = NGHTTP3_FRAME_PRIORITY;
+  fr.priority.pt = NGHTTP3_PRI_ELEM_TYPE_PLACEHOLDER;
+  fr.priority.dt = NGHTTP3_ELEM_DEP_TYPE_PUSH;
+  fr.priority.pri_elem_id = 0;
+  fr.priority.elem_dep_id = 9;
+  fr.priority.weight = 54;
+
+  nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
+
+  ph = nghttp3_conn_find_placeholder(conn, 0);
+
+  CU_ASSERT(&conn->root == ph->node.parent);
+  CU_ASSERT(54 == ph->node.weight);
+
+  nghttp3_conn_del(conn);
+
+  /* Making dependency to its descendant; push ID */
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  conn->local.uni.max_pushes = 10;
+  nghttp3_conn_create_push_promise(conn, &pp, 0, 111, &conn->root);
+  nghttp3_conn_create_push_promise(conn, &pp, 1, 112, &pp->node);
+  conn->local.uni.next_push_id = 2;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.hd.type = NGHTTP3_FRAME_SETTINGS;
+  fr.settings.niv = 0;
+
+  nghttp3_write_frame(&buf, &fr);
+
+  fr.hd.type = NGHTTP3_FRAME_PRIORITY;
+  fr.priority.pt = NGHTTP3_PRI_ELEM_TYPE_PUSH;
+  fr.priority.dt = NGHTTP3_ELEM_DEP_TYPE_PUSH;
+  fr.priority.pri_elem_id = 0;
+  fr.priority.elem_dep_id = 1;
+  fr.priority.weight = 1;
+
+  nghttp3_write_frame(&buf, &fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
+
+  pp = nghttp3_conn_find_push_promise(conn, 0);
+  parent = pp->node.parent;
+
+  CU_ASSERT(1 == pp->node.weight);
+  CU_ASSERT(NGHTTP3_NODE_ID_TYPE_PUSH == parent->nid.type);
+  CU_ASSERT(1 == parent->nid.id);
+  CU_ASSERT(&conn->root == parent->parent);
+  CU_ASSERT(112 == parent->weight);
 
   nghttp3_conn_del(conn);
 }

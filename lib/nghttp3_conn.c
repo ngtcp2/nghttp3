@@ -186,6 +186,11 @@ static int conn_new(nghttp3_conn **pconn, int server,
     goto placeholders_init_fail;
   }
 
+  rv = nghttp3_map_init(&conn->pushes, mem);
+  if (rv != 0) {
+    goto pushes_init_fail;
+  }
+
   rv = nghttp3_qpack_decoder_init(&conn->qdec,
                                   settings->qpack_max_table_capacity,
                                   settings->qpack_blocked_streams, mem);
@@ -205,6 +210,11 @@ static int conn_new(nghttp3_conn **pconn, int server,
     goto remote_bidi_idtr_init_fail;
   }
 
+  rv = nghttp3_gaptr_init(&conn->remote.uni.push_idtr, mem);
+  if (rv != 0) {
+    goto push_idtr_init_fail;
+  }
+
   conn->callbacks = *callbacks;
   conn->local.settings = *settings;
   nghttp3_conn_settings_default(&conn->remote.settings);
@@ -217,11 +227,15 @@ static int conn_new(nghttp3_conn **pconn, int server,
 
   return 0;
 
+push_idtr_init_fail:
+  nghttp3_idtr_free(&conn->remote.bidi.idtr);
 remote_bidi_idtr_init_fail:
   nghttp3_qpack_encoder_free(&conn->qenc);
 qenc_init_fail:
   nghttp3_qpack_decoder_free(&conn->qdec);
 qdec_init_fail:
+  nghttp3_map_free(&conn->pushes);
+pushes_init_fail:
   nghttp3_map_free(&conn->placeholders);
 placeholders_init_fail:
   nghttp3_map_free(&conn->streams);
@@ -256,6 +270,15 @@ int nghttp3_conn_server_new(nghttp3_conn **pconn,
   return 0;
 }
 
+static int free_push_promise(nghttp3_map_entry *ent, void *ptr) {
+  nghttp3_push_promise *pp = nghttp3_struct_of(ent, nghttp3_push_promise, me);
+  const nghttp3_mem *mem = ptr;
+
+  nghttp3_push_promise_del(pp, mem);
+
+  return 0;
+}
+
 static int free_placeholder(nghttp3_map_entry *ent, void *ptr) {
   nghttp3_placeholder *ph = nghttp3_struct_of(ent, nghttp3_placeholder, me);
   const nghttp3_mem *mem = ptr;
@@ -280,12 +303,17 @@ void nghttp3_conn_del(nghttp3_conn *conn) {
     return;
   }
 
+  nghttp3_gaptr_free(&conn->remote.uni.push_idtr);
+
   nghttp3_idtr_free(&conn->remote.bidi.idtr);
 
   nghttp3_pq_free(&conn->qpack_blocked_streams);
 
   nghttp3_qpack_encoder_free(&conn->qenc);
   nghttp3_qpack_decoder_free(&conn->qdec);
+
+  nghttp3_map_each_free(&conn->pushes, free_push_promise, (void *)conn->mem);
+  nghttp3_map_free(&conn->pushes);
 
   nghttp3_map_each_free(&conn->placeholders, free_placeholder,
                         (void *)conn->mem);
@@ -555,6 +583,9 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
         rstate->state = NGHTTP3_CTRL_STREAM_STATE_GOAWAY;
         break;
       case NGHTTP3_FRAME_MAX_PUSH_ID:
+        if (conn->server) {
+          return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+        }
         if (rstate->left == 0) {
           return nghttp3_err_malformed_frame(NGHTTP3_FRAME_MAX_PUSH_ID);
         }
@@ -789,8 +820,29 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       rstate->state = NGHTTP3_CTRL_STREAM_STATE_IGN_FRAME;
       break;
     case NGHTTP3_CTRL_STREAM_STATE_MAX_PUSH_ID:
-      /* TODO Not implemented yet */
-      rstate->state = NGHTTP3_CTRL_STREAM_STATE_IGN_FRAME;
+      /* server side only */
+      len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
+      assert(len > 0);
+      nread = nghttp3_read_varint(rvint, p, len, frame_fin(rstate, len));
+      if (nread < 0) {
+        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_MAX_PUSH_ID);
+      }
+
+      p += nread;
+      nconsumed += (size_t)nread;
+      rstate->left -= nread;
+      if (rvint->left) {
+        return (ssize_t)nconsumed;
+      }
+
+      if (conn->local.uni.max_pushes > (uint64_t)rvint->acc) {
+        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_MAX_PUSH_ID);
+      }
+      nghttp3_varint_read_state_reset(rvint);
+
+      conn->local.uni.max_pushes = (uint64_t)rvint->acc;
+
+      nghttp3_stream_read_state_reset(rstate);
       break;
     case NGHTTP3_CTRL_STREAM_STATE_IGN_FRAME:
       len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
@@ -1245,6 +1297,7 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
   nghttp3_tnode *dep_tnode = NULL;
   nghttp3_stream *dep_stream;
   nghttp3_placeholder *dep_ph;
+  nghttp3_push_promise *dep_pp;
   int rv;
 
   assert(conn->server);
@@ -1265,7 +1318,7 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
       if (rv == NGHTTP3_ERR_STREAM_IN_USE) {
         /* Stream has been closed; use root instead. */
         dep_tnode = &conn->root;
-        return 0;
+        break;
       }
       rv = nghttp3_conn_create_stream(conn, &dep_stream, dep_nid->id);
       if (rv != 0) {
@@ -1287,7 +1340,30 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
     dep_tnode = &dep_stream->node;
     break;
   case NGHTTP3_NODE_ID_TYPE_PUSH:
-    /* TODO Not implemented */
+    if (dep_nid->id >= conn->local.uni.next_push_id) {
+      return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+    }
+
+    dep_pp = nghttp3_conn_find_push_promise(conn, dep_nid->id);
+    if (dep_pp == NULL) {
+      /* Push has been closed; use root instead. */
+      dep_tnode = &conn->root;
+      break;
+    }
+
+    if (tnode &&
+        nghttp3_tnode_find_ascendant(&dep_pp->node, &tnode->nid) != NULL) {
+      nghttp3_tnode_remove(&dep_pp->node);
+      nghttp3_tnode_insert(&dep_pp->node, tnode->parent);
+
+      if (nghttp3_tnode_has_active_descendant(&dep_pp->node)) {
+        rv = nghttp3_tnode_schedule(&dep_pp->node, 0);
+        if (rv != 0) {
+          return rv;
+        }
+      }
+    }
+    dep_tnode = &dep_pp->node;
     break;
   case NGHTTP3_NODE_ID_TYPE_PLACEHOLDER:
     if ((uint64_t)dep_nid->id >= conn->local.settings.num_placeholders) {
@@ -1347,9 +1423,9 @@ int nghttp3_conn_on_request_priority(nghttp3_conn *conn, nghttp3_stream *stream,
     return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
   }
 
-  if (dep_nid.type == NGHTTP3_NODE_ID_TYPE_PUSH) {
-    /* TODO Not implemented */
-    return 0;
+  if (dep_nid.type == NGHTTP3_NODE_ID_TYPE_PUSH &&
+      dep_nid.id >= conn->local.uni.next_push_id) {
+    return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
   }
 
   rv = conn_ensure_dependency(conn, &dep_tnode, &dep_nid, &stream->node);
@@ -1383,6 +1459,7 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
   nghttp3_tnode *dep_tnode = NULL, *tnode = NULL;
   nghttp3_stream *stream;
   nghttp3_placeholder *ph;
+  nghttp3_push_promise *pp;
   int rv;
 
   assert(conn->server);
@@ -1406,8 +1483,17 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
     }
     break;
   case NGHTTP3_NODE_ID_TYPE_PUSH:
-    /* TODO Not implemented */
-    return 0;
+    if (nid.id >= conn->local.uni.next_push_id) {
+      return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+    }
+    pp = nghttp3_conn_find_push_promise(conn, nid.id);
+    if (!pp) {
+      /* If push has already been closed, ignore this dependency
+         change. */
+      return 0;
+    }
+    tnode = &pp->node;
+    break;
   case NGHTTP3_NODE_ID_TYPE_PLACEHOLDER:
     if ((uint64_t)nid.id >= conn->local.settings.num_placeholders) {
       return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
@@ -1481,6 +1567,7 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
     }
     break;
   case NGHTTP3_NODE_ID_TYPE_PLACEHOLDER:
+  case NGHTTP3_NODE_ID_TYPE_PUSH:
     if (nghttp3_tnode_has_active_descendant(tnode)) {
       rv = nghttp3_tnode_schedule(tnode, 0);
       if (rv != 0) {
@@ -1721,6 +1808,31 @@ int nghttp3_conn_create_placeholder(nghttp3_conn *conn,
   return 0;
 }
 
+int nghttp3_conn_create_push_promise(nghttp3_conn *conn,
+                                     nghttp3_push_promise **ppp,
+                                     int64_t push_id, uint32_t weight,
+                                     nghttp3_tnode *parent) {
+  nghttp3_push_promise *pp;
+  int rv;
+
+  rv = nghttp3_push_promise_new(&pp, push_id, conn->next_seq, weight, parent,
+                                conn->mem);
+  if (rv != 0) {
+    return rv;
+  }
+
+  rv = nghttp3_map_insert(&conn->pushes, &pp->me);
+  if (rv != 0) {
+    nghttp3_push_promise_del(pp, conn->mem);
+    return rv;
+  }
+
+  ++conn->next_seq;
+  *ppp = pp;
+
+  return 0;
+}
+
 nghttp3_stream *nghttp3_conn_find_stream(nghttp3_conn *conn,
                                          int64_t stream_id) {
   nghttp3_map_entry *me;
@@ -1745,10 +1857,25 @@ nghttp3_placeholder *nghttp3_conn_find_placeholder(nghttp3_conn *conn,
   return nghttp3_struct_of(me, nghttp3_placeholder, me);
 }
 
+nghttp3_push_promise *nghttp3_conn_find_push_promise(nghttp3_conn *conn,
+                                                     int64_t push_id) {
+  nghttp3_map_entry *me;
+
+  me = nghttp3_map_find(&conn->pushes, (key_type)push_id);
+  if (me == NULL) {
+    return NULL;
+  }
+
+  return nghttp3_struct_of(me, nghttp3_push_promise, me);
+}
+
 int nghttp3_conn_bind_control_stream(nghttp3_conn *conn, int64_t stream_id) {
   nghttp3_stream *stream;
   nghttp3_frame_entry frent;
   int rv;
+
+  assert(!conn->server || nghttp3_server_stream_uni(stream_id));
+  assert(conn->server || nghttp3_client_stream_uni(stream_id));
 
   if (conn->tx.ctrl) {
     return NGHTTP3_ERR_INVALID_STATE;
@@ -1778,6 +1905,11 @@ int nghttp3_conn_bind_qpack_streams(nghttp3_conn *conn, int64_t qenc_stream_id,
                                     int64_t qdec_stream_id) {
   nghttp3_stream *stream;
   int rv;
+
+  assert(!conn->server || nghttp3_server_stream_uni(qenc_stream_id));
+  assert(!conn->server || nghttp3_server_stream_uni(qdec_stream_id));
+  assert(conn->server || nghttp3_client_stream_uni(qenc_stream_id));
+  assert(conn->server || nghttp3_client_stream_uni(qdec_stream_id));
 
   if (conn->tx.qenc || conn->tx.qdec) {
     return NGHTTP3_ERR_INVALID_STATE;
@@ -2002,11 +2134,10 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
   int rv;
   nghttp3_frame_entry frent;
 
+  assert(!conn->server);
   assert(conn->tx.qenc);
 
-  if (conn->server) {
-    return NGHTTP3_ERR_INVALID_STATE;
-  }
+  assert(nghttp3_client_stream_bidi(stream_id));
 
   /* TODO Should we check that stream_id is client stream_id? */
   /* TODO Check GOAWAY last stream ID */
@@ -2071,11 +2202,8 @@ int nghttp3_conn_submit_info(nghttp3_conn *conn, int64_t stream_id,
 
   /* TODO Verify that it is allowed to send info (non-final response)
      now. */
+  assert(conn->server);
   assert(conn->tx.qenc);
-
-  if (!conn->server) {
-    return NGHTTP3_ERR_INVALID_STATE;
-  }
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
   if (stream == NULL) {
@@ -2091,11 +2219,8 @@ int nghttp3_conn_submit_response(nghttp3_conn *conn, int64_t stream_id,
   nghttp3_stream *stream;
 
   /* TODO Verify that it is allowed to send response now. */
+  assert(conn->server);
   assert(conn->tx.qenc);
-
-  if (!conn->server) {
-    return NGHTTP3_ERR_INVALID_STATE;
-  }
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
   if (stream == NULL) {
@@ -2118,6 +2243,95 @@ int nghttp3_conn_submit_trailer(nghttp3_conn *conn, int64_t stream_id,
   }
 
   return conn_submit_headers_data(conn, stream, nva, nvlen, NULL);
+}
+
+int nghttp3_conn_submit_push_promise(nghttp3_conn *conn, int64_t *ppush_id,
+                                     int64_t stream_id, const nghttp3_nv *nva,
+                                     size_t nvlen) {
+  nghttp3_stream *stream;
+  int rv;
+  nghttp3_nv *nnva;
+  nghttp3_frame_entry frent;
+  int64_t push_id;
+  nghttp3_push_promise *pp;
+
+  assert(conn->server);
+  assert(conn->tx.qenc);
+  assert(nghttp3_client_stream_bidi(stream_id));
+
+  stream = nghttp3_conn_find_stream(conn, stream_id);
+  if (stream == NULL) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  if (conn->local.uni.max_pushes <= (uint64_t)conn->local.uni.next_push_id) {
+    return NGHTTP3_ERR_PUSH_ID_BLOCKED;
+  }
+
+  push_id = conn->local.uni.next_push_id;
+
+  rv = nghttp3_conn_create_push_promise(conn, &pp, push_id,
+                                        NGHTTP3_DEFAULT_WEIGHT, &stream->node);
+  if (rv != 0) {
+    return rv;
+  }
+
+  ++conn->local.uni.next_push_id;
+
+  rv = nghttp3_nva_copy(&nnva, nva, nvlen, conn->mem);
+  if (rv != 0) {
+    return rv;
+  }
+
+  frent.fr.hd.type = NGHTTP3_FRAME_PUSH_PROMISE;
+  frent.fr.push_promise.nva = nnva;
+  frent.fr.push_promise.nvlen = nvlen;
+
+  rv = nghttp3_stream_frq_add(stream, &frent);
+  if (rv != 0) {
+    nghttp3_nva_del(nnva, conn->mem);
+    return rv;
+  }
+
+  *ppush_id = push_id;
+
+  if (nghttp3_stream_require_schedule(stream)) {
+    return nghttp3_stream_schedule(stream);
+  }
+
+  return 0;
+}
+
+int nghttp3_conn_bind_push_stream(nghttp3_conn *conn, int64_t push_id,
+                                  int64_t stream_id) {
+  nghttp3_push_promise *pp;
+  nghttp3_stream *stream;
+  int rv;
+
+  assert(conn->server);
+  assert(nghttp3_server_stream_uni(stream_id));
+
+  pp = nghttp3_conn_find_push_promise(conn, push_id);
+  if (pp == NULL) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  assert(NULL == nghttp3_conn_find_stream(conn, stream_id));
+
+  /* Priority is held in nghttp3_push_promise. */
+  rv = nghttp3_conn_create_stream_dependency(conn, &stream, stream_id, 0, NULL);
+  if (rv != 0) {
+    return rv;
+  }
+
+  stream->type = NGHTTP3_STREAM_TYPE_PUSH;
+
+  /* Record push ID in stream->node.nid */
+  nghttp3_node_id_init(&stream->node.nid, NGHTTP3_NODE_ID_TYPE_PUSH, push_id);
+
+  pp->stream = stream;
+
+  return 0;
 }
 
 int nghttp3_conn_block_stream(nghttp3_conn *conn, int64_t stream_id) {
@@ -2232,7 +2446,9 @@ int nghttp3_conn_submit_priority(nghttp3_conn *conn, nghttp3_pri_elem_type pt,
                                  int64_t elem_dep_id, uint32_t weight) {
   nghttp3_frame_entry frent;
 
-  if (conn->server || conn->tx.ctrl == NULL) {
+  assert(!conn->server);
+
+  if (conn->tx.ctrl == NULL) {
     return NGHTTP3_ERR_INVALID_STATE;
   }
 
@@ -2362,6 +2578,33 @@ int nghttp3_placeholder_new(nghttp3_placeholder **pph, int64_t ph_id,
 
 void nghttp3_placeholder_del(nghttp3_placeholder *ph, const nghttp3_mem *mem) {
   nghttp3_mem_free(mem, ph);
+}
+
+int nghttp3_push_promise_new(nghttp3_push_promise **ppp, int64_t push_id,
+                             uint64_t seq, uint32_t weight,
+                             nghttp3_tnode *parent, const nghttp3_mem *mem) {
+  nghttp3_push_promise *pp;
+  nghttp3_node_id nid;
+
+  pp = nghttp3_mem_calloc(mem, 1, sizeof(nghttp3_push_promise));
+  if (pp == NULL) {
+    return NGHTTP3_ERR_NOMEM;
+  }
+
+  nghttp3_tnode_init(
+      &pp->node, nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_PUSH, push_id),
+      seq, weight, parent, mem);
+
+  pp->me.key = (key_type)push_id;
+
+  *ppp = pp;
+
+  return 0;
+}
+
+void nghttp3_push_promise_del(nghttp3_push_promise *pp,
+                              const nghttp3_mem *mem) {
+  nghttp3_mem_free(mem, pp);
 }
 
 nghttp3_priority *nghttp3_priority_init(nghttp3_priority *pri,
