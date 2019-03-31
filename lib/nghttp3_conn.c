@@ -2595,6 +2595,12 @@ int nghttp3_placeholder_new(nghttp3_placeholder **pph, int64_t ph_id,
 }
 
 void nghttp3_placeholder_del(nghttp3_placeholder *ph, const nghttp3_mem *mem) {
+  if (ph == NULL) {
+    return;
+  }
+
+  nghttp3_tnode_free(&ph->node);
+
   nghttp3_mem_free(mem, ph);
 }
 
@@ -2622,6 +2628,12 @@ int nghttp3_push_promise_new(nghttp3_push_promise **ppp, int64_t push_id,
 
 void nghttp3_push_promise_del(nghttp3_push_promise *pp,
                               const nghttp3_mem *mem) {
+  if (pp == NULL) {
+    return;
+  }
+
+  nghttp3_tnode_free(&pp->node);
+
   nghttp3_mem_free(mem, pp);
 }
 

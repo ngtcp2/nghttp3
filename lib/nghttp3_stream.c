@@ -155,6 +155,7 @@ void nghttp3_stream_del(nghttp3_stream *stream) {
   delete_outq(&stream->outq, stream->mem);
   delete_chunks(&stream->chunks, stream->mem);
   delete_frq(&stream->frq, stream->mem);
+  nghttp3_tnode_free(&stream->node);
 
   nghttp3_mem_free(stream->mem, stream);
 }
