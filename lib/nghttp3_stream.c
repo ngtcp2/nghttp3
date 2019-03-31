@@ -721,7 +721,7 @@ int nghttp3_stream_is_blocked(nghttp3_stream *stream) {
 }
 
 int nghttp3_stream_require_schedule(nghttp3_stream *stream) {
-  return (nghttp3_ringbuf_len(&stream->outq) ||
+  return (!nghttp3_stream_outq_write_done(stream) ||
           nghttp3_ringbuf_len(&stream->frq)) &&
          !nghttp3_stream_is_blocked(stream);
 }
@@ -796,6 +796,23 @@ int nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n) {
   stream->outq_idx = i;
   stream->outq_offset = offset;
 
+  return 0;
+}
+
+int nghttp3_stream_outq_write_done(nghttp3_stream *stream) {
+  nghttp3_ringbuf *outq = &stream->outq;
+  size_t len = nghttp3_ringbuf_len(outq);
+  nghttp3_typed_buf *tbuf;
+
+  if (len == 0 || stream->outq_idx >= len) {
+    return 1;
+  }
+  if (stream->outq_idx + 1 == len) {
+    tbuf = nghttp3_ringbuf_get(outq, len - 1);
+    if (stream->outq_offset == nghttp3_buf_len(&tbuf->buf)) {
+      return 1;
+    }
+  }
   return 0;
 }
 
@@ -887,10 +904,20 @@ int nghttp3_stream_add_ack_offset(nghttp3_stream *stream, size_t n) {
   return 0;
 }
 
+static nghttp3_tnode *stream_get_dependency_node(nghttp3_stream *stream) {
+  if (stream->pp) {
+    assert(stream->type == NGHTTP3_STREAM_TYPE_PUSH);
+    return &stream->pp->node;
+  }
+
+  return &stream->node;
+}
+
 int nghttp3_stream_schedule(nghttp3_stream *stream) {
   int rv;
 
-  rv = nghttp3_tnode_schedule(&stream->node, stream->unscheduled_nwrite);
+  rv = nghttp3_tnode_schedule(stream_get_dependency_node(stream),
+                              stream->unscheduled_nwrite);
   if (rv != 0) {
     return rv;
   }
@@ -901,7 +928,7 @@ int nghttp3_stream_schedule(nghttp3_stream *stream) {
 }
 
 int nghttp3_stream_ensure_scheduled(nghttp3_stream *stream) {
-  if (nghttp3_tnode_is_scheduled(&stream->node)) {
+  if (nghttp3_tnode_is_scheduled(stream_get_dependency_node(stream))) {
     return 0;
   }
 
@@ -909,7 +936,11 @@ int nghttp3_stream_ensure_scheduled(nghttp3_stream *stream) {
 }
 
 void nghttp3_stream_unschedule(nghttp3_stream *stream) {
-  nghttp3_tnode_unschedule(&stream->node);
+  nghttp3_tnode_unschedule(stream_get_dependency_node(stream));
+}
+
+int nghttp3_stream_squash(nghttp3_stream *stream) {
+  return nghttp3_tnode_squash(stream_get_dependency_node(stream));
 }
 
 int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *data,
@@ -1113,6 +1144,11 @@ int nghttp3_stream_empty_headers_allowed(nghttp3_stream *stream) {
   default:
     return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
   }
+}
+
+int nghttp3_stream_bidi_or_push(nghttp3_stream *stream) {
+  return (!nghttp3_stream_uni(stream->stream_id) ||
+          stream->type == NGHTTP3_STREAM_TYPE_PUSH);
 }
 
 int nghttp3_stream_uni(int64_t stream_id) { return (stream_id & 0x2) != 0; }

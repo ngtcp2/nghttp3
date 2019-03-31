@@ -155,6 +155,9 @@ typedef enum {
 struct nghttp3_stream;
 typedef struct nghttp3_stream nghttp3_stream;
 
+struct nghttp3_push_promise;
+typedef struct nghttp3_push_promise nghttp3_push_promise;
+
 /*
  * nghttp3_stream_acked_data is a callback function which is invoked
  * when data sent on stream denoted by |stream_id| supplied from
@@ -177,6 +180,9 @@ typedef struct {
 struct nghttp3_stream {
   const nghttp3_mem *mem;
   nghttp3_map_entry me;
+  /* node is a node in dependency tree.  For server initiated
+     unidirectional stream (push), scheduling is done via
+     corresponding nghttp3_push_promise object pointed by pp. */
   nghttp3_tnode node;
   nghttp3_pq_entry qpack_blocked_pe;
   nghttp3_stream_callbacks callbacks;
@@ -207,6 +213,8 @@ struct nghttp3_stream {
   int64_t stream_id;
   nghttp3_stream_type type;
   nghttp3_stream_read_state rstate;
+  /* pp is nghttp3_push_promise that this stream fulfills. */
+  nghttp3_push_promise *pp;
 
   struct {
     nghttp3_stream_http_state hstate;
@@ -291,6 +299,12 @@ int nghttp3_stream_is_blocked(nghttp3_stream *stream);
 
 int nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n);
 
+/*
+ * nghttp3_stream_outq_write_done returns nonzero if all contents in
+ * outq have been written.
+ */
+int nghttp3_stream_outq_write_done(nghttp3_stream *stream);
+
 int nghttp3_stream_add_ack_offset(nghttp3_stream *stream, size_t n);
 
 /*
@@ -315,6 +329,12 @@ int nghttp3_stream_ensure_scheduled(nghttp3_stream *stream);
 
 void nghttp3_stream_unschedule(nghttp3_stream *stream);
 
+/*
+ * nghttp3_stream_squash unschedules |stream| and removes it from
+ * dependency tree.
+ */
+int nghttp3_stream_squash(nghttp3_stream *stream);
+
 int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *src,
                                size_t srclen);
 
@@ -326,6 +346,12 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
                                          nghttp3_stream_http_event event);
 
 int nghttp3_stream_empty_headers_allowed(nghttp3_stream *stream);
+
+/*
+ * nghttp3_stream_bidi_or_push returns nonzero if |stream| is
+ * bidirectional or push stream.
+ */
+int nghttp3_stream_bidi_or_push(nghttp3_stream *stream);
 
 /*
  * nghttp3_stream_uni returns nonzero if stream identified by

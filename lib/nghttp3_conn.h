@@ -49,14 +49,17 @@ typedef struct {
   nghttp3_tnode node;
 } nghttp3_placeholder;
 
-typedef struct {
+struct nghttp3_push_promise;
+typedef struct nghttp3_push_promise nghttp3_push_promise;
+
+struct nghttp3_push_promise {
   nghttp3_map_entry me;
   nghttp3_tnode node;
   int64_t push_id;
   /* stream is server initiated unidirectional stream which fulfils
      the push promise. */
   nghttp3_stream *stream;
-} nghttp3_push_promise;
+};
 
 typedef enum {
   NGHTTP3_CONN_FLAG_NONE = 0x0000,

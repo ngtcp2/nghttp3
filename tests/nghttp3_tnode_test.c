@@ -210,7 +210,7 @@ void test_nghttp3_tnode_schedule(void) {
   int rv;
 
   nghttp3_node_id_init(&rnid, NGHTTP3_NODE_ID_TYPE_ROOT, 0);
-  nghttp3_node_id_init(&snid, NGHTTP3_NODE_ID_TYPE_STREAM, 0);
+  nghttp3_node_id_init(&snid, NGHTTP3_NODE_ID_TYPE_UT, 0);
 
   /* Unscheduled internal node should be scheduled */
   nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
@@ -279,6 +279,8 @@ void test_nghttp3_tnode_schedule(void) {
 
   CU_ASSERT(nghttp3_tnode_is_scheduled(b));
   CU_ASSERT(nghttp3_tnode_is_scheduled(a));
+
+  b->active = 1;
 
   nghttp3_tnode_unschedule(a);
 

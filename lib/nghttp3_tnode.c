@@ -28,6 +28,7 @@
 
 #include "nghttp3_macro.h"
 #include "nghttp3_stream.h"
+#include "nghttp3_conn.h"
 
 nghttp3_node_id *nghttp3_node_id_init(nghttp3_node_id *nid,
                                       nghttp3_node_id_type type, int64_t id) {
@@ -79,6 +80,24 @@ void nghttp3_tnode_init(nghttp3_tnode *tnode, const nghttp3_node_id *nid,
 
 void nghttp3_tnode_free(nghttp3_tnode *tnode) { nghttp3_pq_free(&tnode->pq); }
 
+int nghttp3_tnode_is_active(nghttp3_tnode *tnode) {
+  nghttp3_push_promise *pp;
+
+  switch (tnode->nid.type) {
+  case NGHTTP3_NODE_ID_TYPE_STREAM:
+    return nghttp3_stream_require_schedule(
+        nghttp3_struct_of(tnode, nghttp3_stream, node));
+  case NGHTTP3_NODE_ID_TYPE_PUSH:
+    pp = nghttp3_struct_of(tnode, nghttp3_push_promise, node);
+    return pp->stream && nghttp3_stream_require_schedule(pp->stream);
+  case NGHTTP3_NODE_ID_TYPE_UT:
+    /* For unit test */
+    return tnode->active;
+  default:
+    return 0;
+  }
+}
+
 void nghttp3_tnode_unschedule(nghttp3_tnode *tnode) {
   nghttp3_tnode *parent = tnode->parent;
 
@@ -86,15 +105,13 @@ void nghttp3_tnode_unschedule(nghttp3_tnode *tnode) {
     return;
   }
 
-  tnode->active = 0;
-
   for (parent = tnode->parent; parent; tnode = parent, parent = tnode->parent) {
     assert(tnode->pe.index != NGHTTP3_PQ_BAD_INDEX);
 
     nghttp3_pq_remove(&parent->pq, &tnode->pe);
     tnode->pe.index = NGHTTP3_PQ_BAD_INDEX;
 
-    if (parent->active || !nghttp3_pq_empty(&parent->pq)) {
+    if (nghttp3_tnode_is_active(parent) || !nghttp3_pq_empty(&parent->pq)) {
       return;
     }
   }
@@ -127,8 +144,6 @@ int nghttp3_tnode_schedule(nghttp3_tnode *tnode, size_t nwrite) {
   uint64_t cycle;
   int rv;
 
-  tnode->active = 1;
-
   for (parent = tnode->parent; parent; tnode = parent, parent = tnode->parent) {
     if (tnode->pe.index == NGHTTP3_PQ_BAD_INDEX) {
       cycle = tnode_get_first_cycle(parent);
@@ -152,12 +167,21 @@ int nghttp3_tnode_is_scheduled(nghttp3_tnode *tnode) {
   return tnode->pe.index != NGHTTP3_PQ_BAD_INDEX;
 }
 
-nghttp3_tnode *nghttp3_tnode_get_next(nghttp3_tnode *node) {
-  if (nghttp3_pq_empty(&node->pq)) {
+nghttp3_tnode *nghttp3_tnode_get_next(nghttp3_tnode *tnode) {
+  if (nghttp3_pq_empty(&tnode->pq)) {
     return NULL;
   }
 
-  return nghttp3_struct_of(nghttp3_pq_top(&node->pq), nghttp3_tnode, pe);
+  tnode = nghttp3_struct_of(nghttp3_pq_top(&tnode->pq), nghttp3_tnode, pe);
+
+  for (;;) {
+    if (nghttp3_tnode_is_active(tnode)) {
+      return tnode;
+    }
+    assert(!nghttp3_pq_empty(&tnode->pq));
+    tnode = nghttp3_struct_of(nghttp3_pq_top(&tnode->pq), nghttp3_tnode, pe);
+    assert(tnode);
+  }
 }
 
 void nghttp3_tnode_insert(nghttp3_tnode *tnode, nghttp3_tnode *parent) {
@@ -218,7 +242,6 @@ int nghttp3_tnode_squash(nghttp3_tnode *tnode) {
 
     nghttp3_pq_remove(&tnode->pq, &node->pe);
     node->pe.index = NGHTTP3_PQ_BAD_INDEX;
-    node->active = 0;
 
     rv = nghttp3_tnode_schedule(node, 0);
     if (rv != 0) {

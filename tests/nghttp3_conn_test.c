@@ -452,7 +452,7 @@ void test_nghttp3_conn_submit_push_promise(void) {
   stream = nghttp3_conn_find_stream(conn, 15);
 
   CU_ASSERT(stream == pp->stream);
-  CU_ASSERT(nghttp3_node_id_eq(&pp->node.nid, &stream->node.nid));
+  CU_ASSERT(pp == stream->pp);
   CU_ASSERT(NULL == stream->node.parent);
   CU_ASSERT(NULL == stream->node.first_child);
   CU_ASSERT(NULL == stream->node.next_sibling);

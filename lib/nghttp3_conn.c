@@ -1394,6 +1394,9 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
   case NGHTTP3_NODE_ID_TYPE_ROOT:
     dep_tnode = &conn->root;
     break;
+  default:
+    /* Unreachable */
+    assert(0);
   }
 
   *pdep_tnode = dep_tnode;
@@ -2044,6 +2047,10 @@ nghttp3_stream *nghttp3_conn_get_next_tx_stream(nghttp3_conn *conn) {
     return NULL;
   }
 
+  if (node->nid.type == NGHTTP3_NODE_ID_TYPE_PUSH) {
+    return nghttp3_struct_of(node, nghttp3_push_promise, node)->stream;
+  }
+
   return nghttp3_struct_of(node, nghttp3_stream, node);
 }
 
@@ -2066,10 +2073,11 @@ int nghttp3_conn_add_write_offset(nghttp3_conn *conn, int64_t stream_id,
     return 0;
   }
 
-  if ((!nghttp3_stream_uni(stream_id) ||
-       stream->type == NGHTTP3_STREAM_TYPE_PUSH) &&
-      nghttp3_stream_require_schedule(stream)) {
-    return nghttp3_stream_schedule(stream);
+  if (nghttp3_stream_bidi_or_push(stream)) {
+    if (nghttp3_stream_require_schedule(stream)) {
+      return nghttp3_stream_schedule(stream);
+    }
+    nghttp3_stream_unschedule(stream);
   }
 
   return 0;
@@ -2325,9 +2333,7 @@ int nghttp3_conn_bind_push_stream(nghttp3_conn *conn, int64_t push_id,
   }
 
   stream->type = NGHTTP3_STREAM_TYPE_PUSH;
-
-  /* Record push ID in stream->node.nid */
-  nghttp3_node_id_init(&stream->node.nid, NGHTTP3_NODE_ID_TYPE_PUSH, push_id);
+  stream->pp = pp;
 
   pp->stream = stream;
 
@@ -2382,6 +2388,7 @@ int nghttp3_conn_resume_stream(nghttp3_conn *conn, int64_t stream_id) {
 
 int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
+  nghttp3_push_promise *pp;
   int rv;
 
   if (stream == NULL) {
@@ -2402,7 +2409,7 @@ int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id) {
     }
   }
 
-  rv = nghttp3_tnode_squash(&stream->node);
+  rv = nghttp3_stream_squash(stream);
   if (rv != 0) {
     return rv;
   }
@@ -2410,6 +2417,17 @@ int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id) {
   rv = nghttp3_map_remove(&conn->streams, (key_type)stream_id);
 
   assert(0 == rv);
+
+  if (stream->pp) {
+    assert(stream->node.nid.type == NGHTTP3_NODE_ID_TYPE_PUSH);
+
+    pp = stream->pp;
+
+    rv = nghttp3_map_remove(&conn->pushes, (key_type)pp->push_id);
+    assert(0 == rv);
+
+    nghttp3_push_promise_del(pp, conn->mem);
+  }
 
   nghttp3_stream_del(stream);
 

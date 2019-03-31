@@ -43,6 +43,8 @@ typedef enum {
   NGHTTP3_NODE_ID_TYPE_PUSH = NGHTTP3_ELEM_DEP_TYPE_PUSH,
   NGHTTP3_NODE_ID_TYPE_PLACEHOLDER = NGHTTP3_ELEM_DEP_TYPE_PLACEHOLDER,
   NGHTTP3_NODE_ID_TYPE_ROOT = NGHTTP3_ELEM_DEP_TYPE_ROOT,
+  /* NGHTTP3_NODE_ID_TYPE_UT is defined for unit test */
+  NGHTTP3_NODE_ID_TYPE_UT = 0xff,
 } nghttp3_node_id_type;
 
 typedef struct {
@@ -70,9 +72,8 @@ struct nghttp3_tnode {
   uint64_t cycle;
   uint32_t pending_penalty;
   uint32_t weight;
-  /* active is nonzero if this node is scheduled by itself. In other
-     words, it is not scheduled just because one of its descendants is
-     scheduled. */
+  /* active is defined for unit test and is nonzero if this node is
+     active. */
   int active;
 };
 
@@ -81,6 +82,13 @@ void nghttp3_tnode_init(nghttp3_tnode *tnode, const nghttp3_node_id *nid,
                         const nghttp3_mem *mem);
 
 void nghttp3_tnode_free(nghttp3_tnode *tnode);
+
+/*
+ * nghttp3_tnode_is_active returns nonzero if |tnode| is active.  Only
+ * NGHTTP3_NODE_ID_TYPE_STREAM and NGHTTP3_NODE_ID_TYPE_PUSH (and
+ * NGHTTP3_NODE_ID_TYPE_UT for unit test) can become active.
+ */
+int nghttp3_tnode_is_active(nghttp3_tnode *tnode);
 
 void nghttp3_tnode_unschedule(nghttp3_tnode *tnode);
 
