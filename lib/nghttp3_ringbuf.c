@@ -109,10 +109,23 @@ int nghttp3_ringbuf_reserve(nghttp3_ringbuf *rb, size_t nmemb) {
     return 0;
   }
 
-  buf = nghttp3_mem_realloc(rb->mem, rb->buf, nmemb * rb->size);
+  buf = nghttp3_mem_malloc(rb->mem, nmemb * rb->size);
   if (buf == NULL) {
     return NGHTTP3_ERR_NOMEM;
   }
+
+  if (rb->first + rb->len <= rb->nmemb) {
+    memcpy(buf, rb->buf + rb->first * rb->size, rb->len * rb->size);
+    rb->first = 0;
+  } else {
+    memcpy(buf, rb->buf + rb->first * rb->size,
+           (rb->nmemb - rb->first) * rb->size);
+    memcpy(buf + (rb->nmemb - rb->first) * rb->size, rb->buf,
+           (rb->len - (rb->nmemb - rb->first)) * rb->size);
+    rb->first = 0;
+  }
+
+  nghttp3_mem_free(rb->mem, rb->buf);
 
   rb->buf = buf;
   rb->nmemb = nmemb;
