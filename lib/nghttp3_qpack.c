@@ -2234,8 +2234,8 @@ int nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
   int rv;
 
   if (stream == NULL) {
-    // This might be NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR, but we
-    // don't create stream which does not use dynamic table.
+    /* This might be NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR, but we
+       don't create stream which does not use dynamic table. */
     return 0;
   }
 
