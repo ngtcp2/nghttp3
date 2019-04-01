@@ -322,7 +322,24 @@ void test_nghttp3_conn_submit_request(void) {
                                        nghttp3_arraylen(vec));
 
   CU_ASSERT(0 == stream_id);
-  CU_ASSERT(7 == sveccnt);
+  CU_ASSERT(5 == sveccnt);
+
+  len = nghttp3_vec_len(vec, (size_t)sveccnt);
+  for (i = 0; i < len; ++i) {
+    rv = nghttp3_conn_add_write_offset(conn, 0, 1);
+
+    CU_ASSERT(0 == rv);
+
+    rv = nghttp3_conn_add_ack_offset(conn, 0, 1);
+
+    CU_ASSERT(0 == rv);
+  }
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(0 == stream_id);
+  CU_ASSERT(2 == sveccnt);
 
   len = nghttp3_vec_len(vec, (size_t)sveccnt);
 

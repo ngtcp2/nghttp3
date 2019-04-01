@@ -269,17 +269,15 @@ int nghttp3_stream_fill_outq(nghttp3_stream *stream) {
       nghttp3_frame_push_promise_free(&frent->fr.push_promise, stream->mem);
       break;
     case NGHTTP3_FRAME_DATA:
-      for (; !nghttp3_stream_outq_is_full(stream);) {
-        rv = nghttp3_stream_write_data(stream, &data_eof, frent);
-        if (rv != 0) {
-          return rv;
-        }
-        if (data_eof) {
-          break;
-        }
-        if (stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED) {
-          return 0;
-        }
+      rv = nghttp3_stream_write_data(stream, &data_eof, frent);
+      if (rv != 0) {
+        return rv;
+      }
+      if (stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED) {
+        return 0;
+      }
+      if (!data_eof) {
+        return 0;
       }
       break;
     default:
@@ -762,7 +760,8 @@ ssize_t nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
 
   /* TODO Rework this if we have finished implementing HTTP
      messaging */
-  *pfin = i == len && (stream->flags & NGHTTP3_STREAM_FLAG_WRITE_END_STREAM);
+  *pfin = nghttp3_ringbuf_len(&stream->frq) == 0 && i == len &&
+          (stream->flags & NGHTTP3_STREAM_FLAG_WRITE_END_STREAM);
 
   return vec - vbegin;
 }
