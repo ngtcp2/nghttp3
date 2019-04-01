@@ -877,13 +877,15 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
 
 ssize_t nghttp3_conn_read_qpack_encoder(nghttp3_conn *conn, const uint8_t *src,
                                         size_t srclen) {
-  ssize_t nread = nghttp3_qpack_decoder_read_encoder(&conn->qdec, src, srclen);
+  ssize_t nconsumed =
+      nghttp3_qpack_decoder_read_encoder(&conn->qdec, src, srclen);
+  ssize_t nread;
   nghttp3_stream *stream;
   nghttp3_buf *buf;
   int rv;
 
-  if (nread < 0) {
-    return nread;
+  if (nconsumed < 0) {
+    return nconsumed;
   }
 
   for (; !nghttp3_pq_empty(&conn->qpack_blocked_streams);) {
@@ -930,7 +932,7 @@ ssize_t nghttp3_conn_read_qpack_encoder(nghttp3_conn *conn, const uint8_t *src,
     }
   }
 
-  return nread;
+  return nconsumed;
 }
 
 ssize_t nghttp3_conn_read_qpack_decoder(nghttp3_conn *conn, const uint8_t *src,
@@ -1263,8 +1265,12 @@ almost_done:
       if (rvint->left) {
         return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
       }
-      return nghttp3_stream_transit_rx_http_state(stream,
-                                                  NGHTTP3_HTTP_EVENT_MSG_END);
+      rv = nghttp3_stream_transit_rx_http_state(stream,
+                                                NGHTTP3_HTTP_EVENT_MSG_END);
+      if (rv != 0) {
+        return rv;
+      }
+      break;
     default:
       return nghttp3_err_malformed_frame(rstate->fr.hd.type);
     }
