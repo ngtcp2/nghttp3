@@ -777,12 +777,6 @@ int nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n) {
   for (i = stream->outq_idx; i < len; ++i) {
     tbuf = nghttp3_ringbuf_get(outq, i);
     buflen = nghttp3_buf_len(&tbuf->buf);
-    if (offset == buflen && tbuf->type == NGHTTP3_BUF_TYPE_SHARED &&
-        i + 1 == len) {
-      /* Stop iterate here so that we can coalesces extra buffer to
-         this entry */
-      break;
-    }
     if (offset >= buflen) {
       offset -= buflen;
       continue;
@@ -802,18 +796,8 @@ int nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n) {
 int nghttp3_stream_outq_write_done(nghttp3_stream *stream) {
   nghttp3_ringbuf *outq = &stream->outq;
   size_t len = nghttp3_ringbuf_len(outq);
-  nghttp3_typed_buf *tbuf;
 
-  if (len == 0 || stream->outq_idx >= len) {
-    return 1;
-  }
-  if (stream->outq_idx + 1 == len) {
-    tbuf = nghttp3_ringbuf_get(outq, len - 1);
-    if (stream->outq_offset == nghttp3_buf_len(&tbuf->buf)) {
-      return 1;
-    }
-  }
-  return 0;
+  return len == 0 || stream->outq_idx >= len;
 }
 
 static int stream_pop_outq_entry(nghttp3_stream *stream,

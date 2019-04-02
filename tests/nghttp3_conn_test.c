@@ -291,8 +291,8 @@ void test_nghttp3_conn_submit_request(void) {
 
   CU_ASSERT(0 == rv);
   CU_ASSERT(1 == nghttp3_ringbuf_len(&conn->tx.qdec->outq));
-  CU_ASSERT(0 == conn->tx.qdec->outq_idx);
-  CU_ASSERT(vec[0].len == conn->tx.qdec->outq_offset);
+  CU_ASSERT(1 == conn->tx.qdec->outq_idx);
+  CU_ASSERT(0 == conn->tx.qdec->outq_offset);
 
   rv = nghttp3_conn_add_ack_offset(conn, 10, vec[0].len);
 
