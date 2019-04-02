@@ -49,15 +49,14 @@ int nghttp3_vec_empty(const nghttp3_vec *vec, size_t cnt) {
 void nghttp3_vec_consume(nghttp3_vec **pvec, size_t *pcnt, size_t len) {
   nghttp3_vec *v = *pvec;
   size_t cnt = *pcnt;
-  size_t n;
 
   for (; cnt > 0; --cnt, ++v) {
-    n = nghttp3_min(v->len, len);
-    v->base += n;
-    v->len -= n;
-    if (v->len) {
+    if (v->len > len) {
+      v->len -= len;
+      v->base += len;
       break;
     }
+    len -= v->len;
   }
 
   *pvec = v;
