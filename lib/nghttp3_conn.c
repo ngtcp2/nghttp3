@@ -2244,8 +2244,8 @@ int nghttp3_conn_submit_response(nghttp3_conn *conn, int64_t stream_id,
   return conn_submit_headers_data(conn, stream, nva, nvlen, dr);
 }
 
-int nghttp3_conn_submit_trailer(nghttp3_conn *conn, int64_t stream_id,
-                                const nghttp3_nv *nva, size_t nvlen) {
+int nghttp3_conn_submit_trailers(nghttp3_conn *conn, int64_t stream_id,
+                                 const nghttp3_nv *nva, size_t nvlen) {
   nghttp3_stream *stream;
 
   /* TODO Verify that it is allowed to send trailer now. */

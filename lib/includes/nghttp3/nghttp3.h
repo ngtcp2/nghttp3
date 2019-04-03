@@ -1444,10 +1444,10 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_response(nghttp3_conn *conn,
                                                 size_t nvlen,
                                                 const nghttp3_data_reader *dr);
 
-NGHTTP3_EXTERN int nghttp3_conn_submit_trailer(nghttp3_conn *conn,
-                                               int64_t stream_id,
-                                               const nghttp3_nv *nva,
-                                               size_t nvlen);
+NGHTTP3_EXTERN int nghttp3_conn_submit_trailers(nghttp3_conn *conn,
+                                                int64_t stream_id,
+                                                const nghttp3_nv *nva,
+                                                size_t nvlen);
 
 /**
  * @function
