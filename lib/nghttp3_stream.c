@@ -553,7 +553,7 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
   rv = read_data(conn, stream->stream_id, &data, &datalen, &flags,
                  conn->user_data, stream->user_data);
   if (rv != 0) {
-    if (rv == NGHTTP3_ERR_WOULDBLOCKED) {
+    if (rv == NGHTTP3_ERR_WOULDBLOCK) {
       stream->flags |= NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED;
       return 0;
     }

@@ -32,7 +32,7 @@ const char *nghttp3_strerror(int liberr) {
     return "ERR_NOBUF";
   case NGHTTP3_ERR_INVALID_STATE:
     return "ERR_INVALID_STATE";
-  case NGHTTP3_ERR_WOULDBLOCKED:
+  case NGHTTP3_ERR_WOULDBLOCK:
     return "ERR_WOULDBLOCK";
   case NGHTTP3_ERR_STREAM_IN_USE:
     return "ERR_STREAM_IN_USE";
