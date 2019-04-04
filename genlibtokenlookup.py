@@ -100,6 +100,15 @@ HEADERS = [
     ('x-forwarded-for', 96),
     ('x-frame-options', 97),
     ('x-frame-options', 98),
+    # Additional header fields for HTTP messaging validation
+    ('host', None),
+    ('connection', None),
+    ('keep-alive', None),
+    ('proxy-connection', None),
+    ('transfer-encoding', None),
+    ('upgrade', None),
+    ('te', None),
+    (':protocol', None),
 ]
 
 def to_enum_hd(k):
@@ -169,6 +178,7 @@ static int32_t lookup_token(const uint8_t *name, size_t namelen) {
 }'''
 
 if __name__ == '__main__':
+    print '''/* Don't use nghttp3_qpack_token below.  Use mkstatichdtbl.py instead */'''
     gen_enum()
     print ''
     gen_index_header()

@@ -32,6 +32,7 @@
 #include "nghttp3_macro.h"
 #include "nghttp3_err.h"
 #include "nghttp3_conv.h"
+#include "nghttp3_http.h"
 
 /*
  * conn_remote_stream_uni returns nonzero if |stream_id| is remote
@@ -1222,6 +1223,22 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
 
       switch (stream->rx.hstate) {
       case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
+      case NGHTTP3_HTTP_STATE_RESP_PUSH_PROMISE_BEGIN:
+        rv = nghttp3_http_on_request_headers(stream, rstate->fr.hd.type);
+        break;
+      case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
+        rv = nghttp3_http_on_response_headers(stream);
+        break;
+      default:
+        break;
+      }
+
+      if (rv != 0) {
+        return rv;
+      }
+
+      switch (stream->rx.hstate) {
+      case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
       case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
         rv = conn_call_end_headers(conn, stream);
         break;
@@ -1235,6 +1252,10 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
       default:
         /* Unreachable */
         assert(0);
+      }
+
+      if (rv != 0) {
+        return rv;
       }
 
       rv = nghttp3_stream_transit_rx_http_state(stream,
@@ -1282,6 +1303,11 @@ almost_done:
 int nghttp3_conn_on_data(nghttp3_conn *conn, nghttp3_stream *stream,
                          const uint8_t *data, size_t datalen) {
   int rv;
+
+  rv = nghttp3_http_on_data_chunk(stream, datalen);
+  if (rv != 0) {
+    return rv;
+  }
 
   if (!conn->callbacks.recv_data) {
     return 0;
@@ -1601,19 +1627,27 @@ static ssize_t conn_decode_headers(nghttp3_conn *conn, nghttp3_stream *stream,
   uint8_t flags;
   nghttp3_buf buf;
   nghttp3_recv_header recv_header;
+  int request = 0;
+  int trailers = 0;
 
   assert(srclen);
 
   switch (stream->rx.hstate) {
   case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
+    request = 1;
+    /* Fall through */
   case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
     recv_header = conn->callbacks.recv_header;
     break;
   case NGHTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN:
+    request = 1;
+    /* Fall through */
   case NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:
+    trailers = 1;
     recv_header = conn->callbacks.recv_trailer;
     break;
   case NGHTTP3_HTTP_STATE_RESP_PUSH_PROMISE_BEGIN:
+    request = 1;
     recv_header = conn->callbacks.recv_push_promise;
     break;
   default:
@@ -1659,11 +1693,24 @@ static ssize_t conn_decode_headers(nghttp3_conn *conn, nghttp3_stream *stream,
     }
 
     if (flags & NGHTTP3_QPACK_DECODE_FLAG_EMIT) {
-      if (recv_header) {
-        rv = recv_header(conn, stream->stream_id, nv.token, nv.name, nv.value,
-                         nv.flags, conn->user_data, stream->user_data);
-      } else {
+      rv = nghttp3_http_on_header(stream, &nv, request, trailers);
+      switch (rv) {
+      case NGHTTP3_ERR_MALFORMED_HTTP_HEADER:
+        break;
+      case NGHTTP3_ERR_REMOVE_HTTP_HEADER:
         rv = 0;
+        break;
+      case 0:
+        if (recv_header) {
+          rv = recv_header(conn, stream->stream_id, nv.token, nv.name, nv.value,
+                           nv.flags, conn->user_data, stream->user_data);
+        } else {
+          rv = 0;
+        }
+        break;
+      default:
+        /* Unreachable */
+        assert(0);
       }
 
       nghttp3_rcbuf_decref(nv.name);
@@ -2207,6 +2254,8 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
     }
   }
 
+  nghttp3_http_record_request_method(stream, nva, nvlen);
+
   return conn_submit_headers_data(conn, stream, nva, nvlen, dr);
 }
 
@@ -2405,6 +2454,13 @@ int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id) {
       stream->type != NGHTTP3_STREAM_TYPE_PUSH &&
       stream->type != NGHTTP3_STREAM_TYPE_UNKNOWN) {
     return NGHTTP3_ERR_HTTP_CLOSED_CRITICAL_STREAM;
+  }
+
+  if (nghttp3_stream_bidi_or_push(stream)) {
+    rv = nghttp3_http_on_remote_end_stream(stream);
+    if (rv != 0) {
+      return rv;
+    }
   }
 
   if (conn->callbacks.stream_close) {

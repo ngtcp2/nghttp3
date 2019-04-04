@@ -42,4 +42,6 @@
 
 #define nghttp3_arraylen(A) (sizeof(A) / sizeof(*(A)))
 
+#define lstreq(A, B, N) ((sizeof((A)) - 1) == (N) && memcmp((A), (B), (N)) == 0)
+
 #endif /* NGHTTP3_MACRO_H */

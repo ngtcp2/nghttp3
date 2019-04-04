@@ -31,6 +31,7 @@
 
 #include "nghttp3_buf.h"
 #include "nghttp3_frame.h"
+#include "nghttp3_qpack.h"
 
 #define MAKE_NV(NAME, VALUE)                                                   \
   {                                                                            \
@@ -43,5 +44,19 @@
  * calculates the payload length and assigns it to fr->hd.length;
  */
 void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr);
+
+/*
+ * nghttp3_write_frame_qpack writes |fr| to |dest|.  |fr| is supposed
+ * to be a frame which uses QPACK encoder |qenc|.  This function
+ * calculates the payload length and assigns it to fr->hd.length;
+ */
+void nghttp3_write_frame_qpack(nghttp3_buf *dest, nghttp3_qpack_encoder *qenc,
+                               int64_t stream_id, nghttp3_frame *fr);
+
+/*
+ * nghttp3_write_frame_data writes DATA frame which has |len| bytes of
+ * payload.
+ */
+void nghttp3_write_frame_data(nghttp3_buf *dest, size_t len);
 
 #endif /* NGHTTP3_TEST_HELPER */

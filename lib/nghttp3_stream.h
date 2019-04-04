@@ -225,6 +225,11 @@ struct nghttp3_stream {
   } rx;
 
   uint16_t flags;
+  uint16_t http_flags;
+  /* TODO Move these fields to rx */
+  int32_t status_code;
+  int64_t content_length;
+  int64_t recv_content_length;
 };
 
 typedef struct {

@@ -74,6 +74,9 @@ typedef enum {
   NGHTTP3_ERR_WOULDBLOCK = -104,
   NGHTTP3_ERR_STREAM_IN_USE = -105,
   NGHTTP3_ERR_PUSH_ID_BLOCKED = -106,
+  NGHTTP3_ERR_MALFORMED_HTTP_HEADER = -107,
+  NGHTTP3_ERR_REMOVE_HTTP_HEADER = -108,
+  NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING = -109,
   NGHTTP3_ERR_QPACK_FATAL = -401,
   NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED = -402,
   NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR = -403,
@@ -474,7 +477,16 @@ typedef enum {
   NGHTTP3_QPACK_TOKEN_UPGRADE_INSECURE_REQUESTS = 90,
   NGHTTP3_QPACK_TOKEN_USER_AGENT = 91,
   NGHTTP3_QPACK_TOKEN_X_FORWARDED_FOR = 95,
-  NGHTTP3_QPACK_TOKEN_X_FRAME_OPTIONS = 96
+  NGHTTP3_QPACK_TOKEN_X_FRAME_OPTIONS = 96,
+  /* Additional header fields for HTTP messaging validation */
+  NGHTTP3_QPACK_TOKEN_HOST = 1000,
+  NGHTTP3_QPACK_TOKEN_CONNECTION,
+  NGHTTP3_QPACK_TOKEN_KEEP_ALIVE,
+  NGHTTP3_QPACK_TOKEN_PROXY_CONNECTION,
+  NGHTTP3_QPACK_TOKEN_TRANSFER_ENCODING,
+  NGHTTP3_QPACK_TOKEN_UPGRADE,
+  NGHTTP3_QPACK_TOKEN_TE,
+  NGHTTP3_QPACK_TOKEN__PROTOCOL
 } nghttp3_qpack_token;
 
 /**
@@ -1535,6 +1547,27 @@ NGHTTP3_EXTERN int nghttp3_vec_empty(const nghttp3_vec *vec, size_t cnt);
  */
 NGHTTP3_EXTERN void nghttp3_vec_consume(nghttp3_vec **pvec, size_t *pcnt,
                                         size_t len);
+
+/**
+ * @function
+ *
+ * `nghttp3_check_header_name` returns nonzero if HTTP header field
+ * name |name| of length |len| is valid according to
+ * http://tools.ietf.org/html/rfc7230#section-3.2
+ *
+ * Because this is a header field name in HTTP/3, the upper cased
+ * alphabet is treated as error.
+ */
+NGHTTP3_EXTERN int nghttp3_check_header_name(const uint8_t *name, size_t len);
+
+/**
+ * @function
+ *
+ * `nghttp3_check_header_value` returns nonzero if HTTP header field
+ * value |value| of length |len| is valid according to
+ * http://tools.ietf.org/html/rfc7230#section-3.2
+ */
+NGHTTP3_EXTERN int nghttp3_check_header_value(const uint8_t *value, size_t len);
 
 #ifdef __cplusplus
 }

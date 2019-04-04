@@ -55,7 +55,8 @@ OBJECTS = \
 	nghttp3_psl.c \
 	nghttp3_gaptr.c \
 	nghttp3_idtr.c \
-	nghttp3_range.c
+	nghttp3_range.c \
+	nghttp3_http.c
 HFILES = \
 	nghttp3_rcbuf.h \
 	nghttp3_mem.h \
@@ -78,7 +79,8 @@ HFILES = \
 	nghttp3_psl.h \
 	nghttp3_gaptr.h \
 	nghttp3_idtr.h \
-	nghttp3_range.h
+	nghttp3_range.h \
+	nghttp3_http.h
 
 libnghttp3_la_SOURCES = $(HFILES) $(OBJECTS)
 libnghttp3_la_LDFLAGS = -no-undefined \

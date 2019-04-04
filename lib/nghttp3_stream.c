@@ -33,6 +33,7 @@
 #include "nghttp3_frame.h"
 #include "nghttp3_conn.h"
 #include "nghttp3_str.h"
+#include "nghttp3_http.h"
 
 int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
                        uint64_t seq, uint32_t weight, nghttp3_tnode *parent,
@@ -77,6 +78,8 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
   stream->me.key = (key_type)stream_id;
   stream->qpack_blocked_pe.index = NGHTTP3_PQ_BAD_INDEX;
   stream->mem = mem;
+  stream->status_code = -1;
+  stream->content_length = -1;
 
   if (callbacks) {
     stream->callbacks = *callbacks;
@@ -976,6 +979,8 @@ int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *data,
 
 int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
                                          nghttp3_stream_http_event event) {
+  int rv;
+
   switch (stream->rx.hstate) {
   case NGHTTP3_HTTP_STATE_NONE:
     return NGHTTP3_ERR_HTTP_INTERNAL_ERROR;
@@ -1010,6 +1015,17 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
     return 0;
   case NGHTTP3_HTTP_STATE_REQ_HEADERS_END:
     switch (event) {
+    case NGHTTP3_HTTP_EVENT_HEADERS_BEGIN:
+      /* TODO Better to check status code */
+      if (stream->http_flags & NGHTTP3_HTTP_FLAG_METH_CONNECT) {
+        return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+      }
+      rv = nghttp3_http_on_remote_end_stream(stream);
+      if (rv != 0) {
+        return rv;
+      }
+      stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN;
+      return 0;
     case NGHTTP3_HTTP_EVENT_DATA_BEGIN:
       stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_DATA_BEGIN;
       return 0;
@@ -1031,6 +1047,14 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
       stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_DATA_BEGIN;
       return 0;
     case NGHTTP3_HTTP_EVENT_HEADERS_BEGIN:
+      /* TODO Better to check status code */
+      if (stream->http_flags & NGHTTP3_HTTP_FLAG_METH_CONNECT) {
+        return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+      }
+      rv = nghttp3_http_on_remote_end_stream(stream);
+      if (rv != 0) {
+        return rv;
+      }
       stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN;
       return 0;
     case NGHTTP3_HTTP_EVENT_MSG_END:
@@ -1068,9 +1092,26 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
     stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_HEADERS_END;
     return 0;
   case NGHTTP3_HTTP_STATE_RESP_HEADERS_END:
-    /* TODO Support info (non-final) response */
     switch (event) {
+    case NGHTTP3_HTTP_EVENT_HEADERS_BEGIN:
+      if (stream->status_code == -1) {
+        stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN;
+        return 0;
+      }
+      if ((stream->http_flags & NGHTTP3_HTTP_FLAG_METH_CONNECT) &&
+          stream->status_code / 100 == 2) {
+        return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+      }
+      rv = nghttp3_http_on_remote_end_stream(stream);
+      if (rv != 0) {
+        return rv;
+      }
+      stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN;
+      return 0;
     case NGHTTP3_HTTP_EVENT_DATA_BEGIN:
+      if (stream->http_flags & NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE) {
+        return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+      }
       stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_DATA_BEGIN;
       return 0;
     case NGHTTP3_HTTP_EVENT_MSG_END:
@@ -1091,6 +1132,14 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
       stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_DATA_BEGIN;
       return 0;
     case NGHTTP3_HTTP_EVENT_HEADERS_BEGIN:
+      if ((stream->http_flags & NGHTTP3_HTTP_FLAG_METH_CONNECT) &&
+          stream->status_code / 100 == 2) {
+        return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+      }
+      rv = nghttp3_http_on_remote_end_stream(stream);
+      if (rv != 0) {
+        return rv;
+      }
       stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN;
       return 0;
     case NGHTTP3_HTTP_EVENT_MSG_END:

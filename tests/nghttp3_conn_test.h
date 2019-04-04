@@ -37,5 +37,13 @@ void test_nghttp3_conn_submit_priority(void);
 void test_nghttp3_conn_http_request(void);
 void test_nghttp3_conn_recv_request_priority(void);
 void test_nghttp3_conn_recv_control_priority(void);
+void test_nghttp3_conn_http_resp_header(void);
+void test_nghttp3_conn_http_req_header(void);
+void test_nghttp3_conn_http_content_length(void);
+void test_nghttp3_conn_http_content_length_mismatch(void);
+void test_nghttp3_conn_http_non_final_response(void);
+void test_nghttp3_conn_http_trailers(void);
+void test_nghttp3_conn_http_ignore_content_length(void);
+void test_nghttp3_conn_http_record_request_method(void);
 
 #endif /* NGTCP2_CONN_TEST_H */
