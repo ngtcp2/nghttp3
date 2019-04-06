@@ -337,18 +337,25 @@ ssize_t nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
   if (stream == NULL) {
     /* TODO Assert idtr */
     /* QUIC transport ensures that this is new stream. */
-    rv = nghttp3_conn_create_stream(conn, &stream, stream_id);
-    if (rv != 0) {
-      return rv;
-    }
     if (conn->server) {
       if (nghttp3_client_stream_bidi(stream_id)) {
         rv = nghttp3_idtr_open(&conn->remote.bidi.idtr, stream_id);
         assert(rv == 0);
       }
+
+      rv = nghttp3_conn_create_stream(conn, &stream, stream_id);
+      if (rv != 0) {
+        return rv;
+      }
+
       stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
       stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
     } else if (nghttp3_stream_uni(stream_id)) {
+      rv = nghttp3_conn_create_stream(conn, &stream, stream_id);
+      if (rv != 0) {
+        return rv;
+      }
+
       stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
       stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
     } else {
