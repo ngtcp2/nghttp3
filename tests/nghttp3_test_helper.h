@@ -47,11 +47,21 @@ void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr);
 
 /*
  * nghttp3_write_frame_qpack writes |fr| to |dest|.  |fr| is supposed
- * to be a frame which uses QPACK encoder |qenc|.  This function
+ * to be a frame which uses QPACK encoder |qenc|.  |qenc| must be
+ * configured so that it does not use dynamic table.  This function
  * calculates the payload length and assigns it to fr->hd.length;
  */
 void nghttp3_write_frame_qpack(nghttp3_buf *dest, nghttp3_qpack_encoder *qenc,
                                int64_t stream_id, nghttp3_frame *fr);
+
+/*
+ * nghttp3_write_frame_qpack_dyn is similar to
+ * nghttp3_write_frame_qpack but it can use dynamic table.  The it
+ * will write encoder stream to |ebuf|.
+ */
+void nghttp3_write_frame_qpack_dyn(nghttp3_buf *dest, nghttp3_buf *ebuf,
+                                   nghttp3_qpack_encoder *qenc,
+                                   int64_t stream_id, nghttp3_frame *fr);
 
 /*
  * nghttp3_write_frame_data writes DATA frame which has |len| bytes of

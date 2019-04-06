@@ -112,6 +112,10 @@ typedef enum {
   /* NGHTTP3_STREAM_FLAG_READ_EOF indicates that remote endpoint sent
      fin. */
   NGHTTP3_STREAM_FLAG_READ_EOF = 0x0020,
+  /* NGHTTP3_STREAM_FLAG_CLOSED indicates that QUIC stream was closed.
+     nghttp3_stream object can still alive because it might be blocked
+     by QPACK decoder. */
+  NGHTTP3_STREAM_FLAG_CLOSED = 0x0040,
 } nghttp3_stream_flag;
 
 typedef enum {

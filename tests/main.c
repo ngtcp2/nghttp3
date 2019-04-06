@@ -96,6 +96,8 @@ int main() {
                    test_nghttp3_conn_http_ignore_content_length) ||
       !CU_add_test(pSuite, "conn_http_record_request_method",
                    test_nghttp3_conn_http_record_request_method) ||
+      !CU_add_test(pSuite, "conn_qpack_blocked_stream",
+                   test_nghttp3_conn_qpack_blocked_stream) ||
       !CU_add_test(pSuite, "tnode_mutation", test_nghttp3_tnode_mutation) ||
       !CU_add_test(pSuite, "tnode_schedule", test_nghttp3_tnode_schedule)) {
     CU_cleanup_registry();
