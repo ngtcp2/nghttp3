@@ -1418,44 +1418,120 @@ typedef int (*nghttp3_read_data_callback)(nghttp3_conn *conn, int64_t stream_id,
                                           void *user_data,
                                           void *stream_user_data);
 
+/**
+ * @struct
+ *
+ * :type:`nghttp3_priroty` specifies the priority of client initiated
+ * bidirectional stream.
+ */
 typedef struct {
+  /**
+   * elem_dep_type is the type of elem_dep_id.
+   */
   nghttp3_elem_dep_type elem_dep_type;
+  /**
+   * elem_dep_id is an ID which the stream depends on.
+   */
   int64_t elem_dep_id;
+  /**
+   * weight is the weight of dependency.
+   */
   uint32_t weight;
 } nghttp3_priority;
 
+/**
+ * @function
+ *
+ * `nghttp3_priority_init` initializes |pri| with the given parameters
+ * and returns |pri|.
+ */
 NGHTTP3_EXTERN nghttp3_priority *
 nghttp3_priority_init(nghttp3_priority *pri,
                       nghttp3_elem_dep_type elem_dep_type, int64_t elem_dep_id,
                       uint32_t weight);
 
+/**
+ * @struct
+ *
+ * :type:`nghttp3_data_reader` specifies the way how to generate
+ * request or response body.
+ */
 typedef struct {
+  /**
+   * read_data is a callback function to generate body.
+   */
   nghttp3_read_data_callback read_data;
 } nghttp3_data_reader;
 
+/**
+ * @function
+ *
+ * `nghttp3_conn_submit_request` submits HTTP request header fields
+ * and body on the stream identified by |stream_id|.  |stream_id| must
+ * be a client initiated bidirectional stream.  Only client can submit
+ * HTTP request.  |pri| is a priority of this request.  If NULL is
+ * specified, the default priority is used.  |nva| of length |nvlen|
+ * specifies HTTP request header fields.  |dr| specifies a request
+ * body.  If there is no request body, specify NULL.
+ * |stream_user_data| is an opaque pointer attached to the stream.
+ */
 NGHTTP3_EXTERN int
 nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
                             const nghttp3_priority *pri, const nghttp3_nv *nva,
                             size_t nvlen, const nghttp3_data_reader *dr,
                             void *stream_user_data);
 
+/**
+ * @function
+ *
+ * `nghttp3_conn_submit_push_promise` submits push promise on the
+ * stream identified by |stream_id|.  |stream_id| must be a client
+ * initiated bidirectional stream.  Only server can submit push
+ * promise.  On success, a push ID is assigned to |*ppush_id|.  |nva|
+ * of length |nvlen| specifies HTTP request header fields.  In order
+ * to submit HTTP response, first call
+ * `nghttp3_conn_bind_push_stream()` and then
+ * `nghttp3_conn_submit_response()`.
+ */
 NGHTTP3_EXTERN int nghttp3_conn_submit_push_promise(nghttp3_conn *conn,
                                                     int64_t *ppush_id,
                                                     int64_t stream_id,
                                                     const nghttp3_nv *nva,
                                                     size_t nvlen);
 
+/**
+ * @function
+ *
+ * `nghttp3_conn_submit_info` submits HTTP non-final response header
+ * fields on the stream identified by |stream_id|.  |nva| of length
+ * |nvlen| specifies HTTP response header fields.
+ */
 NGHTTP3_EXTERN int nghttp3_conn_submit_info(nghttp3_conn *conn,
                                             int64_t stream_id,
                                             const nghttp3_nv *nva,
                                             size_t nvlen);
 
+/**
+ * @function
+ *
+ * `nghttp3_conn_submit_response` submits HTTP response header fields
+ * and body on the stream identified by |stream_id|.  |nva| of length
+ * |nvlen| specifies HTTP response header fields.  |dr| specifies a
+ * response body.  If there is no response body, specify NULL.
+ */
 NGHTTP3_EXTERN int nghttp3_conn_submit_response(nghttp3_conn *conn,
                                                 int64_t stream_id,
                                                 const nghttp3_nv *nva,
                                                 size_t nvlen,
                                                 const nghttp3_data_reader *dr);
 
+/**
+ * @function
+ *
+ * `nghttp3_conn_submit_trailers` submits HTTP trailer fields on the
+ * stream identified by |stream_id|.  |nva| of length |nvlen|
+ * specifies HTTP trailer fields.
+ */
 NGHTTP3_EXTERN int nghttp3_conn_submit_trailers(nghttp3_conn *conn,
                                                 int64_t stream_id,
                                                 const nghttp3_nv *nva,
