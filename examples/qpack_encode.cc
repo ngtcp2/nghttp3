@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <array>
 #include <iomanip>
+#include <vector>
 
 #include "qpack.h"
 #include "template.h"
