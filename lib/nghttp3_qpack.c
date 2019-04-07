@@ -892,7 +892,7 @@ static nghttp3_qpack_header_block_ref inf_ref = {{0}, {0}, 0, 0};
 static nghttp3_pq_entry *inf_pe[1] = {&inf_ref.max_cnts_pe};
 static nghttp3_qpack_stream inf_stream = {
     {NULL, UINT64_MAX},
-    {0},
+    {NULL, NULL, 0, 0, 0, 0},
     {inf_pe, NULL, 1, 0, NULL},
 };
 
@@ -2248,7 +2248,8 @@ int nghttp3_qpack_encoder_unblock(nghttp3_qpack_encoder *encoder,
   nghttp3_ksl_key key;
   nghttp3_qpack_header_block_ref ref = {{0}, {0}, max_cnt, 0};
   nghttp3_pq_entry *pe[1] = {&ref.max_cnts_pe};
-  nghttp3_qpack_stream needle = {{NULL, 0}, {0}, {pe, NULL, 1, 0, NULL}};
+  nghttp3_qpack_stream needle = {
+      {NULL, 0}, {NULL, NULL, 0, 0, 0, 0}, {pe, NULL, 1, 0, NULL}};
   nghttp3_ksl_it it;
 
   it = nghttp3_ksl_lower_bound(&encoder->blocked_streams,
