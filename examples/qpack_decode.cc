@@ -181,9 +181,8 @@ void write_header(
 }
 } // namespace
 
-int decode(const std::filesystem::path &outfile,
-           const std::filesystem::path &infile) {
-  auto fd = open(infile.c_str(), O_RDONLY);
+int decode(const std::string_view &outfile, const std::string_view &infile) {
+  auto fd = open(infile.data(), O_RDONLY);
   if (fd == -1) {
     std::cerr << "Could not open " << infile << ": " << strerror(errno)
               << std::endl;
@@ -198,7 +197,7 @@ int decode(const std::filesystem::path &outfile,
     return -1;
   }
 
-  auto out = std::ofstream(outfile, std::ios::trunc | std::ios::binary);
+  auto out = std::ofstream(outfile.data(), std::ios::trunc | std::ios::binary);
   if (!out) {
     std::cerr << "Could not open file " << outfile << ": " << strerror(errno)
               << std::endl;

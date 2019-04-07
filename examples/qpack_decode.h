@@ -31,12 +31,12 @@
 
 #include <nghttp3/nghttp3.h>
 
-#include <filesystem>
 #include <vector>
 #include <queue>
 #include <functional>
 #include <utility>
 #include <memory>
+#include <string>
 
 namespace nghttp3 {
 struct Request {
@@ -86,8 +86,7 @@ private:
   size_t max_blocked_;
 };
 
-int decode(const std::filesystem::path &outfile,
-           const std::filesystem::path &infile);
+int decode(const std::string_view &outfile, const std::string_view &infile);
 
 } // namespace nghttp3
 

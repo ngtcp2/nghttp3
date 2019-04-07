@@ -102,9 +102,8 @@ void write_request_stream(std::ostream &out, int64_t stream_id,
 }
 } // namespace
 
-int encode(const std::filesystem::path &outfile,
-           const std::filesystem::path &infile) {
-  auto in = std::ifstream(infile, std::ios::binary);
+int encode(const std::string_view &outfile, const std::string_view &infile) {
+  auto in = std::ifstream(infile.data(), std::ios::binary);
 
   if (!in) {
     std::cerr << "Could not open file " << infile << ": " << strerror(errno)
@@ -112,7 +111,7 @@ int encode(const std::filesystem::path &outfile,
     return -1;
   }
 
-  auto out = std::ofstream(outfile, std::ios::trunc | std::ios::binary);
+  auto out = std::ofstream(outfile.data(), std::ios::trunc | std::ios::binary);
   if (!out) {
     std::cerr << "Could not open file " << outfile << ": " << strerror(errno)
               << std::endl;

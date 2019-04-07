@@ -30,8 +30,7 @@ AM_CPPFLAGS = \
 	-I$(top_builddir)/lib/includes \
 	@DEFS@
 AM_LDFLAGS = -no-install
-LDADD = $(top_builddir)/lib/libnghttp3.la \
-	-lstdc++fs
+LDADD = $(top_builddir)/lib/libnghttp3.la
 
 noinst_PROGRAMS = qpack
 

@@ -31,7 +31,7 @@
 
 #include <nghttp3/nghttp3.h>
 
-#include <filesystem>
+#include <string>
 
 namespace nghttp3 {
 
@@ -52,8 +52,7 @@ private:
   bool immediate_ack_;
 };
 
-int encode(const std::filesystem::path &outfile,
-           const std::filesystem::path &infile);
+int encode(const std::string_view &outfile, const std::string_view &infile);
 
 } // namespace nghttp3
 
