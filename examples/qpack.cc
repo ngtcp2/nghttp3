@@ -27,7 +27,6 @@
 #include <cstring>
 #include <iostream>
 #include <string>
-#include <charconv>
 
 #include <getopt.h>
 
@@ -89,24 +88,12 @@ int main(int argc, char **argv) {
       exit(EXIT_SUCCESS);
     case 'm': {
       // --max-blocked
-      auto last = optarg + strlen(optarg);
-      if (auto [p, ec] = std::from_chars(optarg, last, config.max_blocked);
-          p != last || ec != std::errc()) {
-        std::cerr << "max-blocked: could not parse '" << optarg << "'"
-                  << std::endl;
-        exit(EXIT_FAILURE);
-      }
+      config.max_blocked = strtoul(optarg, nullptr, 10);
       break;
     }
     case 's': {
       // --max-dtable-size
-      auto last = optarg + strlen(optarg);
-      if (auto [p, ec] = std::from_chars(optarg, last, config.max_dtable_size);
-          p != last || ec != std::errc()) {
-        std::cerr << "max-dtable-size: could not parse '" << optarg << "'"
-                  << std::endl;
-        exit(EXIT_FAILURE);
-      }
+      config.max_dtable_size = strtoul(optarg, nullptr, 10);
       break;
     }
     case 'a':
