@@ -44,6 +44,11 @@ void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr) {
     fr->hd.length = (int64_t)payloadlen;
     rv = nghttp3_frame_write_priority(dest, &fr->priority);
     break;
+  case NGHTTP3_FRAME_CANCEL_PUSH:
+    nghttp3_frame_write_cancel_push_len(&payloadlen, &fr->cancel_push);
+    fr->hd.length = (int64_t)payloadlen;
+    rv = nghttp3_frame_write_cancel_push(dest, &fr->cancel_push);
+    break;
   default:
     assert(0);
   }

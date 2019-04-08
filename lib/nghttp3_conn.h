@@ -171,6 +171,12 @@ int nghttp3_conn_on_request_priority(nghttp3_conn *conn, nghttp3_stream *stream,
 int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
                                      const nghttp3_frame_priority *fr);
 
+int nghttp3_conn_on_client_cancel_push(nghttp3_conn *conn,
+                                       const nghttp3_frame_cancel_push *fr);
+
+int nghttp3_conn_on_server_cancel_push(nghttp3_conn *conn,
+                                       const nghttp3_frame_cancel_push *fr);
+
 int nghttp3_conn_on_data(nghttp3_conn *conn, nghttp3_stream *stream,
                          const uint8_t *data, size_t datalen);
 

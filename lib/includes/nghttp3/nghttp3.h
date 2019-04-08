@@ -1087,6 +1087,25 @@ typedef int (*nghttp3_recv_header)(nghttp3_conn *conn, int64_t stream_id,
 typedef int (*nghttp3_end_headers)(nghttp3_conn *conn, int64_t stream_id,
                                    void *user_data, void *stream_user_data);
 
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_cancel_push` is a callback function which is invoked
+ * when the push identified by |push_id| is cancelled by remote
+ * endpoint.  If a stream has been bound to the push ID, |stream_id|
+ * contains the stream ID and |stream_user_data| points to the stream
+ * user data.  Otherwise, |stream_id| is -1 and |stream_user_data| is
+ * NULL.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
+typedef int (*nghttp3_cancel_push)(nghttp3_conn *conn, int64_t push_id,
+                                   int64_t stream_id, void *user_data,
+                                   void *stream_user_data);
+
 typedef struct {
   nghttp3_acked_stream_data acked_stream_data;
   nghttp3_stream_close stream_close;
@@ -1101,6 +1120,7 @@ typedef struct {
   nghttp3_begin_headers begin_push_promise;
   nghttp3_recv_header recv_push_promise;
   nghttp3_end_headers end_push_promise;
+  nghttp3_cancel_push cancel_push;
 } nghttp3_conn_callbacks;
 
 typedef struct {
