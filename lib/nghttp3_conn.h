@@ -191,6 +191,10 @@ int nghttp3_conn_qpack_blocked_streams_push(nghttp3_conn *conn,
 
 void nghttp3_conn_qpack_blocked_streams_pop(nghttp3_conn *conn);
 
+int nghttp3_conn_server_cancel_push(nghttp3_conn *conn, int64_t push_id);
+
+int nghttp3_conn_client_cancel_push(nghttp3_conn *conn, int64_t push_id);
+
 /*
  * nghttp3_conn_get_next_tx_stream returns next stream to send.  It
  * returns NULL if there is no such stream.

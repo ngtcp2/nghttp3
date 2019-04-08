@@ -2344,7 +2344,7 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   nghttp3_buf_free(&ebuf, mem);
 }
 
-void test_nghttp3_conn_cancel_push(void) {
+void test_nghttp3_conn_recv_cancel_push(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
   nghttp3_conn_callbacks callbacks;
@@ -2407,7 +2407,7 @@ void test_nghttp3_conn_cancel_push(void) {
 
   nghttp3_conn_del(conn);
 
-  /* Client cancels push before server binds stream ID to push ID */
+  /* Client cancels push after server binds stream ID to push ID */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
   nghttp3_conn_bind_qpack_streams(conn, 7, 11);
@@ -2452,6 +2452,94 @@ void test_nghttp3_conn_cancel_push(void) {
   stream = nghttp3_conn_find_stream(conn, 15);
 
   CU_ASSERT(NULL == stream);
+
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_cancel_push(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  nghttp3_conn_callbacks callbacks;
+  nghttp3_conn_settings settings;
+  nghttp3_stream *stream;
+  const nghttp3_nv reqnv[] = {
+      MAKE_NV(":scheme", "https"),
+      MAKE_NV(":authority", "localhost"),
+      MAKE_NV(":path", "/"),
+      MAKE_NV(":method", "GET"),
+  };
+  int rv;
+  int64_t push_id;
+  nghttp3_push_promise *pp;
+  nghttp3_vec vec[16];
+  ssize_t sveccnt;
+  int64_t stream_id;
+  int fin;
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  nghttp3_conn_settings_default(&settings);
+
+  /* Cancel push before binding stream ID to push ID */
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_bind_control_stream(conn, 3);
+  nghttp3_conn_bind_qpack_streams(conn, 7, 11);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 1);
+  conn->local.uni.max_pushes = 1;
+  nghttp3_conn_create_stream(conn, &stream, 0);
+
+  rv = nghttp3_conn_submit_push_promise(conn, &push_id, 0, reqnv,
+                                        nghttp3_arraylen(reqnv));
+
+  CU_ASSERT(0 == rv);
+
+  pp = nghttp3_conn_find_push_promise(conn, 0);
+
+  CU_ASSERT(NULL != pp);
+
+  rv = nghttp3_conn_cancel_push(conn, push_id);
+
+  CU_ASSERT(0 == rv);
+
+  pp = nghttp3_conn_find_push_promise(conn, 0);
+
+  CU_ASSERT(NULL == pp);
+
+  nghttp3_conn_del(conn);
+
+  /* Cancel push after binding stream ID to push ID */
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_bind_control_stream(conn, 3);
+  nghttp3_conn_bind_qpack_streams(conn, 7, 11);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 1);
+  conn->local.uni.max_pushes = 1;
+  nghttp3_conn_create_stream(conn, &stream, 0);
+
+  rv = nghttp3_conn_submit_push_promise(conn, &push_id, 0, reqnv,
+                                        nghttp3_arraylen(reqnv));
+
+  CU_ASSERT(0 == rv);
+
+  rv = nghttp3_conn_bind_push_stream(conn, push_id, 15);
+
+  CU_ASSERT(0 == rv);
+
+  rv = nghttp3_conn_cancel_push(conn, push_id);
+
+  CU_ASSERT(NGHTTP3_ERR_TOO_LATE == rv);
+
+  pp = nghttp3_conn_find_push_promise(conn, 0);
+
+  CU_ASSERT(NULL != pp);
+
+  stream = nghttp3_conn_find_stream(conn, 15);
+
+  CU_ASSERT(NULL != stream);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(sveccnt > 0);
+  CU_ASSERT(0 == nghttp3_ringbuf_len(&conn->tx.ctrl->frq));
 
   nghttp3_conn_del(conn);
 }

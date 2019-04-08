@@ -271,6 +271,12 @@ int nghttp3_stream_fill_outq(nghttp3_stream *stream) {
       }
       nghttp3_frame_push_promise_free(&frent->fr.push_promise, stream->mem);
       break;
+    case NGHTTP3_FRAME_CANCEL_PUSH:
+      rv = nghttp3_stream_write_cancel_push(stream, frent);
+      if (rv != 0) {
+        return rv;
+      }
+      break;
     case NGHTTP3_FRAME_DATA:
       rv = nghttp3_stream_write_data(stream, &data_eof, frent);
       if (rv != 0) {
@@ -400,6 +406,32 @@ int nghttp3_stream_write_priority(nghttp3_stream *stream,
 
   return nghttp3_stream_outq_add(stream, &tbuf);
 }
+
+int nghttp3_stream_write_cancel_push(nghttp3_stream *stream,
+                                     nghttp3_frame_entry *frent) {
+  nghttp3_frame_cancel_push *fr = &frent->fr.cancel_push;
+  size_t len;
+  int rv;
+  nghttp3_buf *chunk;
+  nghttp3_typed_buf tbuf;
+
+  len = nghttp3_frame_write_cancel_push_len(&fr->hd.length, fr);
+
+  rv = nghttp3_stream_ensure_chunk(stream, len);
+  if (rv != 0) {
+    return rv;
+  }
+
+  chunk = nghttp3_stream_get_chunk(stream);
+  typed_buf_shared_init(&tbuf, chunk);
+
+  chunk->last = nghttp3_frame_write_cancel_push(chunk->last, fr);
+
+  tbuf.buf.last = chunk->last;
+
+  return nghttp3_stream_outq_add(stream, &tbuf);
+}
+
 int nghttp3_stream_write_headers(nghttp3_stream *stream,
                                  nghttp3_frame_entry *frent) {
   nghttp3_frame_headers *fr = &frent->fr.headers;

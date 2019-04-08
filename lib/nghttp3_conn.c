@@ -1756,6 +1756,11 @@ int nghttp3_conn_on_server_cancel_push(nghttp3_conn *conn,
     return 0;
   }
 
+  rv = nghttp3_tnode_squash(&pp->node);
+  if (rv != 0) {
+    return rv;
+  }
+
   rv = nghttp3_map_remove(&conn->pushes, (key_type)pp->push_id);
   assert(0 == rv);
 
@@ -2537,6 +2542,57 @@ int nghttp3_conn_bind_push_stream(nghttp3_conn *conn, int64_t push_id,
 
   pp->stream = stream;
 
+  return 0;
+}
+
+int nghttp3_conn_cancel_push(nghttp3_conn *conn, int64_t push_id) {
+  if (conn->server) {
+    return nghttp3_conn_server_cancel_push(conn, push_id);
+  }
+  return nghttp3_conn_client_cancel_push(conn, push_id);
+}
+
+int nghttp3_conn_server_cancel_push(nghttp3_conn *conn, int64_t push_id) {
+  nghttp3_push_promise *pp;
+  nghttp3_frame_entry frent;
+  int rv;
+
+  assert(conn->tx.ctrl);
+
+  pp = nghttp3_conn_find_push_promise(conn, push_id);
+  if (pp == NULL) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  if (pp->stream) {
+    return NGHTTP3_ERR_TOO_LATE;
+  }
+
+  frent.fr.hd.type = NGHTTP3_FRAME_CANCEL_PUSH;
+  frent.fr.cancel_push.push_id = push_id;
+
+  rv = nghttp3_stream_frq_add(conn->tx.ctrl, &frent);
+  if (rv != 0) {
+    return rv;
+  }
+
+  rv = nghttp3_tnode_squash(&pp->node);
+  if (rv != 0) {
+    return rv;
+  }
+
+  rv = nghttp3_map_remove(&conn->pushes, (key_type)push_id);
+  assert(0 == rv);
+
+  nghttp3_push_promise_del(pp, conn->mem);
+
+  return 0;
+}
+
+int nghttp3_conn_client_cancel_push(nghttp3_conn *conn, int64_t push_id) {
+  (void)conn;
+  (void)push_id;
+  /* TODO Not implemented yet */
   return 0;
 }
 

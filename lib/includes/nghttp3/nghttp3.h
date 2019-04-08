@@ -77,6 +77,7 @@ typedef enum {
   NGHTTP3_ERR_MALFORMED_HTTP_HEADER = -107,
   NGHTTP3_ERR_REMOVE_HTTP_HEADER = -108,
   NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING = -109,
+  NGHTTP3_ERR_TOO_LATE = -110,
   NGHTTP3_ERR_QPACK_FATAL = -401,
   NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED = -402,
   NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR = -403,
@@ -1569,6 +1570,18 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_trailers(nghttp3_conn *conn,
 NGHTTP3_EXTERN int nghttp3_conn_bind_push_stream(nghttp3_conn *conn,
                                                  int64_t push_id,
                                                  int64_t stream_id);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_cancel_push` cancels the push identified by
+ * |push_id|.  It is not possible to cancel the push after the
+ * response stream opens.  In that case, send RESET_STREAM (if |conn|
+ * is server) or STOP_SENDING (if |conn| is client) on the underlying
+ * QUIC stream.
+ */
+NGHTTP3_EXTERN int nghttp3_conn_cancel_push(nghttp3_conn *conn,
+                                            int64_t push_id);
 
 /**
  * @function
