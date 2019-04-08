@@ -35,15 +35,12 @@
 #include "nghttp3_buf.h"
 
 /*
- * nghttp3_frame_write_hd writes frame header |hd| to |dest|.
+ * nghttp3_frame_write_hd writes frame header |hd| to |dest|.  This
+ * function assumes that |dest| has enough space to write |hd|.
  *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * NGHTTP3_ERR_NOBUF
- *     |dest| is too short to write |hd|.
+ * This function returns |dest| plus the number of bytes written.
  */
-int nghttp3_frame_write_hd(nghttp3_buf *dest, const nghttp3_frame_hd *hd);
+uint8_t *nghttp3_frame_write_hd(uint8_t *dest, const nghttp3_frame_hd *hd);
 
 /*
  * nghttp3_frame_write_hd_len returns the number of bytes required to
@@ -53,63 +50,54 @@ size_t nghttp3_frame_write_hd_len(const nghttp3_frame_hd *hd);
 
 /*
  * nghttp3_frame_write_settings writes SETTINGS frame |fr| to |dest|.
+ * This function assumes that |dest| has enough space to write |fr|.
  *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * NGHTTP3_ERR_NOBUF
- *     |dest| is too short to write |fr|.
+ * This function returns |dest| plus the number of bytes written.
  */
-int nghttp3_frame_write_settings(nghttp3_buf *dest,
-                                 const nghttp3_frame_settings *fr);
+uint8_t *nghttp3_frame_write_settings(uint8_t *dest,
+                                      const nghttp3_frame_settings *fr);
 
 /*
  * nghttp3_frame_write_settings_len returns the number of bytes
  * required to write |fr|.  fr->hd.length is ignored.  This function
  * stores payload length in |*ppayloadlen|.
  */
-size_t nghttp3_frame_write_settings_len(size_t *pppayloadlen,
+size_t nghttp3_frame_write_settings_len(int64_t *pppayloadlen,
                                         const nghttp3_frame_settings *fr);
 
 /*
  * nghttp3_frame_write_priority writes PRIORITY frame |fr| to |dest|.
+ * This function assumes that |dest| has enough space to write |fr|.
  *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * NGHTTP3_ERR_NOBUF
- *     |dest| is too short to write |fr|.
+ * This function returns |dest| plus the number of bytes written.
  */
-int nghttp3_frame_write_priority(nghttp3_buf *dest,
-                                 const nghttp3_frame_priority *fr);
+uint8_t *nghttp3_frame_write_priority(uint8_t *dest,
+                                      const nghttp3_frame_priority *fr);
 
 /*
  * nghttp3_frame_write_priority_len returns the number of bytes
  * required to write |fr|.  fr->hd.length is ignored.  This function
  * stores payload length in |*ppayloadlen|.
  */
-size_t nghttp3_frame_write_priority_len(size_t *ppayloadlen,
+size_t nghttp3_frame_write_priority_len(int64_t *ppayloadlen,
                                         const nghttp3_frame_priority *fr);
 
 /*
  * nghttp3_frame_write_cancel_push writes CANCEL_PUSH frame |fr| to
- * |dest|.
+ * |dest|.  This function assumes that |dest| has enough space to
+ * write |fr|.
  *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * NGHTTP3_ERR_NOBUF
- *     |dest| is too short to write |fr|.
+ * This function returns |dest| plus the number of bytes written.
  */
-int nghttp3_frame_write_cancel_push(nghttp3_buf *dest,
-                                    const nghttp3_frame_cancel_push *fr);
+uint8_t *nghttp3_frame_write_cancel_push(uint8_t *dest,
+                                         const nghttp3_frame_cancel_push *fr);
 
 /*
  * nghttp3_frame_write_cancel_push_len returns the number of bytes
  * required to write |fr|.  fr->hd.length is ignored.  This function
  * stores payload length in |*ppayloadlen|.
  */
-size_t nghttp3_frame_write_cancel_push_len(size_t *ppayloadlen,
+size_t nghttp3_frame_write_cancel_push_len(int64_t *ppayloadlen,
                                            const nghttp3_frame_cancel_push *fr);
 
 /*

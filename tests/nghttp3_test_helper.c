@@ -30,30 +30,22 @@
 #include "nghttp3_str.h"
 
 void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr) {
-  size_t payloadlen;
-  int rv = 0;
-
   switch (fr->hd.type) {
   case NGHTTP3_FRAME_SETTINGS:
-    nghttp3_frame_write_settings_len(&payloadlen, &fr->settings);
-    fr->hd.length = (int64_t)payloadlen;
-    rv = nghttp3_frame_write_settings(dest, &fr->settings);
+    nghttp3_frame_write_settings_len(&fr->hd.length, &fr->settings);
+    dest->last = nghttp3_frame_write_settings(dest->last, &fr->settings);
     break;
   case NGHTTP3_FRAME_PRIORITY:
-    nghttp3_frame_write_priority_len(&payloadlen, &fr->priority);
-    fr->hd.length = (int64_t)payloadlen;
-    rv = nghttp3_frame_write_priority(dest, &fr->priority);
+    nghttp3_frame_write_priority_len(&fr->hd.length, &fr->priority);
+    dest->last = nghttp3_frame_write_priority(dest->last, &fr->priority);
     break;
   case NGHTTP3_FRAME_CANCEL_PUSH:
-    nghttp3_frame_write_cancel_push_len(&payloadlen, &fr->cancel_push);
-    fr->hd.length = (int64_t)payloadlen;
-    rv = nghttp3_frame_write_cancel_push(dest, &fr->cancel_push);
+    nghttp3_frame_write_cancel_push_len(&fr->hd.length, &fr->cancel_push);
+    dest->last = nghttp3_frame_write_cancel_push(dest->last, &fr->cancel_push);
     break;
   default:
     assert(0);
   }
-
-  assert(0 == rv);
 }
 
 void nghttp3_write_frame_qpack(nghttp3_buf *dest, nghttp3_qpack_encoder *qenc,
@@ -84,7 +76,7 @@ void nghttp3_write_frame_qpack(nghttp3_buf *dest, nghttp3_qpack_encoder *qenc,
 
   fr->hd.length = (int64_t)(nghttp3_buf_len(&pbuf) + nghttp3_buf_len(&rbuf));
 
-  nghttp3_frame_write_hd(dest, &fr->hd);
+  dest->last = nghttp3_frame_write_hd(dest->last, &fr->hd);
   dest->last = nghttp3_cpymem(dest->last, pbuf.pos, nghttp3_buf_len(&pbuf));
   dest->last = nghttp3_cpymem(dest->last, rbuf.pos, nghttp3_buf_len(&rbuf));
 
@@ -119,7 +111,7 @@ void nghttp3_write_frame_qpack_dyn(nghttp3_buf *dest, nghttp3_buf *ebuf,
 
   fr->hd.length = (int64_t)(nghttp3_buf_len(&pbuf) + nghttp3_buf_len(&rbuf));
 
-  nghttp3_frame_write_hd(dest, &fr->hd);
+  dest->last = nghttp3_frame_write_hd(dest->last, &fr->hd);
   dest->last = nghttp3_cpymem(dest->last, pbuf.pos, nghttp3_buf_len(&pbuf));
   dest->last = nghttp3_cpymem(dest->last, rbuf.pos, nghttp3_buf_len(&rbuf));
 
@@ -133,7 +125,7 @@ void nghttp3_write_frame_data(nghttp3_buf *dest, size_t len) {
   fr.hd.type = NGHTTP3_FRAME_DATA;
   fr.hd.length = (int64_t)len;
 
-  nghttp3_frame_write_hd(dest, &fr.hd);
+  dest->last = nghttp3_frame_write_hd(dest->last, &fr.hd);
   memset(dest->last, 0, len);
   dest->last += len;
 }

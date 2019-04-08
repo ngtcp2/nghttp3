@@ -322,7 +322,6 @@ int nghttp3_stream_write_stream_type(nghttp3_stream *stream) {
 
 int nghttp3_stream_write_settings(nghttp3_stream *stream,
                                   nghttp3_frame_entry *frent) {
-  size_t payloadlen;
   size_t len;
   int rv;
   nghttp3_buf *chunk;
@@ -360,7 +359,7 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
     ++fr.settings.niv;
   }
 
-  len = nghttp3_frame_write_settings_len(&payloadlen, &fr.settings);
+  len = nghttp3_frame_write_settings_len(&fr.settings.hd.length, &fr.settings);
 
   rv = nghttp3_stream_ensure_chunk(stream, len);
   if (rv != 0) {
@@ -370,11 +369,7 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
   chunk = nghttp3_stream_get_chunk(stream);
   typed_buf_shared_init(&tbuf, chunk);
 
-  fr.settings.hd.length = (int64_t)payloadlen;
-  rv = nghttp3_frame_write_settings(chunk, &fr.settings);
-  if (rv != 0) {
-    return rv;
-  }
+  chunk->last = nghttp3_frame_write_settings(chunk->last, &fr.settings);
 
   tbuf.buf.last = chunk->last;
 
@@ -384,13 +379,12 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
 int nghttp3_stream_write_priority(nghttp3_stream *stream,
                                   nghttp3_frame_entry *frent) {
   nghttp3_frame_priority *fr = &frent->fr.priority;
-  size_t payloadlen;
   size_t len;
   int rv;
   nghttp3_buf *chunk;
   nghttp3_typed_buf tbuf;
 
-  len = nghttp3_frame_write_priority_len(&payloadlen, fr);
+  len = nghttp3_frame_write_priority_len(&fr->hd.length, fr);
 
   rv = nghttp3_stream_ensure_chunk(stream, len);
   if (rv != 0) {
@@ -400,11 +394,7 @@ int nghttp3_stream_write_priority(nghttp3_stream *stream,
   chunk = nghttp3_stream_get_chunk(stream);
   typed_buf_shared_init(&tbuf, chunk);
 
-  fr->hd.length = (int64_t)payloadlen;
-  rv = nghttp3_frame_write_priority(chunk, fr);
-  if (rv != 0) {
-    return rv;
-  }
+  chunk->last = nghttp3_frame_write_priority(chunk->last, fr);
 
   tbuf.buf.last = chunk->last;
 
@@ -475,10 +465,7 @@ int nghttp3_stream_write_header_block(nghttp3_stream *stream,
   chunk = nghttp3_stream_get_chunk(stream);
   typed_buf_shared_init(&tbuf, chunk);
 
-  rv = nghttp3_frame_write_hd(chunk, &hd);
-  if (rv != 0) {
-    goto fail;
-  }
+  chunk->last = nghttp3_frame_write_hd(chunk->last, &hd);
 
   if (push_idlen) {
     chunk->last = nghttp3_put_varint(chunk->last, push_id);
@@ -582,10 +569,7 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
   chunk = nghttp3_stream_get_chunk(stream);
   typed_buf_shared_init(&tbuf, chunk);
 
-  rv = nghttp3_frame_write_hd(chunk, &hd);
-  if (rv != 0) {
-    return rv;
-  }
+  chunk->last = nghttp3_frame_write_hd(chunk->last, &hd);
 
   tbuf.buf.last = chunk->last;
 
