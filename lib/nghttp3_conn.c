@@ -846,9 +846,9 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       if (conn->local.uni.max_pushes > (uint64_t)rvint->acc) {
         return nghttp3_err_malformed_frame(NGHTTP3_FRAME_MAX_PUSH_ID);
       }
-      nghttp3_varint_read_state_reset(rvint);
 
       conn->local.uni.max_pushes = (uint64_t)rvint->acc;
+      nghttp3_varint_read_state_reset(rvint);
 
       nghttp3_stream_read_state_reset(rstate);
       break;
