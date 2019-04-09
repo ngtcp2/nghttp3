@@ -96,8 +96,8 @@ static int check_pseudo_header(nghttp3_stream *stream,
 
 static int expect_response_body(nghttp3_stream *stream) {
   return (stream->http_flags & NGHTTP3_HTTP_FLAG_METH_HEAD) == 0 &&
-         stream->status_code / 100 != 1 && stream->status_code != 304 &&
-         stream->status_code != 204;
+         stream->rx.status_code / 100 != 1 && stream->rx.status_code != 304 &&
+         stream->rx.status_code != 204;
 }
 
 /* For "http" or "https" URIs, OPTIONS request may have "*" in :path
@@ -191,11 +191,11 @@ static int http_request_on_header(nghttp3_stream *stream, nghttp3_qpack_nv *nv,
     }
     break;
   case NGHTTP3_QPACK_TOKEN_CONTENT_LENGTH: {
-    if (stream->content_length != -1) {
+    if (stream->rx.content_length != -1) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    stream->content_length = parse_uint(nv->value->base, nv->value->len);
-    if (stream->content_length == -1) {
+    stream->rx.content_length = parse_uint(nv->value->base, nv->value->len);
+    if (stream->rx.content_length == -1) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     break;
@@ -242,37 +242,38 @@ static int http_response_on_header(nghttp3_stream *stream, nghttp3_qpack_nv *nv,
     if (nv->value->len != 3) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    stream->status_code = (int16_t)parse_uint(nv->value->base, nv->value->len);
-    if (stream->status_code < 100 || stream->status_code == 101) {
+    stream->rx.status_code =
+        (int16_t)parse_uint(nv->value->base, nv->value->len);
+    if (stream->rx.status_code < 100 || stream->rx.status_code == 101) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     break;
   }
   case NGHTTP3_QPACK_TOKEN_CONTENT_LENGTH: {
-    if (stream->status_code == 204) {
+    if (stream->rx.status_code == 204) {
       /* content-length header field in 204 response is prohibited by
          RFC 7230.  But some widely used servers send content-length:
          0.  Until they get fixed, we ignore it. */
-      if (stream->content_length != -1) {
+      if (stream->rx.content_length != -1) {
         /* Found multiple content-length field */
         return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
       }
       if (!lstrieq("0", nv->value->base, nv->value->len)) {
         return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
       }
-      stream->content_length = 0;
+      stream->rx.content_length = 0;
       return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
     }
-    if (stream->status_code / 100 == 1 ||
-        (stream->status_code / 100 == 2 &&
+    if (stream->rx.status_code / 100 == 1 ||
+        (stream->rx.status_code / 100 == 2 &&
          (stream->http_flags & NGHTTP3_HTTP_FLAG_METH_CONNECT))) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    if (stream->content_length != -1) {
+    if (stream->rx.content_length != -1) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    stream->content_length = parse_uint(nv->value->base, nv->value->len);
-    if (stream->content_length == -1) {
+    stream->rx.content_length = parse_uint(nv->value->base, nv->value->len);
+    if (stream->rx.content_length == -1) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     break;
@@ -442,7 +443,7 @@ int nghttp3_http_on_request_headers(nghttp3_stream *stream,
         (stream->http_flags & NGHTTP3_HTTP_FLAG__AUTHORITY) == 0) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    stream->content_length = -1;
+    stream->rx.content_length = -1;
   } else {
     if ((stream->http_flags & NGHTTP3_HTTP_FLAG_REQ_HEADERS) !=
             NGHTTP3_HTTP_FLAG_REQ_HEADERS ||
@@ -464,7 +465,7 @@ int nghttp3_http_on_request_headers(nghttp3_stream *stream,
     /* we are going to reuse data fields for upcoming response.  Clear
        them now, except for method flags. */
     stream->http_flags &= NGHTTP3_HTTP_FLAG_METH_ALL;
-    stream->content_length = -1;
+    stream->rx.content_length = -1;
   }
 
   return 0;
@@ -475,13 +476,13 @@ int nghttp3_http_on_response_headers(nghttp3_stream *stream) {
     return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
   }
 
-  if (stream->status_code / 100 == 1) {
+  if (stream->rx.status_code / 100 == 1) {
     /* non-final response */
     stream->http_flags =
         (uint16_t)((stream->http_flags & NGHTTP3_HTTP_FLAG_METH_ALL) |
                    NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE);
-    stream->content_length = -1;
-    stream->status_code = -1;
+    stream->rx.content_length = -1;
+    stream->rx.status_code = -1;
     return 0;
   }
 
@@ -489,9 +490,9 @@ int nghttp3_http_on_response_headers(nghttp3_stream *stream) {
       (uint16_t)(stream->http_flags & ~NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE);
 
   if (!expect_response_body(stream)) {
-    stream->content_length = 0;
+    stream->rx.content_length = 0;
   } else if (stream->http_flags & NGHTTP3_HTTP_FLAG_METH_CONNECT) {
-    stream->content_length = -1;
+    stream->rx.content_length = -1;
   }
 
   return 0;
@@ -499,8 +500,8 @@ int nghttp3_http_on_response_headers(nghttp3_stream *stream) {
 
 int nghttp3_http_on_remote_end_stream(nghttp3_stream *stream) {
   if ((stream->http_flags & NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE) ||
-      (stream->content_length != -1 &&
-       stream->content_length != stream->recv_content_length)) {
+      (stream->rx.content_length != -1 &&
+       stream->rx.content_length != stream->rx.recv_content_length)) {
     return NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING;
   }
 
@@ -508,11 +509,11 @@ int nghttp3_http_on_remote_end_stream(nghttp3_stream *stream) {
 }
 
 int nghttp3_http_on_data_chunk(nghttp3_stream *stream, size_t n) {
-  stream->recv_content_length += (int64_t)n;
+  stream->rx.recv_content_length += (int64_t)n;
 
   if ((stream->http_flags & NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE) ||
-      (stream->content_length != -1 &&
-       stream->recv_content_length > stream->content_length)) {
+      (stream->rx.content_length != -1 &&
+       stream->rx.recv_content_length > stream->rx.content_length)) {
     return NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING;
   }
 

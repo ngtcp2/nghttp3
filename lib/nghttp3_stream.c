@@ -78,8 +78,8 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
   stream->me.key = (key_type)stream_id;
   stream->qpack_blocked_pe.index = NGHTTP3_PQ_BAD_INDEX;
   stream->mem = mem;
-  stream->status_code = -1;
-  stream->content_length = -1;
+  stream->rx.status_code = -1;
+  stream->rx.content_length = -1;
 
   if (callbacks) {
     stream->callbacks = *callbacks;
@@ -1110,12 +1110,12 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
   case NGHTTP3_HTTP_STATE_RESP_HEADERS_END:
     switch (event) {
     case NGHTTP3_HTTP_EVENT_HEADERS_BEGIN:
-      if (stream->status_code == -1) {
+      if (stream->rx.status_code == -1) {
         stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN;
         return 0;
       }
       if ((stream->http_flags & NGHTTP3_HTTP_FLAG_METH_CONNECT) &&
-          stream->status_code / 100 == 2) {
+          stream->rx.status_code / 100 == 2) {
         return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
       }
       rv = nghttp3_http_on_remote_end_stream(stream);
@@ -1149,7 +1149,7 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
       return 0;
     case NGHTTP3_HTTP_EVENT_HEADERS_BEGIN:
       if ((stream->http_flags & NGHTTP3_HTTP_FLAG_METH_CONNECT) &&
-          stream->status_code / 100 == 2) {
+          stream->rx.status_code / 100 == 2) {
         return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
       }
       rv = nghttp3_http_on_remote_end_stream(stream);

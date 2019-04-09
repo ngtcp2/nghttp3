@@ -1521,8 +1521,8 @@ void test_nghttp3_conn_http_content_length(void) {
                                        /* fin = */ 0);
 
   CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(9000000000LL == stream->content_length);
-  CU_ASSERT(200 == stream->status_code);
+  CU_ASSERT(9000000000LL == stream->rx.content_length);
+  CU_ASSERT(200 == stream->rx.status_code);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1547,7 +1547,7 @@ void test_nghttp3_conn_http_content_length(void) {
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(9000000000LL == stream->content_length);
+  CU_ASSERT(9000000000LL == stream->rx.content_length);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2139,7 +2139,7 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
                                        /* fin = */ 0);
 
   CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(0 == stream->content_length);
+  CU_ASSERT(0 == stream->rx.content_length);
 
   rv = nghttp3_conn_close_stream(conn, 0);
 
@@ -2168,7 +2168,7 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(-1 == stream->content_length);
+  CU_ASSERT(-1 == stream->rx.content_length);
 
   rv = nghttp3_conn_close_stream(conn, 0);
 
@@ -2253,7 +2253,7 @@ void test_nghttp3_conn_http_record_request_method(void) {
                                        /* fin = */ 0);
 
   CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(0 == stream->content_length);
+  CU_ASSERT(0 == stream->rx.content_length);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);

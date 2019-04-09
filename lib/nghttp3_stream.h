@@ -231,14 +231,19 @@ struct nghttp3_stream {
 
   struct {
     nghttp3_stream_http_state hstate;
+    /* status_code is HTTP status code received.  This field is used
+       if connection is initialized as client. */
+    int32_t status_code;
+    /* content_length is the value of received content-length header
+       field. */
+    int64_t content_length;
+    /* recv_content_length is the number of body bytes received so
+       far. */
+    int64_t recv_content_length;
   } rx;
 
   uint16_t flags;
   uint16_t http_flags;
-  /* TODO Move these fields to rx */
-  int32_t status_code;
-  int64_t content_length;
-  int64_t recv_content_length;
 };
 
 typedef struct {
