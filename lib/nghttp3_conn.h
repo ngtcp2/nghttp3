@@ -44,6 +44,10 @@
    table size for QPACK encoder. */
 #define NGHTTP3_QPACK_ENCODER_MAX_TABLE_CAPACITY 16384
 
+/* NGHTTP3_QPACK_ENCODER_MAX_BLOCK_STREAMS is the maximum number of
+   blocked streams for QPACK encoder. */
+#define NGHTTP3_QPACK_ENCODER_MAX_BLOCK_STREAMS 100
+
 typedef struct {
   nghttp3_map_entry me;
   nghttp3_tnode node;

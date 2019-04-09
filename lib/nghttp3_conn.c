@@ -2190,6 +2190,7 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
   nghttp3_conn_settings *dest = &conn->remote.settings;
   int rv;
   uint32_t max_table_capacity = NGHTTP3_QPACK_ENCODER_MAX_TABLE_CAPACITY;
+  uint32_t max_blocked_streams = NGHTTP3_QPACK_ENCODER_MAX_BLOCK_STREAMS;
 
   /* TODO Check for duplicates */
   switch (ent->id) {
@@ -2222,8 +2223,10 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
       return NGHTTP3_ERR_HTTP_INTERNAL_ERROR;
     }
     dest->qpack_blocked_streams = (uint16_t)ent->value;
-    rv = nghttp3_qpack_encoder_set_max_blocked(&conn->qenc,
-                                               dest->qpack_blocked_streams);
+    max_blocked_streams =
+        nghttp3_min(max_blocked_streams, dest->qpack_blocked_streams);
+    rv =
+        nghttp3_qpack_encoder_set_max_blocked(&conn->qenc, max_blocked_streams);
     if (rv != 0) {
       return rv;
     }
