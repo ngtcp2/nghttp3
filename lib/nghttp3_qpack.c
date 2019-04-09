@@ -33,6 +33,12 @@
 #include "nghttp3_macro.h"
 #include "nghttp3_debug.h"
 
+/* NGHTTP3_QPACK_MAX_QPACK_STREAMS is the maximum number of concurrent
+   nghttp3_qpack_stream object to handle a client which never cancel
+   or acknowledge header block.  After this limit, encoder stops using
+   dynamic table. */
+#define NGHTTP3_QPACK_MAX_QPACK_STREAMS 2000
+
 /* Make scalar initialization form of nghttp3_qpack_static_entry */
 #define MAKE_STATIC_ENT(I, T, H)                                               \
   { I, T, H }
@@ -1439,10 +1445,10 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
   uint32_t hash = 0;
   int32_t token;
   nghttp3_qpack_indexing_mode indexing_mode;
-  nghttp3_qpack_lookup_result sres = {-1, 0, -1}, dres;
+  nghttp3_qpack_lookup_result sres = {-1, 0, -1}, dres = {-1, 0, -1};
   nghttp3_qpack_entry *new_ent = NULL;
   int static_entry;
-  int just_index;
+  int just_index = 0;
   int rv;
 
   token = qpack_lookup_token(nv->name, nv->namelen);
@@ -1463,11 +1469,13 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
     }
   }
 
-  dres = nghttp3_qpack_encoder_lookup_dtable(
-      encoder, nv, token, hash, indexing_mode, encoder->krcnt, allow_blocking);
-
-  just_index =
-      indexing_mode == NGHTTP3_QPACK_INDEXING_MODE_STORE && dres.pb_index == -1;
+  if (nghttp3_map_size(&encoder->streams) < NGHTTP3_QPACK_MAX_QPACK_STREAMS) {
+    dres = nghttp3_qpack_encoder_lookup_dtable(encoder, nv, token, hash,
+                                               indexing_mode, encoder->krcnt,
+                                               allow_blocking);
+    just_index = indexing_mode == NGHTTP3_QPACK_INDEXING_MODE_STORE &&
+                 dres.pb_index == -1;
+  }
 
   if (dres.index != -1 && dres.name_value_match) {
     if (allow_blocking &&
