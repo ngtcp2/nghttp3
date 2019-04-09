@@ -2122,7 +2122,7 @@ static ssize_t conn_decode_headers(nghttp3_conn *conn, nghttp3_stream *stream,
     if (flags & NGHTTP3_QPACK_DECODE_FLAG_BLOCKED) {
       if (conn->local.settings.qpack_blocked_streams <=
           nghttp3_pq_size(&conn->qpack_blocked_streams)) {
-        return NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+        return NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
       }
 
       stream->flags |= NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED;

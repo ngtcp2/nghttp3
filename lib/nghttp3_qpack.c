@@ -2328,7 +2328,7 @@ int nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
 int nghttp3_qpack_encoder_add_insert_count(nghttp3_qpack_encoder *encoder,
                                            size_t n) {
   if (encoder->ctx.next_absidx < encoder->krcnt + n) {
-    return NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR;
+    return NGHTTP3_ERR_HTTP_QPACK_DECODER_STREAM_ERROR;
   }
   encoder->krcnt += n;
 
@@ -2525,7 +2525,7 @@ ssize_t nghttp3_qpack_encoder_read_decoder(nghttp3_qpack_encoder *encoder,
       nread = qpack_read_varint(&rfin, &encoder->rstate, p, end);
       if (nread < 0) {
         assert(nread == NGHTTP3_ERR_QPACK_FATAL);
-        rv = NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR;
+        rv = NGHTTP3_ERR_HTTP_QPACK_DECODER_STREAM_ERROR;
         goto fail;
       }
 
@@ -2788,7 +2788,7 @@ ssize_t nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
         decoder->state = NGHTTP3_QPACK_ES_STATE_READ_INDEX;
       } else {
         DEBUGF("qpack::decode: unknown opcode %02x\n", *p);
-        rv = NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR;
+        rv = NGHTTP3_ERR_HTTP_QPACK_ENCODER_STREAM_ERROR;
         goto fail;
       }
       break;
@@ -2796,7 +2796,7 @@ ssize_t nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
       nread = qpack_read_varint(&rfin, &decoder->rstate, p, end);
       if (nread < 0) {
         assert(NGHTTP3_ERR_QPACK_FATAL == nread);
-        rv = NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR;
+        rv = NGHTTP3_ERR_HTTP_QPACK_ENCODER_STREAM_ERROR;
         goto fail;
       }
 
@@ -2808,7 +2808,7 @@ ssize_t nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
 
       if (decoder->opcode == NGHTTP3_QPACK_ES_OPCODE_SET_DTABLE_CAP) {
         if (decoder->rstate.left > decoder->ctx.hard_max_dtable_size) {
-          rv = NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR;
+          rv = NGHTTP3_ERR_HTTP_QPACK_ENCODER_STREAM_ERROR;
           goto fail;
         }
         DEBUGF("qpack::decode: Set dtable capacity to %zu\n",
@@ -2854,7 +2854,7 @@ ssize_t nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
       nread = qpack_read_varint(&rfin, &decoder->rstate, p, end);
       if (nread < 0) {
         assert(NGHTTP3_ERR_QPACK_FATAL == nread);
-        rv = NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR;
+        rv = NGHTTP3_ERR_HTTP_QPACK_ENCODER_STREAM_ERROR;
         goto fail;
       }
 
@@ -2887,7 +2887,7 @@ ssize_t nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
                                         &decoder->rstate.namebuf, p, end);
       if (nread < 0) {
         assert(NGHTTP3_ERR_QPACK_FATAL == nread);
-        rv = NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR;
+        rv = NGHTTP3_ERR_HTTP_QPACK_ENCODER_STREAM_ERROR;
         goto fail;
       }
 
@@ -2930,7 +2930,7 @@ ssize_t nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
       nread = qpack_read_varint(&rfin, &decoder->rstate, p, end);
       if (nread < 0) {
         assert(NGHTTP3_ERR_QPACK_FATAL == nread);
-        rv = NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR;
+        rv = NGHTTP3_ERR_HTTP_QPACK_ENCODER_STREAM_ERROR;
         goto fail;
       }
 
@@ -2966,7 +2966,7 @@ ssize_t nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
                                         &decoder->rstate.valuebuf, p, end);
       if (nread < 0) {
         assert(NGHTTP3_ERR_QPACK_FATAL == nread);
-        rv = NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR;
+        rv = NGHTTP3_ERR_HTTP_QPACK_ENCODER_STREAM_ERROR;
         goto fail;
       }
 
@@ -3084,7 +3084,7 @@ int nghttp3_qpack_decoder_dtable_static_add(nghttp3_qpack_decoder *decoder) {
 
   if (table_space(shd->name.len, decoder->rstate.value->len) >
       decoder->ctx.max_dtable_size) {
-    return NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR;
+    return NGHTTP3_ERR_HTTP_QPACK_ENCODER_STREAM_ERROR;
   }
 
   qnv.name = (nghttp3_rcbuf *)&shd->name;
@@ -3108,7 +3108,7 @@ int nghttp3_qpack_decoder_dtable_dynamic_add(nghttp3_qpack_decoder *decoder) {
 
   if (table_space(ent->nv.name->len, decoder->rstate.value->len) >
       decoder->ctx.max_dtable_size) {
-    return NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR;
+    return NGHTTP3_ERR_HTTP_QPACK_ENCODER_STREAM_ERROR;
   }
 
   qnv.name = ent->nv.name;
@@ -3138,7 +3138,7 @@ int nghttp3_qpack_decoder_dtable_duplicate_add(nghttp3_qpack_decoder *decoder) {
 
   if (table_space(ent->nv.name->len, ent->nv.value->len) >
       decoder->ctx.max_dtable_size) {
-    return NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR;
+    return NGHTTP3_ERR_HTTP_QPACK_ENCODER_STREAM_ERROR;
   }
 
   qnv = ent->nv;
@@ -3163,7 +3163,7 @@ int nghttp3_qpack_decoder_dtable_literal_add(nghttp3_qpack_decoder *decoder) {
 
   if (table_space(decoder->rstate.name->len, decoder->rstate.value->len) >
       decoder->ctx.max_dtable_size) {
-    return NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR;
+    return NGHTTP3_ERR_HTTP_QPACK_ENCODER_STREAM_ERROR;
   }
 
   qnv.name = decoder->rstate.name;
@@ -3232,7 +3232,7 @@ ssize_t nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
       nread = qpack_read_varint(&rfin, &sctx->rstate, p, end);
       if (nread < 0) {
         assert(NGHTTP3_ERR_QPACK_FATAL == nread);
-        rv = NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+        rv = NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
         goto fail;
       }
 
@@ -3263,7 +3263,7 @@ ssize_t nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
       nread = qpack_read_varint(&rfin, &sctx->rstate, p, end);
       if (nread < 0) {
         assert(NGHTTP3_ERR_QPACK_FATAL == nread);
-        rv = NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+        rv = NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
         goto fail;
       }
 
@@ -3275,7 +3275,7 @@ ssize_t nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
 
       if (sctx->dbase_sign) {
         if (sctx->ricnt < sctx->rstate.left) {
-          rv = NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+          rv = NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
           goto fail;
         }
         sctx->base = sctx->ricnt - sctx->rstate.left - 1;
@@ -3339,7 +3339,7 @@ ssize_t nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
       nread = qpack_read_varint(&rfin, &sctx->rstate, p, end);
       if (nread < 0) {
         assert(NGHTTP3_ERR_QPACK_FATAL == nread);
-        rv = NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+        rv = NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
         goto fail;
       }
 
@@ -3405,7 +3405,7 @@ ssize_t nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
       nread = qpack_read_varint(&rfin, &sctx->rstate, p, end);
       if (nread < 0) {
         assert(NGHTTP3_ERR_QPACK_FATAL == nread);
-        rv = NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+        rv = NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
         goto fail;
       }
 
@@ -3441,7 +3441,7 @@ ssize_t nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
                                         end);
       if (nread < 0) {
         assert(NGHTTP3_ERR_QPACK_FATAL == nread);
-        rv = NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+        rv = NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
         goto fail;
       }
 
@@ -3484,7 +3484,7 @@ ssize_t nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
       nread = qpack_read_varint(&rfin, &sctx->rstate, p, end);
       if (nread < 0) {
         assert(NGHTTP3_ERR_QPACK_FATAL == nread);
-        rv = NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+        rv = NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
         goto fail;
       }
 
@@ -3523,7 +3523,7 @@ ssize_t nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
                                         p, end);
       if (nread < 0) {
         assert(NGHTTP3_ERR_QPACK_FATAL == nread);
-        rv = NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+        rv = NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
         goto fail;
       }
 
@@ -3603,7 +3603,7 @@ ssize_t nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
 almost_ok:
   if (fin) {
     if (sctx->state != NGHTTP3_QPACK_RS_STATE_OPCODE) {
-      rv = NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+      rv = NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
       goto fail;
     }
 
@@ -3719,7 +3719,7 @@ int nghttp3_qpack_decoder_reconstruct_ricnt(nghttp3_qpack_decoder *decoder,
   full = 2 * max_ents;
 
   if (encricnt > full) {
-    return NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+    return NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
   }
 
   max = decoder->ctx.next_absidx + max_ents;
@@ -3728,7 +3728,7 @@ int nghttp3_qpack_decoder_reconstruct_ricnt(nghttp3_qpack_decoder *decoder,
 
   if (ricnt > max) {
     if (ricnt < full) {
-      return NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+      return NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
     }
     ricnt -= full;
   }
@@ -3745,14 +3745,14 @@ int nghttp3_qpack_decoder_rel2abs(nghttp3_qpack_decoder *decoder,
 
   if (rstate->dynamic) {
     if (decoder->ctx.next_absidx < rstate->left + 1) {
-      return NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR;
+      return NGHTTP3_ERR_HTTP_QPACK_ENCODER_STREAM_ERROR;
     }
     rstate->absidx = decoder->ctx.next_absidx - rstate->left - 1;
   } else {
     rstate->absidx = rstate->left;
   }
   if (qpack_decoder_validate_index(decoder, rstate) != 0) {
-    return NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR;
+    return NGHTTP3_ERR_HTTP_QPACK_ENCODER_STREAM_ERROR;
   }
   return 0;
 }
@@ -3766,7 +3766,7 @@ int nghttp3_qpack_decoder_brel2abs(nghttp3_qpack_decoder *decoder,
 
   if (rstate->dynamic) {
     if (sctx->base < rstate->left + 1) {
-      return NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+      return NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
     }
     rstate->absidx = sctx->base - rstate->left - 1;
 
@@ -3775,7 +3775,7 @@ int nghttp3_qpack_decoder_brel2abs(nghttp3_qpack_decoder *decoder,
   }
 
   if (qpack_decoder_validate_index(decoder, rstate) != 0) {
-    return NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+    return NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
   }
   return 0;
 }
@@ -3792,7 +3792,7 @@ int nghttp3_qpack_decoder_pbrel2abs(nghttp3_qpack_decoder *decoder,
   rstate->absidx = rstate->left + sctx->base;
 
   if (qpack_decoder_validate_index(decoder, rstate) != 0) {
-    return NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+    return NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
   }
   return 0;
 }
