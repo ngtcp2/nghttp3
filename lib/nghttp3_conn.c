@@ -424,6 +424,9 @@ static ssize_t conn_read_type(nghttp3_conn *conn, nghttp3_stream *stream,
     rstate->state = NGHTTP3_CTRL_STREAM_STATE_FRAME_TYPE;
     break;
   case NGHTTP3_STREAM_TYPE_PUSH:
+    if (conn->server) {
+      return NGHTTP3_ERR_HTTP_WRONG_STREAM_DIRECTION;
+    }
     stream->type = NGHTTP3_STREAM_TYPE_PUSH;
     rstate->state = NGHTTP3_PUSH_STREAM_STATE_PUSH_ID;
     break;
@@ -917,12 +920,275 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
 
 ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
                                const uint8_t *src, size_t srclen, int fin) {
-  (void)conn;
-  (void)stream;
-  (void)src;
-  (void)srclen;
-  (void)fin;
-  return 0;
+  const uint8_t *p = src, *end = src + srclen;
+  int rv;
+  nghttp3_stream_read_state *rstate = &stream->rstate;
+  nghttp3_varint_read_state *rvint = &rstate->rvint;
+  ssize_t nread;
+  size_t nconsumed = 0;
+  int busy = 0;
+  size_t len;
+  int64_t push_id;
+
+  if (fin) {
+    /* stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF might be already
+       nonzero, if stream was blocked by QPACK decoder.  */
+    stream->flags |= NGHTTP3_STREAM_FLAG_READ_EOF;
+  }
+
+  if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
+    if (srclen == 0) {
+      return 0;
+    }
+
+    rv = nghttp3_stream_buffer_data(stream, p, (size_t)(end - p));
+    if (rv != 0) {
+      return rv;
+    }
+    return 0;
+  }
+
+  for (; p != end || busy;) {
+    busy = 0;
+    switch (rstate->state) {
+    case NGHTTP3_PUSH_STREAM_STATE_PUSH_ID:
+      assert(end - p > 0);
+      nread = nghttp3_read_varint(rvint, p, (size_t)(end - p), fin);
+      if (nread < 0) {
+        return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
+      }
+
+      p += nread;
+      nconsumed += (size_t)nread;
+      if (rvint->left) {
+        goto almost_done;
+      }
+
+      push_id = rvint->acc;
+      nghttp3_varint_read_state_reset(rvint);
+
+      rv = nghttp3_conn_on_stream_push_id(conn, stream, push_id);
+      if (rv != 0) {
+        return (ssize_t)rv;
+      }
+
+      if (end == p) {
+        goto almost_done;
+      }
+      /* Fall through */
+    case NGHTTP3_PUSH_STREAM_STATE_FRAME_TYPE:
+      assert(end - p > 0);
+      nread = nghttp3_read_varint(rvint, p, (size_t)(end - p), fin);
+      if (nread < 0) {
+        return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
+      }
+
+      p += nread;
+      nconsumed += (size_t)nread;
+      if (rvint->left) {
+        goto almost_done;
+      }
+
+      rstate->fr.hd.type = rvint->acc;
+      nghttp3_varint_read_state_reset(rvint);
+      rstate->state = NGHTTP3_PUSH_STREAM_STATE_FRAME_LENGTH;
+      if (p == end) {
+        break;
+      }
+      /* Fall through */
+    case NGHTTP3_PUSH_STREAM_STATE_FRAME_LENGTH:
+      assert(end - p > 0);
+      nread = nghttp3_read_varint(rvint, p, (size_t)(end - p), fin);
+      if (nread < 0) {
+        return nghttp3_err_malformed_frame(rstate->fr.hd.type);
+      }
+
+      p += nread;
+      nconsumed += (size_t)nread;
+      if (rvint->left) {
+        goto almost_done;
+      }
+
+      rstate->left = rstate->fr.hd.length = rvint->acc;
+      nghttp3_varint_read_state_reset(rvint);
+
+      switch (rstate->fr.hd.type) {
+      case NGHTTP3_FRAME_DATA:
+        rv = nghttp3_stream_transit_rx_http_state(
+            stream, NGHTTP3_HTTP_EVENT_DATA_BEGIN);
+        if (rv != 0) {
+          return rv;
+        }
+        /* DATA frame might be empty. */
+        if (rstate->left == 0) {
+          rv = nghttp3_stream_transit_rx_http_state(
+              stream, NGHTTP3_HTTP_EVENT_DATA_END);
+          assert(0 == rv);
+
+          nghttp3_stream_read_state_reset(rstate);
+          break;
+        }
+        rstate->state = NGHTTP3_PUSH_STREAM_STATE_DATA;
+        break;
+      case NGHTTP3_FRAME_HEADERS:
+        rv = nghttp3_stream_transit_rx_http_state(
+            stream, NGHTTP3_HTTP_EVENT_HEADERS_BEGIN);
+        if (rv != 0) {
+          return rv;
+        }
+        if (rstate->left == 0) {
+          rv = nghttp3_stream_empty_headers_allowed(stream);
+          if (rv != 0) {
+            return rv;
+          }
+
+          rv = nghttp3_stream_transit_rx_http_state(
+              stream, NGHTTP3_HTTP_EVENT_HEADERS_END);
+          assert(0 == rv);
+
+          nghttp3_stream_read_state_reset(rstate);
+          break;
+        }
+
+        switch (stream->rx.hstate) {
+        case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
+          rv = conn_call_begin_headers(conn, stream);
+          break;
+        case NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:
+          rv = conn_call_begin_trailers(conn, stream);
+          break;
+        default:
+          /* Unreachable */
+          assert(0);
+        }
+
+        if (rv != 0) {
+          return rv;
+        }
+
+        rstate->state = NGHTTP3_PUSH_STREAM_STATE_HEADERS;
+        break;
+      case NGHTTP3_FRAME_PUSH_PROMISE:
+      case NGHTTP3_FRAME_DUPLICATE_PUSH:
+      case NGHTTP3_FRAME_PRIORITY:
+      case NGHTTP3_FRAME_CANCEL_PUSH:
+      case NGHTTP3_FRAME_SETTINGS:
+      case NGHTTP3_FRAME_GOAWAY:
+      case NGHTTP3_FRAME_MAX_PUSH_ID:
+        return NGHTTP3_ERR_HTTP_WRONG_STREAM;
+      default:
+        /* TODO Handle reserved frame type */
+        busy = 1;
+        rstate->state = NGHTTP3_PUSH_STREAM_STATE_IGN_FRAME;
+        break;
+      }
+      break;
+    case NGHTTP3_PUSH_STREAM_STATE_DATA:
+      len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
+      rv = nghttp3_conn_on_data(conn, stream, p, len);
+      if (rv != 0) {
+        return rv;
+      }
+
+      p += len;
+      nconsumed += len;
+      rstate->left -= (int64_t)len;
+
+      if (rstate->left) {
+        goto almost_done;
+      }
+
+      rv = nghttp3_stream_transit_rx_http_state(stream,
+                                                NGHTTP3_HTTP_EVENT_DATA_END);
+      assert(0 == rv);
+
+      nghttp3_stream_read_state_reset(rstate);
+      break;
+    case NGHTTP3_PUSH_STREAM_STATE_HEADERS:
+      len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
+      nread = nghttp3_conn_on_headers(conn, stream, p, len,
+                                      (int64_t)len == rstate->left);
+      if (nread < 0) {
+        return nread;
+      }
+
+      p += nread;
+      nconsumed += (size_t)nread;
+      rstate->left -= nread;
+
+      if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
+        rv = nghttp3_stream_buffer_data(stream, p, (size_t)(end - p));
+        if (rv != 0) {
+          return rv;
+        }
+        return (ssize_t)nconsumed;
+      }
+
+      if (rstate->left) {
+        goto almost_done;
+      }
+
+      switch (stream->rx.hstate) {
+      case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
+        rv = nghttp3_http_on_response_headers(stream);
+        if (rv != 0) {
+          return rv;
+        }
+
+        rv = conn_call_end_headers(conn, stream);
+        break;
+      case NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:
+        rv = conn_call_end_trailers(conn, stream);
+        break;
+      default:
+        /* Unreachable */
+        assert(0);
+      }
+
+      if (rv != 0) {
+        return rv;
+      }
+
+      rv = nghttp3_stream_transit_rx_http_state(stream,
+                                                NGHTTP3_HTTP_EVENT_HEADERS_END);
+      assert(0 == rv);
+
+      nghttp3_stream_read_state_reset(rstate);
+      break;
+    case NGHTTP3_PUSH_STREAM_STATE_IGN_FRAME:
+      len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
+      p += len;
+      nconsumed += len;
+      rstate->left -= (int64_t)len;
+
+      if (rstate->left) {
+        goto almost_done;
+      }
+
+      nghttp3_stream_read_state_reset(rstate);
+      break;
+    }
+  }
+
+almost_done:
+  if ((stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF)) {
+    switch (rstate->state) {
+    case NGHTTP3_PUSH_STREAM_STATE_FRAME_TYPE:
+      if (rvint->left) {
+        return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
+      }
+      rv = nghttp3_stream_transit_rx_http_state(stream,
+                                                NGHTTP3_HTTP_EVENT_MSG_END);
+      if (rv != 0) {
+        return rv;
+      }
+      break;
+    default:
+      return nghttp3_err_malformed_frame(rstate->fr.hd.type);
+    }
+  }
+
+  return (ssize_t)nconsumed;
 }
 
 static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
@@ -1171,12 +1437,28 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
         rstate->state = NGHTTP3_REQ_STREAM_STATE_HEADERS;
         break;
       case NGHTTP3_FRAME_PUSH_PROMISE:
+        if (conn->server) {
+          return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+        }
+
         if (rstate->left == 0) {
           return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PUSH_PROMISE);
         }
+
+        /* No stream->rx.hstate change with PUSH_PROMISE */
+
+        rv = conn_call_begin_push_promise(conn, stream);
+        if (rv != 0) {
+          return rv;
+        }
+
         rstate->state = NGHTTP3_REQ_STREAM_STATE_PUSH_PROMISE;
         break;
       case NGHTTP3_FRAME_DUPLICATE_PUSH:
+        if (conn->server) {
+          return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+        }
+
         if (rstate->left == 0) {
           return nghttp3_err_malformed_frame(NGHTTP3_FRAME_DUPLICATE_PUSH);
         }
@@ -1297,6 +1579,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
       nghttp3_stream_read_state_reset(rstate);
       break;
     case NGHTTP3_REQ_STREAM_STATE_HEADERS:
+    case NGHTTP3_REQ_STREAM_STATE_PUSH_PROMISE:
       len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
       nread = nghttp3_conn_on_headers(conn, stream, p, len,
                                       (int64_t)len == rstate->left);
@@ -1320,49 +1603,57 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
         goto almost_done;
       }
 
-      switch (stream->rx.hstate) {
-      case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
-      case NGHTTP3_HTTP_STATE_RESP_PUSH_PROMISE_BEGIN:
+      if (rstate->fr.hd.type == NGHTTP3_FRAME_PUSH_PROMISE) {
         rv = nghttp3_http_on_request_headers(stream, rstate->fr.hd.type);
-        break;
-      case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
-        rv = nghttp3_http_on_response_headers(stream);
-        break;
-      default:
-        break;
+      } else {
+        switch (stream->rx.hstate) {
+        case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
+          rv = nghttp3_http_on_request_headers(stream, rstate->fr.hd.type);
+          break;
+        case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
+          rv = nghttp3_http_on_response_headers(stream);
+          break;
+        default:
+          break;
+        }
       }
 
       if (rv != 0) {
         return rv;
       }
 
-      switch (stream->rx.hstate) {
-      case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
-      case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
-        rv = conn_call_end_headers(conn, stream);
-        break;
-      case NGHTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN:
-      case NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:
-        rv = conn_call_end_trailers(conn, stream);
-        break;
-      case NGHTTP3_HTTP_STATE_RESP_PUSH_PROMISE_BEGIN:
+      if (rstate->fr.hd.type == NGHTTP3_FRAME_PUSH_PROMISE) {
         rv = conn_call_end_push_promise(conn, stream);
-        break;
-      default:
-        /* Unreachable */
-        assert(0);
-      }
+        if (rv != 0) {
+          return rv;
+        }
+      } else {
+        switch (stream->rx.hstate) {
+        case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
+        case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
+          rv = conn_call_end_headers(conn, stream);
+          break;
+        case NGHTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN:
+        case NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:
+          rv = conn_call_end_trailers(conn, stream);
+          break;
+        default:
+          /* Unreachable */
+          assert(0);
+        }
 
-      if (rv != 0) {
-        return rv;
-      }
+        if (rv != 0) {
+          return rv;
+        }
 
-      rv = nghttp3_stream_transit_rx_http_state(stream,
-                                                NGHTTP3_HTTP_EVENT_HEADERS_END);
-      assert(0 == rv);
+        rv = nghttp3_stream_transit_rx_http_state(
+            stream, NGHTTP3_HTTP_EVENT_HEADERS_END);
+        assert(0 == rv);
+      }
 
       nghttp3_stream_read_state_reset(rstate);
       break;
+    case NGHTTP3_REQ_STREAM_STATE_DUPLICATE_PUSH:
     case NGHTTP3_REQ_STREAM_STATE_IGN_FRAME:
       len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
       p += len;
@@ -1766,6 +2057,15 @@ int nghttp3_conn_on_server_cancel_push(nghttp3_conn *conn,
 
   nghttp3_push_promise_del(pp, conn->mem);
   return 0;
+}
+
+int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
+                                   int64_t push_id) {
+  (void)conn;
+  (void)stream;
+  (void)push_id;
+  /* TODO Not implemented yet */
+  return NGHTTP3_ERR_HTTP_INTERNAL_ERROR;
 }
 
 static ssize_t conn_decode_headers(nghttp3_conn *conn, nghttp3_stream *stream,

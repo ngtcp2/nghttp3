@@ -177,6 +177,9 @@ int nghttp3_conn_on_client_cancel_push(nghttp3_conn *conn,
 int nghttp3_conn_on_server_cancel_push(nghttp3_conn *conn,
                                        const nghttp3_frame_cancel_push *fr);
 
+int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
+                                   int64_t push_id);
+
 int nghttp3_conn_on_data(nghttp3_conn *conn, nghttp3_stream *stream,
                          const uint8_t *data, size_t datalen);
 
