@@ -1715,13 +1715,33 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
         return rv;
       }
 
+      pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_RECVED;
+
       rv = conn_call_end_push_promise(conn, pp->push_id);
       if (rv != 0) {
         return rv;
       }
 
-      if (pp->stream &&
-          (pp->stream->flags & NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED)) {
+      if (!pp->stream && pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED) {
+        rv = conn_call_cancel_push(conn, pp->push_id, pp->stream);
+        if (rv != 0) {
+          return rv;
+        }
+
+        if (!pp->stream) {
+          rv = nghttp3_map_remove(&conn->pushes, (key_type)pp->push_id);
+          assert(0 == rv);
+
+          nghttp3_push_promise_del(pp, conn->mem);
+        }
+
+        nghttp3_stream_read_state_reset(rstate);
+        break;
+      }
+
+      if (pp->stream) {
+        assert(pp->stream->flags & NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED);
+
         rv = conn_call_push_stream(conn, pp->push_id, pp->stream);
         if (rv != 0) {
           return rv;
@@ -2169,10 +2189,17 @@ int nghttp3_conn_on_push_promise_push_id(nghttp3_conn *conn, int64_t push_id,
   }
 
   pp = nghttp3_conn_find_push_promise(conn, push_id);
-  if (pp && pp->stream &&
-      (pp->stream->flags & NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED)) {
-    /* Push unidirectional stream has already been received and
-       blocked */
+  if (pp) {
+    if (pp->stream) {
+      assert(pp->stream->flags & NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED);
+      /* Push unidirectional stream has already been received and
+         blocked */
+    } else if (pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED) {
+      /* We will call begin_push_promise callback even if push is
+         cancelled */
+    } else {
+      return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PUSH_PROMISE);
+    }
   } else if (nghttp3_gaptr_is_pushed(push_idtr, (uint64_t)push_id, 1)) {
     return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PUSH_PROMISE);
   } else {
@@ -2198,9 +2225,61 @@ int nghttp3_conn_on_push_promise_push_id(nghttp3_conn *conn, int64_t push_id,
 
 int nghttp3_conn_on_client_cancel_push(nghttp3_conn *conn,
                                        const nghttp3_frame_cancel_push *fr) {
-  (void)conn;
-  (void)fr;
-  /* TODO Not implemented */
+  nghttp3_push_promise *pp;
+  nghttp3_gaptr *push_idtr = &conn->remote.uni.push_idtr;
+  int rv;
+
+  if (conn->remote.uni.max_pushes <= (uint64_t)fr->push_id) {
+    return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+  }
+
+  pp = nghttp3_conn_find_push_promise(conn, fr->push_id);
+  if (pp == NULL) {
+    if (nghttp3_gaptr_is_pushed(push_idtr, (uint64_t)fr->push_id, 1)) {
+      /* push is already cancelled or server is misbehaving */
+      return 0;
+    }
+
+    /* We have not received PUSH_PROMISE yet */
+    rv = nghttp3_gaptr_push(push_idtr, (uint64_t)fr->push_id, 1);
+    if (rv != 0) {
+      return rv;
+    }
+
+    rv = nghttp3_conn_create_push_promise(conn, &pp, fr->push_id,
+                                          NGHTTP3_DEFAULT_WEIGHT, &conn->root);
+    if (rv != 0) {
+      return rv;
+    }
+
+    pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED;
+
+    /* cancel_push callback will be called after PUSH_PROMISE frame is
+       completely received. */
+
+    return 0;
+  }
+
+  if (pp->stream) {
+    return 0;
+  }
+
+  if (pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_RECVED) {
+    rv = conn_call_cancel_push(conn, pp->push_id, pp->stream);
+    if (rv != 0) {
+      return rv;
+    }
+
+    rv = nghttp3_map_remove(&conn->pushes, (key_type)pp->push_id);
+    assert(0 == rv);
+
+    nghttp3_push_promise_del(pp, conn->mem);
+
+    return 0;
+  }
+
+  pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED;
+
   return 0;
 }
 
@@ -2262,7 +2341,12 @@ int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
       pp->stream = stream;
       stream->pp = pp;
 
-      return conn_call_push_stream(conn, push_id, stream);
+      if (pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_RECVED) {
+        return conn_call_push_stream(conn, push_id, stream);
+      }
+
+      stream->flags |= NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED;
+      return 0;
     }
 
     /* Push ID has been received, but pp is gone.  This means that
@@ -2285,15 +2369,15 @@ int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
     return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
   }
 
-  /* Don't know the associated stream of PUSH_PROMISE.  It doesn't
-     matter because client sends nothing to this stream. */
-  rv = nghttp3_conn_create_push_promise(conn, &pp, push_id,
-                                        NGHTTP3_DEFAULT_WEIGHT, &conn->root);
+  rv = nghttp3_gaptr_push(&conn->remote.uni.push_idtr, (uint64_t)push_id, 1);
   if (rv != 0) {
     return rv;
   }
 
-  rv = nghttp3_gaptr_push(&conn->remote.uni.push_idtr, (uint64_t)push_id, 1);
+  /* Don't know the associated stream of PUSH_PROMISE.  It doesn't
+     matter because client sends nothing to this stream. */
+  rv = nghttp3_conn_create_push_promise(conn, &pp, push_id,
+                                        NGHTTP3_DEFAULT_WEIGHT, &conn->root);
   if (rv != 0) {
     return rv;
   }
@@ -3213,7 +3297,9 @@ int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id) {
     return rv;
   }
 
-  if (stream->qpack_blocked_pe.index == NGHTTP3_PQ_BAD_INDEX) {
+  if (stream->qpack_blocked_pe.index == NGHTTP3_PQ_BAD_INDEX &&
+      (conn->server || !stream->pp ||
+       (stream->pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_RECVED))) {
     return conn_delete_stream(conn, stream);
   }
 

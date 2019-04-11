@@ -53,6 +53,17 @@ typedef struct {
   nghttp3_tnode node;
 } nghttp3_placeholder;
 
+typedef enum {
+  NGHTTP3_PUSH_PROMISE_FLAG_NONE = 0x00,
+  /* NGHTTP3_PUSH_PROMISE_FLAG_RECVED is set when PUSH_PROMISE is
+     completely received. */
+  NGHTTP3_PUSH_PROMISE_FLAG_RECVED = 0x01,
+  /* NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED is set when push is canceled
+     before receiving PUSH_PROMISE completely.  This flag should have
+     no effect if push stream opens. */
+  NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED = 0x02,
+} nghttp3_push_promise_flag;
+
 struct nghttp3_push_promise;
 typedef struct nghttp3_push_promise nghttp3_push_promise;
 
@@ -64,6 +75,9 @@ struct nghttp3_push_promise {
   /* stream is server initiated unidirectional stream which fulfils
      the push promise. */
   nghttp3_stream *stream;
+  /* flags is bitwise OR of zero or more of
+     nghttp3_push_promise_flag. */
+  uint8_t flags;
 };
 
 typedef enum {
