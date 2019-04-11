@@ -58,10 +58,16 @@ typedef enum {
   /* NGHTTP3_PUSH_PROMISE_FLAG_RECVED is set when PUSH_PROMISE is
      completely received. */
   NGHTTP3_PUSH_PROMISE_FLAG_RECVED = 0x01,
-  /* NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED is set when push is canceled
-     before receiving PUSH_PROMISE completely.  This flag should have
-     no effect if push stream opens. */
-  NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED = 0x02,
+  /* NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL is set when push is
+     cancelled by server before receiving PUSH_PROMISE completely.
+     This flag should have no effect if push stream has already
+     opened. */
+  NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL = 0x02,
+  /* NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL is set when push is
+     canceled by client. */
+  NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL = 0x04,
+  NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED = NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL |
+                                        NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL,
 } nghttp3_push_promise_flag;
 
 struct nghttp3_push_promise;

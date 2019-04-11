@@ -370,6 +370,10 @@ int nghttp3_stream_squash(nghttp3_stream *stream);
 int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *src,
                                size_t srclen);
 
+size_t nghttp3_stream_get_buffered_datalen(nghttp3_stream *stream);
+
+void nghttp3_stream_clear_buffered_data(nghttp3_stream *stream);
+
 int nghttp3_stream_ensure_qpack_stream_context(nghttp3_stream *stream);
 
 void nghttp3_stream_delete_qpack_stream_context(nghttp3_stream *stream);

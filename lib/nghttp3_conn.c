@@ -200,6 +200,24 @@ static int conn_call_push_stream(nghttp3_conn *conn, int64_t push_id,
   return 0;
 }
 
+static int conn_call_deferred_consume(nghttp3_conn *conn,
+                                      nghttp3_stream *stream,
+                                      size_t nconsumed) {
+  int rv;
+
+  if (nconsumed == 0 || !conn->callbacks.deferred_consume) {
+    return 0;
+  }
+
+  rv = conn->callbacks.deferred_consume(conn, stream->stream_id, nconsumed,
+                                        conn->user_data, stream->user_data);
+  if (rv != 0) {
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
+  return 0;
+}
+
 static int ricnt_less(const nghttp3_pq_entry *lhsx,
                       const nghttp3_pq_entry *rhsx) {
   nghttp3_stream *lhs =
@@ -968,6 +986,11 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
     stream->flags |= NGHTTP3_STREAM_FLAG_READ_EOF;
   }
 
+  if (stream->pp &&
+      (stream->pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL)) {
+    return (ssize_t)srclen;
+  }
+
   if (stream->flags & (NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED |
                        NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED)) {
     if (srclen == 0) {
@@ -1220,8 +1243,8 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
       nghttp3_stream_read_state_reset(rstate);
       break;
     case NGHTTP3_PUSH_STREAM_STATE_IGN_REST:
-      nconsumed = (size_t)(end - p);
-      break;
+      nconsumed += (size_t)(end - p);
+      return (ssize_t)nconsumed;
     }
   }
 
@@ -1257,6 +1280,12 @@ static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
     if (rv != 0) {
       return rv;
     }
+  }
+
+  rv = conn_call_deferred_consume(conn, stream,
+                                  nghttp3_stream_get_buffered_datalen(stream));
+  if (rv != 0) {
+    return rv;
   }
 
   if (conn->callbacks.stream_close) {
@@ -1311,13 +1340,9 @@ static int conn_process_blocked_stream_data(nghttp3_conn *conn,
 
     buf->pos += nread;
 
-    if (conn->callbacks.deferred_consume) {
-      rv = conn->callbacks.deferred_consume(conn, stream->stream_id,
-                                            (size_t)nread, conn->user_data,
-                                            stream->user_data);
-      if (rv != 0) {
-        return NGHTTP3_ERR_CALLBACK_FAILURE;
-      }
+    rv = conn_call_deferred_consume(conn, stream, (size_t)nread);
+    if (rv != 0) {
+      return 0;
     }
 
     if (nghttp3_buf_len(buf) == 0) {
@@ -1722,37 +1747,39 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
         return rv;
       }
 
-      if (!pp->stream && pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED) {
-        rv = conn_call_cancel_push(conn, pp->push_id, pp->stream);
-        if (rv != 0) {
-          return rv;
+      if (!pp->stream && (pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED)) {
+        if (pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL) {
+          rv = conn_call_cancel_push(conn, pp->push_id, pp->stream);
+          if (rv != 0) {
+            return rv;
+          }
         }
 
-        if (!pp->stream) {
-          rv = nghttp3_map_remove(&conn->pushes, (key_type)pp->push_id);
-          assert(0 == rv);
+        rv = nghttp3_map_remove(&conn->pushes, (key_type)pp->push_id);
+        assert(0 == rv);
 
-          nghttp3_push_promise_del(pp, conn->mem);
-        }
+        nghttp3_push_promise_del(pp, conn->mem);
 
         nghttp3_stream_read_state_reset(rstate);
         break;
       }
 
       if (pp->stream) {
-        assert(pp->stream->flags & NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED);
+        if (!(pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL)) {
+          assert(pp->stream->flags & NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED);
 
-        rv = conn_call_push_stream(conn, pp->push_id, pp->stream);
-        if (rv != 0) {
-          return rv;
-        }
+          rv = conn_call_push_stream(conn, pp->push_id, pp->stream);
+          if (rv != 0) {
+            return rv;
+          }
 
-        pp->stream->flags &=
-            (uint16_t)~NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED;
+          pp->stream->flags &=
+              (uint16_t)~NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED;
 
-        rv = conn_process_blocked_stream_data(conn, pp->stream);
-        if (rv != 0) {
-          return rv;
+          rv = conn_process_blocked_stream_data(conn, pp->stream);
+          if (rv != 0) {
+            return rv;
+          }
         }
       }
 
@@ -2252,7 +2279,7 @@ int nghttp3_conn_on_client_cancel_push(nghttp3_conn *conn,
       return rv;
     }
 
-    pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED;
+    pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL;
 
     /* cancel_push callback will be called after PUSH_PROMISE frame is
        completely received. */
@@ -2278,7 +2305,7 @@ int nghttp3_conn_on_client_cancel_push(nghttp3_conn *conn,
     return 0;
   }
 
-  pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED;
+  pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL;
 
   return 0;
 }
@@ -2340,6 +2367,9 @@ int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
       }
       pp->stream = stream;
       stream->pp = pp;
+
+      assert(!(pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL));
+      assert(!(pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL));
 
       if (pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_RECVED) {
         return conn_call_push_stream(conn, push_id, stream);
@@ -3226,9 +3256,42 @@ int nghttp3_conn_server_cancel_push(nghttp3_conn *conn, int64_t push_id) {
 }
 
 int nghttp3_conn_client_cancel_push(nghttp3_conn *conn, int64_t push_id) {
-  (void)conn;
-  (void)push_id;
-  /* TODO Not implemented yet */
+  nghttp3_push_promise *pp;
+  nghttp3_frame_entry frent;
+  int rv;
+
+  pp = nghttp3_conn_find_push_promise(conn, push_id);
+  if (pp == NULL) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  frent.fr.hd.type = NGHTTP3_FRAME_CANCEL_PUSH;
+  frent.fr.cancel_push.push_id = push_id;
+
+  rv = nghttp3_stream_frq_add(conn->tx.ctrl, &frent);
+  if (rv != 0) {
+    return rv;
+  }
+
+  if (!pp->stream && (pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_RECVED)) {
+    rv = nghttp3_map_remove(&conn->pushes, (key_type)pp->push_id);
+    assert(0 == rv);
+
+    nghttp3_push_promise_del(pp, conn->mem);
+    return 0;
+  }
+
+  pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL;
+
+  if (pp->stream) {
+    rv = conn_call_deferred_consume(
+        conn, pp->stream, nghttp3_stream_get_buffered_datalen(pp->stream));
+    if (rv != 0) {
+      return rv;
+    }
+    nghttp3_stream_clear_buffered_data(pp->stream);
+  }
+
   return 0;
 }
 

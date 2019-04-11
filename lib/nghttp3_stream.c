@@ -993,6 +993,31 @@ int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *data,
   return 0;
 }
 
+size_t nghttp3_stream_get_buffered_datalen(nghttp3_stream *stream) {
+  nghttp3_ringbuf *inq = &stream->inq;
+  size_t len = nghttp3_ringbuf_len(inq);
+  size_t i, n = 0;
+  nghttp3_buf *buf;
+
+  for (i = 0; i < len; ++i) {
+    buf = nghttp3_ringbuf_get(inq, i);
+    n += nghttp3_buf_len(buf);
+  }
+
+  return n;
+}
+
+void nghttp3_stream_clear_buffered_data(nghttp3_stream *stream) {
+  nghttp3_ringbuf *inq = &stream->inq;
+  nghttp3_buf *buf;
+
+  for (; nghttp3_ringbuf_len(inq);) {
+    buf = nghttp3_ringbuf_get(inq, 0);
+    nghttp3_buf_free(buf, stream->mem);
+    nghttp3_ringbuf_pop_front(inq);
+  }
+}
+
 int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
                                          nghttp3_stream_http_event event) {
   int rv;
