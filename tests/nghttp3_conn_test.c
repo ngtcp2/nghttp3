@@ -1521,8 +1521,8 @@ void test_nghttp3_conn_http_content_length(void) {
                                        /* fin = */ 0);
 
   CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(9000000000LL == stream->rx.content_length);
-  CU_ASSERT(200 == stream->rx.status_code);
+  CU_ASSERT(9000000000LL == stream->rx.http.content_length);
+  CU_ASSERT(200 == stream->rx.http.status_code);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1547,7 +1547,7 @@ void test_nghttp3_conn_http_content_length(void) {
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(9000000000LL == stream->rx.content_length);
+  CU_ASSERT(9000000000LL == stream->rx.http.content_length);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2139,7 +2139,7 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
                                        /* fin = */ 0);
 
   CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(0 == stream->rx.content_length);
+  CU_ASSERT(0 == stream->rx.http.content_length);
 
   rv = nghttp3_conn_close_stream(conn, 0);
 
@@ -2168,7 +2168,7 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(-1 == stream->rx.content_length);
+  CU_ASSERT(-1 == stream->rx.http.content_length);
 
   rv = nghttp3_conn_close_stream(conn, 0);
 
@@ -2253,7 +2253,7 @@ void test_nghttp3_conn_http_record_request_method(void) {
                                        /* fin = */ 0);
 
   CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(0 == stream->rx.content_length);
+  CU_ASSERT(0 == stream->rx.http.content_length);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2542,4 +2542,105 @@ void test_nghttp3_conn_cancel_push(void) {
   CU_ASSERT(0 == nghttp3_ringbuf_len(&conn->tx.ctrl->frq));
 
   nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_recv_push_promise(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  nghttp3_conn_callbacks callbacks;
+  nghttp3_conn_settings settings;
+  uint8_t rawbuf[4096];
+  nghttp3_buf buf;
+  nghttp3_frame fr;
+  const nghttp3_nv reqnv[] = {
+      MAKE_NV(":path", "/"),
+      MAKE_NV(":method", "GET"),
+      MAKE_NV(":scheme", "https"),
+      MAKE_NV(":authority", "example.com"),
+  };
+  nghttp3_qpack_encoder qenc;
+  nghttp3_stream *stream;
+  ssize_t sconsumed;
+  nghttp3_push_promise *pp;
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  nghttp3_conn_settings_default(&settings);
+
+  /* Receive PUSH_PROMISE */
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_qpack_encoder_init(&qenc, 0, 0, mem);
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  conn->remote.uni.max_pushes = 1;
+  nghttp3_conn_create_stream(conn, &stream, 0);
+  stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
+
+  fr.hd.type = NGHTTP3_FRAME_PUSH_PROMISE;
+  fr.push_promise.push_id = 0;
+  fr.push_promise.nva = (nghttp3_nv *)reqnv;
+  fr.push_promise.nvlen = nghttp3_arraylen(reqnv);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
+
+  pp = nghttp3_conn_find_push_promise(conn, 0);
+
+  CU_ASSERT((NGHTTP3_HTTP_FLAG_REQ_HEADERS | NGHTTP3_HTTP_FLAG__AUTHORITY) ==
+            (pp->http.flags &
+             (NGHTTP3_HTTP_FLAG_REQ_HEADERS | NGHTTP3_HTTP_FLAG__AUTHORITY)));
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* Receiving same push ID twice is illegal */
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_qpack_encoder_init(&qenc, 0, 0, mem);
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  conn->remote.uni.max_pushes = 1;
+  nghttp3_conn_create_stream(conn, &stream, 0);
+  stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
+
+  fr.hd.type = NGHTTP3_FRAME_PUSH_PROMISE;
+  fr.push_promise.push_id = 0;
+  fr.push_promise.nva = (nghttp3_nv *)reqnv;
+  fr.push_promise.nvlen = nghttp3_arraylen(reqnv);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT(NGHTTP3_ERR_HTTP_MALFORMED_FRAME - NGHTTP3_FRAME_PUSH_PROMISE ==
+            sconsumed);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* Receiving push ID which exceeds the limit is illegal */
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_qpack_encoder_init(&qenc, 0, 0, mem);
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  conn->remote.uni.max_pushes = 1;
+  nghttp3_conn_create_stream(conn, &stream, 0);
+  stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
+
+  fr.hd.type = NGHTTP3_FRAME_PUSH_PROMISE;
+  fr.push_promise.push_id = 1;
+  fr.push_promise.nva = (nghttp3_nv *)reqnv;
+  fr.push_promise.nvlen = nghttp3_arraylen(reqnv);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT(NGHTTP3_ERR_HTTP_MALFORMED_FRAME - NGHTTP3_FRAME_PUSH_PROMISE ==
+            sconsumed);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
 }

@@ -35,6 +35,9 @@
 struct nghttp3_stream;
 typedef struct nghttp3_stream nghttp3_stream;
 
+struct nghttp3_http_state;
+typedef struct nghttp3_http_state nghttp3_http_state;
+
 /* HTTP related flags to enforce HTTP semantics */
 typedef enum {
   NGHTTP3_HTTP_FLAG_NONE = 0,
@@ -74,11 +77,10 @@ typedef enum {
 } nghttp3_http_flag;
 
 /*
- * This function is called when HTTP header field |nv| in |frame| is
- * received for |stream|.  This function will validate |nv| against
- * the current state of stream.  Pass nonzero if this is request
- * headers.  Pass nonzero to |trailers| if |nv| is included in
- * trailers.
+ * This function is called when HTTP header field |nv| in a frame of type
+ * |frame_type| is received for |http|.  This function will validate |nv|
+ * against the current state of stream.  Pass nonzero if this is request
+ * headers. Pass nonzero to |trailers| if |nv| is included in trailers.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -89,8 +91,8 @@ typedef enum {
  *     Invalid HTTP header field was received but it can be treated as
  *     if it was not received because of compatibility reasons.
  */
-int nghttp3_http_on_header(nghttp3_stream *stream, nghttp3_qpack_nv *nv,
-                           int request, int trailers);
+int nghttp3_http_on_header(nghttp3_http_state *http, int64_t frame_type,
+                           nghttp3_qpack_nv *nv, int request, int trailers);
 
 /*
  * This function is called when request header is received.  This
@@ -101,7 +103,7 @@ int nghttp3_http_on_header(nghttp3_stream *stream, nghttp3_qpack_nv *nv,
  *     Required HTTP header field was not received; or an invalid
  *     header field was received.
  */
-int nghttp3_http_on_request_headers(nghttp3_stream *stream, int64_t frame_type);
+int nghttp3_http_on_request_headers(nghttp3_http_state *http);
 
 /*
  * This function is called when response header is received.  This
@@ -112,12 +114,12 @@ int nghttp3_http_on_request_headers(nghttp3_stream *stream, int64_t frame_type);
  *     Required HTTP header field was not received; or an invalid
  *     header field was received.
  */
-int nghttp3_http_on_response_headers(nghttp3_stream *stream);
+int nghttp3_http_on_response_headers(nghttp3_http_state *http);
 
 /*
- * This function is called when END_STREAM flag is seen in incoming
- * frame.  This function performs validation and returns 0 if it
- * succeeds, or one of the following negative error codes:
+ * This function is called when read side stream is closed.  This
+ *  function performs validation and returns 0 if it succeeds, or one
+ *  of the following negative error codes:
  *
  * NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING
  *     HTTP messaging is violated.

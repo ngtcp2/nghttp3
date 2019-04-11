@@ -28,6 +28,7 @@
 #include <assert.h>
 
 #include "nghttp3_str.h"
+#include "nghttp3_conv.h"
 
 void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr) {
   switch (fr->hd.type) {
@@ -61,6 +62,10 @@ void nghttp3_write_frame_qpack(nghttp3_buf *dest, nghttp3_qpack_encoder *qenc,
     nva = fr->headers.nva;
     nvlen = fr->headers.nvlen;
     break;
+  case NGHTTP3_FRAME_PUSH_PROMISE:
+    nva = fr->push_promise.nva;
+    nvlen = fr->push_promise.nvlen;
+    break;
   default:
     assert(0);
   }
@@ -75,8 +80,14 @@ void nghttp3_write_frame_qpack(nghttp3_buf *dest, nghttp3_qpack_encoder *qenc,
   assert(0 == nghttp3_buf_len(&ebuf));
 
   fr->hd.length = (int64_t)(nghttp3_buf_len(&pbuf) + nghttp3_buf_len(&rbuf));
+  if (fr->hd.type == NGHTTP3_FRAME_PUSH_PROMISE) {
+    fr->hd.length += (int64_t)nghttp3_put_varint_len(fr->push_promise.push_id);
+  }
 
   dest->last = nghttp3_frame_write_hd(dest->last, &fr->hd);
+  if (fr->hd.type == NGHTTP3_FRAME_PUSH_PROMISE) {
+    dest->last = nghttp3_put_varint(dest->last, fr->push_promise.push_id);
+  }
   dest->last = nghttp3_cpymem(dest->last, pbuf.pos, nghttp3_buf_len(&pbuf));
   dest->last = nghttp3_cpymem(dest->last, rbuf.pos, nghttp3_buf_len(&rbuf));
 

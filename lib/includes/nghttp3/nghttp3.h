@@ -1089,6 +1089,18 @@ typedef int (*nghttp3_recv_header)(nghttp3_conn *conn, int64_t stream_id,
 typedef int (*nghttp3_end_headers)(nghttp3_conn *conn, int64_t stream_id,
                                    void *user_data, void *stream_user_data);
 
+typedef int (*nghttp3_begin_push_promise)(nghttp3_conn *conn, int64_t push_id,
+                                          int64_t stream_id, void *user_data,
+                                          void *stream_user_data);
+
+typedef int (*nghttp3_recv_push_promise)(nghttp3_conn *conn, int64_t push_id,
+                                         int32_t token, nghttp3_rcbuf *name,
+                                         nghttp3_rcbuf *value, uint8_t flags,
+                                         void *user_data);
+
+typedef int (*nghttp3_end_push_promise)(nghttp3_conn *conn, int64_t push_id,
+                                        void *user_data);
+
 /**
  * @functypedef
  *
@@ -1119,9 +1131,9 @@ typedef struct {
   nghttp3_begin_headers begin_trailers;
   nghttp3_recv_header recv_trailer;
   nghttp3_end_headers end_trailers;
-  nghttp3_begin_headers begin_push_promise;
-  nghttp3_recv_header recv_push_promise;
-  nghttp3_end_headers end_push_promise;
+  nghttp3_begin_push_promise begin_push_promise;
+  nghttp3_recv_push_promise recv_push_promise;
+  nghttp3_end_push_promise end_push_promise;
   nghttp3_cancel_push cancel_push;
 } nghttp3_conn_callbacks;
 

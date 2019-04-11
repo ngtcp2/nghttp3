@@ -82,22 +82,22 @@ static int lws(const uint8_t *s, size_t n) {
   return 1;
 }
 
-static int check_pseudo_header(nghttp3_stream *stream,
+static int check_pseudo_header(nghttp3_http_state *http,
                                const nghttp3_qpack_nv *nv, int flag) {
-  if (stream->http_flags & flag) {
+  if (http->flags & flag) {
     return 0;
   }
   if (lws(nv->value->base, nv->value->len)) {
     return 0;
   }
-  stream->http_flags = (uint16_t)(stream->http_flags | flag);
+  http->flags = (uint16_t)(http->flags | flag);
   return 1;
 }
 
-static int expect_response_body(nghttp3_stream *stream) {
-  return (stream->http_flags & NGHTTP3_HTTP_FLAG_METH_HEAD) == 0 &&
-         stream->rx.status_code / 100 != 1 && stream->rx.status_code != 304 &&
-         stream->rx.status_code != 204;
+static int expect_response_body(nghttp3_http_state *http) {
+  return (http->flags & NGHTTP3_HTTP_FLAG_METH_HEAD) == 0 &&
+         http->status_code / 100 != 1 && http->status_code != 304 &&
+         http->status_code != 204;
 }
 
 /* For "http" or "https" URIs, OPTIONS request may have "*" in :path
@@ -105,52 +105,53 @@ static int expect_response_body(nghttp3_stream *stream) {
    :path header field value must start with "/".  This function must
    be called after ":method" header field was received.  This function
    returns nonzero if path is valid.*/
-static int check_path(nghttp3_stream *stream) {
-  return (stream->http_flags & NGHTTP3_HTTP_FLAG_SCHEME_HTTP) == 0 ||
-         ((stream->http_flags & NGHTTP3_HTTP_FLAG_PATH_REGULAR) ||
-          ((stream->http_flags & NGHTTP3_HTTP_FLAG_METH_OPTIONS) &&
-           (stream->http_flags & NGHTTP3_HTTP_FLAG_PATH_ASTERISK)));
+static int check_path(nghttp3_http_state *http) {
+  return (http->flags & NGHTTP3_HTTP_FLAG_SCHEME_HTTP) == 0 ||
+         ((http->flags & NGHTTP3_HTTP_FLAG_PATH_REGULAR) ||
+          ((http->flags & NGHTTP3_HTTP_FLAG_METH_OPTIONS) &&
+           (http->flags & NGHTTP3_HTTP_FLAG_PATH_ASTERISK)));
 }
 
-static int http_request_on_header(nghttp3_stream *stream, nghttp3_qpack_nv *nv,
-                                  int trailers, int connect_protocol) {
+static int http_request_on_header(nghttp3_http_state *http, int64_t frame_type,
+                                  nghttp3_qpack_nv *nv, int trailers,
+                                  int connect_protocol) {
   if (nv->name->base[0] == ':') {
     if (trailers ||
-        (stream->http_flags & NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED)) {
+        (http->flags & NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
   }
 
   switch (nv->token) {
   case NGHTTP3_QPACK_TOKEN__AUTHORITY:
-    if (!check_pseudo_header(stream, nv, NGHTTP3_HTTP_FLAG__AUTHORITY)) {
+    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__AUTHORITY)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     break;
   case NGHTTP3_QPACK_TOKEN__METHOD:
-    if (!check_pseudo_header(stream, nv, NGHTTP3_HTTP_FLAG__METHOD)) {
+    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__METHOD)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     switch (nv->value->len) {
     case 4:
       if (lstreq("HEAD", nv->value->base, nv->value->len)) {
-        stream->http_flags |= NGHTTP3_HTTP_FLAG_METH_HEAD;
+        http->flags |= NGHTTP3_HTTP_FLAG_METH_HEAD;
       }
       break;
     case 7:
       switch (nv->value->base[6]) {
       case 'T':
         if (lstreq("CONNECT", nv->value->base, nv->value->len)) {
-          if (nghttp3_stream_uni(stream->stream_id)) {
+          if (frame_type == NGHTTP3_FRAME_PUSH_PROMISE) {
             /* we won't allow CONNECT for push */
             return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
           }
-          stream->http_flags |= NGHTTP3_HTTP_FLAG_METH_CONNECT;
+          http->flags |= NGHTTP3_HTTP_FLAG_METH_CONNECT;
         }
         break;
       case 'S':
         if (lstreq("OPTIONS", nv->value->base, nv->value->len)) {
-          stream->http_flags |= NGHTTP3_HTTP_FLAG_METH_OPTIONS;
+          http->flags |= NGHTTP3_HTTP_FLAG_METH_OPTIONS;
         }
         break;
       }
@@ -158,22 +159,22 @@ static int http_request_on_header(nghttp3_stream *stream, nghttp3_qpack_nv *nv,
     }
     break;
   case NGHTTP3_QPACK_TOKEN__PATH:
-    if (!check_pseudo_header(stream, nv, NGHTTP3_HTTP_FLAG__PATH)) {
+    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__PATH)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     if (nv->value->base[0] == '/') {
-      stream->http_flags |= NGHTTP3_HTTP_FLAG_PATH_REGULAR;
+      http->flags |= NGHTTP3_HTTP_FLAG_PATH_REGULAR;
     } else if (nv->value->len == 1 && nv->value->base[0] == '*') {
-      stream->http_flags |= NGHTTP3_HTTP_FLAG_PATH_ASTERISK;
+      http->flags |= NGHTTP3_HTTP_FLAG_PATH_ASTERISK;
     }
     break;
   case NGHTTP3_QPACK_TOKEN__SCHEME:
-    if (!check_pseudo_header(stream, nv, NGHTTP3_HTTP_FLAG__SCHEME)) {
+    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__SCHEME)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     if ((nv->value->len == 4 && memieq("http", nv->value->base, 4)) ||
         (nv->value->len == 5 && memieq("https", nv->value->base, 5))) {
-      stream->http_flags |= NGHTTP3_HTTP_FLAG_SCHEME_HTTP;
+      http->flags |= NGHTTP3_HTTP_FLAG_SCHEME_HTTP;
     }
     break;
   case NGHTTP3_QPACK_TOKEN__PROTOCOL:
@@ -181,21 +182,21 @@ static int http_request_on_header(nghttp3_stream *stream, nghttp3_qpack_nv *nv,
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
 
-    if (!check_pseudo_header(stream, nv, NGHTTP3_HTTP_FLAG__PROTOCOL)) {
+    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__PROTOCOL)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     break;
   case NGHTTP3_QPACK_TOKEN_HOST:
-    if (!check_pseudo_header(stream, nv, NGHTTP3_HTTP_FLAG_HOST)) {
+    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG_HOST)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     break;
   case NGHTTP3_QPACK_TOKEN_CONTENT_LENGTH: {
-    if (stream->rx.content_length != -1) {
+    if (http->content_length != -1) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    stream->rx.content_length = parse_uint(nv->value->base, nv->value->len);
-    if (stream->rx.content_length == -1) {
+    http->content_length = parse_uint(nv->value->base, nv->value->len);
+    if (http->content_length == -1) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     break;
@@ -219,61 +220,60 @@ static int http_request_on_header(nghttp3_stream *stream, nghttp3_qpack_nv *nv,
   }
 
   if (nv->name->base[0] != ':') {
-    stream->http_flags |= NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED;
+    http->flags |= NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED;
   }
 
   return 0;
 }
 
-static int http_response_on_header(nghttp3_stream *stream, nghttp3_qpack_nv *nv,
-                                   int trailers) {
+static int http_response_on_header(nghttp3_http_state *http,
+                                   nghttp3_qpack_nv *nv, int trailers) {
   if (nv->name->base[0] == ':') {
     if (trailers ||
-        (stream->http_flags & NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED)) {
+        (http->flags & NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
   }
 
   switch (nv->token) {
   case NGHTTP3_QPACK_TOKEN__STATUS: {
-    if (!check_pseudo_header(stream, nv, NGHTTP3_HTTP_FLAG__STATUS)) {
+    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__STATUS)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     if (nv->value->len != 3) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    stream->rx.status_code =
-        (int16_t)parse_uint(nv->value->base, nv->value->len);
-    if (stream->rx.status_code < 100 || stream->rx.status_code == 101) {
+    http->status_code = (int16_t)parse_uint(nv->value->base, nv->value->len);
+    if (http->status_code < 100 || http->status_code == 101) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     break;
   }
   case NGHTTP3_QPACK_TOKEN_CONTENT_LENGTH: {
-    if (stream->rx.status_code == 204) {
+    if (http->status_code == 204) {
       /* content-length header field in 204 response is prohibited by
          RFC 7230.  But some widely used servers send content-length:
          0.  Until they get fixed, we ignore it. */
-      if (stream->rx.content_length != -1) {
+      if (http->content_length != -1) {
         /* Found multiple content-length field */
         return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
       }
       if (!lstrieq("0", nv->value->base, nv->value->len)) {
         return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
       }
-      stream->rx.content_length = 0;
+      http->content_length = 0;
       return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
     }
-    if (stream->rx.status_code / 100 == 1 ||
-        (stream->rx.status_code / 100 == 2 &&
-         (stream->http_flags & NGHTTP3_HTTP_FLAG_METH_CONNECT))) {
+    if (http->status_code / 100 == 1 ||
+        (http->status_code / 100 == 2 &&
+         (http->flags & NGHTTP3_HTTP_FLAG_METH_CONNECT))) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    if (stream->rx.content_length != -1) {
+    if (http->content_length != -1) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    stream->rx.content_length = parse_uint(nv->value->base, nv->value->len);
-    if (stream->rx.content_length == -1) {
+    http->content_length = parse_uint(nv->value->base, nv->value->len);
+    if (http->content_length == -1) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     break;
@@ -297,7 +297,7 @@ static int http_response_on_header(nghttp3_stream *stream, nghttp3_qpack_nv *nv,
   }
 
   if (nv->name->base[0] != ':') {
-    stream->http_flags |= NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED;
+    http->flags |= NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED;
   }
 
   return 0;
@@ -405,8 +405,8 @@ static int check_scheme(const uint8_t *value, size_t len) {
   return 1;
 }
 
-int nghttp3_http_on_header(nghttp3_stream *stream, nghttp3_qpack_nv *nv,
-                           int request, int trailers) {
+int nghttp3_http_on_header(nghttp3_http_state *http, int64_t frame_type,
+                           nghttp3_qpack_nv *nv, int request, int trailers) {
   int rv;
 
   if (!nghttp3_check_header_name(nv->name->base, nv->name->len)) {
@@ -427,81 +427,71 @@ int nghttp3_http_on_header(nghttp3_stream *stream, nghttp3_qpack_nv *nv,
   }
 
   if (request) {
-    return http_request_on_header(stream, nv, trailers,
+    return http_request_on_header(http, frame_type, nv, trailers,
                                   /* connect_protocol = */ 0);
   }
 
-  return http_response_on_header(stream, nv, trailers);
+  return http_response_on_header(http, nv, trailers);
 }
 
-int nghttp3_http_on_request_headers(nghttp3_stream *stream,
-                                    int64_t frame_type) {
-  if (!(stream->http_flags & NGHTTP3_HTTP_FLAG__PROTOCOL) &&
-      (stream->http_flags & NGHTTP3_HTTP_FLAG_METH_CONNECT)) {
-    if ((stream->http_flags &
-         (NGHTTP3_HTTP_FLAG__SCHEME | NGHTTP3_HTTP_FLAG__PATH)) ||
-        (stream->http_flags & NGHTTP3_HTTP_FLAG__AUTHORITY) == 0) {
+int nghttp3_http_on_request_headers(nghttp3_http_state *http) {
+  if (!(http->flags & NGHTTP3_HTTP_FLAG__PROTOCOL) &&
+      (http->flags & NGHTTP3_HTTP_FLAG_METH_CONNECT)) {
+    if ((http->flags & (NGHTTP3_HTTP_FLAG__SCHEME | NGHTTP3_HTTP_FLAG__PATH)) ||
+        (http->flags & NGHTTP3_HTTP_FLAG__AUTHORITY) == 0) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    stream->rx.content_length = -1;
+    http->content_length = -1;
   } else {
-    if ((stream->http_flags & NGHTTP3_HTTP_FLAG_REQ_HEADERS) !=
+    if ((http->flags & NGHTTP3_HTTP_FLAG_REQ_HEADERS) !=
             NGHTTP3_HTTP_FLAG_REQ_HEADERS ||
-        (stream->http_flags &
+        (http->flags &
          (NGHTTP3_HTTP_FLAG__AUTHORITY | NGHTTP3_HTTP_FLAG_HOST)) == 0) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    if ((stream->http_flags & NGHTTP3_HTTP_FLAG__PROTOCOL) &&
-        ((stream->http_flags & NGHTTP3_HTTP_FLAG_METH_CONNECT) == 0 ||
-         (stream->http_flags & NGHTTP3_HTTP_FLAG__AUTHORITY) == 0)) {
+    if ((http->flags & NGHTTP3_HTTP_FLAG__PROTOCOL) &&
+        ((http->flags & NGHTTP3_HTTP_FLAG_METH_CONNECT) == 0 ||
+         (http->flags & NGHTTP3_HTTP_FLAG__AUTHORITY) == 0)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    if (!check_path(stream)) {
+    if (!check_path(http)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-  }
-
-  if (frame_type == NGHTTP3_FRAME_PUSH_PROMISE) {
-    /* we are going to reuse data fields for upcoming response.  Clear
-       them now, except for method flags. */
-    stream->http_flags &= NGHTTP3_HTTP_FLAG_METH_ALL;
-    stream->rx.content_length = -1;
   }
 
   return 0;
 }
 
-int nghttp3_http_on_response_headers(nghttp3_stream *stream) {
-  if ((stream->http_flags & NGHTTP3_HTTP_FLAG__STATUS) == 0) {
+int nghttp3_http_on_response_headers(nghttp3_http_state *http) {
+  if ((http->flags & NGHTTP3_HTTP_FLAG__STATUS) == 0) {
     return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
   }
 
-  if (stream->rx.status_code / 100 == 1) {
+  if (http->status_code / 100 == 1) {
     /* non-final response */
-    stream->http_flags =
-        (uint16_t)((stream->http_flags & NGHTTP3_HTTP_FLAG_METH_ALL) |
-                   NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE);
-    stream->rx.content_length = -1;
-    stream->rx.status_code = -1;
+    http->flags = (uint16_t)((http->flags & NGHTTP3_HTTP_FLAG_METH_ALL) |
+                             NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE);
+    http->content_length = -1;
+    http->status_code = -1;
     return 0;
   }
 
-  stream->http_flags =
-      (uint16_t)(stream->http_flags & ~NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE);
+  http->flags =
+      (uint16_t)(http->flags & ~NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE);
 
-  if (!expect_response_body(stream)) {
-    stream->rx.content_length = 0;
-  } else if (stream->http_flags & NGHTTP3_HTTP_FLAG_METH_CONNECT) {
-    stream->rx.content_length = -1;
+  if (!expect_response_body(http)) {
+    http->content_length = 0;
+  } else if (http->flags & NGHTTP3_HTTP_FLAG_METH_CONNECT) {
+    http->content_length = -1;
   }
 
   return 0;
 }
 
 int nghttp3_http_on_remote_end_stream(nghttp3_stream *stream) {
-  if ((stream->http_flags & NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE) ||
-      (stream->rx.content_length != -1 &&
-       stream->rx.content_length != stream->rx.recv_content_length)) {
+  if ((stream->rx.http.flags & NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE) ||
+      (stream->rx.http.content_length != -1 &&
+       stream->rx.http.content_length != stream->rx.http.recv_content_length)) {
     return NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING;
   }
 
@@ -509,11 +499,11 @@ int nghttp3_http_on_remote_end_stream(nghttp3_stream *stream) {
 }
 
 int nghttp3_http_on_data_chunk(nghttp3_stream *stream, size_t n) {
-  stream->rx.recv_content_length += (int64_t)n;
+  stream->rx.http.recv_content_length += (int64_t)n;
 
-  if ((stream->http_flags & NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE) ||
-      (stream->rx.content_length != -1 &&
-       stream->rx.recv_content_length > stream->rx.content_length)) {
+  if ((stream->rx.http.flags & NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE) ||
+      (stream->rx.http.content_length != -1 &&
+       stream->rx.http.recv_content_length > stream->rx.http.content_length)) {
     return NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING;
   }
 
@@ -533,11 +523,11 @@ void nghttp3_http_record_request_method(nghttp3_stream *stream,
       continue;
     }
     if (lstreq("CONNECT", nv->value, nv->valuelen)) {
-      stream->http_flags |= NGHTTP3_HTTP_FLAG_METH_CONNECT;
+      stream->rx.http.flags |= NGHTTP3_HTTP_FLAG_METH_CONNECT;
       return;
     }
     if (lstreq("HEAD", nv->value, nv->valuelen)) {
-      stream->http_flags |= NGHTTP3_HTTP_FLAG_METH_HEAD;
+      stream->rx.http.flags |= NGHTTP3_HTTP_FLAG_METH_HEAD;
       return;
     }
     return;

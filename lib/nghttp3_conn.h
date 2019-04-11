@@ -60,6 +60,7 @@ struct nghttp3_push_promise {
   nghttp3_map_entry me;
   nghttp3_tnode node;
   int64_t push_id;
+  nghttp3_http_state http;
   /* stream is server initiated unidirectional stream which fulfils
      the push promise. */
   nghttp3_stream *stream;
@@ -91,7 +92,11 @@ struct nghttp3_conn {
   struct {
     nghttp3_conn_settings settings;
     struct {
+      /* max_pushes is the number of push IDs that local endpoint can
+         issue.  This field is used by server only. */
       uint64_t max_pushes;
+      /* next_push_id is the next push ID server uses.  This field is
+         used by server only. */
       int64_t next_push_id;
     } uni;
   } local;
@@ -175,6 +180,9 @@ int nghttp3_conn_on_request_priority(nghttp3_conn *conn, nghttp3_stream *stream,
 int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
                                      const nghttp3_frame_priority *fr);
 
+int nghttp3_conn_on_push_promise_push_id(nghttp3_conn *conn, int64_t push_id,
+                                         nghttp3_stream *stream);
+
 int nghttp3_conn_on_client_cancel_push(nghttp3_conn *conn,
                                        const nghttp3_frame_cancel_push *fr);
 
@@ -188,7 +196,8 @@ int nghttp3_conn_on_data(nghttp3_conn *conn, nghttp3_stream *stream,
                          const uint8_t *data, size_t datalen);
 
 ssize_t nghttp3_conn_on_headers(nghttp3_conn *conn, nghttp3_stream *stream,
-                                const uint8_t *data, size_t datalen, int fin);
+                                nghttp3_push_promise *pp, const uint8_t *data,
+                                size_t datalen, int fin);
 
 int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
                                             const nghttp3_frame_settings *fr);

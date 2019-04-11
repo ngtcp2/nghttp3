@@ -70,6 +70,7 @@ typedef enum {
   NGHTTP3_REQ_STREAM_STATE_FRAME_LENGTH,
   NGHTTP3_REQ_STREAM_STATE_DATA,
   NGHTTP3_REQ_STREAM_STATE_HEADERS,
+  NGHTTP3_REQ_STREAM_STATE_PUSH_PROMISE_PUSH_ID,
   NGHTTP3_REQ_STREAM_STATE_PUSH_PROMISE,
   NGHTTP3_REQ_STREAM_STATE_DUPLICATE_PUSH,
   NGHTTP3_REQ_STREAM_STATE_PRIORITY,
@@ -144,8 +145,6 @@ typedef enum {
   NGHTTP3_HTTP_STATE_RESP_DATA_END,
   NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN,
   NGHTTP3_HTTP_STATE_RESP_TRAILERS_END,
-  NGHTTP3_HTTP_STATE_RESP_PUSH_PROMISE_BEGIN,
-  NGHTTP3_HTTP_STATE_RESP_PUSH_PROMISE_END,
   NGHTTP3_HTTP_STATE_RESP_END,
 } nghttp3_stream_http_state;
 
@@ -185,6 +184,21 @@ typedef int (*nghttp3_stream_acked_data)(nghttp3_stream *stream,
 typedef struct {
   nghttp3_stream_acked_data acked_data;
 } nghttp3_stream_callbacks;
+
+struct nghttp3_http_state {
+  /* status_code is HTTP status code received.  This field is used
+     if connection is initialized as client. */
+  int32_t status_code;
+  /* content_length is the value of received content-length header
+     field. */
+  int64_t content_length;
+  /* recv_content_length is the number of body bytes received so
+     far. */
+  int64_t recv_content_length;
+  uint16_t flags;
+};
+
+typedef struct nghttp3_http_state nghttp3_http_state;
 
 struct nghttp3_stream {
   const nghttp3_mem *mem;
@@ -231,19 +245,10 @@ struct nghttp3_stream {
 
   struct {
     nghttp3_stream_http_state hstate;
-    /* status_code is HTTP status code received.  This field is used
-       if connection is initialized as client. */
-    int32_t status_code;
-    /* content_length is the value of received content-length header
-       field. */
-    int64_t content_length;
-    /* recv_content_length is the number of body bytes received so
-       far. */
-    int64_t recv_content_length;
+    nghttp3_http_state http;
   } rx;
 
   uint16_t flags;
-  uint16_t http_flags;
 };
 
 typedef struct {
