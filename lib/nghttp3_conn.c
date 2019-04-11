@@ -183,6 +183,23 @@ static int conn_call_send_stop_sending(nghttp3_conn *conn,
   return 0;
 }
 
+static int conn_call_push_stream(nghttp3_conn *conn, int64_t push_id,
+                                 nghttp3_stream *stream) {
+  int rv;
+
+  if (!conn->callbacks.push_stream) {
+    return 0;
+  }
+
+  rv = conn->callbacks.push_stream(conn, push_id, stream->stream_id,
+                                   conn->user_data);
+  if (rv != 0) {
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
+  return 0;
+}
+
 static int ricnt_less(const nghttp3_pq_entry *lhsx,
                       const nghttp3_pq_entry *rhsx) {
   nghttp3_stream *lhs =
@@ -1705,8 +1722,14 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
 
       if (pp->stream &&
           (pp->stream->flags & NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED)) {
+        rv = conn_call_push_stream(conn, pp->push_id, pp->stream);
+        if (rv != 0) {
+          return rv;
+        }
+
         pp->stream->flags &=
             (uint16_t)~NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED;
+
         rv = conn_process_blocked_stream_data(conn, pp->stream);
         if (rv != 0) {
           return rv;
@@ -2238,42 +2261,46 @@ int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
       }
       pp->stream = stream;
       stream->pp = pp;
-    } else {
-      /* Push ID has been received, but pp is gone.  This means that
-         push is cancelled or server is misbehaving.  We have no
-         information to distinguish the two, so just cancel QPACK
-         stream just in case, and ask application to send STOP_SENDING
-         and ignore all frames in this stream. */
-      rv = nghttp3_qpack_decoder_cancel_stream(&conn->qdec, stream->stream_id);
-      if (rv != 0) {
-        return rv;
-      }
-      rv = conn_call_send_stop_sending(conn, stream);
-      if (rv != 0) {
-        return rv;
-      }
-      return NGHTTP3_ERR_IGNORE_STREAM;
+
+      return conn_call_push_stream(conn, push_id, stream);
     }
-  } else if (conn->remote.uni.max_pushes <= (uint64_t)push_id) {
-    return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
-  } else {
-    /* Don't know the associated stream of PUSH_PROMISE.  It doesn't
-       matter because client sends nothing to this stream. */
-    rv = nghttp3_conn_create_push_promise(conn, &pp, push_id,
-                                          NGHTTP3_DEFAULT_WEIGHT, &conn->root);
+
+    /* Push ID has been received, but pp is gone.  This means that
+       push is cancelled or server is misbehaving.  We have no
+       information to distinguish the two, so just cancel QPACK stream
+       just in case, and ask application to send STOP_SENDING and
+       ignore all frames in this stream. */
+    rv = nghttp3_qpack_decoder_cancel_stream(&conn->qdec, stream->stream_id);
     if (rv != 0) {
       return rv;
     }
-
-    rv = nghttp3_gaptr_push(&conn->remote.uni.push_idtr, (uint64_t)push_id, 1);
+    rv = conn_call_send_stop_sending(conn, stream);
     if (rv != 0) {
       return rv;
     }
-
-    pp->stream = stream;
-    stream->pp = pp;
-    stream->flags |= NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED;
+    return NGHTTP3_ERR_IGNORE_STREAM;
   }
+
+  if (conn->remote.uni.max_pushes <= (uint64_t)push_id) {
+    return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+  }
+
+  /* Don't know the associated stream of PUSH_PROMISE.  It doesn't
+     matter because client sends nothing to this stream. */
+  rv = nghttp3_conn_create_push_promise(conn, &pp, push_id,
+                                        NGHTTP3_DEFAULT_WEIGHT, &conn->root);
+  if (rv != 0) {
+    return rv;
+  }
+
+  rv = nghttp3_gaptr_push(&conn->remote.uni.push_idtr, (uint64_t)push_id, 1);
+  if (rv != 0) {
+    return rv;
+  }
+
+  pp->stream = stream;
+  stream->pp = pp;
+  stream->flags |= NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED;
 
   return 0;
 }
