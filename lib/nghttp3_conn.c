@@ -166,6 +166,23 @@ static int conn_call_cancel_push(nghttp3_conn *conn, int64_t push_id,
   return 0;
 }
 
+static int conn_call_send_stop_sending(nghttp3_conn *conn,
+                                       nghttp3_stream *stream) {
+  int rv;
+
+  if (!conn->callbacks.send_stop_sending) {
+    return 0;
+  }
+
+  rv = conn->callbacks.send_stop_sending(conn, stream->stream_id,
+                                         conn->user_data, stream->user_data);
+  if (rv != 0) {
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
+  return 0;
+}
+
 static int ricnt_less(const nghttp3_pq_entry *lhsx,
                       const nghttp3_pq_entry *rhsx) {
   nghttp3_stream *lhs =
@@ -934,7 +951,8 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
     stream->flags |= NGHTTP3_STREAM_FLAG_READ_EOF;
   }
 
-  if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
+  if (stream->flags & (NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED |
+                       NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED)) {
     if (srclen == 0) {
       return 0;
     }
@@ -967,12 +985,29 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
 
       rv = nghttp3_conn_on_stream_push_id(conn, stream, push_id);
       if (rv != 0) {
+        if (rv == NGHTTP3_ERR_IGNORE_STREAM) {
+          rstate->state = NGHTTP3_PUSH_STREAM_STATE_IGN_REST;
+          break;
+        }
         return (ssize_t)rv;
+      }
+
+      rstate->state = NGHTTP3_PUSH_STREAM_STATE_FRAME_TYPE;
+
+      if (stream->flags & NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED) {
+        if (p != end) {
+          rv = nghttp3_stream_buffer_data(stream, p, (size_t)(end - p));
+          if (rv != 0) {
+            return rv;
+          }
+        }
+        return (ssize_t)nconsumed;
       }
 
       if (end == p) {
         goto almost_done;
       }
+
       /* Fall through */
     case NGHTTP3_PUSH_STREAM_STATE_FRAME_TYPE:
       assert(end - p > 0);
@@ -991,7 +1026,7 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
       nghttp3_varint_read_state_reset(rvint);
       rstate->state = NGHTTP3_PUSH_STREAM_STATE_FRAME_LENGTH;
       if (p == end) {
-        break;
+        goto almost_done;
       }
       /* Fall through */
     case NGHTTP3_PUSH_STREAM_STATE_FRAME_LENGTH:
@@ -1115,9 +1150,11 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
       rstate->left -= nread;
 
       if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
-        rv = nghttp3_stream_buffer_data(stream, p, (size_t)(end - p));
-        if (rv != 0) {
-          return rv;
+        if (p != end) {
+          rv = nghttp3_stream_buffer_data(stream, p, (size_t)(end - p));
+          if (rv != 0) {
+            return rv;
+          }
         }
         return (ssize_t)nconsumed;
       }
@@ -1165,6 +1202,9 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
 
       nghttp3_stream_read_state_reset(rstate);
       break;
+    case NGHTTP3_PUSH_STREAM_STATE_IGN_REST:
+      nconsumed = (size_t)(end - p);
+      break;
     }
   }
 
@@ -1180,6 +1220,8 @@ almost_done:
       if (rv != 0) {
         return rv;
       }
+      break;
+    case NGHTTP3_PUSH_STREAM_STATE_IGN_REST:
       break;
     default:
       return nghttp3_err_malformed_frame(rstate->fr.hd.type);
@@ -1228,13 +1270,67 @@ static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
   return 0;
 }
 
+static int conn_process_blocked_stream_data(nghttp3_conn *conn,
+                                            nghttp3_stream *stream) {
+  nghttp3_buf *buf;
+  ssize_t nread;
+  int rv;
+
+  for (; nghttp3_ringbuf_len(&stream->inq);) {
+    buf = nghttp3_ringbuf_get(&stream->inq, 0);
+
+    if (nghttp3_stream_uni(stream->stream_id)) {
+      nread =
+          nghttp3_conn_read_push(conn, stream, buf->pos, nghttp3_buf_len(buf),
+                                 stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF);
+    } else {
+      nread =
+          nghttp3_conn_read_bidi(conn, stream, buf->pos, nghttp3_buf_len(buf),
+                                 stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF);
+    }
+    if (nread < 0) {
+      return (int)nread;
+    }
+
+    buf->pos += nread;
+
+    if (conn->callbacks.deferred_consume) {
+      rv = conn->callbacks.deferred_consume(conn, stream->stream_id,
+                                            (size_t)nread, conn->user_data,
+                                            stream->user_data);
+      if (rv != 0) {
+        return NGHTTP3_ERR_CALLBACK_FAILURE;
+      }
+    }
+
+    if (nghttp3_buf_len(buf) == 0) {
+      nghttp3_buf_free(buf, stream->mem);
+      nghttp3_ringbuf_pop_front(&stream->inq);
+    }
+
+    if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
+      break;
+    }
+  }
+
+  if (!(stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) &&
+      (stream->flags & NGHTTP3_STREAM_FLAG_CLOSED)) {
+    assert(stream->qpack_blocked_pe.index == NGHTTP3_PQ_BAD_INDEX);
+
+    rv = conn_delete_stream(conn, stream);
+    if (rv != 0) {
+      return rv;
+    }
+  }
+
+  return 0;
+}
+
 ssize_t nghttp3_conn_read_qpack_encoder(nghttp3_conn *conn, const uint8_t *src,
                                         size_t srclen) {
   ssize_t nconsumed =
       nghttp3_qpack_decoder_read_encoder(&conn->qdec, src, srclen);
-  ssize_t nread;
   nghttp3_stream *stream;
-  nghttp3_buf *buf;
   int rv;
 
   if (nconsumed < 0) {
@@ -1253,45 +1349,9 @@ ssize_t nghttp3_conn_read_qpack_encoder(nghttp3_conn *conn, const uint8_t *src,
     stream->qpack_blocked_pe.index = NGHTTP3_PQ_BAD_INDEX;
     stream->flags &= (uint16_t)~NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED;
 
-    for (; nghttp3_ringbuf_len(&stream->inq);) {
-      buf = nghttp3_ringbuf_get(&stream->inq, 0);
-
-      nread =
-          nghttp3_conn_read_bidi(conn, stream, buf->pos, nghttp3_buf_len(buf),
-                                 stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF);
-      if (nread < 0) {
-        return nread;
-      }
-
-      buf->pos += nread;
-
-      if (conn->callbacks.deferred_consume) {
-        rv = conn->callbacks.deferred_consume(conn, stream->stream_id,
-                                              (size_t)nread, conn->user_data,
-                                              stream->user_data);
-        if (rv != 0) {
-          return NGHTTP3_ERR_CALLBACK_FAILURE;
-        }
-      }
-
-      if (nghttp3_buf_len(buf) == 0) {
-        nghttp3_buf_free(buf, stream->mem);
-        nghttp3_ringbuf_pop_front(&stream->inq);
-      }
-
-      if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
-        break;
-      }
-    }
-
-    if (!(stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) &&
-        (stream->flags & NGHTTP3_STREAM_FLAG_CLOSED)) {
-      assert(stream->qpack_blocked_pe.index == NGHTTP3_PQ_BAD_INDEX);
-
-      rv = conn_delete_stream(conn, stream);
-      if (rv != 0) {
-        return rv;
-      }
+    rv = conn_process_blocked_stream_data(conn, stream);
+    if (rv != 0) {
+      return rv;
     }
   }
 
@@ -1353,7 +1413,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
       nghttp3_varint_read_state_reset(rvint);
       rstate->state = NGHTTP3_REQ_STREAM_STATE_FRAME_LENGTH;
       if (p == end) {
-        break;
+        goto almost_done;
       }
       /* Fall through */
     case NGHTTP3_REQ_STREAM_STATE_FRAME_LENGTH:
@@ -1597,6 +1657,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
         return rv;
       }
 
+      rstate->state = NGHTTP3_REQ_STREAM_STATE_PUSH_PROMISE;
       if (p == end) {
         goto almost_done;
       }
@@ -1619,9 +1680,11 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
       rstate->left -= nread;
 
       if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
-        rv = nghttp3_stream_buffer_data(stream, p, (size_t)(end - p));
-        if (rv != 0) {
-          return rv;
+        if (p != end) {
+          rv = nghttp3_stream_buffer_data(stream, p, (size_t)(end - p));
+          if (rv != 0) {
+            return rv;
+          }
         }
         return (ssize_t)nconsumed;
       }
@@ -1640,6 +1703,16 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
         return rv;
       }
 
+      if (pp->stream &&
+          (pp->stream->flags & NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED)) {
+        pp->stream->flags &=
+            (uint16_t)~NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED;
+        rv = conn_process_blocked_stream_data(conn, pp->stream);
+        if (rv != 0) {
+          return rv;
+        }
+      }
+
       nghttp3_stream_read_state_reset(rstate);
       break;
     case NGHTTP3_REQ_STREAM_STATE_HEADERS:
@@ -1655,9 +1728,11 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
       rstate->left -= nread;
 
       if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
-        rv = nghttp3_stream_buffer_data(stream, p, (size_t)(end - p));
-        if (rv != 0) {
-          return rv;
+        if (p != end) {
+          rv = nghttp3_stream_buffer_data(stream, p, (size_t)(end - p));
+          if (rv != 0) {
+            return rv;
+          }
         }
         return (ssize_t)nconsumed;
       }
@@ -2066,20 +2141,28 @@ int nghttp3_conn_on_push_promise_push_id(nghttp3_conn *conn, int64_t push_id,
   nghttp3_gaptr *push_idtr = &conn->remote.uni.push_idtr;
   nghttp3_push_promise *pp;
 
-  if (conn->remote.uni.max_pushes <= (uint64_t)push_id ||
-      nghttp3_gaptr_is_pushed(push_idtr, (uint64_t)push_id, 1)) {
+  if (conn->remote.uni.max_pushes <= (uint64_t)push_id) {
     return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PUSH_PROMISE);
   }
 
-  rv = nghttp3_gaptr_push(push_idtr, (uint64_t)push_id, 1);
-  if (rv != 0) {
-    return rv;
-  }
+  pp = nghttp3_conn_find_push_promise(conn, push_id);
+  if (pp && pp->stream &&
+      (pp->stream->flags & NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED)) {
+    /* Push unidirectional stream has already been received and
+       blocked */
+  } else if (nghttp3_gaptr_is_pushed(push_idtr, (uint64_t)push_id, 1)) {
+    return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PUSH_PROMISE);
+  } else {
+    rv = nghttp3_gaptr_push(push_idtr, (uint64_t)push_id, 1);
+    if (rv != 0) {
+      return rv;
+    }
 
-  rv = nghttp3_conn_create_push_promise(conn, &pp, push_id,
-                                        NGHTTP3_DEFAULT_WEIGHT, &stream->node);
-  if (rv != 0) {
-    return rv;
+    rv = nghttp3_conn_create_push_promise(
+        conn, &pp, push_id, NGHTTP3_DEFAULT_WEIGHT, &stream->node);
+    if (rv != 0) {
+      return rv;
+    }
   }
 
   rv = conn_call_begin_push_promise(conn, push_id, stream);
@@ -2143,11 +2226,56 @@ int nghttp3_conn_on_server_cancel_push(nghttp3_conn *conn,
 
 int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
                                    int64_t push_id) {
-  (void)conn;
-  (void)stream;
-  (void)push_id;
-  /* TODO Not implemented yet */
-  return NGHTTP3_ERR_HTTP_INTERNAL_ERROR;
+  nghttp3_push_promise *pp;
+  int rv;
+
+  if (nghttp3_gaptr_is_pushed(&conn->remote.uni.push_idtr, (uint64_t)push_id,
+                              1)) {
+    pp = nghttp3_conn_find_push_promise(conn, push_id);
+    if (pp) {
+      if (pp->stream) {
+        return NGHTTP3_ERR_HTTP_DUPLICATE_PUSH;
+      }
+      pp->stream = stream;
+      stream->pp = pp;
+    } else {
+      /* Push ID has been received, but pp is gone.  This means that
+         push is cancelled or server is misbehaving.  We have no
+         information to distinguish the two, so just cancel QPACK
+         stream just in case, and ask application to send STOP_SENDING
+         and ignore all frames in this stream. */
+      rv = nghttp3_qpack_decoder_cancel_stream(&conn->qdec, stream->stream_id);
+      if (rv != 0) {
+        return rv;
+      }
+      rv = conn_call_send_stop_sending(conn, stream);
+      if (rv != 0) {
+        return rv;
+      }
+      return NGHTTP3_ERR_IGNORE_STREAM;
+    }
+  } else if (conn->remote.uni.max_pushes <= (uint64_t)push_id) {
+    return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+  } else {
+    /* Don't know the associated stream of PUSH_PROMISE.  It doesn't
+       matter because client sends nothing to this stream. */
+    rv = nghttp3_conn_create_push_promise(conn, &pp, push_id,
+                                          NGHTTP3_DEFAULT_WEIGHT, &conn->root);
+    if (rv != 0) {
+      return rv;
+    }
+
+    rv = nghttp3_gaptr_push(&conn->remote.uni.push_idtr, (uint64_t)push_id, 1);
+    if (rv != 0) {
+      return rv;
+    }
+
+    pp->stream = stream;
+    stream->pp = pp;
+    stream->flags |= NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED;
+  }
+
+  return 0;
 }
 
 static ssize_t conn_decode_headers(nghttp3_conn *conn, nghttp3_stream *stream,

@@ -86,6 +86,7 @@ typedef enum {
   NGHTTP3_PUSH_STREAM_STATE_HEADERS,
   NGHTTP3_PUSH_STREAM_STATE_IGN_FRAME,
   NGHTTP3_PUSH_STREAM_STATE_PUSH_ID,
+  NGHTTP3_PUSH_STREAM_STATE_IGN_REST,
 } nghttp3_push_stream_state;
 
 typedef struct {
@@ -122,6 +123,10 @@ typedef enum {
      nghttp3_stream object can still alive because it might be blocked
      by QPACK decoder. */
   NGHTTP3_STREAM_FLAG_CLOSED = 0x0040,
+  /* NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED indicates that stream is
+     blocked because the corresponding PUSH_PROMISE has not been
+     received yet. */
+  NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED = 0x0080,
 } nghttp3_stream_flag;
 
 typedef enum {

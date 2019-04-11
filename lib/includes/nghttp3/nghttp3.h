@@ -80,6 +80,7 @@ typedef enum {
   NGHTTP3_ERR_TOO_LATE = -110,
   NGHTTP3_ERR_QPACK_FATAL = -111,
   NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE = -112,
+  NGHTTP3_ERR_IGNORE_STREAM = -113,
   NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED = -402,
   NGHTTP3_ERR_HTTP_QPACK_ENCODER_STREAM_ERROR = -403,
   NGHTTP3_ERR_HTTP_QPACK_DECODER_STREAM_ERROR = -404,
@@ -98,6 +99,7 @@ typedef enum {
   NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED = -670,
   NGHTTP3_ERR_HTTP_WRONG_SETTING_DIRECTION = -671,
   NGHTTP3_ERR_HTTP_WRONG_STREAM_DIRECTION = -672,
+  NGHTTP3_ERR_HTTP_DUPLICATE_PUSH = -673,
   NGHTTP3_ERR_FATAL = -900,
   NGHTTP3_ERR_NOMEM = -901,
   NGHTTP3_ERR_CALLBACK_FAILURE = -902
@@ -1120,6 +1122,22 @@ typedef int (*nghttp3_cancel_push)(nghttp3_conn *conn, int64_t push_id,
                                    int64_t stream_id, void *user_data,
                                    void *stream_user_data);
 
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_send_stop_sending` is a callback function which is
+ * invoked when the library asks application to send STOP_SENDING to
+ * the stream identified by |stream_id|.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
+typedef int (*nghttp3_send_stop_sending)(nghttp3_conn *conn, int64_t stream_id,
+                                         void *user_data,
+                                         void *stream_user_data);
+
 typedef struct {
   nghttp3_acked_stream_data acked_stream_data;
   nghttp3_stream_close stream_close;
@@ -1135,6 +1153,7 @@ typedef struct {
   nghttp3_recv_push_promise recv_push_promise;
   nghttp3_end_push_promise end_push_promise;
   nghttp3_cancel_push cancel_push;
+  nghttp3_send_stop_sending send_stop_sending;
 } nghttp3_conn_callbacks;
 
 typedef struct {

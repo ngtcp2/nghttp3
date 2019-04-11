@@ -49,5 +49,6 @@ void test_nghttp3_conn_qpack_blocked_stream(void);
 void test_nghttp3_conn_recv_cancel_push(void);
 void test_nghttp3_conn_cancel_push(void);
 void test_nghttp3_conn_recv_push_promise(void);
+void test_nghttp3_conn_recv_push_stream(void);
 
 #endif /* NGTCP2_CONN_TEST_H */
