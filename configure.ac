@@ -312,6 +312,6 @@ AC_MSG_NOTICE([summary of build options:
       CUnit:          ${have_cunit} (CFLAGS='${CUNIT_CFLAGS}' LIBS='${CUNIT_LIBS}')
     Debug:
       Debug:          ${debug} (CFLAGS='${DEBUGCFLAGS}')
-    Libray only:      ${lib_only}
+    Library only:     ${lib_only}
     Examples:         ${enable_examples}
 ])
