@@ -1095,13 +1095,16 @@ typedef int (*nghttp3_begin_push_promise)(nghttp3_conn *conn, int64_t stream_id,
                                           int64_t push_id, void *user_data,
                                           void *stream_user_data);
 
-typedef int (*nghttp3_recv_push_promise)(nghttp3_conn *conn, int64_t push_id,
-                                         int32_t token, nghttp3_rcbuf *name,
+typedef int (*nghttp3_recv_push_promise)(nghttp3_conn *conn, int64_t stream_id,
+                                         int64_t push_id, int32_t token,
+                                         nghttp3_rcbuf *name,
                                          nghttp3_rcbuf *value, uint8_t flags,
-                                         void *user_data);
+                                         void *user_data,
+                                         void *stream_user_data);
 
-typedef int (*nghttp3_end_push_promise)(nghttp3_conn *conn, int64_t push_id,
-                                        void *user_data);
+typedef int (*nghttp3_end_push_promise)(nghttp3_conn *conn, int64_t stream_id,
+                                        int64_t push_id, void *user_data,
+                                        void *stream_user_data);
 
 /**
  * @functypedef

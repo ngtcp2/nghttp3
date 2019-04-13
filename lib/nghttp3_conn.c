@@ -133,14 +133,16 @@ static int conn_call_begin_push_promise(nghttp3_conn *conn,
   return 0;
 }
 
-static int conn_call_end_push_promise(nghttp3_conn *conn, int64_t push_id) {
+static int conn_call_end_push_promise(nghttp3_conn *conn,
+                                      nghttp3_stream *stream, int64_t push_id) {
   int rv;
 
   if (!conn->callbacks.end_push_promise) {
     return 0;
   }
 
-  rv = conn->callbacks.end_push_promise(conn, push_id, conn->user_data);
+  rv = conn->callbacks.end_push_promise(conn, stream->stream_id, push_id,
+                                        conn->user_data, stream->user_data);
   if (rv != 0) {
     /* TODO Allow ignore headers */
     return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -1761,7 +1763,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
 
       pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_RECVED;
 
-      rv = conn_call_end_push_promise(conn, pp->push_id);
+      rv = conn_call_end_push_promise(conn, stream, pp->push_id);
       if (rv != 0) {
         return rv;
       }
@@ -2527,9 +2529,9 @@ static ssize_t conn_decode_headers(nghttp3_conn *conn, nghttp3_stream *stream,
       case 0:
         if (pp) {
           if (conn->callbacks.recv_push_promise) {
-            rv = conn->callbacks.recv_push_promise(conn, pp->push_id, nv.token,
-                                                   nv.name, nv.value, nv.flags,
-                                                   conn->user_data);
+            rv = conn->callbacks.recv_push_promise(
+                conn, stream->stream_id, pp->push_id, nv.token, nv.name,
+                nv.value, nv.flags, conn->user_data, stream->user_data);
           }
           break;
         }
