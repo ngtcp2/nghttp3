@@ -93,6 +93,13 @@ int nghttp3_tnode_is_active(nghttp3_tnode *tnode);
 void nghttp3_tnode_unschedule(nghttp3_tnode *tnode);
 
 /*
+ * nghttp3_tnode_unschedule_detach works like
+ * nghttp3_tnode_unschedule, but it removes |tnode| even if tnode->pq
+ * is not empty.
+ */
+void nghttp3_tnode_unschedule_detach(nghttp3_tnode *tnode);
+
+/*
  * nghttp3_tnode_schedule schedules |tnode| using |nwrite| as penalty.
  * If |tnode| has already been scheduled, it is rescheduled by the
  * amount of |nwrite|.
