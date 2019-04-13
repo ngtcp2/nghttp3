@@ -289,6 +289,8 @@ int nghttp3_stream_fill_outq(nghttp3_stream *stream);
 
 int nghttp3_stream_write_stream_type(nghttp3_stream *stream);
 
+int nghttp3_stream_write_stream_type_push_id(nghttp3_stream *stream);
+
 ssize_t nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
                               nghttp3_vec *vec, size_t veccnt);
 
@@ -321,6 +323,9 @@ int nghttp3_stream_write_priority(nghttp3_stream *stream,
                                   nghttp3_frame_entry *frent);
 
 int nghttp3_stream_write_cancel_push(nghttp3_stream *stream,
+                                     nghttp3_frame_entry *frent);
+
+int nghttp3_stream_write_max_push_id(nghttp3_stream *stream,
                                      nghttp3_frame_entry *frent);
 
 int nghttp3_stream_ensure_chunk(nghttp3_stream *stream, size_t need);

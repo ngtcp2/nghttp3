@@ -68,6 +68,9 @@ typedef enum {
   NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL = 0x04,
   NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED = NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL |
                                         NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL,
+  /* NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_RECLAIMED indicates that
+     unsent_max_pushes has been updated for this push ID. */
+  NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_RECLAIMED = 0x08,
 } nghttp3_push_promise_flag;
 
 struct nghttp3_push_promise;
@@ -92,6 +95,9 @@ typedef enum {
   NGHTTP3_CONN_FLAG_CONTROL_OPENED = 0x0002,
   NGHTTP3_CONN_FLAG_QPACK_ENCODER_OPENED = 0x0004,
   NGHTTP3_CONN_FLAG_QPACK_DECODER_OPENED = 0x0008,
+  /* NGHTTP3_CONN_FLAG_MAX_PUSH_ID_QUEUED indicates that MAX_PUSH_ID
+     has been queued to control stream. */
+  NGHTTP3_CONN_FLAG_MAX_PUSH_ID_QUEUED = 0x0010,
 } nghttp3_conn_flag;
 
 struct nghttp3_conn {
@@ -133,7 +139,7 @@ struct nghttp3_conn {
       /* push_idtr tracks which push ID has been used by remote
          server.  This field is used by client only. */
       nghttp3_gaptr push_idtr;
-      /* unsent_max_push is the maximum number of push which the local
+      /* unsent_max_pushes is the maximum number of push which the local
          endpoint can accept.  This limit is not yet notified to the
          remote endpoint.  This field is used by client only. */
       uint64_t unsent_max_pushes;
@@ -230,6 +236,8 @@ void nghttp3_conn_qpack_blocked_streams_pop(nghttp3_conn *conn);
 int nghttp3_conn_server_cancel_push(nghttp3_conn *conn, int64_t push_id);
 
 int nghttp3_conn_client_cancel_push(nghttp3_conn *conn, int64_t push_id);
+
+int nghttp3_conn_submit_max_push_id(nghttp3_conn *conn);
 
 /*
  * nghttp3_conn_get_next_tx_stream returns next stream to send.  It

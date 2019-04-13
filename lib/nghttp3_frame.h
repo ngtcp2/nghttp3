@@ -101,6 +101,24 @@ size_t nghttp3_frame_write_cancel_push_len(int64_t *ppayloadlen,
                                            const nghttp3_frame_cancel_push *fr);
 
 /*
+ * nghttp3_frame_write_max_push_id writes MAX_PUSH_ID frame |fr| to
+ * |dest|.  This function assumes that |dest| has enough space to
+ * write |fr|.
+ *
+ * This function returns |dest| plus the number of bytes written.
+ */
+uint8_t *nghttp3_frame_write_max_push_id(uint8_t *dest,
+                                         const nghttp3_frame_max_push_id *fr);
+
+/*
+ * nghttp3_frame_write_max_push_id_len returns the number of bytes
+ * required to write |fr|.  fr->hd.length is ignored.  This function
+ * stores payload length in |*ppayloadlen|.
+ */
+size_t nghttp3_frame_write_max_push_id_len(int64_t *ppayloadlen,
+                                           const nghttp3_frame_max_push_id *fr);
+
+/*
  * nghttp3_nva_copy copies name/value pairs from |nva|, which contains
  * |nvlen| pairs, to |*nva_ptr|, which is dynamically allocated so
  * that all items can be stored.  The resultant name and value in

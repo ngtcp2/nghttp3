@@ -1091,8 +1091,8 @@ typedef int (*nghttp3_recv_header)(nghttp3_conn *conn, int64_t stream_id,
 typedef int (*nghttp3_end_headers)(nghttp3_conn *conn, int64_t stream_id,
                                    void *user_data, void *stream_user_data);
 
-typedef int (*nghttp3_begin_push_promise)(nghttp3_conn *conn, int64_t push_id,
-                                          int64_t stream_id, void *user_data,
+typedef int (*nghttp3_begin_push_promise)(nghttp3_conn *conn, int64_t stream_id,
+                                          int64_t push_id, void *user_data,
                                           void *stream_user_data);
 
 typedef int (*nghttp3_recv_push_promise)(nghttp3_conn *conn, int64_t push_id,
@@ -1175,6 +1175,7 @@ typedef struct {
 typedef struct {
   uint64_t max_header_list_size;
   uint64_t num_placeholders;
+  uint64_t max_pushes;
   uint32_t qpack_max_table_capacity;
   uint16_t qpack_blocked_streams;
 } nghttp3_conn_settings;
