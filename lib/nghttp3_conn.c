@@ -3603,6 +3603,7 @@ int nghttp3_push_promise_new(nghttp3_push_promise **ppp, int64_t push_id,
       seq, weight, parent, mem);
 
   pp->me.key = (key_type)push_id;
+  pp->push_id = push_id;
   pp->http.status_code = -1;
   pp->http.content_length = -1;
 
