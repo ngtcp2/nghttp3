@@ -2730,7 +2730,7 @@ void test_nghttp3_conn_recv_cancel_push(void) {
   pp = nghttp3_conn_find_push_promise(conn, 0);
 
   CU_ASSERT(NULL != pp);
-  CU_ASSERT(7 == pp->stream->stream_id);
+  CU_ASSERT(7 == pp->stream->node.nid.id);
 
   /* request stream */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));

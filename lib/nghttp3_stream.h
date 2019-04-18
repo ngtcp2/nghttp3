@@ -238,7 +238,6 @@ struct nghttp3_stream {
      type NGHTTP3_BUF_TYPE_ALIEN. */
   size_t ack_done;
   size_t unscheduled_nwrite;
-  int64_t stream_id;
   nghttp3_stream_type type;
   nghttp3_stream_read_state rstate;
   /* pp is nghttp3_push_promise that this stream fulfills. */

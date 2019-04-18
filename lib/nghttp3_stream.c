@@ -74,7 +74,6 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
 
   nghttp3_qpack_stream_context_init(&stream->qpack_sctx, stream_id, mem);
 
-  stream->stream_id = stream_id;
   stream->me.key = (key_type)stream_id;
   stream->qpack_blocked_pe.index = NGHTTP3_PQ_BAD_INDEX;
   stream->mem = mem;
@@ -541,7 +540,7 @@ int nghttp3_stream_write_header_block(nghttp3_stream *stream,
   nghttp3_buf_init(&ebuf);
 
   rv = nghttp3_qpack_encoder_encode(qenc, &pbuf, &rbuf, &ebuf,
-                                    stream->stream_id, nva, nvlen);
+                                    stream->node.nid.id, nva, nvlen);
   if (rv != 0) {
     goto fail;
   }
@@ -639,7 +638,7 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
 
   *peof = 0;
 
-  rv = read_data(conn, stream->stream_id, &data, &datalen, &flags,
+  rv = read_data(conn, stream->node.nid.id, &data, &datalen, &flags,
                  conn->user_data, stream->user_data);
   if (rv != 0) {
     if (rv == NGHTTP3_ERR_WOULDBLOCK) {
@@ -932,7 +931,7 @@ int nghttp3_stream_add_ack_offset(nghttp3_stream *stream, size_t n) {
     if (tbuf->type == NGHTTP3_BUF_TYPE_ALIEN) {
       nack = nghttp3_min(offset, buflen) - stream->ack_done;
       if (stream->callbacks.acked_data) {
-        rv = stream->callbacks.acked_data(stream, stream->stream_id, nack,
+        rv = stream->callbacks.acked_data(stream, stream->node.nid.id, nack,
                                           stream->user_data);
         if (rv != 0) {
           return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -1288,7 +1287,7 @@ int nghttp3_stream_empty_headers_allowed(nghttp3_stream *stream) {
 }
 
 int nghttp3_stream_bidi_or_push(nghttp3_stream *stream) {
-  return (!nghttp3_stream_uni(stream->stream_id) ||
+  return (!nghttp3_stream_uni(stream->node.nid.id) ||
           stream->type == NGHTTP3_STREAM_TYPE_PUSH);
 }
 
