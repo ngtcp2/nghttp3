@@ -421,9 +421,12 @@ ssize_t nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
       if (nghttp3_client_stream_bidi(stream_id)) {
         rv = nghttp3_idtr_open(&conn->remote.bidi.idtr, stream_id);
         assert(rv == 0);
+        rv = nghttp3_conn_create_stream(conn, &stream, stream_id);
+      } else {
+        /* unidirectional stream */
+        rv = nghttp3_conn_create_stream_dependency(conn, &stream, stream_id, 0,
+                                                   NULL);
       }
-
-      rv = nghttp3_conn_create_stream(conn, &stream, stream_id);
       if (rv != 0) {
         return rv;
       }
@@ -431,7 +434,8 @@ ssize_t nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
       stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
       stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
     } else if (nghttp3_stream_uni(stream_id)) {
-      rv = nghttp3_conn_create_stream(conn, &stream, stream_id);
+      rv = nghttp3_conn_create_stream_dependency(conn, &stream, stream_id, 0,
+                                                 NULL);
       if (rv != 0) {
         return rv;
       }
@@ -2774,7 +2778,7 @@ int nghttp3_conn_bind_control_stream(nghttp3_conn *conn, int64_t stream_id) {
     return NGHTTP3_ERR_INVALID_STATE;
   }
 
-  rv = nghttp3_conn_create_stream(conn, &stream, stream_id);
+  rv = nghttp3_conn_create_stream_dependency(conn, &stream, stream_id, 0, NULL);
   if (rv != 0) {
     return rv;
   }
@@ -2808,7 +2812,8 @@ int nghttp3_conn_bind_qpack_streams(nghttp3_conn *conn, int64_t qenc_stream_id,
     return NGHTTP3_ERR_INVALID_STATE;
   }
 
-  rv = nghttp3_conn_create_stream(conn, &stream, qenc_stream_id);
+  rv = nghttp3_conn_create_stream_dependency(conn, &stream, qenc_stream_id, 0,
+                                             NULL);
   if (rv != 0) {
     return rv;
   }
@@ -2822,7 +2827,8 @@ int nghttp3_conn_bind_qpack_streams(nghttp3_conn *conn, int64_t qenc_stream_id,
     return rv;
   }
 
-  rv = nghttp3_conn_create_stream(conn, &stream, qdec_stream_id);
+  rv = nghttp3_conn_create_stream_dependency(conn, &stream, qdec_stream_id, 0,
+                                             NULL);
   if (rv != 0) {
     return rv;
   }

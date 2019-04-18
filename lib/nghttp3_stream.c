@@ -1009,6 +1009,11 @@ void nghttp3_stream_unschedule(nghttp3_stream *stream) {
 }
 
 int nghttp3_stream_squash(nghttp3_stream *stream) {
+  nghttp3_tnode *node = stream_get_dependency_node(stream);
+
+  if (!node->parent) {
+    return 0;
+  }
   return nghttp3_tnode_squash(stream_get_dependency_node(stream));
 }
 
