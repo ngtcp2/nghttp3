@@ -79,7 +79,6 @@ typedef struct nghttp3_push_promise nghttp3_push_promise;
 struct nghttp3_push_promise {
   nghttp3_map_entry me;
   nghttp3_tnode node;
-  int64_t push_id;
   nghttp3_http_state http;
   /* stream is server initiated unidirectional stream which fulfils
      the push promise. */

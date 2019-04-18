@@ -342,7 +342,7 @@ int nghttp3_stream_write_stream_type_push_id(nghttp3_stream *stream) {
   assert(pp);
 
   len = nghttp3_put_varint_len((int64_t)stream->type) +
-        nghttp3_put_varint_len(pp->push_id);
+        nghttp3_put_varint_len(pp->node.nid.id);
 
   rv = nghttp3_stream_ensure_chunk(stream, len);
   if (rv != 0) {
@@ -353,7 +353,7 @@ int nghttp3_stream_write_stream_type_push_id(nghttp3_stream *stream) {
   typed_buf_shared_init(&tbuf, chunk);
 
   chunk->last = nghttp3_put_varint(chunk->last, (int64_t)stream->type);
-  chunk->last = nghttp3_put_varint(chunk->last, pp->push_id);
+  chunk->last = nghttp3_put_varint(chunk->last, pp->node.nid.id);
   tbuf.buf.last = chunk->last;
 
   return nghttp3_stream_outq_add(stream, &tbuf);

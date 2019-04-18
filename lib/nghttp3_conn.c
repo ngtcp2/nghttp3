@@ -1287,7 +1287,7 @@ static void conn_delete_push_promise(nghttp3_conn *conn,
                                      nghttp3_push_promise *pp) {
   int rv;
 
-  rv = nghttp3_map_remove(&conn->pushes, (key_type)pp->push_id);
+  rv = nghttp3_map_remove(&conn->pushes, (key_type)pp->node.nid.id);
   assert(0 == rv);
 
   if (!conn->server &&
@@ -1763,14 +1763,14 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
 
       pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_RECVED;
 
-      rv = conn_call_end_push_promise(conn, stream, pp->push_id);
+      rv = conn_call_end_push_promise(conn, stream, pp->node.nid.id);
       if (rv != 0) {
         return rv;
       }
 
       if (!pp->stream && (pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED)) {
         if (pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL) {
-          rv = conn_call_cancel_push(conn, pp->push_id, pp->stream);
+          rv = conn_call_cancel_push(conn, pp->node.nid.id, pp->stream);
           if (rv != 0) {
             return rv;
           }
@@ -1789,7 +1789,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
         if (!(pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL)) {
           assert(pp->stream->flags & NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED);
 
-          rv = conn_call_push_stream(conn, pp->push_id, pp->stream);
+          rv = conn_call_push_stream(conn, pp->node.nid.id, pp->stream);
           if (rv != 0) {
             return rv;
           }
@@ -2313,7 +2313,7 @@ int nghttp3_conn_on_client_cancel_push(nghttp3_conn *conn,
   }
 
   if (pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_RECVED) {
-    rv = conn_call_cancel_push(conn, pp->push_id, pp->stream);
+    rv = conn_call_cancel_push(conn, pp->node.nid.id, pp->stream);
     if (rv != 0) {
       return rv;
     }
@@ -2530,7 +2530,7 @@ static ssize_t conn_decode_headers(nghttp3_conn *conn, nghttp3_stream *stream,
         if (pp) {
           if (conn->callbacks.recv_push_promise) {
             rv = conn->callbacks.recv_push_promise(
-                conn, stream->node.nid.id, pp->push_id, nv.token, nv.name,
+                conn, stream->node.nid.id, pp->node.nid.id, nv.token, nv.name,
                 nv.value, nv.flags, conn->user_data, stream->user_data);
           }
           break;
@@ -3604,7 +3604,7 @@ int nghttp3_push_promise_new(nghttp3_push_promise **ppp, int64_t push_id,
       seq, weight, parent, mem);
 
   pp->me.key = (key_type)push_id;
-  pp->push_id = push_id;
+  pp->node.nid.id = push_id;
   pp->http.status_code = -1;
   pp->http.content_length = -1;
 
