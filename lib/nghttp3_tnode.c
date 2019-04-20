@@ -85,11 +85,11 @@ int nghttp3_tnode_is_active(nghttp3_tnode *tnode) {
 
   switch (tnode->nid.type) {
   case NGHTTP3_NODE_ID_TYPE_STREAM:
-    return nghttp3_stream_require_schedule(
+    return nghttp3_stream_is_active(
         nghttp3_struct_of(tnode, nghttp3_stream, node));
   case NGHTTP3_NODE_ID_TYPE_PUSH:
     pp = nghttp3_struct_of(tnode, nghttp3_push_promise, node);
-    return pp->stream && nghttp3_stream_require_schedule(pp->stream);
+    return pp->stream && nghttp3_stream_is_active(pp->stream);
   case NGHTTP3_NODE_ID_TYPE_UT:
     /* For unit test */
     return tnode->active;

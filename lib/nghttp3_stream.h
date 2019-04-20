@@ -344,8 +344,16 @@ int nghttp3_stream_outq_write_done(nghttp3_stream *stream);
 int nghttp3_stream_add_ack_offset(nghttp3_stream *stream, size_t n);
 
 /*
+ * nghttp3_stream_is_active returns nonzero if |stream| is active.  In
+ * other words, it has something to send.  This function does not take
+ * into account its descendants.
+ */
+int nghttp3_stream_is_active(nghttp3_stream *stream);
+
+/*
  * nghttp3_stream_require_schedule returns nonzero if |stream| should
- * be scheduled.  In other words, it has something to send.
+ * be scheduled.  In other words, |stream| or its descendants have
+ * something to send.
  */
 int nghttp3_stream_require_schedule(nghttp3_stream *stream);
 

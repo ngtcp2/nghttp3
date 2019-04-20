@@ -1973,8 +1973,7 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
       nghttp3_tnode_remove(&dep_stream->node);
       nghttp3_tnode_insert(&dep_stream->node, tnode->parent);
 
-      if (nghttp3_stream_require_schedule(dep_stream) ||
-          nghttp3_tnode_has_active_descendant(&dep_stream->node)) {
+      if (nghttp3_stream_require_schedule(dep_stream)) {
         rv = nghttp3_stream_schedule(dep_stream);
         if (rv != 0) {
           return rv;
@@ -2089,8 +2088,7 @@ int nghttp3_conn_on_request_priority(nghttp3_conn *conn, nghttp3_stream *stream,
   stream->node.weight = fr->weight;
   nghttp3_tnode_insert(&stream->node, dep_tnode);
 
-  if (nghttp3_stream_require_schedule(stream) ||
-      nghttp3_tnode_has_active_descendant(&stream->node)) {
+  if (nghttp3_stream_require_schedule(stream)) {
     rv = nghttp3_stream_schedule(stream);
     if (rv != 0) {
       return rv;
@@ -2205,8 +2203,7 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
 
   switch (nid.type) {
   case NGHTTP3_NODE_ID_TYPE_STREAM:
-    if (nghttp3_stream_require_schedule(stream) ||
-        nghttp3_tnode_has_active_descendant(tnode)) {
+    if (nghttp3_stream_require_schedule(stream)) {
       rv = nghttp3_stream_schedule(stream);
       if (rv != 0) {
         return rv;
