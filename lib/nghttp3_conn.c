@@ -1206,7 +1206,7 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
       rstate->left -= nread;
 
       if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
-        if (p != end) {
+        if (p != end && nghttp3_stream_get_buffered_datalen(stream) == 0) {
           rv = nghttp3_stream_buffer_data(stream, p, (size_t)(end - p));
           if (rv != 0) {
             return rv;
@@ -1747,7 +1747,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
       rstate->left -= nread;
 
       if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
-        if (p != end) {
+        if (p != end && nghttp3_stream_get_buffered_datalen(stream) == 0) {
           rv = nghttp3_stream_buffer_data(stream, p, (size_t)(end - p));
           if (rv != 0) {
             return rv;
@@ -1823,7 +1823,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
       rstate->left -= nread;
 
       if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
-        if (p != end) {
+        if (p != end && nghttp3_stream_get_buffered_datalen(stream) == 0) {
           rv = nghttp3_stream_buffer_data(stream, p, (size_t)(end - p));
           if (rv != 0) {
             return rv;
