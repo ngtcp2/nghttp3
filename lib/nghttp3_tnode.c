@@ -227,7 +227,7 @@ void nghttp3_tnode_remove(nghttp3_tnode *tnode) {
 }
 
 int nghttp3_tnode_squash(nghttp3_tnode *tnode) {
-  nghttp3_tnode *parent = tnode->parent, *node, **p;
+  nghttp3_tnode *parent = tnode->parent, *node, **p, *first, *end;
   int rv;
 
   assert(parent);
@@ -252,14 +252,12 @@ int nghttp3_tnode_squash(nghttp3_tnode *tnode) {
 
     nghttp3_pq_remove(&tnode->pq, &node->pe);
     node->pe.index = NGHTTP3_PQ_BAD_INDEX;
-
-    rv = nghttp3_tnode_schedule(node, 0);
-    if (rv != 0) {
-      return rv;
-    }
   }
 
   *p = tnode->next_sibling;
+
+  first = tnode->first_child;
+  end = tnode->next_sibling;
 
   if (tnode->pe.index != NGHTTP3_PQ_BAD_INDEX) {
     nghttp3_tnode_unschedule(tnode);
@@ -269,6 +267,16 @@ int nghttp3_tnode_squash(nghttp3_tnode *tnode) {
   parent->num_children += tnode->num_children;
   tnode->num_children = 0;
   tnode->parent = tnode->next_sibling = tnode->first_child = NULL;
+
+  for (node = first; node && node != end; node = node->next_sibling) {
+    if (nghttp3_tnode_is_active(node) ||
+        nghttp3_tnode_has_active_descendant(node)) {
+      rv = nghttp3_tnode_schedule(node, 0);
+      if (rv != 0) {
+        return rv;
+      }
+    }
+  }
 
   return 0;
 }
