@@ -9,14 +9,14 @@ It does not depend on any particular QUIC transport implementation.
 HTTP/3
 ------
 
-This library implements HTTP/3 draft-19.  It can exchange basic HTTP
-request and response, but does not fully implement the specification
-at the moment.
+This library implements HTTP/3 draft-20.  It can exchange basic HTTP
+request, response and server push, but does not fully implement the
+specification at the moment.
 
 QPACK
 -----
 
-This library implements QPACK draft-06.
+This library implements QPACK draft-08.  It supports dynamic table.
 
 License
 -------
