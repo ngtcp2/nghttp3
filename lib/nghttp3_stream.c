@@ -240,7 +240,8 @@ int nghttp3_stream_fill_outq(nghttp3_stream *stream) {
   int data_eof;
   int rv;
 
-  for (; nghttp3_ringbuf_len(frq) && !nghttp3_stream_outq_is_full(stream);) {
+  for (; nghttp3_ringbuf_len(frq) && !nghttp3_stream_outq_is_full(stream) &&
+         stream->unsent_bytes < NGHTTP3_MIN_UNSENT_BYTES;) {
     frent = nghttp3_ringbuf_get(frq, 0);
 
     switch (frent->fr.hd.type) {
@@ -733,6 +734,8 @@ int nghttp3_stream_outq_add(nghttp3_stream *stream,
   nghttp3_typed_buf *dest;
   size_t len = nghttp3_ringbuf_len(outq);
 
+  stream->unsent_bytes += nghttp3_buf_len(&tbuf->buf);
+
   if (len) {
     dest = nghttp3_ringbuf_get(outq, len - 1);
     if (dest->type == tbuf->type && dest->type == NGHTTP3_BUF_TYPE_SHARED &&
@@ -877,6 +880,7 @@ int nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n) {
 
   assert(i < len || offset == 0);
 
+  stream->unsent_bytes -= n;
   stream->outq_idx = i;
   stream->outq_offset = offset;
 

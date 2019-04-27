@@ -40,6 +40,10 @@
 
 #define NGHTTP3_STREAM_CHUNK_SIZE (16 * 1024)
 
+/* NGHTTP3_MIN_UNSENT_BYTES is the minimum unsent bytes which is large
+   enough to fill outgoing single QUIC packet. */
+#define NGHTTP3_MIN_UNSENT_BYTES 4096
+
 /* nghttp3_stream_type is unidirectional stream type. */
 typedef enum {
   NGHTTP3_STREAM_TYPE_CONTROL = 0x00,
@@ -225,6 +229,8 @@ struct nghttp3_stream {
      if stream is not a request/push stream. */
   nghttp3_conn *conn;
   void *user_data;
+  /* unsent_bytes is the number of bytes in outq not written yet */
+  size_t unsent_bytes;
   /* outq_idx is an index into outq where next write is made. */
   size_t outq_idx;
   /* outq_offset is write offset relative to the element at outq_idx
