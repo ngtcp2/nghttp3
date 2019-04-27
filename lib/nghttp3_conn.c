@@ -1180,7 +1180,6 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
       }
 
       p += len;
-      nconsumed += len;
       rstate->left -= (int64_t)len;
 
       if (rstate->left) {
@@ -1681,9 +1680,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
       if (rv != 0) {
         return rv;
       }
-
       p += len;
-      nconsumed += len;
       rstate->left -= (int64_t)len;
 
       if (rstate->left) {
