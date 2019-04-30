@@ -411,6 +411,7 @@ void nghttp3_conn_del(nghttp3_conn *conn) {
 ssize_t nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
                                  const uint8_t *src, size_t srclen, int fin) {
   nghttp3_stream *stream;
+  size_t bidi_nproc;
   int rv;
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
@@ -456,7 +457,7 @@ ssize_t nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
   if (nghttp3_stream_uni(stream_id)) {
     return nghttp3_conn_read_uni(conn, stream, src, srclen, fin);
   }
-  return nghttp3_conn_read_bidi(conn, stream, src, srclen, fin);
+  return nghttp3_conn_read_bidi(conn, &bidi_nproc, stream, src, srclen, fin);
 }
 
 static ssize_t conn_read_type(nghttp3_conn *conn, nghttp3_stream *stream,
@@ -524,6 +525,7 @@ ssize_t nghttp3_conn_read_uni(nghttp3_conn *conn, nghttp3_stream *stream,
                               const uint8_t *src, size_t srclen, int fin) {
   ssize_t nread = 0;
   ssize_t nconsumed = 0;
+  size_t push_nproc;
 
   assert(srclen);
 
@@ -553,7 +555,8 @@ ssize_t nghttp3_conn_read_uni(nghttp3_conn *conn, nghttp3_stream *stream,
     nconsumed = nghttp3_conn_read_control(conn, stream, src, srclen);
     break;
   case NGHTTP3_STREAM_TYPE_PUSH:
-    nconsumed = nghttp3_conn_read_push(conn, stream, src, srclen, fin);
+    nconsumed =
+        nghttp3_conn_read_push(conn, &push_nproc, stream, src, srclen, fin);
     break;
   case NGHTTP3_STREAM_TYPE_QPACK_ENCODER:
     if (fin) {
@@ -984,8 +987,9 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
   return (ssize_t)nconsumed;
 }
 
-ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
-                               const uint8_t *src, size_t srclen, int fin) {
+ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, size_t *pnproc,
+                               nghttp3_stream *stream, const uint8_t *src,
+                               size_t srclen, int fin) {
   const uint8_t *p = src, *end = src + srclen;
   int rv;
   nghttp3_stream_read_state *rstate = &stream->rstate;
@@ -1004,11 +1008,14 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
 
   if (stream->pp &&
       (stream->pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL)) {
+    *pnproc = srclen;
     return (ssize_t)srclen;
   }
 
   if (stream->flags & (NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED |
                        NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED)) {
+    *pnproc = 0;
+
     if (srclen == 0) {
       return 0;
     }
@@ -1057,6 +1064,7 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
             return rv;
           }
         }
+        *pnproc = (size_t)(p - src);
         return (ssize_t)nconsumed;
       }
 
@@ -1211,6 +1219,7 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
             return rv;
           }
         }
+        *pnproc = (size_t)(p - src);
         return (ssize_t)nconsumed;
       }
 
@@ -1259,6 +1268,7 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, nghttp3_stream *stream,
       break;
     case NGHTTP3_PUSH_STREAM_STATE_IGN_REST:
       nconsumed += (size_t)(end - p);
+      *pnproc = (size_t)(p - src);
       return (ssize_t)nconsumed;
     }
   }
@@ -1283,6 +1293,7 @@ almost_done:
     }
   }
 
+  *pnproc = (size_t)(p - src);
   return (ssize_t)nconsumed;
 }
 
@@ -1343,28 +1354,29 @@ static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
 static int conn_process_blocked_stream_data(nghttp3_conn *conn,
                                             nghttp3_stream *stream) {
   nghttp3_buf *buf;
-  ssize_t nread;
+  size_t nproc;
+  ssize_t nconsumed;
   int rv;
 
   for (; nghttp3_ringbuf_len(&stream->inq);) {
     buf = nghttp3_ringbuf_get(&stream->inq, 0);
 
     if (nghttp3_stream_uni(stream->node.nid.id)) {
-      nread =
-          nghttp3_conn_read_push(conn, stream, buf->pos, nghttp3_buf_len(buf),
-                                 stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF);
+      nconsumed = nghttp3_conn_read_push(
+          conn, &nproc, stream, buf->pos, nghttp3_buf_len(buf),
+          stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF);
     } else {
-      nread =
-          nghttp3_conn_read_bidi(conn, stream, buf->pos, nghttp3_buf_len(buf),
-                                 stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF);
+      nconsumed = nghttp3_conn_read_bidi(
+          conn, &nproc, stream, buf->pos, nghttp3_buf_len(buf),
+          stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF);
     }
-    if (nread < 0) {
-      return (int)nread;
+    if (nconsumed < 0) {
+      return (int)nconsumed;
     }
 
-    buf->pos += nread;
+    buf->pos += nproc;
 
-    rv = conn_call_deferred_consume(conn, stream, (size_t)nread);
+    rv = conn_call_deferred_consume(conn, stream, (size_t)nconsumed);
     if (rv != 0) {
       return 0;
     }
@@ -1429,8 +1441,9 @@ ssize_t nghttp3_conn_read_qpack_decoder(nghttp3_conn *conn, const uint8_t *src,
   return nghttp3_qpack_encoder_read_decoder(&conn->qenc, src, srclen);
 }
 
-ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
-                               const uint8_t *src, size_t srclen, int fin) {
+ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
+                               nghttp3_stream *stream, const uint8_t *src,
+                               size_t srclen, int fin) {
   const uint8_t *p = src, *end = src + srclen;
   int rv;
   nghttp3_stream_read_state *rstate = &stream->rstate;
@@ -1448,6 +1461,8 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
   }
 
   if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
+    *pnproc = 0;
+
     if (srclen == 0) {
       return 0;
     }
@@ -1750,6 +1765,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
             return rv;
           }
         }
+        *pnproc = (size_t)(p - src);
         return (ssize_t)nconsumed;
       }
 
@@ -1826,6 +1842,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, nghttp3_stream *stream,
             return rv;
           }
         }
+        *pnproc = (size_t)(p - src);
         return (ssize_t)nconsumed;
       }
 
@@ -1906,6 +1923,7 @@ almost_done:
     }
   }
 
+  *pnproc = (size_t)(p - src);
   return (ssize_t)nconsumed;
 }
 
