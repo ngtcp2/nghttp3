@@ -51,7 +51,6 @@ set(nghttp3_SOURCES
   nghttp3_frame.c
   nghttp3_tnode.c
   nghttp3_vec.c
-  nghttp3_psl.c
   nghttp3_gaptr.c
   nghttp3_idtr.c
   nghttp3_range.c

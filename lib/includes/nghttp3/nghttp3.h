@@ -657,16 +657,8 @@ nghttp3_qpack_encoder_set_max_blocked(nghttp3_qpack_encoder *encoder,
  * decoder.  This function is provided for debugging purpose only.  In
  * HTTP/3, |encoder| knows acknowledgement of header block by reading
  * decoder stream with `nghttp3_qpack_encoder_read_decoder()`.
- *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * :enum:`NGHTTP3_ERR_NOMEM`
- *     Out of memory.
- * :enum:`NGHTTP3_QPACK_DECODER_STREAM`
- *     stream denoted by |stream_id| is not found.
  */
-NGHTTP3_EXTERN int
+NGHTTP3_EXTERN void
 nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
                                  int64_t stream_id);
 
@@ -709,17 +701,8 @@ nghttp3_qpack_encoder_ack_everything(nghttp3_qpack_encoder *encoder);
  * denoted by |stream_id| is cancelled.  This function is provided for
  * debugging purpose only.  In HTTP/3, |encoder| knows this by reading
  * decoder stream with `nghttp3_qpack_encoder_read_decoder()`.
- *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * :enum:`NGHTTP3_ERR_NOMEM`
- *     Out of memory.
  */
-NGHTTP3_EXTERN int
+NGHTTP3_EXTERN void
 nghttp3_qpack_encoder_cancel_stream(nghttp3_qpack_encoder *encoder,
                                     int64_t stream_id);
 

@@ -877,36 +877,22 @@ static int ref_min_cnt_less(const nghttp3_pq_entry *lhsx,
   return lhs->min_cnt < rhs->min_cnt;
 }
 
+typedef struct {
+  size_t max_cnt;
+  uint64_t id;
+} nghttp3_blocked_streams_key;
+
 static int max_cnt_greater(const nghttp3_ksl_key *lhs,
                            const nghttp3_ksl_key *rhs) {
-  const nghttp3_qpack_stream *ls = lhs->ptr;
-  const nghttp3_qpack_stream *rs = rhs->ptr;
-  size_t lmax_cnt =
-      nghttp3_struct_of(nghttp3_pq_top(&ls->max_cnts),
-                        nghttp3_qpack_header_block_ref, max_cnts_pe)
-          ->max_cnt;
-  size_t rmax_cnt =
-      nghttp3_struct_of(nghttp3_pq_top(&rs->max_cnts),
-                        nghttp3_qpack_header_block_ref, max_cnts_pe)
-          ->max_cnt;
-
-  return lmax_cnt > rmax_cnt ||
-         (lmax_cnt == rmax_cnt && ls->me.key < rs->me.key);
+  const nghttp3_blocked_streams_key *a = lhs->ptr;
+  const nghttp3_blocked_streams_key *b = rhs->ptr;
+  return a->max_cnt > b->max_cnt || (a->max_cnt == b->max_cnt && a->id < b->id);
 }
-
-static nghttp3_qpack_header_block_ref inf_ref = {{0}, {0}, 0, 0};
-static nghttp3_pq_entry *inf_pe[1] = {&inf_ref.max_cnts_pe};
-static nghttp3_qpack_stream inf_stream = {
-    {NULL, UINT64_MAX},
-    {NULL, NULL, 0, 0, 0, 0},
-    {inf_pe, NULL, 1, 0, NULL},
-};
 
 int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
                                size_t max_dtable_size, size_t max_blocked,
                                const nghttp3_mem *mem) {
   int rv;
-  nghttp3_ksl_key key;
 
   rv = qpack_context_init(&encoder->ctx, max_dtable_size, max_blocked, mem);
   if (rv != 0) {
@@ -919,7 +905,7 @@ int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
   }
 
   rv = nghttp3_ksl_init(&encoder->blocked_streams, max_cnt_greater,
-                        nghttp3_ksl_key_ptr(&key, &inf_stream), mem);
+                        sizeof(nghttp3_blocked_streams_key), mem);
   if (rv != 0) {
     goto blocked_streams_init_fail;
   }
@@ -1087,10 +1073,7 @@ static int qpack_encoder_add_stream_ref(nghttp3_qpack_encoder *encoder,
     prev_max_cnt = nghttp3_qpack_stream_get_max_cnt(stream);
     if (nghttp3_qpack_encoder_stream_is_blocked(encoder, stream) &&
         max_cnt > prev_max_cnt) {
-      rv = nghttp3_qpack_encoder_unblock_stream(encoder, stream);
-      if (rv != 0) {
-        return rv;
-      }
+      nghttp3_qpack_encoder_unblock_stream(encoder, stream);
     }
   }
 
@@ -2230,62 +2213,64 @@ void nghttp3_qpack_entry_free(nghttp3_qpack_entry *ent) {
 
 int nghttp3_qpack_encoder_block_stream(nghttp3_qpack_encoder *encoder,
                                        nghttp3_qpack_stream *stream) {
+  nghttp3_blocked_streams_key bsk = {
+      nghttp3_struct_of(nghttp3_pq_top(&stream->max_cnts),
+                        nghttp3_qpack_header_block_ref, max_cnts_pe)
+          ->max_cnt,
+      stream->me.key};
   nghttp3_ksl_key key;
 
   return nghttp3_ksl_insert(&encoder->blocked_streams, NULL,
-                            nghttp3_ksl_key_ptr(&key, stream), stream);
+                            nghttp3_ksl_key_ptr(&key, &bsk), stream);
 }
 
-int nghttp3_qpack_encoder_unblock_stream(nghttp3_qpack_encoder *encoder,
-                                         nghttp3_qpack_stream *stream) {
+void nghttp3_qpack_encoder_unblock_stream(nghttp3_qpack_encoder *encoder,
+                                          nghttp3_qpack_stream *stream) {
+  nghttp3_blocked_streams_key bsk = {
+      nghttp3_struct_of(nghttp3_pq_top(&stream->max_cnts),
+                        nghttp3_qpack_header_block_ref, max_cnts_pe)
+          ->max_cnt,
+      stream->me.key};
   nghttp3_ksl_key key;
   nghttp3_ksl_it it;
 
+  /* This is purely debugging purpose only */
   it = nghttp3_ksl_lower_bound(&encoder->blocked_streams,
-                               nghttp3_ksl_key_ptr(&key, stream));
+                               nghttp3_ksl_key_ptr(&key, &bsk));
 
   assert(!nghttp3_ksl_it_end(&it));
   assert(nghttp3_ksl_it_get(&it) == stream);
 
-  return nghttp3_ksl_remove(&encoder->blocked_streams, NULL, &key);
+  nghttp3_ksl_remove(&encoder->blocked_streams, NULL, &key);
 }
 
-int nghttp3_qpack_encoder_unblock(nghttp3_qpack_encoder *encoder,
-                                  size_t max_cnt) {
-  int rv;
+void nghttp3_qpack_encoder_unblock(nghttp3_qpack_encoder *encoder,
+                                   size_t max_cnt) {
+  nghttp3_blocked_streams_key bsk = {max_cnt, 0};
   nghttp3_ksl_key key;
-  nghttp3_qpack_header_block_ref ref = {{0}, {0}, max_cnt, 0};
-  nghttp3_pq_entry *pe[1] = {&ref.max_cnts_pe};
-  nghttp3_qpack_stream needle = {
-      {NULL, 0}, {NULL, NULL, 0, 0, 0, 0}, {pe, NULL, 1, 0, NULL}};
   nghttp3_ksl_it it;
 
   it = nghttp3_ksl_lower_bound(&encoder->blocked_streams,
-                               nghttp3_ksl_key_ptr(&key, &needle));
+                               nghttp3_ksl_key_ptr(&key, &bsk));
 
   for (; !nghttp3_ksl_it_end(&it);) {
-    key = nghttp3_ksl_it_key(&it);
-    rv = nghttp3_ksl_remove(&encoder->blocked_streams, &it, &key);
-    if (rv != 0) {
-      return rv;
-    }
+    bsk = *(nghttp3_blocked_streams_key *)nghttp3_ksl_it_key(&it).ptr;
+    nghttp3_ksl_remove(&encoder->blocked_streams, &it,
+                       nghttp3_ksl_key_ptr(&key, &bsk));
   }
-
-  return 0;
 }
 
-int nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
-                                     int64_t stream_id) {
+void nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
+                                      int64_t stream_id) {
   nghttp3_qpack_stream *stream =
       nghttp3_qpack_encoder_find_stream(encoder, stream_id);
   const nghttp3_mem *mem = encoder->ctx.mem;
   nghttp3_qpack_header_block_ref *ref;
-  int rv;
 
   if (stream == NULL) {
     /* This might be NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR, but we
        don't create stream which does not use dynamic table. */
-    return 0;
+    return;
   }
 
   assert(nghttp3_ringbuf_len(&stream->refs));
@@ -2300,10 +2285,7 @@ int nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
   if (encoder->krcnt < ref->max_cnt) {
     encoder->krcnt = ref->max_cnt;
 
-    rv = nghttp3_qpack_encoder_unblock(encoder, ref->max_cnt);
-    if (rv != 0) {
-      return rv;
-    }
+    nghttp3_qpack_encoder_unblock(encoder, ref->max_cnt);
   }
 
   nghttp3_qpack_stream_pop_ref(stream);
@@ -2315,14 +2297,12 @@ int nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
   nghttp3_qpack_header_block_ref_del(ref, mem);
 
   if (nghttp3_ringbuf_len(&stream->refs)) {
-    return 0;
+    return;
   }
 
   qpack_encoder_remove_stream(encoder, stream);
 
   nghttp3_qpack_stream_del(stream, mem);
-
-  return 0;
 }
 
 int nghttp3_qpack_encoder_add_insert_count(nghttp3_qpack_encoder *encoder,
@@ -2332,7 +2312,9 @@ int nghttp3_qpack_encoder_add_insert_count(nghttp3_qpack_encoder *encoder,
   }
   encoder->krcnt += n;
 
-  return nghttp3_qpack_encoder_unblock(encoder, encoder->krcnt);
+  nghttp3_qpack_encoder_unblock(encoder, encoder->krcnt);
+
+  return 0;
 }
 
 void nghttp3_qpack_encoder_ack_everything(nghttp3_qpack_encoder *encoder) {
@@ -2344,29 +2326,23 @@ void nghttp3_qpack_encoder_ack_everything(nghttp3_qpack_encoder *encoder) {
                         (void *)encoder->ctx.mem);
 }
 
-int nghttp3_qpack_encoder_cancel_stream(nghttp3_qpack_encoder *encoder,
-                                        int64_t stream_id) {
+void nghttp3_qpack_encoder_cancel_stream(nghttp3_qpack_encoder *encoder,
+                                         int64_t stream_id) {
   nghttp3_qpack_stream *stream =
       nghttp3_qpack_encoder_find_stream(encoder, stream_id);
   const nghttp3_mem *mem = encoder->ctx.mem;
-  int rv;
 
   if (stream == NULL) {
-    return 0;
+    return;
   }
 
   if (nghttp3_qpack_encoder_stream_is_blocked(encoder, stream)) {
-    rv = nghttp3_qpack_encoder_unblock_stream(encoder, stream);
-    if (rv != 0) {
-      return rv;
-    }
+    nghttp3_qpack_encoder_unblock_stream(encoder, stream);
   }
 
   qpack_encoder_remove_stream(encoder, stream);
 
   nghttp3_qpack_stream_del(stream, mem);
-
-  return 0;
 }
 
 size_t nghttp3_qpack_encoder_get_num_blocked(nghttp3_qpack_encoder *encoder) {
@@ -2539,23 +2515,22 @@ ssize_t nghttp3_qpack_encoder_read_decoder(nghttp3_qpack_encoder *encoder,
       case NGHTTP3_QPACK_DS_OPCODE_ICNT_INCREMENT:
         rv = nghttp3_qpack_encoder_add_insert_count(encoder,
                                                     encoder->rstate.left);
+        if (rv != 0) {
+          goto fail;
+        }
         break;
       case NGHTTP3_QPACK_DS_OPCODE_HEADER_ACK:
-        rv = nghttp3_qpack_encoder_ack_header(encoder,
-                                              (int64_t)encoder->rstate.left);
+        nghttp3_qpack_encoder_ack_header(encoder,
+                                         (int64_t)encoder->rstate.left);
         break;
       case NGHTTP3_QPACK_DS_OPCODE_STREAM_CANCEL:
-        rv = nghttp3_qpack_encoder_cancel_stream(encoder,
-                                                 (int64_t)encoder->rstate.left);
+        nghttp3_qpack_encoder_cancel_stream(encoder,
+                                            (int64_t)encoder->rstate.left);
         break;
       default:
         /* unreachable */
         assert(0);
         break;
-      }
-
-      if (rv != 0) {
-        goto fail;
       }
 
       encoder->state = NGHTTP3_QPACK_DS_STATE_OPCODE;

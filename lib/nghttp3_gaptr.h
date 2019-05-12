@@ -34,7 +34,7 @@
 
 #include "nghttp3_mem.h"
 #include "nghttp3_range.h"
-#include "nghttp3_psl.h"
+#include "nghttp3_ksl.h"
 
 /*
  * nghttp3_gaptr maintains the gap in the range [0, UINT64_MAX).
@@ -42,7 +42,7 @@
 typedef struct {
   /* gap maintains the range of offset which is not received
      yet. Initially, its range is [0, UINT64_MAX). */
-  nghttp3_psl gap;
+  nghttp3_ksl gap;
   /* mem is custom memory allocator */
   const nghttp3_mem *mem;
 } nghttp3_gaptr;
@@ -80,6 +80,13 @@ int nghttp3_gaptr_push(nghttp3_gaptr *gaptr, uint64_t offset, size_t datalen);
  * If there is no gap, it returns UINT64_MAX.
  */
 uint64_t nghttp3_gaptr_first_gap_offset(nghttp3_gaptr *gaptr);
+
+/*
+ * nghttp3_gaptr_get_first_gap_after returns the iterator pointing to
+ * the first gap which overlaps or comes after |offset|.
+ */
+nghttp3_ksl_it nghttp3_gaptr_get_first_gap_after(nghttp3_gaptr *gaptr,
+                                                 uint64_t offset);
 
 /*
  * nghttp3_gaptr_is_pushed returns nonzero if range [offset, offset +

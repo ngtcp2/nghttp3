@@ -504,28 +504,16 @@ int nghttp3_qpack_encoder_block_stream(nghttp3_qpack_encoder *encoder,
 
 /*
  * nghttp3_qpack_encoder_unblock_stream unblocks |stream|.
- *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * NGHTTP3_ERR_NOMEM
- *     Out of memory.
  */
-int nghttp3_qpack_encoder_unblock_stream(nghttp3_qpack_encoder *encoder,
-                                         nghttp3_qpack_stream *stream);
+void nghttp3_qpack_encoder_unblock_stream(nghttp3_qpack_encoder *encoder,
+                                          nghttp3_qpack_stream *stream);
 
 /*
  * nghttp3_qpack_encoder_unblock unblocks stream whose max_cnt is less
  * than or equal to |max_cnt|.
- *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * NGHTTP3_ERR_NOMEM
- *     Out of memory.
  */
-int nghttp3_qpack_encoder_unblock(nghttp3_qpack_encoder *encoder,
-                                  size_t max_cnt);
+void nghttp3_qpack_encoder_unblock(nghttp3_qpack_encoder *encoder,
+                                   size_t max_cnt);
 
 /*
  * nghttp3_qpack_encoder_find_stream returns stream whose stream ID is

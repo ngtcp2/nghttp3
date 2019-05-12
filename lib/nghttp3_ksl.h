@@ -50,7 +50,9 @@
  * nghttp3_ksl_key represents key in nghttp3_ksl.
  */
 typedef union {
-  int64_t i;
+  /* i is defined to retrieve int64_t key for convenience. */
+  const int64_t *i;
+  /* ptr points to the key. */
   const void *ptr;
 } nghttp3_ksl_key;
 
@@ -63,15 +65,21 @@ typedef struct nghttp3_ksl_blk nghttp3_ksl_blk;
 /*
  * nghttp3_ksl_node is a node which contains either nghttp3_ksl_blk or
  * opaque data.  If a node is an internal node, it contains
- * nghttp3_ksl_blk.  Otherwise, it has data.  The invariant is that
- * the key of internal node dictates the maximum key in its
- * descendants, and the corresponding leaf node must exist.
+ * nghttp3_ksl_blk.  Otherwise, it has data.  The key is stored at the
+ * location starting at key.
  */
 struct nghttp3_ksl_node {
-  nghttp3_ksl_key key;
   union {
     nghttp3_ksl_blk *blk;
     void *data;
+  };
+  union {
+    uint64_t align;
+    /* key is a buffer to include key associated to this node.
+       Because the length of key is unknown until nghttp3_ksl_init is
+       called, the actual buffer will be allocated after this
+       field. */
+    uint8_t key[1];
   };
 };
 
@@ -87,7 +95,15 @@ struct nghttp3_ksl_blk {
   size_t n;
   /* leaf is nonzero if this block contains leaf nodes. */
   int leaf;
-  nghttp3_ksl_node nodes[NGHTTP3_KSL_MAX_NBLK];
+  union {
+    uint64_t align;
+    /* nodes is a buffer to contain NGHTTP3_KSL_MAX_NBLK
+       nghttp3_ksl_node objects.  Because nghttp3_ksl_node object is
+       allocated along with the additional variable length key
+       storage, the size of buffer is unknown until nghttp3_ksl_init
+       is called. */
+    uint8_t nodes[1];
+  };
 };
 
 /*
@@ -97,6 +113,9 @@ struct nghttp3_ksl_blk {
 typedef int (*nghttp3_ksl_compar)(const nghttp3_ksl_key *lhs,
                                   const nghttp3_ksl_key *rhs);
 
+struct nghttp3_ksl;
+typedef struct nghttp3_ksl nghttp3_ksl;
+
 struct nghttp3_ksl_it;
 typedef struct nghttp3_ksl_it nghttp3_ksl_it;
 
@@ -104,14 +123,10 @@ typedef struct nghttp3_ksl_it nghttp3_ksl_it;
  * nghttp3_ksl_it is a forward iterator to iterate nodes.
  */
 struct nghttp3_ksl_it {
-  const nghttp3_ksl_blk *blk;
+  const nghttp3_ksl *ksl;
+  nghttp3_ksl_blk *blk;
   size_t i;
-  nghttp3_ksl_compar compar;
-  nghttp3_ksl_key inf_key;
 };
-
-struct nghttp3_ksl;
-typedef struct nghttp3_ksl nghttp3_ksl;
 
 /*
  * nghttp3_ksl is a deterministic paged skip list.
@@ -124,14 +139,18 @@ struct nghttp3_ksl {
   /* back points to the last leaf block. */
   nghttp3_ksl_blk *back;
   nghttp3_ksl_compar compar;
-  nghttp3_ksl_key inf_key;
   size_t n;
+  /* keylen is the size of key */
+  size_t keylen;
+  /* nodelen is the actual size of nghttp3_ksl_node including key
+     storage. */
+  size_t nodelen;
   const nghttp3_mem *mem;
 };
 
 /*
  * nghttp3_ksl_init initializes |ksl|.  |compar| specifies compare
- * function.  |inf_key| specifies the "infinite" key.
+ * function.  |keylen| is the length of key.
  *
  * It returns 0 if it succeeds, or one of the following negative error
  * codes:
@@ -139,8 +158,8 @@ struct nghttp3_ksl {
  * NGHTTP3_ERR_NOMEM
  *   Out of memory.
  */
-int nghttp3_ksl_init(nghttp3_ksl *ksl, nghttp3_ksl_compar compar,
-                     const nghttp3_ksl_key *inf_key, const nghttp3_mem *mem);
+int nghttp3_ksl_init(nghttp3_ksl *ksl, nghttp3_ksl_compar compar, size_t keylen,
+                     const nghttp3_mem *mem);
 
 /*
  * nghttp3_ksl_free frees resources allocated for |ksl|.  If |ksl| is
@@ -172,30 +191,32 @@ int nghttp3_ksl_insert(nghttp3_ksl *ksl, nghttp3_ksl_it *it,
  * This function assigns the iterator to |*it|, which points to the
  * node which is located at the right next of the removed node if |it|
  * is not NULL.
- *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * NGHTTP3_ERR_NOMEM
- *   Out of memory.
  */
-int nghttp3_ksl_remove(nghttp3_ksl *ksl, nghttp3_ksl_it *it,
-                       const nghttp3_ksl_key *key);
+void nghttp3_ksl_remove(nghttp3_ksl *ksl, nghttp3_ksl_it *it,
+                        const nghttp3_ksl_key *key);
 
 /*
  * nghttp3_ksl_lower_bound returns the iterator which points to the
  * first node which has the key which is equal to |key| or the last
  * node which satisfies !compar(&node->key, key).  If there is no such
- * node, it returns the iterator which satisfies
- * nghttp3_ksl_it_end(it) != 0.
+ * node, it returns the iterator which satisfies nghttp3_ksl_it_end(it)
+ * != 0.
  */
 nghttp3_ksl_it nghttp3_ksl_lower_bound(nghttp3_ksl *ksl,
                                        const nghttp3_ksl_key *key);
 
 /*
- * nghttp3_ksl_update_key replaces the key of nodes which has
- * |old_key| with |new_key|.  |new_key| must be strictly greater than
- * the previous node and strictly smaller than the next node.
+ * nghttp3_ksl_lower_bound_compar works like nghttp3_ksl_lower_bound,
+ * but it takes custom function |compar| to do lower bound search.
+ */
+nghttp3_ksl_it nghttp3_ksl_lower_bound_compar(nghttp3_ksl *ksl,
+                                              const nghttp3_ksl_key *key,
+                                              nghttp3_ksl_compar compar);
+
+/*
+ * nghttp3_ksl_update_key replaces the key of nodes which has |old_key|
+ * with |new_key|.  |new_key| must be strictly greater than the
+ * previous node and strictly smaller than the next node.
  */
 void nghttp3_ksl_update_key(nghttp3_ksl *ksl, const nghttp3_ksl_key *old_key,
                             const nghttp3_ksl_key *new_key);
@@ -226,22 +247,29 @@ size_t nghttp3_ksl_len(nghttp3_ksl *ksl);
 void nghttp3_ksl_clear(nghttp3_ksl *ksl);
 
 /*
- * nghttp3_ksl_print prints its internal state in stderr.  This
- * function should be used for the debugging purpose only.
+ * nghttp3_ksl_nth_node returns the |n|th node under |blk|.  This
+ * function is provided for unit testing.
+ */
+nghttp3_ksl_node *nghttp3_ksl_nth_node(nghttp3_ksl *ksl, nghttp3_ksl_blk *blk,
+                                       size_t n);
+
+/*
+ * nghttp3_ksl_print prints its internal state in stderr.  It assumes
+ * that the key is of type int64_t.  This function should be used for
+ * the debugging purpose only.
  */
 void nghttp3_ksl_print(nghttp3_ksl *ksl);
 
 /*
  * nghttp3_ksl_it_init initializes |it|.
  */
-void nghttp3_ksl_it_init(nghttp3_ksl_it *it, const nghttp3_ksl_blk *blk,
-                         size_t i, nghttp3_ksl_compar compar,
-                         const nghttp3_ksl_key *inf_key);
+void nghttp3_ksl_it_init(nghttp3_ksl_it *it, const nghttp3_ksl *ksl,
+                         nghttp3_ksl_blk *blk, size_t i);
 
 /*
  * nghttp3_ksl_it_get returns the data associated to the node which
- * |it| points to.  If this function is called when
- * nghttp3_ksl_it_end(it) returns nonzero, it returns NULL.
+ * |it| points to.  It is undefined to call this function when
+ * nghttp3_ksl_it_end(it) returns nonzero.
  */
 void *nghttp3_ksl_it_get(const nghttp3_ksl_it *it);
 
@@ -274,21 +302,35 @@ int nghttp3_ksl_it_begin(const nghttp3_ksl_it *it);
 
 /*
  * nghttp3_ksl_key returns the key of the node which |it| points to.
- * It is OK to call this function when nghttp3_ksl_it_end(it) returns
- * nonzero.  In this case, this function returns inf_key.
+ * It is undefined to call this function when nghttp3_ksl_it_end(it)
+ * returns nonzero.
  */
 nghttp3_ksl_key nghttp3_ksl_it_key(const nghttp3_ksl_it *it);
-
-/*
- * nghttp3_ksl_key_i is a convenient function which initializes |key|
- * with |i| and returns |key|.
- */
-nghttp3_ksl_key *nghttp3_ksl_key_i(nghttp3_ksl_key *key, int64_t i);
 
 /*
  * nghttp3_ksl_key_ptr is a convenient function which initializes
  * |key| with |ptr| and returns |key|.
  */
 nghttp3_ksl_key *nghttp3_ksl_key_ptr(nghttp3_ksl_key *key, const void *ptr);
+
+/*
+ * nghttp3_ksl_range_compar is an implementation of
+ * nghttp3_ksl_compar.  lhs->ptr and rhs->ptr must point to
+ * nghttp3_range object and the function returns nonzero if (const
+ * nghttp3_range *)(lhs->ptr)->begin < (const nghttp3_range
+ * *)(rhs->ptr)->begin.
+ */
+int nghttp3_ksl_range_compar(const nghttp3_ksl_key *lhs,
+                             const nghttp3_ksl_key *rhs);
+
+/*
+ * nghttp3_ksl_range_exclusive_compar is an implementation of
+ * nghttp3_ksl_compar.  lhs->ptr and rhs->ptr must point to
+ * nghttp3_range object and the function returns nonzero if (const
+ * nghttp3_range *)(lhs->ptr)->begin < (const nghttp3_range
+ * *)(rhs->ptr)->begin and the 2 ranges do not intersect.
+ */
+int nghttp3_ksl_range_exclusive_compar(const nghttp3_ksl_key *lhs,
+                                       const nghttp3_ksl_key *rhs);
 
 #endif /* NGHTTP3_KSL_H */

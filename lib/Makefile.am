@@ -52,7 +52,6 @@ OBJECTS = \
 	nghttp3_frame.c \
 	nghttp3_tnode.c \
 	nghttp3_vec.c \
-	nghttp3_psl.c \
 	nghttp3_gaptr.c \
 	nghttp3_idtr.c \
 	nghttp3_range.c \
@@ -76,7 +75,6 @@ HFILES = \
 	nghttp3_frame.h \
 	nghttp3_tnode.h \
 	nghttp3_vec.h \
-	nghttp3_psl.h \
 	nghttp3_gaptr.h \
 	nghttp3_idtr.h \
 	nghttp3_range.h \
