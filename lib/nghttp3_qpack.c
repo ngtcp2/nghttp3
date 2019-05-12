@@ -3609,9 +3609,12 @@ almost_ok:
 
     *pflags |= NGHTTP3_QPACK_DECODE_FLAG_FINAL;
 
-    rv = nghttp3_qpack_decoder_write_header_ack(decoder, &decoder->dbuf, sctx);
-    if (rv != 0) {
-      goto fail;
+    if (sctx->ricnt) {
+      rv =
+          nghttp3_qpack_decoder_write_header_ack(decoder, &decoder->dbuf, sctx);
+      if (rv != 0) {
+        goto fail;
+      }
     }
   }
 
