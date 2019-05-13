@@ -619,7 +619,9 @@ void nghttp3_ksl_update_key(nghttp3_ksl *ksl, const nghttp3_ksl_key *old_key,
       return;
     }
 
-    if (ksl->compar(ksl_node_key(&node_key, node), new_key)) {
+    ksl_node_key(&node_key, node);
+    if (key_equal(ksl->compar, &node_key, old_key) ||
+        ksl->compar(&node_key, new_key)) {
       ksl_node_set_key(ksl, node, new_key->ptr);
     }
 
