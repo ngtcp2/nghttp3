@@ -131,6 +131,10 @@ typedef enum {
      blocked because the corresponding PUSH_PROMISE has not been
      received yet. */
   NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED = 0x0080,
+  /* NGHTTP3_STREAM_FLAG_CTRL_PRIORITY_APPLIED indicates that stream
+     has been prioritized by PRIORITY frame received in control
+     stream. */
+  NGHTTP3_STREAM_FLAG_CTRL_PRIORITY_APPLIED = 0x0100,
 } nghttp3_stream_flag;
 
 typedef enum {

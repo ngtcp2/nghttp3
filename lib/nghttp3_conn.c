@@ -1677,9 +1677,12 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       ++p;
       ++nconsumed;
 
-      rv = nghttp3_conn_on_request_priority(conn, stream, &rstate->fr.priority);
-      if (rv != 0) {
-        return rv;
+      if (!(stream->flags & NGHTTP3_STREAM_FLAG_CTRL_PRIORITY_APPLIED)) {
+        rv = nghttp3_conn_on_request_priority(conn, stream,
+                                              &rstate->fr.priority);
+        if (rv != 0) {
+          return rv;
+        }
       }
 
       rv = nghttp3_stream_transit_rx_http_state(
@@ -2195,6 +2198,7 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
       if (rv != 0) {
         return rv;
       }
+      stream->flags |= NGHTTP3_STREAM_FLAG_CTRL_PRIORITY_APPLIED;
       tnode = &stream->node;
       break;
     case NGHTTP3_NODE_ID_TYPE_PLACEHOLDER:
