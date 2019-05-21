@@ -2341,6 +2341,9 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   settings.qpack_blocked_streams = 100;
   nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_table_capacity,
                              settings.qpack_blocked_streams, mem);
+  nghttp3_qpack_encoder_set_max_dtable_size(&qenc,
+                                            settings.qpack_max_table_capacity);
+
   nghttp3_buf_init(&ebuf);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 

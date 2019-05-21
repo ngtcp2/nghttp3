@@ -63,6 +63,13 @@ int Encoder::init() {
     return -1;
   }
 
+  rv = nghttp3_qpack_encoder_set_max_dtable_size(enc_, max_dtable_size_);
+  if (rv != 0) {
+    std::cerr << "nghttp3_qpack_encoder_set_max_dtable_size: "
+              << nghttp3_strerror(rv) << std::endl;
+    return -1;
+  }
+
   return 0;
 }
 

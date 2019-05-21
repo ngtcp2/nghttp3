@@ -847,7 +847,8 @@ static int qpack_context_init(nghttp3_qpack_context *ctx,
   ctx->mem = mem;
   ctx->dtable_size = 0;
   ctx->dtable_sum = 0;
-  ctx->hard_max_dtable_size = ctx->max_dtable_size = max_dtable_size;
+  ctx->hard_max_dtable_size = max_dtable_size;
+  ctx->max_dtable_size = 0;
   ctx->max_blocked = max_blocked;
   ctx->next_absidx = 0;
   ctx->bad = 0;
@@ -916,8 +917,8 @@ int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
   encoder->krcnt = 0;
   encoder->state = NGHTTP3_QPACK_DS_STATE_OPCODE;
   encoder->opcode = 0;
-  encoder->min_dtable_update = encoder->last_max_dtable_update =
-      max_dtable_size;
+  encoder->min_dtable_update = NGHTTP3_QPACK_MAX_MAX_TABLE_CAPACITY;
+  encoder->last_max_dtable_update = 0;
   encoder->flags = NGHTTP3_QPACK_ENCODER_FLAG_NONE;
 
   nghttp3_qpack_read_state_reset(&encoder->rstate);
@@ -977,8 +978,7 @@ int nghttp3_qpack_encoder_set_hard_max_dtable_size(
     return NGHTTP3_ERR_INVALID_STATE;
   }
 
-  encoder->ctx.hard_max_dtable_size = encoder->ctx.max_dtable_size =
-      hard_max_dtable_size;
+  encoder->ctx.hard_max_dtable_size = hard_max_dtable_size;
 
   return 0;
 }
@@ -1248,7 +1248,7 @@ int nghttp3_qpack_encoder_process_dtable_update(nghttp3_qpack_encoder *encoder,
     return 0;
   }
 
-  if (encoder->min_dtable_update != encoder->last_max_dtable_update) {
+  if (encoder->min_dtable_update < encoder->last_max_dtable_update) {
     rv = nghttp3_qpack_encoder_write_set_dtable_cap(encoder, ebuf,
                                                     encoder->min_dtable_update);
     if (rv != 0) {
@@ -1263,14 +1263,15 @@ int nghttp3_qpack_encoder_process_dtable_update(nghttp3_qpack_encoder *encoder,
   }
 
   encoder->flags &= (uint8_t)~NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP;
-  encoder->min_dtable_update = encoder->ctx.max_dtable_size =
-      encoder->last_max_dtable_update;
+  encoder->min_dtable_update = NGHTTP3_QPACK_MAX_MAX_TABLE_CAPACITY;
+  encoder->ctx.max_dtable_size = encoder->last_max_dtable_update;
 
   return 0;
 }
 
 int nghttp3_qpack_encoder_write_set_dtable_cap(nghttp3_qpack_encoder *encoder,
                                                nghttp3_buf *ebuf, size_t cap) {
+  DEBUGF("qpack::encode: Set Dynamic Table Capacity capacity=%zu\n", cap);
   return qpack_write_number(ebuf, 0x20, cap, 5, encoder->ctx.mem);
 }
 

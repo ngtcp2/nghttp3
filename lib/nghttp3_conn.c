@@ -2620,6 +2620,11 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
     if (rv != 0) {
       return rv;
     }
+    rv = nghttp3_qpack_encoder_set_max_dtable_size(&conn->qenc,
+                                                   max_table_capacity);
+    if (rv != 0) {
+      return rv;
+    }
     break;
   case NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS:
     if (ent->value > NGHTTP3_QPACK_MAX_BLOCKED_STREAMS) {
