@@ -264,10 +264,13 @@ static int http_response_on_header(nghttp3_http_state *http,
       http->content_length = 0;
       return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
     }
-    if (http->status_code / 100 == 1 ||
-        (http->status_code / 100 == 2 &&
-         (http->flags & NGHTTP3_HTTP_FLAG_METH_CONNECT))) {
+    if (http->status_code / 100 == 1) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    /* https://tools.ietf.org/html/rfc7230#section-3.3.3 */
+    if (http->status_code / 100 == 2 &&
+        (http->flags & NGHTTP3_HTTP_FLAG_METH_CONNECT)) {
+      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
     }
     if (http->content_length != -1) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;

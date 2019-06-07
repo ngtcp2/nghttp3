@@ -2167,6 +2167,10 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
       MAKE_NV(":status", "304"),
       MAKE_NV("content-length", "20"),
   };
+  const nghttp3_nv cl_resnv[] = {
+      MAKE_NV(":status", "200"),
+      MAKE_NV("content-length", "0"),
+  };
   int rv;
   nghttp3_stream *stream;
 
@@ -2228,6 +2232,34 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
+
+  /* Content-Length in 200 response to CONNECT is ignored */
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_qpack_encoder_init(&qenc, 0, 0, mem);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.nva = (nghttp3_nv *)cl_resnv;
+  fr.nvlen = nghttp3_arraylen(cl_resnv);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_create_stream(conn, &stream, 0);
+  stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
+  stream->rx.http.flags |= NGHTTP3_HTTP_FLAG_METH_CONNECT;
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
+  CU_ASSERT(-1 == stream->rx.http.content_length);
+
+  rv = nghttp3_conn_close_stream(conn, 0);
+
+  CU_ASSERT(0 == rv);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
 }
 
 void test_nghttp3_conn_http_record_request_method(void) {
@@ -2260,7 +2292,7 @@ void test_nghttp3_conn_http_record_request_method(void) {
   nghttp3_conn_settings_default(&settings);
 
   /* content-length is not allowed with 200 status code in response to
-     CONNECT request. */
+     CONNECT request.  Just ignore it. */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, 0, mem);
 
@@ -2279,7 +2311,8 @@ void test_nghttp3_conn_http_record_request_method(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_MALFORMED_HTTP_HEADER == sconsumed);
+  CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
+  CU_ASSERT(-1 == stream->rx.http.content_length);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
