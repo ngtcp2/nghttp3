@@ -29,6 +29,9 @@ addons:
     - libcunit1-dev
     - cmake
     - cmake-data
+  homebrew:
+    packages:
+      - cunit
 before_install:
   - $CC --version
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then CMAKE_OPTS=" -DENABLE_ASAN=1" AUTOTOOLS_OPTS=" --enable-asan"; fi
@@ -36,8 +39,6 @@ before_install:
   - $CC --version
   - cmake --version
 before_script:
-  # First build external lib
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install cunit; fi
   # configure nghttp3
   - if [ "$CI_BUILD" == "autotools" ]; then autoreconf -i; fi
   - if [ "$CI_BUILD" == "autotools" ]; then ./configure --enable-werror $AUTOTOOLS_OPTS; fi
