@@ -252,6 +252,8 @@ struct nghttp3_stream {
   nghttp3_stream_read_state rstate;
   /* pp is nghttp3_push_promise that this stream fulfills. */
   nghttp3_push_promise *pp;
+  /* error_code indicates the reason of closure of this stream. */
+  uint16_t error_code;
 
   struct {
     nghttp3_stream_http_state hstate;

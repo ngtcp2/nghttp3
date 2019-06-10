@@ -1330,7 +1330,8 @@ static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
 
   if (conn->callbacks.stream_close) {
     rv = conn->callbacks.stream_close(conn, stream->node.nid.id,
-                                      conn->user_data, stream->user_data);
+                                      stream->error_code, conn->user_data,
+                                      stream->user_data);
     if (rv != 0) {
       return NGHTTP3_ERR_CALLBACK_FAILURE;
     }
@@ -2371,7 +2372,8 @@ int nghttp3_conn_on_server_cancel_push(nghttp3_conn *conn,
   }
 
   if (stream) {
-    rv = nghttp3_conn_close_stream(conn, stream->node.nid.id);
+    rv = nghttp3_conn_close_stream(conn, stream->node.nid.id,
+                                   NGHTTP3_HTTP_PUSH_REFUSED);
     if (rv != 0) {
       assert(NGHTTP3_ERR_INVALID_ARGUMENT != rv);
       return rv;
@@ -3402,7 +3404,8 @@ int nghttp3_conn_resume_stream(nghttp3_conn *conn, int64_t stream_id) {
   return 0;
 }
 
-int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id) {
+int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id,
+                              uint16_t error_code) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
   int rv;
 
@@ -3415,6 +3418,8 @@ int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id) {
       stream->type != NGHTTP3_STREAM_TYPE_UNKNOWN) {
     return NGHTTP3_ERR_HTTP_CLOSED_CRITICAL_STREAM;
   }
+
+  stream->error_code = error_code;
 
   rv = nghttp3_stream_squash(stream);
   if (rv != 0) {

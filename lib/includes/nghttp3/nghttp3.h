@@ -1024,7 +1024,8 @@ typedef int (*nghttp3_acked_stream_data)(nghttp3_conn *conn, int64_t stream_id,
  * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_stream_close)(nghttp3_conn *conn, int64_t stream_id,
-                                    void *user_data, void *stream_user_data);
+                                    uint16_t error_code, void *user_data,
+                                    void *stream_user_data);
 
 /**
  * @functypedef
@@ -1411,7 +1412,8 @@ NGHTTP3_EXTERN int nghttp3_conn_resume_stream(nghttp3_conn *conn,
  * |stream_id|.
  */
 NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
-                                             int64_t stream_id);
+                                             int64_t stream_id,
+                                             uint16_t error_code);
 
 /**
  * @function
