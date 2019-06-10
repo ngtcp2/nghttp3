@@ -50,8 +50,7 @@ before_script:
   # configure nghttp3
   - |
     if [ "$CI_BUILD" == "autotools" ]; then
-      autoreconf -i
-      ./configure --enable-werror $AUTOTOOLS_OPTS
+      autoreconf -i && ./configure --enable-werror $AUTOTOOLS_OPTS
     fi
   - |
     if [ "$CI_BUILD" == "cmake" ]; then
