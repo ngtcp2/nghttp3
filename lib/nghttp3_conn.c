@@ -3587,6 +3587,29 @@ uint64_t nghttp3_conn_get_remote_num_placeholders(nghttp3_conn *conn) {
   return conn->remote.settings.num_placeholders;
 }
 
+int64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
+                                            int64_t stream_id) {
+  nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
+
+  if (stream == NULL) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  return stream->rstate.left;
+}
+
+int nghttp3_conn_is_remote_qpack_encoder_stream(nghttp3_conn *conn,
+                                                int64_t stream_id) {
+  nghttp3_stream *stream;
+
+  if (!conn_remote_stream_uni(conn, stream_id)) {
+    return 0;
+  }
+
+  stream = nghttp3_conn_find_stream(conn, stream_id);
+  return stream && stream->type == NGHTTP3_STREAM_TYPE_QPACK_ENCODER;
+}
+
 void nghttp3_conn_settings_default(nghttp3_conn_settings *settings) {
   memset(settings, 0, sizeof(nghttp3_conn_settings));
   settings->max_header_list_size = NGHTTP3_VARINT_MAX;

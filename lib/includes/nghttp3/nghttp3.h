@@ -1668,6 +1668,28 @@ nghttp3_conn_get_remote_num_placeholders(nghttp3_conn *conn);
 /**
  * @function
  *
+ * `nghttp3_conn_get_frame_payload_left` returns the number of bytes
+ * left to read current frame payload for a stream denoted by
+ * |stream_id|.  If no such stream is found, it returns
+ * :enum:`NGHTTP3_ERR_INVALID_ARGUMENT`.
+ */
+NGHTTP3_EXTERN int64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
+                                                           int64_t stream_id);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_is_remote_qpack_encoder_stream` returns nonzero if a
+ * stream denoted by |stream_id| is QPACK encoder stream of a remote
+ * endpoint.
+ */
+NGHTTP3_EXTERN int
+nghttp3_conn_is_remote_qpack_encoder_stream(nghttp3_conn *conn,
+                                            int64_t stream_id);
+
+/**
+ * @function
+ *
  * `nghttp3_vec_len` returns the sum of length in |vec| of |cnt|
  * elements.
  */
