@@ -249,7 +249,7 @@ static int conn_new(nghttp3_conn **pconn, int server,
                      0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
 
   nghttp3_tnode_init(&conn->orphan_root,
-                     nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_ROOT, 0),
+                     nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_ROOT, 1),
                      0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
 
   rv = nghttp3_map_init(&conn->streams, mem);
@@ -452,6 +452,19 @@ ssize_t nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
       /* client doesn't expect to receive new bidirectional stream
          from server. */
       return NGHTTP3_ERR_HTTP_STREAM_CREATION_ERROR;
+    }
+  } else if (conn->server) {
+    if (nghttp3_client_stream_bidi(stream_id)) {
+      if (stream->rx.hstate == NGHTTP3_HTTP_STATE_NONE) {
+        stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
+        stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
+      }
+    }
+  } else if (nghttp3_stream_uni(stream_id) &&
+             stream->type == NGHTTP3_STREAM_TYPE_PUSH) {
+    if (stream->rx.hstate == NGHTTP3_HTTP_STATE_NONE) {
+      stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
+      stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
     }
   }
 
