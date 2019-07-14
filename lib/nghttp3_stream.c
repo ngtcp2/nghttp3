@@ -1110,24 +1110,9 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
     case NGHTTP3_HTTP_EVENT_HEADERS_BEGIN:
       stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN;
       return 0;
-    case NGHTTP3_HTTP_EVENT_PRIORITY_BEGIN:
-      stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_PRIORITY_BEGIN;
-      return 0;
     default:
       return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
     }
-  case NGHTTP3_HTTP_STATE_REQ_PRIORITY_BEGIN:
-    if (event != NGHTTP3_HTTP_EVENT_PRIORITY_END) {
-      return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
-    }
-    stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_PRIORITY_END;
-    return 0;
-  case NGHTTP3_HTTP_STATE_REQ_PRIORITY_END:
-    if (event != NGHTTP3_HTTP_EVENT_HEADERS_BEGIN) {
-      return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
-    }
-    stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN;
-    return 0;
   case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
     if (event != NGHTTP3_HTTP_EVENT_HEADERS_END) {
       return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;

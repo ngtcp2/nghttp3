@@ -124,6 +124,13 @@ nghttp3_tnode *nghttp3_tnode_get_next(nghttp3_tnode *node);
 void nghttp3_tnode_insert(nghttp3_tnode *tnode, nghttp3_tnode *parent);
 
 /*
+ * nghttp3_tnode_insert_exclusive inserts |tnode| to |parent| as a
+ * distinct child.  The existing direct children of |parent| become
+ * the children of |tnode|.
+ */
+int nghttp3_tnode_insert_exclusive(nghttp3_tnode *tnode, nghttp3_tnode *parent);
+
+/*
  * nghttp3_tnode_remove removes |tnode| along with its subtree from
  * its parent.
  */

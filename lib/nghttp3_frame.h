@@ -167,4 +167,10 @@ nghttp3_pri_elem_type nghttp3_frame_pri_elem_type(uint8_t c);
  */
 nghttp3_elem_dep_type nghttp3_frame_elem_dep_type(uint8_t c);
 
+/*
+ * nghttp3_frame_pri_exclusive returns exclusive bit from the first
+ * byte |c| of PRIORITY frame.
+ */
+uint8_t nghttp3_frame_pri_exclusive(uint8_t c);
+
 #endif /* NGHTTP3_FRAME_H */

@@ -35,7 +35,6 @@ void test_nghttp3_conn_submit_request(void);
 void test_nghttp3_conn_submit_push_promise(void);
 void test_nghttp3_conn_submit_priority(void);
 void test_nghttp3_conn_http_request(void);
-void test_nghttp3_conn_recv_request_priority(void);
 void test_nghttp3_conn_recv_control_priority(void);
 void test_nghttp3_conn_http_resp_header(void);
 void test_nghttp3_conn_http_req_header(void);

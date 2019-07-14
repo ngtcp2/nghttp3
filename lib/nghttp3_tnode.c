@@ -209,6 +209,45 @@ void nghttp3_tnode_insert(nghttp3_tnode *tnode, nghttp3_tnode *parent) {
   ++parent->num_children;
 }
 
+int nghttp3_tnode_insert_exclusive(nghttp3_tnode *tnode,
+                                   nghttp3_tnode *parent) {
+  nghttp3_tnode **p, *node;
+  int rv;
+
+  for (node = parent->first_child; node; node = node->next_sibling) {
+    node->parent = tnode;
+
+    if (node->pe.index == NGHTTP3_PQ_BAD_INDEX) {
+      continue;
+    }
+
+    nghttp3_pq_remove(&parent->pq, &node->pe);
+    node->pe.index = NGHTTP3_PQ_BAD_INDEX;
+  }
+
+  for (p = &tnode->first_child; *p; p = &(*p)->next_sibling)
+    ;
+
+  *p = parent->first_child;
+  parent->first_child = NULL;
+  tnode->num_children += parent->num_children;
+  parent->num_children = 0;
+
+  nghttp3_tnode_insert(tnode, parent);
+
+  for (node = *p; node; node = node->next_sibling) {
+    if (nghttp3_tnode_is_active(node) ||
+        nghttp3_tnode_has_active_descendant(node)) {
+      rv = nghttp3_tnode_schedule(node, 0);
+      if (rv != 0) {
+        return rv;
+      }
+    }
+  }
+
+  return 0;
+}
+
 void nghttp3_tnode_remove(nghttp3_tnode *tnode) {
   nghttp3_tnode *parent = tnode->parent, **p;
 

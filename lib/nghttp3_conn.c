@@ -702,11 +702,17 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       }
       break;
     case NGHTTP3_CTRL_STREAM_STATE_PRIORITY:
-      if (nghttp3_frame_pri_elem_type(*p) == NGHTTP3_PRI_ELEM_TYPE_CURRENT) {
+      switch (nghttp3_frame_pri_elem_type(*p)) {
+      case NGHTTP3_PRI_ELEM_TYPE_REQUEST:
+      case NGHTTP3_PRI_ELEM_TYPE_PUSH:
+      case NGHTTP3_PRI_ELEM_TYPE_PLACEHOLDER:
+        break;
+      default:
         return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
       }
       rstate->fr.priority.pt = nghttp3_frame_pri_elem_type(*p);
       rstate->fr.priority.dt = nghttp3_frame_elem_dep_type(*p);
+      rstate->fr.priority.exclusive = nghttp3_frame_pri_exclusive(*p);
 
       ++p;
       ++nconsumed;
@@ -1597,21 +1603,11 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
         }
         rstate->state = NGHTTP3_REQ_STREAM_STATE_DUPLICATE_PUSH;
         break;
-      case NGHTTP3_FRAME_PRIORITY:
-        if (rstate->left < 2) {
-          return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
-        }
-        rv = nghttp3_stream_transit_rx_http_state(
-            stream, NGHTTP3_HTTP_EVENT_PRIORITY_BEGIN);
-        if (rv != 0) {
-          return rv;
-        }
-        rstate->state = NGHTTP3_REQ_STREAM_STATE_PRIORITY;
-        break;
       case NGHTTP3_FRAME_CANCEL_PUSH:
       case NGHTTP3_FRAME_SETTINGS:
       case NGHTTP3_FRAME_GOAWAY:
       case NGHTTP3_FRAME_MAX_PUSH_ID:
+      case NGHTTP3_FRAME_PRIORITY:
         return NGHTTP3_ERR_HTTP_WRONG_STREAM;
       default:
         /* TODO Handle reserved frame type */
@@ -1619,79 +1615,6 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
         rstate->state = NGHTTP3_REQ_STREAM_STATE_IGN_FRAME;
         break;
       }
-      break;
-    case NGHTTP3_REQ_STREAM_STATE_PRIORITY:
-      if (nghttp3_frame_pri_elem_type(*p) != NGHTTP3_PRI_ELEM_TYPE_CURRENT) {
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
-      }
-      rstate->fr.priority.pt = NGHTTP3_PRI_ELEM_TYPE_CURRENT;
-      rstate->fr.priority.dt = nghttp3_frame_elem_dep_type(*p);
-
-      ++p;
-      ++nconsumed;
-      --rstate->left;
-
-      if (rstate->fr.priority.dt == NGHTTP3_ELEM_DEP_TYPE_ROOT) {
-        rstate->fr.priority.elem_dep_id = 0;
-        rstate->state = NGHTTP3_REQ_STREAM_STATE_PRIORITY_WEIGHT;
-        break;
-      }
-
-      rstate->state = NGHTTP3_REQ_STREAM_STATE_PRIORITY_ELEM_DEP_ID;
-      if (p == end) {
-        goto almost_done;
-      }
-      /* Fall through */
-    case NGHTTP3_REQ_STREAM_STATE_PRIORITY_ELEM_DEP_ID:
-      len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
-      nread = nghttp3_read_varint(rvint, p, (size_t)(end - p),
-                                  (int64_t)len == rstate->left);
-      if (nread < 0) {
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
-      }
-
-      p += nread;
-      nconsumed += (size_t)nread;
-      rstate->left -= nread;
-      if (rvint->left) {
-        goto almost_done;
-      }
-
-      rstate->fr.priority.elem_dep_id = rvint->acc;
-      nghttp3_varint_read_state_reset(rvint);
-
-      if (rstate->left != 1) {
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
-      }
-
-      rstate->state = NGHTTP3_REQ_STREAM_STATE_PRIORITY_WEIGHT;
-      if (p == end) {
-        goto almost_done;
-      }
-      /* Fall through */
-    case NGHTTP3_REQ_STREAM_STATE_PRIORITY_WEIGHT:
-      assert(p != end);
-      assert(rstate->left == 1);
-
-      rstate->fr.priority.weight = (uint32_t)(*p) + 1;
-
-      ++p;
-      ++nconsumed;
-
-      if (!(stream->flags & NGHTTP3_STREAM_FLAG_CTRL_PRIORITY_APPLIED)) {
-        rv = nghttp3_conn_on_request_priority(conn, stream,
-                                              &rstate->fr.priority);
-        if (rv != 0) {
-          return rv;
-        }
-      }
-
-      rv = nghttp3_stream_transit_rx_http_state(
-          stream, NGHTTP3_HTTP_EVENT_PRIORITY_END);
-
-      assert(0 == rv);
-
-      nghttp3_stream_read_state_reset(rstate);
       break;
     case NGHTTP3_REQ_STREAM_STATE_DATA:
       len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
@@ -2066,57 +1989,6 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
   return 0;
 }
 
-int nghttp3_conn_on_request_priority(nghttp3_conn *conn, nghttp3_stream *stream,
-                                     const nghttp3_frame_priority *fr) {
-  nghttp3_node_id dep_nid;
-  nghttp3_tnode *dep_tnode = NULL;
-  int rv;
-
-  nghttp3_node_id_init(&dep_nid, (nghttp3_node_id_type)fr->dt, fr->elem_dep_id);
-
-  if (nghttp3_node_id_eq(&stream->node.nid, &dep_nid)) {
-    return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
-  }
-
-  if (stream->node.weight == fr->weight &&
-      nghttp3_node_id_eq(&stream->node.parent->nid, &dep_nid)) {
-    return 0;
-  }
-
-  if (dep_nid.type == NGHTTP3_NODE_ID_TYPE_STREAM &&
-      dep_nid.id > stream->node.nid.id) {
-    return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
-  }
-
-  if (dep_nid.type == NGHTTP3_NODE_ID_TYPE_PUSH &&
-      dep_nid.id >= conn->local.uni.next_push_id) {
-    return NGHTTP3_ERR_HTTP_ID_ERROR;
-  }
-
-  rv = conn_ensure_dependency(conn, &dep_tnode, &dep_nid, &stream->node);
-  if (rv != 0) {
-    return rv;
-  }
-
-  /* dep_tnode might not have dep_nid because already closed stream is
-     replaced with root */
-
-  assert(dep_tnode != NULL);
-
-  nghttp3_tnode_remove(&stream->node);
-  stream->node.weight = fr->weight;
-  nghttp3_tnode_insert(&stream->node, dep_tnode);
-
-  if (nghttp3_stream_require_schedule(stream)) {
-    rv = nghttp3_stream_schedule(stream);
-    if (rv != 0) {
-      return rv;
-    }
-  }
-
-  return 0;
-}
-
 int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
                                      const nghttp3_frame_priority *fr) {
   nghttp3_node_id nid, dep_nid;
@@ -2178,7 +2050,13 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
 
   if (tnode && tnode->weight == fr->weight &&
       nghttp3_node_id_eq(&tnode->parent->nid, &dep_nid)) {
-    return 0;
+    if (fr->exclusive) {
+      if (tnode->parent->first_child == tnode && tnode->next_sibling == NULL) {
+        return 0;
+      }
+    } else {
+      return 0;
+    }
   }
 
   rv = conn_ensure_dependency(conn, &dep_tnode, &dep_nid, tnode);
@@ -2219,7 +2097,15 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
 
   nghttp3_tnode_remove(tnode);
   tnode->weight = fr->weight;
-  nghttp3_tnode_insert(tnode, dep_tnode);
+
+  if (fr->exclusive) {
+    rv = nghttp3_tnode_insert_exclusive(tnode, dep_tnode);
+    if (rv != 0) {
+      return rv;
+    }
+  } else {
+    nghttp3_tnode_insert(tnode, dep_tnode);
+  }
 
   switch (nid.type) {
   case NGHTTP3_NODE_ID_TYPE_STREAM:
@@ -3062,13 +2948,11 @@ static int conn_submit_headers_data(nghttp3_conn *conn, nghttp3_stream *stream,
 }
 
 int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
-                                const nghttp3_priority *pri,
                                 const nghttp3_nv *nva, size_t nvlen,
                                 const nghttp3_data_reader *dr,
                                 void *stream_user_data) {
   nghttp3_stream *stream;
   int rv;
-  nghttp3_frame_entry frent;
 
   assert(!conn->server);
   assert(conn->tx.qenc);
@@ -3079,28 +2963,6 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
   /* TODO Check GOAWAY last stream ID */
   if (nghttp3_stream_uni(stream_id)) {
     return NGHTTP3_ERR_INVALID_ARGUMENT;
-  }
-
-  if (pri != NULL) {
-    if (pri->weight < 1 || 256 < pri->weight) {
-      return NGHTTP3_ERR_INVALID_ARGUMENT;
-    }
-
-    switch (pri->elem_dep_type) {
-    case NGHTTP3_ELEM_DEP_TYPE_REQUEST:
-      if (pri->elem_dep_id >= stream_id) {
-        return NGHTTP3_ERR_INVALID_ARGUMENT;
-      }
-      break;
-    case NGHTTP3_ELEM_DEP_TYPE_PLACEHOLDER:
-      if ((uint64_t)pri->elem_dep_id >=
-          conn->remote.settings.num_placeholders) {
-        return NGHTTP3_ERR_INVALID_ARGUMENT;
-      }
-      break;
-    default:
-      break;
-    }
   }
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
@@ -3115,19 +2977,6 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
   stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_END;
   stream->user_data = stream_user_data;
-
-  if (pri) {
-    frent.fr.hd.type = NGHTTP3_FRAME_PRIORITY;
-    frent.fr.priority.pt = NGHTTP3_PRI_ELEM_TYPE_CURRENT;
-    frent.fr.priority.dt = pri->elem_dep_type;
-    frent.fr.priority.pri_elem_id = 0;
-    frent.fr.priority.elem_dep_id = pri->elem_dep_id;
-
-    rv = nghttp3_stream_frq_add(stream, &frent);
-    if (rv != 0) {
-      return rv;
-    }
-  }
 
   nghttp3_http_record_request_method(stream, nva, nvlen);
 
@@ -3463,7 +3312,8 @@ void nghttp3_conn_set_max_client_streams_bidi(nghttp3_conn *conn,
 
 int nghttp3_conn_submit_priority(nghttp3_conn *conn, nghttp3_pri_elem_type pt,
                                  int64_t pri_elem_id, nghttp3_elem_dep_type dt,
-                                 int64_t elem_dep_id, uint32_t weight) {
+                                 int64_t elem_dep_id, uint32_t weight,
+                                 int exclusive) {
   nghttp3_frame_entry frent;
 
   assert(!conn->server);
@@ -3489,22 +3339,21 @@ int nghttp3_conn_submit_priority(nghttp3_conn *conn, nghttp3_pri_elem_type pt,
       return NGHTTP3_ERR_INVALID_ARGUMENT;
     }
     break;
-  default:
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
   switch (dt) {
   case NGHTTP3_ELEM_DEP_TYPE_REQUEST:
   case NGHTTP3_ELEM_DEP_TYPE_PUSH:
+  case NGHTTP3_ELEM_DEP_TYPE_ROOT:
     break;
-  case NGHTTP3_ELEM_DEP_TYPE_PLACEHOLDER:
+  case NGHTTP3_PRI_ELEM_TYPE_PLACEHOLDER:
     if ((uint64_t)elem_dep_id >= conn->remote.settings.num_placeholders) {
       return NGHTTP3_ERR_INVALID_ARGUMENT;
     }
     break;
-  case NGHTTP3_ELEM_DEP_TYPE_ROOT:
-    break;
-  default:
+  }
+
+  if ((int)pt == (int)dt && pri_elem_id == elem_dep_id) {
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
@@ -3514,6 +3363,7 @@ int nghttp3_conn_submit_priority(nghttp3_conn *conn, nghttp3_pri_elem_type pt,
   frent.fr.priority.pri_elem_id = pri_elem_id;
   frent.fr.priority.elem_dep_id = elem_dep_id;
   frent.fr.priority.weight = weight;
+  frent.fr.priority.exclusive = exclusive != 0;
 
   return nghttp3_stream_frq_add(conn->tx.ctrl, &frent);
 }
@@ -3682,14 +3532,4 @@ void nghttp3_push_promise_del(nghttp3_push_promise *pp,
   nghttp3_tnode_free(&pp->node);
 
   nghttp3_mem_free(mem, pp);
-}
-
-nghttp3_priority *nghttp3_priority_init(nghttp3_priority *pri,
-                                        nghttp3_elem_dep_type type,
-                                        int64_t elem_dep_id, uint32_t weight) {
-  pri->elem_dep_type = type;
-  pri->elem_dep_id = elem_dep_id;
-  pri->weight = weight;
-
-  return pri;
 }

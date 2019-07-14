@@ -36,6 +36,7 @@ void test_nghttp3_tnode_mutation(void) {
   nghttp3_tnode *root = &nodes[0], *a = &nodes[1], *b = &nodes[2],
                 *c = &nodes[3], *d = &nodes[4], *e = &nodes[5];
   nghttp3_node_id rnid, snid;
+  int rv;
 
   nghttp3_node_id_init(&rnid, NGHTTP3_NODE_ID_TYPE_ROOT, 0);
   nghttp3_node_id_init(&snid, NGHTTP3_NODE_ID_TYPE_UT, 0);
@@ -70,6 +71,47 @@ void test_nghttp3_tnode_mutation(void) {
   CU_ASSERT(nghttp3_pq_empty(&root->pq));
   CU_ASSERT(root == a->parent);
   CU_ASSERT(b == a->next_sibling);
+
+  nghttp3_tnode_free(c);
+  nghttp3_tnode_free(b);
+  nghttp3_tnode_free(a);
+  nghttp3_tnode_free(root);
+
+  /* Insert a node exclusively to empty root */
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(a, &snid, 0, 12, NULL, mem);
+
+  rv = nghttp3_tnode_insert_exclusive(a, root);
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(a == root->first_child);
+  CU_ASSERT(NULL == root->next_sibling);
+  CU_ASSERT(1 == root->num_children);
+  CU_ASSERT(nghttp3_pq_empty(&root->pq));
+  CU_ASSERT(root == a->parent);
+  CU_ASSERT(NULL == a->next_sibling);
+  CU_ASSERT(0 == a->num_children);
+
+  nghttp3_tnode_free(a);
+  nghttp3_tnode_free(root);
+
+  /* Insert a node exclusively to root which has descendants */
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(c, &snid, 0, 19, root, mem);
+  nghttp3_tnode_init(b, &snid, 0, 99, root, mem);
+  nghttp3_tnode_init(a, &snid, 0, 12, NULL, mem);
+
+  rv = nghttp3_tnode_insert_exclusive(a, root);
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(a == root->first_child);
+  CU_ASSERT(1 == root->num_children);
+  CU_ASSERT(nghttp3_pq_empty(&root->pq));
+  CU_ASSERT(root == a->parent);
+  CU_ASSERT(NULL == a->next_sibling);
+  CU_ASSERT(b == a->first_child);
+  CU_ASSERT(c == b->next_sibling);
+  CU_ASSERT(2 == a->num_children);
 
   nghttp3_tnode_free(c);
   nghttp3_tnode_free(b);
@@ -200,6 +242,28 @@ void test_nghttp3_tnode_mutation(void) {
 
   nghttp3_tnode_free(e);
   nghttp3_tnode_free(d);
+  nghttp3_tnode_free(c);
+  nghttp3_tnode_free(b);
+  nghttp3_tnode_free(a);
+  nghttp3_tnode_free(root);
+
+  /* Insert a node exlusively to root which has scheduled nodes */
+  nghttp3_tnode_init(root, &rnid, 0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+  nghttp3_tnode_init(c, &snid, 0, 128, root, mem);
+  nghttp3_tnode_init(b, &snid, 0, 129, root, mem);
+  nghttp3_tnode_init(a, &snid, 0, 1, NULL, mem);
+
+  nghttp3_tnode_schedule(b, 1000);
+  b->active = 1;
+  nghttp3_tnode_schedule(c, 100);
+  c->active = 1;
+
+  rv = nghttp3_tnode_insert_exclusive(a, root);
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(1 == nghttp3_pq_size(&root->pq));
+  CU_ASSERT(2 == nghttp3_pq_size(&a->pq));
+
   nghttp3_tnode_free(c);
   nghttp3_tnode_free(b);
   nghttp3_tnode_free(a);

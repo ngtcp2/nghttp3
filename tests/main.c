@@ -76,8 +76,6 @@ int main() {
                    test_nghttp3_conn_submit_priority) ||
       !CU_add_test(pSuite, "conn_http_request",
                    test_nghttp3_conn_http_request) ||
-      !CU_add_test(pSuite, "conn_recv_request_priority",
-                   test_nghttp3_conn_recv_request_priority) ||
       !CU_add_test(pSuite, "conn_recv_control_priority",
                    test_nghttp3_conn_recv_control_priority) ||
       !CU_add_test(pSuite, "conn_http_resp_header",

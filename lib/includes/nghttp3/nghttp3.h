@@ -1238,15 +1238,14 @@ typedef struct {
 typedef enum {
   NGHTTP3_PRI_ELEM_TYPE_REQUEST = 0x00,
   NGHTTP3_PRI_ELEM_TYPE_PUSH = 0x01,
-  NGHTTP3_PRI_ELEM_TYPE_PLACEHOLDER = 0x02,
-  NGHTTP3_PRI_ELEM_TYPE_CURRENT = 0x03,
+  NGHTTP3_PRI_ELEM_TYPE_PLACEHOLDER = 0x02
 } nghttp3_pri_elem_type;
 
 typedef enum {
   NGHTTP3_ELEM_DEP_TYPE_REQUEST = 0x00,
   NGHTTP3_ELEM_DEP_TYPE_PUSH = 0x01,
   NGHTTP3_ELEM_DEP_TYPE_PLACEHOLDER = 0x02,
-  NGHTTP3_ELEM_DEP_TYPE_ROOT = 0x03,
+  NGHTTP3_ELEM_DEP_TYPE_ROOT = 0x03
 } nghttp3_elem_dep_type;
 
 typedef struct {
@@ -1256,6 +1255,7 @@ typedef struct {
   int64_t pri_elem_id;
   int64_t elem_dep_id;
   uint32_t weight;
+  uint8_t exclusive;
 } nghttp3_frame_priority;
 
 typedef struct {
@@ -1468,38 +1468,6 @@ typedef int (*nghttp3_read_data_callback)(nghttp3_conn *conn, int64_t stream_id,
 /**
  * @struct
  *
- * :type:`nghttp3_priroty` specifies the priority of client initiated
- * bidirectional stream.
- */
-typedef struct {
-  /**
-   * elem_dep_type is the type of elem_dep_id.
-   */
-  nghttp3_elem_dep_type elem_dep_type;
-  /**
-   * elem_dep_id is an ID which the stream depends on.
-   */
-  int64_t elem_dep_id;
-  /**
-   * weight is the weight of dependency.
-   */
-  uint32_t weight;
-} nghttp3_priority;
-
-/**
- * @function
- *
- * `nghttp3_priority_init` initializes |pri| with the given parameters
- * and returns |pri|.
- */
-NGHTTP3_EXTERN nghttp3_priority *
-nghttp3_priority_init(nghttp3_priority *pri,
-                      nghttp3_elem_dep_type elem_dep_type, int64_t elem_dep_id,
-                      uint32_t weight);
-
-/**
- * @struct
- *
  * :type:`nghttp3_data_reader` specifies the way how to generate
  * request or response body.
  */
@@ -1516,17 +1484,14 @@ typedef struct {
  * `nghttp3_conn_submit_request` submits HTTP request header fields
  * and body on the stream identified by |stream_id|.  |stream_id| must
  * be a client initiated bidirectional stream.  Only client can submit
- * HTTP request.  |pri| is a priority of this request.  If NULL is
- * specified, the default priority is used.  |nva| of length |nvlen|
- * specifies HTTP request header fields.  |dr| specifies a request
- * body.  If there is no request body, specify NULL.
- * |stream_user_data| is an opaque pointer attached to the stream.
+ * HTTP request.  |nva| of length |nvlen| specifies HTTP request
+ * header fields.  |dr| specifies a request body.  If there is no
+ * request body, specify NULL.  |stream_user_data| is an opaque
+ * pointer attached to the stream.
  */
-NGHTTP3_EXTERN int
-nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
-                            const nghttp3_priority *pri, const nghttp3_nv *nva,
-                            size_t nvlen, const nghttp3_data_reader *dr,
-                            void *stream_user_data);
+NGHTTP3_EXTERN int nghttp3_conn_submit_request(
+    nghttp3_conn *conn, int64_t stream_id, const nghttp3_nv *nva, size_t nvlen,
+    const nghttp3_data_reader *dr, void *stream_user_data);
 
 /**
  * @function
@@ -1623,20 +1588,22 @@ NGHTTP3_EXTERN int nghttp3_conn_end_stream(nghttp3_conn *conn,
  *
  * `nghttp3_conn_submit_priority` submits priority change to the
  * connection |conn|.  |pt| specifies the type of ID |pri_elem_id|.
- * :enum:`NGHTTP3_PRI_ELEM_TYPE_CURRENT` cannot be used in this
- * function.  |dt| specifies the type of ID |elem_dep_id|.  |weight|
- * must be [1, 256], inclusive.  function can be called with client
- * |conn|.  This function makes node identified by |pri_elem_id|
- * depend on another node identified by |elem_dep_id|.  It is an error
- * to attempt to make a dependency to itself.
+ * |dt| specifies the type of ID |elem_dep_id|.  |weight| must be [1,
+ * 256], inclusive.  function can be called with client |conn|.  This
+ * function makes node identified by |pri_elem_id| depend on another
+ * node identified by |elem_dep_id|.  It is an error to attempt to
+ * make a dependency to itself.  If |exclusive| is nonzero, this makes
+ * exclusive dependency.
  *
  * Before calling this function, control stream must be bound to a
  * stream ID using `nghttp3_conn_bind_control_stream()`.
  */
-NGHTTP3_EXTERN int
-nghttp3_conn_submit_priority(nghttp3_conn *conn, nghttp3_pri_elem_type pt,
-                             int64_t pri_elem_id, nghttp3_elem_dep_type dt,
-                             int64_t elem_dep_id, uint32_t weight);
+NGHTTP3_EXTERN int nghttp3_conn_submit_priority(nghttp3_conn *conn,
+                                                nghttp3_pri_elem_type pt,
+                                                int64_t pri_elem_id,
+                                                nghttp3_elem_dep_type dt,
+                                                int64_t elem_dep_id,
+                                                uint32_t weight, int exclusive);
 
 /**
  * @function
