@@ -248,6 +248,10 @@ static int conn_new(nghttp3_conn **pconn, int server,
                      nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_ROOT, 0),
                      0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
 
+  nghttp3_tnode_init(&conn->orphan_root,
+                     nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_ROOT, 0),
+                     0, NGHTTP3_DEFAULT_WEIGHT, NULL, mem);
+
   rv = nghttp3_map_init(&conn->streams, mem);
   if (rv != 0) {
     goto streams_init_fail;
@@ -403,6 +407,7 @@ void nghttp3_conn_del(nghttp3_conn *conn) {
   nghttp3_map_each_free(&conn->streams, free_stream, NULL);
   nghttp3_map_free(&conn->streams);
 
+  nghttp3_tnode_free(&conn->orphan_root);
   nghttp3_tnode_free(&conn->root);
 
   nghttp3_mem_free(conn->mem, conn);
@@ -1902,8 +1907,8 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
     if (dep_stream == NULL) {
       rv = nghttp3_idtr_open(&conn->remote.bidi.idtr, dep_nid->id);
       if (rv == NGHTTP3_ERR_STREAM_IN_USE) {
-        /* Stream has been closed; use root instead. */
-        dep_tnode = &conn->root;
+        /* Stream has been closed; use orphan root instead. */
+        dep_tnode = &conn->orphan_root;
         break;
       }
       rv = nghttp3_conn_create_stream(conn, &dep_stream, dep_nid->id);
@@ -1932,7 +1937,7 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
     dep_pp = nghttp3_conn_find_push_promise(conn, dep_nid->id);
     if (dep_pp == NULL) {
       /* Push has been closed; use root instead. */
-      dep_tnode = &conn->root;
+      dep_tnode = &conn->orphan_root;
       break;
     }
 
@@ -1958,7 +1963,8 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
     dep_ph = nghttp3_conn_find_placeholder(conn, dep_nid->id);
     if (dep_ph == NULL) {
       rv = nghttp3_conn_create_placeholder(conn, &dep_ph, dep_nid->id,
-                                           NGHTTP3_DEFAULT_WEIGHT, &conn->root);
+                                           NGHTTP3_DEFAULT_WEIGHT,
+                                           &conn->orphan_root);
       if (rv != 0) {
         return rv;
       }
@@ -2065,7 +2071,7 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
   }
 
   /* dep_tnode might not have dep_nid because already closed stream is
-     replaced with root */
+     replaced with orphan root */
 
   assert(dep_tnode != NULL);
 
@@ -2201,8 +2207,8 @@ int nghttp3_conn_on_client_cancel_push(nghttp3_conn *conn,
       return rv;
     }
 
-    rv = nghttp3_conn_create_push_promise(conn, &pp, fr->push_id,
-                                          NGHTTP3_DEFAULT_WEIGHT, &conn->root);
+    rv = nghttp3_conn_create_push_promise(
+        conn, &pp, fr->push_id, NGHTTP3_DEFAULT_WEIGHT, &conn->orphan_root);
     if (rv != 0) {
       return rv;
     }
@@ -2334,8 +2340,8 @@ int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
 
   /* Don't know the associated stream of PUSH_PROMISE.  It doesn't
      matter because client sends nothing to this stream. */
-  rv = nghttp3_conn_create_push_promise(conn, &pp, push_id,
-                                        NGHTTP3_DEFAULT_WEIGHT, &conn->root);
+  rv = nghttp3_conn_create_push_promise(
+      conn, &pp, push_id, NGHTTP3_DEFAULT_WEIGHT, &conn->orphan_root);
   if (rv != 0) {
     return rv;
   }
@@ -2557,7 +2563,7 @@ static int conn_stream_acked_data(nghttp3_stream *stream, int64_t stream_id,
 int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
                                int64_t stream_id) {
   return nghttp3_conn_create_stream_dependency(
-      conn, pstream, stream_id, NGHTTP3_DEFAULT_WEIGHT, &conn->root);
+      conn, pstream, stream_id, NGHTTP3_DEFAULT_WEIGHT, &conn->orphan_root);
 }
 
 int nghttp3_conn_create_stream_dependency(nghttp3_conn *conn,
@@ -2858,7 +2864,10 @@ nghttp3_stream *nghttp3_conn_get_next_tx_stream(nghttp3_conn *conn) {
   nghttp3_tnode *node = nghttp3_tnode_get_next(&conn->root);
 
   if (node == NULL) {
-    return NULL;
+    node = nghttp3_tnode_get_next(&conn->orphan_root);
+    if (node == NULL) {
+      return NULL;
+    }
   }
 
   if (node->nid.type == NGHTTP3_NODE_ID_TYPE_PUSH) {

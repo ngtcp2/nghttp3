@@ -101,6 +101,7 @@ typedef enum {
 
 struct nghttp3_conn {
   nghttp3_tnode root;
+  nghttp3_tnode orphan_root;
   nghttp3_conn_callbacks callbacks;
   nghttp3_map streams;
   nghttp3_map placeholders;

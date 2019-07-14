@@ -755,7 +755,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
   CU_ASSERT(111 == stream->node.weight);
   CU_ASSERT(NGHTTP3_NODE_ID_TYPE_STREAM == parent->nid.type);
   CU_ASSERT(4 == parent->nid.id);
-  CU_ASSERT(&conn->root == parent->parent);
+  CU_ASSERT(&conn->orphan_root == parent->parent);
   CU_ASSERT(NGHTTP3_DEFAULT_WEIGHT == parent->weight);
 
   nghttp3_conn_del(conn);
@@ -793,7 +793,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
   CU_ASSERT(256 == ph->node.weight);
   CU_ASSERT(NGHTTP3_NODE_ID_TYPE_PLACEHOLDER == parent->nid.type);
   CU_ASSERT(0 == parent->nid.id);
-  CU_ASSERT(&conn->root == parent->parent);
+  CU_ASSERT(&conn->orphan_root == parent->parent);
   CU_ASSERT(NGHTTP3_DEFAULT_WEIGHT == parent->weight);
 
   nghttp3_conn_del(conn);
@@ -840,7 +840,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
   CU_ASSERT(12 == stream->node.weight);
   CU_ASSERT(NGHTTP3_NODE_ID_TYPE_STREAM == parent->nid.type);
   CU_ASSERT(0 == parent->nid.id);
-  CU_ASSERT(&conn->root == parent->parent);
+  CU_ASSERT(&conn->orphan_root == parent->parent);
   CU_ASSERT(111 == parent->weight);
 
   nghttp3_conn_del(conn);
@@ -969,7 +969,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
 
   ph = nghttp3_conn_find_placeholder(conn, 0);
 
-  CU_ASSERT(&conn->root == ph->node.parent);
+  CU_ASSERT(&conn->orphan_root == ph->node.parent);
   CU_ASSERT(54 == ph->node.weight);
 
   nghttp3_conn_del(conn);
