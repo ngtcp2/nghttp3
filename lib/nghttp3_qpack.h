@@ -765,13 +765,6 @@ int nghttp3_qpack_decoder_init(nghttp3_qpack_decoder *decoder,
 void nghttp3_qpack_decoder_free(nghttp3_qpack_decoder *decoder);
 
 /*
- * nghttp3_qpack_decoder_set_dtable_cap sets |cap| as maximum dynamic
- * table size.
- */
-void nghttp3_qpack_decoder_set_dtable_cap(nghttp3_qpack_decoder *decoder,
-                                          size_t cap);
-
-/*
  * nghttp3_qpack_decoder_dtable_indexed_add adds entry received in
  * Insert With Name Reference to dynamic table.
  *

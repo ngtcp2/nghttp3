@@ -933,6 +933,18 @@ nghttp3_qpack_decoder_cancel_stream(nghttp3_qpack_decoder *decoder,
 /**
  * @function
  *
+ * `nghttp3_qpack_decoder_set_dtable_cap` sets |cap| as maximum
+ * dynamic table size.  Normally, the maximum capacity is communicated
+ * in encoder stream.  This function is provided for debugging and
+ * testing purpose.
+ */
+NGHTTP3_EXTERN void
+nghttp3_qpack_decoder_set_dtable_cap(nghttp3_qpack_decoder *decoder,
+                                     size_t cap);
+
+/**
+ * @function
+ *
  * `nghttp3_strerror` returns textual representation of |liberr| which
  * should be one of error codes defined in :type:`nghttp3_lib_error`.
  */

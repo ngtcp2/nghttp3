@@ -71,6 +71,8 @@ int Decoder::init() {
     return -1;
   }
 
+  nghttp3_qpack_decoder_set_dtable_cap(dec_, max_dtable_size_);
+
   return 0;
 }
 
