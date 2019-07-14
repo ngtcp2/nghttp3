@@ -170,7 +170,8 @@ static int conn_call_cancel_push(nghttp3_conn *conn, int64_t push_id,
 }
 
 static int conn_call_send_stop_sending(nghttp3_conn *conn,
-                                       nghttp3_stream *stream) {
+                                       nghttp3_stream *stream,
+                                       uint64_t app_error_code) {
   int rv;
 
   if (!conn->callbacks.send_stop_sending) {
@@ -178,7 +179,8 @@ static int conn_call_send_stop_sending(nghttp3_conn *conn,
   }
 
   rv = conn->callbacks.send_stop_sending(conn, stream->node.nid.id,
-                                         conn->user_data, stream->user_data);
+                                         app_error_code, conn->user_data,
+                                         stream->user_data);
   if (rv != 0) {
     return NGHTTP3_ERR_CALLBACK_FAILURE;
   }
@@ -2341,7 +2343,8 @@ int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
     if (rv != 0) {
       return rv;
     }
-    rv = conn_call_send_stop_sending(conn, stream);
+    rv = conn_call_send_stop_sending(conn, stream,
+                                     NGHTTP3_HTTP_REQUEST_CANCELLED);
     if (rv != 0) {
       return rv;
     }

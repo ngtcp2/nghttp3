@@ -1115,7 +1115,8 @@ typedef int (*nghttp3_cancel_push)(nghttp3_conn *conn, int64_t push_id,
  *
  * :type:`nghttp3_send_stop_sending` is a callback function which is
  * invoked when the library asks application to send STOP_SENDING to
- * the stream identified by |stream_id|.
+ * the stream identified by |stream_id|.  |app_error_code| indicates
+ * the reason for this action.
  *
  * The implementation of this callback must return 0 if it succeeds.
  * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
@@ -1123,6 +1124,7 @@ typedef int (*nghttp3_cancel_push)(nghttp3_conn *conn, int64_t push_id,
  * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_send_stop_sending)(nghttp3_conn *conn, int64_t stream_id,
+                                         uint64_t app_error_code,
                                          void *user_data,
                                          void *stream_user_data);
 
