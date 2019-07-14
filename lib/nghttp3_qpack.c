@@ -3749,6 +3749,9 @@ int nghttp3_qpack_decoder_brel2abs(nghttp3_qpack_decoder *decoder,
     }
     rstate->absidx = sctx->base - rstate->left - 1;
 
+    if (rstate->absidx >= sctx->ricnt) {
+      return NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
+    }
   } else {
     rstate->absidx = rstate->left;
   }
@@ -3769,6 +3772,10 @@ int nghttp3_qpack_decoder_pbrel2abs(nghttp3_qpack_decoder *decoder,
   assert(rstate->dynamic);
 
   rstate->absidx = rstate->left + sctx->base;
+
+  if (rstate->absidx >= sctx->ricnt) {
+    return NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
+  }
 
   if (qpack_decoder_validate_index(decoder, rstate) != 0) {
     return NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
