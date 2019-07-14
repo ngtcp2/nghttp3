@@ -446,7 +446,7 @@ ssize_t nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
     } else {
       /* client doesn't expect to receive new bidirectional stream
          from server. */
-      return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
+      return NGHTTP3_ERR_HTTP_STREAM_CREATION_ERROR;
     }
   }
 
@@ -484,7 +484,7 @@ static ssize_t conn_read_type(nghttp3_conn *conn, nghttp3_stream *stream,
   switch (stream_type) {
   case NGHTTP3_STREAM_TYPE_CONTROL:
     if (conn->flags & NGHTTP3_CONN_FLAG_CONTROL_OPENED) {
-      return NGHTTP3_ERR_HTTP_WRONG_STREAM_COUNT;
+      return NGHTTP3_ERR_HTTP_STREAM_CREATION_ERROR;
     }
     conn->flags |= NGHTTP3_CONN_FLAG_CONTROL_OPENED;
     stream->type = NGHTTP3_STREAM_TYPE_CONTROL;
@@ -492,21 +492,21 @@ static ssize_t conn_read_type(nghttp3_conn *conn, nghttp3_stream *stream,
     break;
   case NGHTTP3_STREAM_TYPE_PUSH:
     if (conn->server) {
-      return NGHTTP3_ERR_HTTP_WRONG_STREAM_DIRECTION;
+      return NGHTTP3_ERR_HTTP_STREAM_CREATION_ERROR;
     }
     stream->type = NGHTTP3_STREAM_TYPE_PUSH;
     rstate->state = NGHTTP3_PUSH_STREAM_STATE_PUSH_ID;
     break;
   case NGHTTP3_STREAM_TYPE_QPACK_ENCODER:
     if (conn->flags & NGHTTP3_CONN_FLAG_QPACK_ENCODER_OPENED) {
-      return NGHTTP3_ERR_HTTP_WRONG_STREAM_COUNT;
+      return NGHTTP3_ERR_HTTP_STREAM_CREATION_ERROR;
     }
     conn->flags |= NGHTTP3_CONN_FLAG_QPACK_ENCODER_OPENED;
     stream->type = NGHTTP3_STREAM_TYPE_QPACK_ENCODER;
     break;
   case NGHTTP3_STREAM_TYPE_QPACK_DECODER:
     if (conn->flags & NGHTTP3_CONN_FLAG_QPACK_DECODER_OPENED) {
-      return NGHTTP3_ERR_HTTP_WRONG_STREAM_COUNT;
+      return NGHTTP3_ERR_HTTP_STREAM_CREATION_ERROR;
     }
     conn->flags |= NGHTTP3_CONN_FLAG_QPACK_DECODER_OPENED;
     stream->type = NGHTTP3_STREAM_TYPE_QPACK_DECODER;
@@ -1972,7 +1972,7 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
     }
     if (nghttp3_ord_stream_id(dep_nid->id) >
         conn->remote.bidi.max_client_streams) {
-      return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+      return NGHTTP3_ERR_HTTP_ID_ERROR;
     }
 
     dep_stream = nghttp3_conn_find_stream(conn, dep_nid->id);
@@ -2003,7 +2003,7 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
     break;
   case NGHTTP3_NODE_ID_TYPE_PUSH:
     if (dep_nid->id >= conn->local.uni.next_push_id) {
-      return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+      return NGHTTP3_ERR_HTTP_ID_ERROR;
     }
 
     dep_pp = nghttp3_conn_find_push_promise(conn, dep_nid->id);
@@ -2029,7 +2029,7 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
     break;
   case NGHTTP3_NODE_ID_TYPE_PLACEHOLDER:
     if ((uint64_t)dep_nid->id >= conn->local.settings.num_placeholders) {
-      return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+      return NGHTTP3_ERR_HTTP_ID_ERROR;
     }
 
     dep_ph = nghttp3_conn_find_placeholder(conn, dep_nid->id);
@@ -2090,7 +2090,7 @@ int nghttp3_conn_on_request_priority(nghttp3_conn *conn, nghttp3_stream *stream,
 
   if (dep_nid.type == NGHTTP3_NODE_ID_TYPE_PUSH &&
       dep_nid.id >= conn->local.uni.next_push_id) {
-    return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+    return NGHTTP3_ERR_HTTP_ID_ERROR;
   }
 
   rv = conn_ensure_dependency(conn, &dep_tnode, &dep_nid, &stream->node);
@@ -2137,7 +2137,7 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
       return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
     }
     if (nghttp3_ord_stream_id(nid.id) > conn->remote.bidi.max_client_streams) {
-      return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+      return NGHTTP3_ERR_HTTP_ID_ERROR;
     }
     stream = nghttp3_conn_find_stream(conn, nid.id);
     if (stream) {
@@ -2148,7 +2148,7 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
     break;
   case NGHTTP3_NODE_ID_TYPE_PUSH:
     if (nid.id >= conn->local.uni.next_push_id) {
-      return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+      return NGHTTP3_ERR_HTTP_ID_ERROR;
     }
     pp = nghttp3_conn_find_push_promise(conn, nid.id);
     if (!pp) {
@@ -2160,7 +2160,7 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
     break;
   case NGHTTP3_NODE_ID_TYPE_PLACEHOLDER:
     if ((uint64_t)nid.id >= conn->local.settings.num_placeholders) {
-      return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+      return NGHTTP3_ERR_HTTP_ID_ERROR;
     }
     ph = nghttp3_conn_find_placeholder(conn, nid.id);
     if (ph) {
@@ -2299,7 +2299,7 @@ int nghttp3_conn_on_client_cancel_push(nghttp3_conn *conn,
   int rv;
 
   if (conn->remote.uni.max_pushes <= (uint64_t)fr->push_id) {
-    return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+    return NGHTTP3_ERR_HTTP_ID_ERROR;
   }
 
   pp = nghttp3_conn_find_push_promise(conn, fr->push_id);
@@ -2356,7 +2356,7 @@ int nghttp3_conn_on_server_cancel_push(nghttp3_conn *conn,
   int rv;
 
   if (conn->local.uni.next_push_id <= fr->push_id) {
-    return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+    return NGHTTP3_ERR_HTTP_ID_ERROR;
   }
 
   pp = nghttp3_conn_find_push_promise(conn, fr->push_id);
@@ -2373,7 +2373,7 @@ int nghttp3_conn_on_server_cancel_push(nghttp3_conn *conn,
 
   if (stream) {
     rv = nghttp3_conn_close_stream(conn, stream->node.nid.id,
-                                   NGHTTP3_HTTP_PUSH_REFUSED);
+                                   NGHTTP3_HTTP_REQUEST_CANCELLED);
     if (rv != 0) {
       assert(NGHTTP3_ERR_INVALID_ARGUMENT != rv);
       return rv;
@@ -2401,7 +2401,7 @@ int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
     pp = nghttp3_conn_find_push_promise(conn, push_id);
     if (pp) {
       if (pp->stream) {
-        return NGHTTP3_ERR_HTTP_DUPLICATE_PUSH;
+        return NGHTTP3_ERR_HTTP_ID_ERROR;
       }
       pp->stream = stream;
       stream->pp = pp;
@@ -2438,7 +2438,7 @@ int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
   }
 
   if (conn->remote.uni.max_pushes <= (uint64_t)push_id) {
-    return NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED;
+    return NGHTTP3_ERR_HTTP_ID_ERROR;
   }
 
   rv = nghttp3_gaptr_push(&conn->remote.uni.push_idtr, (uint64_t)push_id, 1);
@@ -2605,7 +2605,7 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
     break;
   case NGHTTP3_SETTINGS_ID_NUM_PLACEHOLDERS:
     if (conn->server) {
-      return NGHTTP3_ERR_HTTP_WRONG_SETTING_DIRECTION;
+      return NGHTTP3_ERR_HTTP_SETTINGS_ERROR;
     }
     dest->num_placeholders = (uint64_t)ent->value;
     break;

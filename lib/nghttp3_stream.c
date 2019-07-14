@@ -1277,9 +1277,7 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
     return 0;
   case NGHTTP3_HTTP_STATE_RESP_TRAILERS_END:
     if (event != NGHTTP3_HTTP_EVENT_MSG_END) {
-      /* TODO Should ignore unexpected frame in this state as per
-         spec. */
-      return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+      return NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
     }
     stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_END;
     return 0;

@@ -816,7 +816,7 @@ void test_nghttp3_conn_recv_request_priority(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_HTTP_LIMIT_EXCEEDED == sconsumed);
+  CU_ASSERT(NGHTTP3_ERR_HTTP_ID_ERROR == sconsumed);
 
   nghttp3_conn_del(conn);
 
@@ -1947,7 +1947,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME == sconsumed);
+  CU_ASSERT(NGHTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR == sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
