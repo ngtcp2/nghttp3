@@ -1152,8 +1152,8 @@ typedef struct {
   uint64_t max_header_list_size;
   uint64_t num_placeholders;
   uint64_t max_pushes;
-  uint32_t qpack_max_table_capacity;
-  uint16_t qpack_blocked_streams;
+  uint64_t qpack_max_table_capacity;
+  uint64_t qpack_blocked_streams;
 } nghttp3_conn_settings;
 
 NGHTTP3_EXTERN void

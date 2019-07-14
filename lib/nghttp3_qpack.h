@@ -41,8 +41,6 @@
 #include "nghttp3_qpack_huffman.h"
 
 #define NGHTTP3_QPACK_INT_MAX ((1ull << 62) - 1)
-#define NGHTTP3_QPACK_MAX_MAX_TABLE_CAPACITY ((1u << 30) - 1)
-#define NGHTTP3_QPACK_MAX_BLOCKED_STREAMS ((1u << 16) - 1)
 
 /* NGHTTP3_QPACK_MAX_NAMELEN is the maximum (compressed) length of
    header name this library can decode. */

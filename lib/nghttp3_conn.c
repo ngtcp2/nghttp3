@@ -2506,8 +2506,8 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
   const nghttp3_settings_entry *ent = &fr->iv[0];
   nghttp3_conn_settings *dest = &conn->remote.settings;
   int rv;
-  uint32_t max_table_capacity = NGHTTP3_QPACK_ENCODER_MAX_TABLE_CAPACITY;
-  uint32_t max_blocked_streams = NGHTTP3_QPACK_ENCODER_MAX_BLOCK_STREAMS;
+  uint64_t max_table_capacity = NGHTTP3_QPACK_ENCODER_MAX_TABLE_CAPACITY;
+  uint64_t max_blocked_streams = NGHTTP3_QPACK_ENCODER_MAX_BLOCK_STREAMS;
 
   /* TODO Check for duplicates */
   switch (ent->id) {
@@ -2521,11 +2521,7 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
     dest->num_placeholders = (uint64_t)ent->value;
     break;
   case NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY:
-    if (ent->value > NGHTTP3_QPACK_MAX_MAX_TABLE_CAPACITY) {
-      /* TODO What is the best error code for this situation? */
-      return NGHTTP3_ERR_HTTP_INTERNAL_ERROR;
-    }
-    dest->qpack_max_table_capacity = (uint32_t)ent->value;
+    dest->qpack_max_table_capacity = (uint64_t)ent->value;
     max_table_capacity =
         nghttp3_min(max_table_capacity, dest->qpack_max_table_capacity);
     rv = nghttp3_qpack_encoder_set_hard_max_dtable_size(&conn->qenc,
@@ -2540,11 +2536,7 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
     }
     break;
   case NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS:
-    if (ent->value > NGHTTP3_QPACK_MAX_BLOCKED_STREAMS) {
-      /* TODO What is the best error code for this situation? */
-      return NGHTTP3_ERR_HTTP_INTERNAL_ERROR;
-    }
-    dest->qpack_blocked_streams = (uint16_t)ent->value;
+    dest->qpack_blocked_streams = (uint64_t)ent->value;
     max_blocked_streams =
         nghttp3_min(max_blocked_streams, dest->qpack_blocked_streams);
     rv =
