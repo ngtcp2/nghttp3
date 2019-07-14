@@ -952,7 +952,7 @@ NGHTTP3_EXTERN const char *nghttp3_strerror(int liberr);
  * `nghttp3_err_infer_quic_app_error_code` returns a QUIC application
  * error code which corresponds to |liberr|.
  */
-NGHTTP3_EXTERN uint16_t nghttp3_err_infer_quic_app_error_code(int liberr);
+NGHTTP3_EXTERN uint64_t nghttp3_err_infer_quic_app_error_code(int liberr);
 
 /**
  * @functypedef
@@ -1024,7 +1024,7 @@ typedef int (*nghttp3_acked_stream_data)(nghttp3_conn *conn, int64_t stream_id,
  * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_stream_close)(nghttp3_conn *conn, int64_t stream_id,
-                                    uint16_t error_code, void *user_data,
+                                    uint64_t error_code, void *user_data,
                                     void *stream_user_data);
 
 /**
@@ -1413,7 +1413,7 @@ NGHTTP3_EXTERN int nghttp3_conn_resume_stream(nghttp3_conn *conn,
  */
 NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
                                              int64_t stream_id,
-                                             uint16_t error_code);
+                                             uint64_t error_code);
 
 /**
  * @function

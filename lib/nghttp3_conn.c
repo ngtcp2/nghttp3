@@ -3405,7 +3405,7 @@ int nghttp3_conn_resume_stream(nghttp3_conn *conn, int64_t stream_id) {
 }
 
 int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id,
-                              uint16_t error_code) {
+                              uint64_t error_code) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
   int rv;
 

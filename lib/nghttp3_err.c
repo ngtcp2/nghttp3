@@ -611,7 +611,7 @@ int nghttp3_err_malformed_frame(int64_t type) {
   return NGHTTP3_ERR_HTTP_MALFORMED_FRAME - (int)type;
 }
 
-uint16_t nghttp3_err_infer_quic_app_error_code(int liberr) {
+uint64_t nghttp3_err_infer_quic_app_error_code(int liberr) {
   switch (liberr) {
   case NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED:
     return NGHTTP3_HTTP_QPACK_DECOMPRESSION_FAILED;
@@ -664,7 +664,7 @@ uint16_t nghttp3_err_infer_quic_app_error_code(int liberr) {
   default:
     if (NGHTTP3_ERR_HTTP_MALFORMED_FRAME >= liberr &&
         liberr > NGHTTP3_ERR_HTTP_MALFORMED_FRAME - 256) {
-      return (uint16_t)(NGHTTP3_HTTP_MALFORMED_FRAME +
+      return (uint64_t)(NGHTTP3_HTTP_MALFORMED_FRAME +
                         (NGHTTP3_ERR_HTTP_MALFORMED_FRAME - liberr));
     }
     return NGHTTP3_HTTP_GENERAL_PROTOCOL_ERROR;
