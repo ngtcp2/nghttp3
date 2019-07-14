@@ -3073,7 +3073,7 @@ void test_nghttp3_conn_recv_push_stream(void) {
       MAKE_NV(":status", "200"),
   };
   nghttp3_qpack_encoder qenc;
-  nghttp3_stream *stream;
+  nghttp3_stream *stream, *bidi_stream;
   ssize_t sconsumed;
   nghttp3_push_promise *pp;
 
@@ -3156,6 +3156,7 @@ void test_nghttp3_conn_recv_push_stream(void) {
   pp = nghttp3_conn_find_push_promise(conn, 0);
 
   CU_ASSERT(NULL != pp);
+  CU_ASSERT(&conn->orphan_root == pp->node.parent);
 
   stream = nghttp3_conn_find_stream(conn, 3);
 
@@ -3180,6 +3181,11 @@ void test_nghttp3_conn_recv_push_stream(void) {
   CU_ASSERT(pp == stream->pp);
   CU_ASSERT(!(stream->flags & NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED));
   CU_ASSERT(0 == nghttp3_ringbuf_len(&stream->inq));
+
+  bidi_stream = nghttp3_conn_find_stream(conn, 0);
+
+  CU_ASSERT(&bidi_stream->node == pp->node.parent);
+  CU_ASSERT(NGHTTP3_DEFAULT_WEIGHT == pp->node.weight);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);

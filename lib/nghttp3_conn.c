@@ -2174,6 +2174,12 @@ int nghttp3_conn_on_push_promise_push_id(nghttp3_conn *conn, int64_t push_id,
     } else {
       return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PUSH_PROMISE);
     }
+
+    if (!(pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED) &&
+        pp->node.parent == &conn->orphan_root) {
+      nghttp3_tnode_remove(&pp->node);
+      nghttp3_tnode_insert(&pp->node, &stream->node);
+    }
   } else if (nghttp3_gaptr_is_pushed(push_idtr, (uint64_t)push_id, 1)) {
     return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PUSH_PROMISE);
   } else {
