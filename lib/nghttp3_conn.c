@@ -869,7 +869,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
           rstate->state = NGHTTP3_CTRL_STREAM_STATE_SETTINGS_ID;
           return (ssize_t)nconsumed;
         }
-        rstate->fr.settings.iv[0].id = rvint->acc;
+        rstate->fr.settings.iv[0].id = (uint64_t)rvint->acc;
         nghttp3_varint_read_state_reset(rvint);
 
         /* Read Value */
@@ -895,7 +895,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
           rstate->state = NGHTTP3_CTRL_STREAM_STATE_SETTINGS_VALUE;
           return (ssize_t)nconsumed;
         }
-        rstate->fr.settings.iv[0].value = rvint->acc;
+        rstate->fr.settings.iv[0].value = (uint64_t)rvint->acc;
         nghttp3_varint_read_state_reset(rvint);
 
         rv =
@@ -919,7 +919,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       if (rvint->left) {
         return (ssize_t)nconsumed;
       }
-      rstate->fr.settings.iv[0].id = rvint->acc;
+      rstate->fr.settings.iv[0].id = (uint64_t)rvint->acc;
       nghttp3_varint_read_state_reset(rvint);
 
       if (rstate->left == 0) {
@@ -946,7 +946,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       if (rvint->left) {
         return (ssize_t)nconsumed;
       }
-      rstate->fr.settings.iv[0].value = rvint->acc;
+      rstate->fr.settings.iv[0].value = (uint64_t)rvint->acc;
       nghttp3_varint_read_state_reset(rvint);
 
       rv = nghttp3_conn_on_settings_entry_received(conn, &rstate->fr.settings);
@@ -2512,16 +2512,16 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
   /* TODO Check for duplicates */
   switch (ent->id) {
   case NGHTTP3_SETTINGS_ID_MAX_HEADER_LIST_SIZE:
-    dest->max_header_list_size = (uint64_t)ent->value;
+    dest->max_header_list_size = ent->value;
     break;
   case NGHTTP3_SETTINGS_ID_NUM_PLACEHOLDERS:
     if (conn->server) {
       return NGHTTP3_ERR_HTTP_SETTINGS_ERROR;
     }
-    dest->num_placeholders = (uint64_t)ent->value;
+    dest->num_placeholders = ent->value;
     break;
   case NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY:
-    dest->qpack_max_table_capacity = (uint64_t)ent->value;
+    dest->qpack_max_table_capacity = ent->value;
     max_table_capacity =
         nghttp3_min(max_table_capacity, dest->qpack_max_table_capacity);
     rv = nghttp3_qpack_encoder_set_hard_max_dtable_size(&conn->qenc,
@@ -2536,7 +2536,7 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
     }
     break;
   case NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS:
-    dest->qpack_blocked_streams = (uint64_t)ent->value;
+    dest->qpack_blocked_streams = ent->value;
     max_blocked_streams =
         nghttp3_min(max_blocked_streams, dest->qpack_blocked_streams);
     rv =

@@ -379,23 +379,22 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
 
   if (local_settings->max_header_list_size) {
     iv[fr.settings.niv].id = NGHTTP3_SETTINGS_ID_MAX_HEADER_LIST_SIZE;
-    iv[fr.settings.niv].value = (int64_t)local_settings->max_header_list_size;
+    iv[fr.settings.niv].value = local_settings->max_header_list_size;
     ++fr.settings.niv;
   }
   if (local_settings->num_placeholders) {
     iv[fr.settings.niv].id = NGHTTP3_SETTINGS_ID_NUM_PLACEHOLDERS;
-    iv[fr.settings.niv].value = (int64_t)local_settings->num_placeholders;
+    iv[fr.settings.niv].value = local_settings->num_placeholders;
     ++fr.settings.niv;
   }
   if (local_settings->qpack_max_table_capacity) {
     iv[fr.settings.niv].id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY;
-    iv[fr.settings.niv].value =
-        (int64_t)local_settings->qpack_max_table_capacity;
+    iv[fr.settings.niv].value = local_settings->qpack_max_table_capacity;
     ++fr.settings.niv;
   }
   if (local_settings->qpack_blocked_streams) {
     iv[fr.settings.niv].id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS;
-    iv[fr.settings.niv].value = (int64_t)local_settings->qpack_blocked_streams;
+    iv[fr.settings.niv].value = local_settings->qpack_blocked_streams;
     ++fr.settings.niv;
   }
 

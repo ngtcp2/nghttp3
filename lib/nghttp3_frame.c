@@ -47,8 +47,8 @@ uint8_t *nghttp3_frame_write_settings(uint8_t *p,
   p = nghttp3_frame_write_hd(p, &fr->hd);
 
   for (i = 0; i < fr->niv; ++i) {
-    p = nghttp3_put_varint(p, fr->iv[i].id);
-    p = nghttp3_put_varint(p, fr->iv[i].value);
+    p = nghttp3_put_varint(p, (int64_t)fr->iv[i].id);
+    p = nghttp3_put_varint(p, (int64_t)fr->iv[i].value);
   }
 
   return p;
@@ -60,8 +60,8 @@ size_t nghttp3_frame_write_settings_len(int64_t *ppayloadlen,
   size_t i;
 
   for (i = 0; i < fr->niv; ++i) {
-    payloadlen += nghttp3_put_varint_len(fr->iv[i].id) +
-                  nghttp3_put_varint_len(fr->iv[i].value);
+    payloadlen += nghttp3_put_varint_len((int64_t)fr->iv[i].id) +
+                  nghttp3_put_varint_len((int64_t)fr->iv[i].value);
   }
 
   *ppayloadlen = (int64_t)payloadlen;

@@ -1271,8 +1271,8 @@ typedef enum {
 } nghttp3_settings_id;
 
 typedef struct {
-  int64_t id;
-  int64_t value;
+  uint64_t id;
+  uint64_t value;
 } nghttp3_settings_entry;
 
 typedef struct {
