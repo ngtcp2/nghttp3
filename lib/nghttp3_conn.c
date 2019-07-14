@@ -3277,7 +3277,7 @@ int nghttp3_conn_resume_stream(nghttp3_conn *conn, int64_t stream_id) {
 }
 
 int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id,
-                              uint64_t error_code) {
+                              uint64_t app_error_code) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
   int rv;
 
@@ -3291,7 +3291,7 @@ int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id,
     return NGHTTP3_ERR_HTTP_CLOSED_CRITICAL_STREAM;
   }
 
-  stream->error_code = error_code;
+  stream->error_code = app_error_code;
 
   rv = nghttp3_stream_squash(stream);
   if (rv != 0) {

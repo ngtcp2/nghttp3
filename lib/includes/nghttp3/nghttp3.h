@@ -1021,6 +1021,7 @@ typedef int (*nghttp3_acked_stream_data)(nghttp3_conn *conn, int64_t stream_id,
  *
  * :type:`nghttp3_conn_stream_close` is a callback function which is
  * invoked when a stream identified by |stream_id| is closed.
+ * |app_error_code| indicates the reason of this closure.
  *
  * The implementation of this callback must return 0 if it succeeds.
  * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
@@ -1028,7 +1029,7 @@ typedef int (*nghttp3_acked_stream_data)(nghttp3_conn *conn, int64_t stream_id,
  * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_stream_close)(nghttp3_conn *conn, int64_t stream_id,
-                                    uint64_t error_code, void *user_data,
+                                    uint64_t app_error_code, void *user_data,
                                     void *stream_user_data);
 
 /**
@@ -1415,11 +1416,11 @@ NGHTTP3_EXTERN int nghttp3_conn_resume_stream(nghttp3_conn *conn,
  * @function
  *
  * `nghttp3_conn_close_stream` closes stream identified by
- * |stream_id|.
+ * |stream_id|.  |app_error_code| is the reason of the closure.
  */
 NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
                                              int64_t stream_id,
-                                             uint64_t error_code);
+                                             uint64_t app_error_code);
 
 /**
  * @function
