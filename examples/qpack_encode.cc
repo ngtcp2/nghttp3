@@ -180,7 +180,7 @@ int encode(const std::string_view &outfile, const std::string_view &infile) {
           const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(name.data())),
           const_cast<uint8_t *>(
               reinterpret_cast<const uint8_t *>(value.data())),
-          name.size(), value.size()});
+          name.size(), value.size(), NGHTTP3_NV_FLAG_NONE});
     }
 
     if (nva.empty()) {

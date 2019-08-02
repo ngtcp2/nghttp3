@@ -159,6 +159,7 @@ else()
 
   extract_valid_cxx_flags(WARNCXXFLAGS
     # For C++ compiler
+    -Wextra
     -Wall
     -Wformat-security
     -Wsometimes-uninitialized
