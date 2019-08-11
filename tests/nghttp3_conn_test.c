@@ -741,6 +741,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
   fr.priority.pri_elem_id = 0;
   fr.priority.elem_dep_id = 4;
   fr.priority.weight = 111;
+  fr.priority.exclusive = 0;
 
   nghttp3_write_frame(&buf, &fr);
 
@@ -779,6 +780,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
   fr.priority.pri_elem_id = 1;
   fr.priority.elem_dep_id = 0;
   fr.priority.weight = 256;
+  fr.priority.exclusive = 0;
 
   nghttp3_write_frame(&buf, &fr);
 
@@ -817,6 +819,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
   fr.priority.pri_elem_id = 0;
   fr.priority.elem_dep_id = 4;
   fr.priority.weight = 111;
+  fr.priority.exclusive = 0;
 
   nghttp3_write_frame(&buf, &fr);
 
@@ -826,6 +829,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
   fr.priority.pri_elem_id = 4;
   fr.priority.elem_dep_id = 0;
   fr.priority.weight = 12;
+  fr.priority.exclusive = 0;
 
   nghttp3_write_frame(&buf, &fr);
 
@@ -863,6 +867,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
   fr.priority.dt = NGHTTP3_ELEM_DEP_TYPE_ROOT;
   fr.priority.pri_elem_id = 100;
   fr.priority.weight = 111;
+  fr.priority.exclusive = 0;
 
   nghttp3_write_frame(&buf, &fr);
 
@@ -897,6 +902,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
   fr.priority.dt = NGHTTP3_ELEM_DEP_TYPE_PLACEHOLDER;
   fr.priority.elem_dep_id = 0;
   fr.priority.weight = 1;
+  fr.priority.exclusive = 0;
 
   nghttp3_write_frame(&buf, &fr);
 
@@ -928,6 +934,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
   fr.priority.pri_elem_id = 9;
   fr.priority.elem_dep_id = 0;
   fr.priority.weight = 7;
+  fr.priority.exclusive = 0;
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
@@ -959,6 +966,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
   fr.priority.pri_elem_id = 0;
   fr.priority.elem_dep_id = 9;
   fr.priority.weight = 54;
+  fr.priority.exclusive = 0;
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
@@ -996,6 +1004,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
   fr.priority.pri_elem_id = 0;
   fr.priority.elem_dep_id = 1;
   fr.priority.weight = 1;
+  fr.priority.exclusive = 0;
 
   nghttp3_write_frame(&buf, &fr);
 

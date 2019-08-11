@@ -74,8 +74,8 @@ uint8_t *nghttp3_frame_write_priority(uint8_t *p,
                                       const nghttp3_frame_priority *fr) {
   p = nghttp3_frame_write_hd(p, &fr->hd);
 
-  *p++ =
-      (uint8_t)((fr->pt << 6) | (fr->dt << 4) | (uint8_t)(fr->exclusive << 3));
+  *p++ = (uint8_t)((fr->pt << 6) | (fr->dt << 4) |
+                   (uint8_t)((fr->exclusive & 0x1) << 3));
   p = nghttp3_put_varint(p, fr->pri_elem_id);
   if (fr->dt != NGHTTP3_ELEM_DEP_TYPE_ROOT) {
     p = nghttp3_put_varint(p, fr->elem_dep_id);
