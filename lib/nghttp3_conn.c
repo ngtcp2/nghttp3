@@ -1391,18 +1391,22 @@ static int conn_process_blocked_stream_data(nghttp3_conn *conn,
   size_t nproc;
   ssize_t nconsumed;
   int rv;
+  size_t len;
 
-  for (; nghttp3_ringbuf_len(&stream->inq);) {
+  for (;;) {
+    len = nghttp3_ringbuf_len(&stream->inq);
+    if (len == 0) {
+      break;
+    }
     buf = nghttp3_ringbuf_get(&stream->inq, 0);
-
     if (nghttp3_stream_uni(stream->node.nid.id)) {
       nconsumed = nghttp3_conn_read_push(
           conn, &nproc, stream, buf->pos, nghttp3_buf_len(buf),
-          stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF);
+          len == 1 && (stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF));
     } else {
       nconsumed = nghttp3_conn_read_bidi(
           conn, &nproc, stream, buf->pos, nghttp3_buf_len(buf),
-          stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF);
+          len == 1 && (stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF));
     }
     if (nconsumed < 0) {
       return (int)nconsumed;
@@ -1860,7 +1864,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
   }
 
 almost_done:
-  if ((stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF)) {
+  if (fin) {
     switch (rstate->state) {
     case NGHTTP3_REQ_STREAM_STATE_FRAME_TYPE:
       if (rvint->left) {
