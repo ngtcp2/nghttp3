@@ -477,6 +477,10 @@ ssize_t nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
   if (nghttp3_stream_uni(stream_id)) {
     return nghttp3_conn_read_uni(conn, stream, src, srclen, fin);
   }
+
+  if (fin) {
+    stream->flags |= NGHTTP3_STREAM_FLAG_READ_EOF;
+  }
   return nghttp3_conn_read_bidi(conn, &bidi_nproc, stream, src, srclen, fin);
 }
 
@@ -576,6 +580,9 @@ ssize_t nghttp3_conn_read_uni(nghttp3_conn *conn, nghttp3_stream *stream,
     nconsumed = nghttp3_conn_read_control(conn, stream, src, srclen);
     break;
   case NGHTTP3_STREAM_TYPE_PUSH:
+    if (fin) {
+      stream->flags |= NGHTTP3_STREAM_FLAG_READ_EOF;
+    }
     nconsumed =
         nghttp3_conn_read_push(conn, &push_nproc, stream, src, srclen, fin);
     break;
@@ -1033,12 +1040,6 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, size_t *pnproc,
   size_t len;
   int64_t push_id;
 
-  if (fin) {
-    /* stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF might be already
-       nonzero, if stream was blocked by QPACK decoder.  */
-    stream->flags |= NGHTTP3_STREAM_FLAG_READ_EOF;
-  }
-
   if (stream->pp &&
       (stream->pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL)) {
     *pnproc = srclen;
@@ -1307,7 +1308,7 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, size_t *pnproc,
   }
 
 almost_done:
-  if ((stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF)) {
+  if (fin) {
     switch (rstate->state) {
     case NGHTTP3_PUSH_STREAM_STATE_FRAME_TYPE:
       if (rvint->left) {
@@ -1491,12 +1492,6 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
   int busy = 0;
   size_t len;
   nghttp3_push_promise *pp;
-
-  if (fin) {
-    /* stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF might be already
-       nonzero, if stream was blocked by QPACK decoder.  */
-    stream->flags |= NGHTTP3_STREAM_FLAG_READ_EOF;
-  }
 
   if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
     *pnproc = 0;
