@@ -492,6 +492,9 @@ int nghttp3_http_on_response_headers(nghttp3_http_state *http) {
 }
 
 int nghttp3_http_on_remote_end_stream(nghttp3_stream *stream) {
+  if (stream->flags & NGHTTP3_STREAM_FLAG_RESET) {
+    return 0;
+  }
   if ((stream->rx.http.flags & NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE) ||
       (stream->rx.http.content_length != -1 &&
        stream->rx.http.content_length != stream->rx.http.recv_content_length)) {

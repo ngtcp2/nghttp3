@@ -3315,6 +3315,12 @@ int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id,
 }
 
 int nghttp3_conn_reset_stream(nghttp3_conn *conn, int64_t stream_id) {
+  nghttp3_stream *stream;
+
+  stream = nghttp3_conn_find_stream(conn, stream_id);
+  if (stream) {
+    stream->flags |= NGHTTP3_STREAM_FLAG_RESET;
+  }
   return nghttp3_qpack_decoder_cancel_stream(&conn->qdec, stream_id);
 }
 

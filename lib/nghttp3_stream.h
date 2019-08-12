@@ -132,6 +132,8 @@ typedef enum {
      has been prioritized by PRIORITY frame received in control
      stream. */
   NGHTTP3_STREAM_FLAG_CTRL_PRIORITY_APPLIED = 0x0100,
+  /* NGHTTP3_STREAM_FLAG_RESET indicates that stream is reset. */
+  NGHTTP3_STREAM_FLAG_RESET = 0x0200,
 } nghttp3_stream_flag;
 
 typedef enum {
