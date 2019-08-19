@@ -1708,6 +1708,49 @@ NGHTTP3_EXTERN int nghttp3_check_header_name(const uint8_t *name, size_t len);
  */
 NGHTTP3_EXTERN int nghttp3_check_header_value(const uint8_t *value, size_t len);
 
+/**
+ * @macro
+ *
+ * The age of :type:`nghttp3_info`
+ */
+#define NGHTTP3_VERSION_AGE 1
+
+/**
+ * @struct
+ *
+ * This struct is what `nghttp3_version()` returns.  It holds
+ * information about the particular nghttp3 version.
+ */
+typedef struct {
+  /**
+   * Age of this struct.  This instance of nghttp3 sets it to
+   * :macro:`NGHTTP3_VERSION_AGE` but a future version may bump it and
+   * add more struct fields at the bottom
+   */
+  int age;
+  /**
+   * the :macro:`NGHTTP3_VERSION_NUM` number (since age ==1)
+   */
+  int version_num;
+  /**
+   * points to the :macro:`NGHTTP3_VERSION` string (since age ==1)
+   */
+  const char *version_str;
+  /* -------- the above fields all exist when age == 1 */
+} nghttp3_info;
+
+/**
+ * @function
+ *
+ * Returns a pointer to a nghttp3_info struct with version information
+ * about the run-time library in use.  The |least_version| argument
+ * can be set to a 24 bit numerical value for the least accepted
+ * version number and if the condition is not met, this function will
+ * return a ``NULL``.  Pass in 0 to skip the version checking.
+ */
+NGHTTP3_EXTERN nghttp3_info *nghttp3_version(int least_version);
+
+
 #ifdef __cplusplus
 }
 #endif

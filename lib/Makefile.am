@@ -55,7 +55,8 @@ OBJECTS = \
 	nghttp3_gaptr.c \
 	nghttp3_idtr.c \
 	nghttp3_range.c \
-	nghttp3_http.c
+	nghttp3_http.c \
+	nghttp3_version.c
 HFILES = \
 	nghttp3_rcbuf.h \
 	nghttp3_mem.h \
