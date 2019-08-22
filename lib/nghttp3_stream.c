@@ -676,12 +676,14 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
     return rv;
   }
 
-  nghttp3_buf_wrap_init(&buf, (uint8_t *)data, datalen);
-  buf.last = buf.end;
-  nghttp3_typed_buf_init(&tbuf, &buf, NGHTTP3_BUF_TYPE_ALIEN);
-  rv = nghttp3_stream_outq_add(stream, &tbuf);
-  if (rv != 0) {
-    return rv;
+  if (datalen) {
+    nghttp3_buf_wrap_init(&buf, (uint8_t *)data, datalen);
+    buf.last = buf.end;
+    nghttp3_typed_buf_init(&tbuf, &buf, NGHTTP3_BUF_TYPE_ALIEN);
+    rv = nghttp3_stream_outq_add(stream, &tbuf);
+    if (rv != 0) {
+      return rv;
+    }
   }
 
   return 0;
