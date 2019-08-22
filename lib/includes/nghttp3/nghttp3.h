@@ -1465,7 +1465,7 @@ nghttp3_conn_set_max_client_streams_bidi(nghttp3_conn *conn,
  * :enum:`NGHTTP3_DATA_FLAG_EOF` to |*pflags|.
  *
  * If the application is unable to provide data temporarily, return
- * :enum:`NGHTTP3_ERR_WOULDBLOCKED`.  When it is ready to provide
+ * :enum:`NGHTTP3_ERR_WOULDBLOCK`.  When it is ready to provide
  * data, call `nghttp3_conn_resume_stream()`.
  *
  * The callback should return 0 if it succeeds, or
