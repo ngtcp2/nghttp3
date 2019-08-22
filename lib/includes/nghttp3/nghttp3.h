@@ -1013,7 +1013,7 @@ typedef struct nghttp3_conn nghttp3_conn;
  * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_acked_stream_data)(nghttp3_conn *conn, int64_t stream_id,
-                                         size_t datalen, void *user_data,
+                                         size_t datalen, void *conn_user_data,
                                          void *stream_user_data);
 
 /**
@@ -1029,7 +1029,8 @@ typedef int (*nghttp3_acked_stream_data)(nghttp3_conn *conn, int64_t stream_id,
  * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_stream_close)(nghttp3_conn *conn, int64_t stream_id,
-                                    uint64_t app_error_code, void *user_data,
+                                    uint64_t app_error_code,
+                                    void *conn_user_data,
                                     void *stream_user_data);
 
 /**
@@ -1047,7 +1048,7 @@ typedef int (*nghttp3_stream_close)(nghttp3_conn *conn, int64_t stream_id,
  */
 typedef int (*nghttp3_recv_data)(nghttp3_conn *conn, int64_t stream_id,
                                  const uint8_t *data, size_t datalen,
-                                 void *user_data, void *stream_user_data);
+                                 void *conn_user_data, void *stream_user_data);
 
 /**
  * @functypedef
@@ -1063,33 +1064,36 @@ typedef int (*nghttp3_recv_data)(nghttp3_conn *conn, int64_t stream_id,
  * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_deferred_consume)(nghttp3_conn *conn, int64_t stream_id,
-                                        size_t consumed, void *user_data,
+                                        size_t consumed, void *conn_user_data,
                                         void *stream_user_data);
 
 typedef int (*nghttp3_begin_headers)(nghttp3_conn *conn, int64_t stream_id,
-                                     void *user_data, void *stream_user_data);
+                                     void *conn_user_data,
+                                     void *stream_user_data);
 
 typedef int (*nghttp3_recv_header)(nghttp3_conn *conn, int64_t stream_id,
                                    int32_t token, nghttp3_rcbuf *name,
                                    nghttp3_rcbuf *value, uint8_t flags,
-                                   void *user_data, void *stream_user_data);
+                                   void *conn_user_data,
+                                   void *stream_user_data);
 
 typedef int (*nghttp3_end_headers)(nghttp3_conn *conn, int64_t stream_id,
-                                   void *user_data, void *stream_user_data);
+                                   void *conn_user_data,
+                                   void *stream_user_data);
 
 typedef int (*nghttp3_begin_push_promise)(nghttp3_conn *conn, int64_t stream_id,
-                                          int64_t push_id, void *user_data,
+                                          int64_t push_id, void *conn_user_data,
                                           void *stream_user_data);
 
 typedef int (*nghttp3_recv_push_promise)(nghttp3_conn *conn, int64_t stream_id,
                                          int64_t push_id, int32_t token,
                                          nghttp3_rcbuf *name,
                                          nghttp3_rcbuf *value, uint8_t flags,
-                                         void *user_data,
+                                         void *conn_user_data,
                                          void *stream_user_data);
 
 typedef int (*nghttp3_end_push_promise)(nghttp3_conn *conn, int64_t stream_id,
-                                        int64_t push_id, void *user_data,
+                                        int64_t push_id, void *conn_user_data,
                                         void *stream_user_data);
 
 /**
@@ -1108,7 +1112,7 @@ typedef int (*nghttp3_end_push_promise)(nghttp3_conn *conn, int64_t stream_id,
  * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_cancel_push)(nghttp3_conn *conn, int64_t push_id,
-                                   int64_t stream_id, void *user_data,
+                                   int64_t stream_id, void *conn_user_data,
                                    void *stream_user_data);
 
 /**
@@ -1126,7 +1130,7 @@ typedef int (*nghttp3_cancel_push)(nghttp3_conn *conn, int64_t push_id,
  */
 typedef int (*nghttp3_send_stop_sending)(nghttp3_conn *conn, int64_t stream_id,
                                          uint64_t app_error_code,
-                                         void *user_data,
+                                         void *conn_user_data,
                                          void *stream_user_data);
 
 /**
@@ -1142,7 +1146,7 @@ typedef int (*nghttp3_send_stop_sending)(nghttp3_conn *conn, int64_t stream_id,
  * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_push_stream)(nghttp3_conn *conn, int64_t push_id,
-                                   int64_t stream_id, void *user_data);
+                                   int64_t stream_id, void *conn_user_data);
 
 typedef struct {
   nghttp3_acked_stream_data acked_stream_data;
@@ -1178,13 +1182,13 @@ NGHTTP3_EXTERN int
 nghttp3_conn_client_new(nghttp3_conn **pconn,
                         const nghttp3_conn_callbacks *callbacks,
                         const nghttp3_conn_settings *settings,
-                        const nghttp3_mem *mem, void *user_data);
+                        const nghttp3_mem *mem, void *conn_user_data);
 
 NGHTTP3_EXTERN int
 nghttp3_conn_server_new(nghttp3_conn **pconn,
                         const nghttp3_conn_callbacks *callbacks,
                         const nghttp3_conn_settings *settings,
-                        const nghttp3_mem *mem, void *user_data);
+                        const nghttp3_mem *mem, void *conn_user_data);
 
 NGHTTP3_EXTERN void nghttp3_conn_del(nghttp3_conn *conn);
 
@@ -1477,7 +1481,7 @@ nghttp3_conn_set_max_client_streams_bidi(nghttp3_conn *conn,
 typedef int (*nghttp3_read_data_callback)(nghttp3_conn *conn, int64_t stream_id,
                                           const uint8_t **pdata,
                                           size_t *pdatalen, uint32_t *pflags,
-                                          void *user_data,
+                                          void *conn_user_data,
                                           void *stream_user_data);
 
 /**
