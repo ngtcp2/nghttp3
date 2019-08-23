@@ -1539,8 +1539,9 @@ typedef struct {
  * be a client initiated bidirectional stream.  Only client can submit
  * HTTP request.  |nva| of length |nvlen| specifies HTTP request
  * header fields.  |dr| specifies a request body.  If there is no
- * request body, specify NULL.  |stream_user_data| is an opaque
- * pointer attached to the stream.
+ * request body, specify NULL.  If |dr| is NULL, it implies the end of
+ * stream.  |stream_user_data| is an opaque pointer attached to the
+ * stream.
  */
 NGHTTP3_EXTERN int nghttp3_conn_submit_request(
     nghttp3_conn *conn, int64_t stream_id, const nghttp3_nv *nva, size_t nvlen,
@@ -1582,7 +1583,8 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_info(nghttp3_conn *conn,
  * `nghttp3_conn_submit_response` submits HTTP response header fields
  * and body on the stream identified by |stream_id|.  |nva| of length
  * |nvlen| specifies HTTP response header fields.  |dr| specifies a
- * response body.  If there is no response body, specify NULL.
+ * response body.  If there is no response body, specify NULL.  If
+ * |dr| is NULL, it implies the end of stream.
  */
 NGHTTP3_EXTERN int nghttp3_conn_submit_response(nghttp3_conn *conn,
                                                 int64_t stream_id,
@@ -1595,7 +1597,8 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_response(nghttp3_conn *conn,
  *
  * `nghttp3_conn_submit_trailers` submits HTTP trailer fields on the
  * stream identified by |stream_id|.  |nva| of length |nvlen|
- * specifies HTTP trailer fields.
+ * specifies HTTP trailer fields.  Calling this function implies the
+ * end of stream.
  */
 NGHTTP3_EXTERN int nghttp3_conn_submit_trailers(nghttp3_conn *conn,
                                                 int64_t stream_id,
