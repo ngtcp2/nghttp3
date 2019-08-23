@@ -1099,6 +1099,23 @@ typedef int (*nghttp3_end_push_promise)(nghttp3_conn *conn, int64_t stream_id,
 /**
  * @functypedef
  *
+ * :type:`nghttp3_end_stream` is a callback function which is invoked
+ * when the receiving side of stream is closed.  For server, this
+ * callback function is invoked when HTTP request is received
+ * completely.  For client, this callback function is invoked when
+ * HTTP response is received completely.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
+typedef int (*nghttp3_end_stream)(nghttp3_conn *conn, int64_t stream_id,
+                                  void *conn_user_data, void *stream_user_data);
+
+/**
+ * @functypedef
+ *
  * :type:`nghttp3_cancel_push` is a callback function which is invoked
  * when the push identified by |push_id| is cancelled by remote
  * endpoint.  If a stream has been bound to the push ID, |stream_id|
@@ -1165,6 +1182,7 @@ typedef struct {
   nghttp3_cancel_push cancel_push;
   nghttp3_send_stop_sending send_stop_sending;
   nghttp3_push_stream push_stream;
+  nghttp3_end_stream end_stream;
 } nghttp3_conn_callbacks;
 
 typedef struct {

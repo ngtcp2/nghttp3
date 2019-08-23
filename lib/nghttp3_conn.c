@@ -151,6 +151,22 @@ static int conn_call_end_push_promise(nghttp3_conn *conn,
   return 0;
 }
 
+static int conn_call_end_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
+  int rv;
+
+  if (!conn->callbacks.end_stream) {
+    return 0;
+  }
+
+  rv = conn->callbacks.end_stream(conn, stream->node.nid.id, conn->user_data,
+                                  stream->user_data);
+  if (rv != 0) {
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
+  return 0;
+}
+
 static int conn_call_cancel_push(nghttp3_conn *conn, int64_t push_id,
                                  nghttp3_stream *stream) {
   int rv;
@@ -1867,6 +1883,10 @@ almost_done:
       }
       rv = nghttp3_stream_transit_rx_http_state(stream,
                                                 NGHTTP3_HTTP_EVENT_MSG_END);
+      if (rv != 0) {
+        return rv;
+      }
+      rv = conn_call_end_stream(conn, stream);
       if (rv != 0) {
         return rv;
       }
