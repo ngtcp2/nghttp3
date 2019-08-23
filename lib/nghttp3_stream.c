@@ -652,6 +652,9 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
 
   if (flags & NGHTTP3_DATA_FLAG_EOF) {
     *peof = 1;
+    if (!(flags & NGHTTP3_DATA_FLAG_NO_END_STREAM)) {
+      stream->flags |= NGHTTP3_STREAM_FLAG_WRITE_END_STREAM;
+    }
   }
 
   hd.type = NGHTTP3_FRAME_DATA;

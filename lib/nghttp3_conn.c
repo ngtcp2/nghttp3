@@ -3009,6 +3009,10 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
 
   nghttp3_http_record_request_method(stream, nva, nvlen);
 
+  if (dr == NULL) {
+    stream->flags |= NGHTTP3_STREAM_FLAG_WRITE_END_STREAM;
+  }
+
   return conn_submit_headers_data(conn, stream, nva, nvlen, dr);
 }
 
@@ -3043,6 +3047,10 @@ int nghttp3_conn_submit_response(nghttp3_conn *conn, int64_t stream_id,
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
+  if (dr == NULL) {
+    stream->flags |= NGHTTP3_STREAM_FLAG_WRITE_END_STREAM;
+  }
+
   return conn_submit_headers_data(conn, stream, nva, nvlen, dr);
 }
 
@@ -3057,6 +3065,12 @@ int nghttp3_conn_submit_trailers(nghttp3_conn *conn, int64_t stream_id,
   if (stream == NULL) {
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
+
+  if (stream->flags & NGHTTP3_STREAM_FLAG_WRITE_END_STREAM) {
+    return NGHTTP3_ERR_INVALID_STATE;
+  }
+
+  stream->flags |= NGHTTP3_STREAM_FLAG_WRITE_END_STREAM;
 
   return conn_submit_headers_data(conn, stream, nva, nvlen, NULL);
 }
@@ -3419,38 +3433,6 @@ int nghttp3_conn_submit_max_push_id(nghttp3_conn *conn) {
   }
 
   conn->flags |= NGHTTP3_CONN_FLAG_MAX_PUSH_ID_QUEUED;
-
-  return 0;
-}
-
-int nghttp3_conn_end_stream(nghttp3_conn *conn, int64_t stream_id) {
-  nghttp3_stream *stream;
-
-  if (conn_remote_stream_uni(conn, stream_id)) {
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
-  }
-
-  stream = nghttp3_conn_find_stream(conn, stream_id);
-  if (stream == NULL) {
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
-  }
-
-  if (nghttp3_stream_uni(stream_id)) {
-    switch (stream->type) {
-    case NGHTTP3_STREAM_TYPE_CONTROL:
-    case NGHTTP3_STREAM_TYPE_QPACK_ENCODER:
-    case NGHTTP3_STREAM_TYPE_QPACK_DECODER:
-      return NGHTTP3_ERR_INVALID_ARGUMENT;
-    default:
-      break;
-    }
-  }
-
-  if (stream->flags & NGHTTP3_STREAM_FLAG_WRITE_END_STREAM) {
-    return NGHTTP3_ERR_INVALID_STATE;
-  }
-
-  stream->flags |= NGHTTP3_STREAM_FLAG_WRITE_END_STREAM;
 
   return 0;
 }

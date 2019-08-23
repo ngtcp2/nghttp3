@@ -1438,7 +1438,23 @@ NGHTTP3_EXTERN int nghttp3_conn_reset_stream(nghttp3_conn *conn,
 
 typedef enum {
   NGHTTP3_DATA_FLAG_NONE = 0x00,
-  NGHTTP3_DATA_FLAG_EOF = 0x01
+  /**
+   * ``NGHTTP3_DATA_FLAG_EOF`` indicates that all request or response
+   * body has been provided to the library.  It also indicates that
+   * sending side of stream is closed unless
+   * :enum:`NGHTTP3_DATA_FLAG_NO_END_STREAM` is given at the same
+   * time.
+   */
+  NGHTTP3_DATA_FLAG_EOF = 0x01,
+  /**
+   * ``NGHTTP3_DATA_FLAG_NO_END_STREAM`` indicates that sending side
+   * of stream is not closed even if NGHTTP3_DATA_FLAG_EOF is set.
+   * Usually this flag is used to send trailer fields with
+   * `nghttp3_conn_submit_trailers()`.  If
+   * `nghttp3_conn_submit_trailers()` has been called, regardless of
+   * this flag, the submitted trailer fields are sent.
+   */
+  NGHTTP3_DATA_FLAG_NO_END_STREAM = 0x02
 } nghttp3_data_flag;
 
 /**
@@ -1592,15 +1608,6 @@ NGHTTP3_EXTERN int nghttp3_conn_bind_push_stream(nghttp3_conn *conn,
  */
 NGHTTP3_EXTERN int nghttp3_conn_cancel_push(nghttp3_conn *conn,
                                             int64_t push_id);
-
-/**
- * @function
- *
- * `nghttp3_conn_end_stream` signals that application finished
- * providing outgoing data to a stream identified by |stream_id|.
- */
-NGHTTP3_EXTERN int nghttp3_conn_end_stream(nghttp3_conn *conn,
-                                           int64_t stream_id);
 
 /**
  * @function

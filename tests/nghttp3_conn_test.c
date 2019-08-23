@@ -629,10 +629,6 @@ void test_nghttp3_conn_http_request(void) {
 
   CU_ASSERT(0 == rv);
 
-  rv = nghttp3_conn_end_stream(cl, 0);
-
-  CU_ASSERT(0 == rv);
-
   for (;;) {
     sveccnt = nghttp3_conn_writev_stream(cl, &stream_id, &fin, vec,
                                          nghttp3_arraylen(vec));
@@ -663,10 +659,6 @@ void test_nghttp3_conn_http_request(void) {
 
   rv = nghttp3_conn_submit_response(sv, 0, respnva, nghttp3_arraylen(respnva),
                                     &dr);
-
-  CU_ASSERT(0 == rv);
-
-  rv = nghttp3_conn_end_stream(sv, 0);
 
   CU_ASSERT(0 == rv);
 
@@ -2226,8 +2218,6 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
                                    NULL, NULL);
 
   CU_ASSERT(0 == rv);
-
-  nghttp3_conn_end_stream(conn, 0);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.headers.nva = (nghttp3_nv *)resnv;
