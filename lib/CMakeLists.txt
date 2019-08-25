@@ -55,6 +55,7 @@ set(nghttp3_SOURCES
   nghttp3_idtr.c
   nghttp3_range.c
   nghttp3_http.c
+  nghttp3_version.c
 )
 
 # Public shared library
