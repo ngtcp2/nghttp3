@@ -1782,7 +1782,6 @@ typedef struct {
  */
 NGHTTP3_EXTERN nghttp3_info *nghttp3_version(int least_version);
 
-
 #ifdef __cplusplus
 }
 #endif
