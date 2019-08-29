@@ -1118,9 +1118,11 @@ static void qpack_encoder_remove_stream(nghttp3_qpack_encoder *encoder,
 }
 
 /*
- * reserve_buf ensures that |buf| contains at least |extra_size| of
- * free space.  In other words, if this function succeeds,
- * nghttp2_buf_left(buf) >= extra_size holds.
+ * reserve_buf_internal ensures that |buf| contains at least
+ * |extra_size| of free space.  In other words, if this function
+ * succeeds, nghttp2_buf_left(buf) >= extra_size holds.  |min_size| is
+ * the minimum size of buffer.  The allocated buffer has at least
+ * |min_size| bytes.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -1128,10 +1130,10 @@ static void qpack_encoder_remove_stream(nghttp3_qpack_encoder *encoder,
  * NGHTTP3_ERR_NOMEM
  *     Out of memory.
  */
-static int reserve_buf(nghttp3_buf *buf, size_t extra_size,
-                       const nghttp3_mem *mem) {
+static int reserve_buf_internal(nghttp3_buf *buf, size_t extra_size,
+                                size_t min_size, const nghttp3_mem *mem) {
   size_t left = nghttp3_buf_left(buf);
-  size_t n = 4096, need;
+  size_t n = min_size, need;
 
   if (left >= extra_size) {
     return 0;
@@ -1143,6 +1145,16 @@ static int reserve_buf(nghttp3_buf *buf, size_t extra_size,
     ;
 
   return nghttp3_buf_reserve(buf, n, mem);
+}
+
+static int reserve_buf_small(nghttp3_buf *buf, size_t extra_size,
+                             const nghttp3_mem *mem) {
+  return reserve_buf_internal(buf, extra_size, 32, mem);
+}
+
+static int reserve_buf(nghttp3_buf *buf, size_t extra_size,
+                       const nghttp3_mem *mem) {
+  return reserve_buf_internal(buf, extra_size, 256, mem);
 }
 
 int nghttp3_qpack_encoder_encode(nghttp3_qpack_encoder *encoder,
@@ -3607,9 +3619,9 @@ int nghttp3_qpack_decoder_write_header_ack(
   uint8_t *p;
   int rv;
 
-  rv = reserve_buf(dbuf,
-                   nghttp3_qpack_put_varint_len((uint64_t)sctx->stream_id, 7),
-                   decoder->ctx.mem);
+  rv = reserve_buf_small(
+      dbuf, nghttp3_qpack_put_varint_len((uint64_t)sctx->stream_id, 7),
+      decoder->ctx.mem);
   if (rv != 0) {
     return rv;
   }
@@ -3638,8 +3650,8 @@ int nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
   }
 
   if (nghttp3_buf_len(dbuf)) {
-    rv = reserve_buf(dbuf, nghttp3_buf_len(&decoder->dbuf) + len,
-                     decoder->ctx.mem);
+    rv = reserve_buf_small(dbuf, nghttp3_buf_len(&decoder->dbuf) + len,
+                           decoder->ctx.mem);
     if (rv != 0) {
       return rv;
     }
@@ -3647,7 +3659,7 @@ int nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
                                 nghttp3_buf_len(&decoder->dbuf));
     nghttp3_buf_reset(&decoder->dbuf);
   } else {
-    rv = reserve_buf(&decoder->dbuf, len, decoder->ctx.mem);
+    rv = reserve_buf_small(&decoder->dbuf, len, decoder->ctx.mem);
     if (rv != 0) {
       return rv;
     }

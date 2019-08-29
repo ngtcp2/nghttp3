@@ -38,7 +38,7 @@
 #include "nghttp3_frame.h"
 #include "nghttp3_qpack.h"
 
-#define NGHTTP3_STREAM_CHUNK_SIZE (16 * 1024)
+#define NGHTTP3_STREAM_CHUNK_SIZE (4 * 1024)
 
 /* NGHTTP3_MIN_UNSENT_BYTES is the minimum unsent bytes which is large
    enough to fill outgoing single QUIC packet. */
