@@ -1154,7 +1154,7 @@ static int reserve_buf_small(nghttp3_buf *buf, size_t extra_size,
 
 static int reserve_buf(nghttp3_buf *buf, size_t extra_size,
                        const nghttp3_mem *mem) {
-  return reserve_buf_internal(buf, extra_size, 256, mem);
+  return reserve_buf_internal(buf, extra_size, 32, mem);
 }
 
 int nghttp3_qpack_encoder_encode(nghttp3_qpack_encoder *encoder,
