@@ -914,6 +914,9 @@ NGHTTP3_EXTERN int
 nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
                                     nghttp3_buf *dbuf);
 
+NGHTTP3_EXTERN size_t
+nghttp3_qpack_decoder_get_decoder_streamlen(nghttp3_qpack_decoder *decoder);
+
 /**
  * @function
  *

@@ -3637,36 +3637,34 @@ int nghttp3_qpack_decoder_write_header_ack(
   return 0;
 }
 
-int nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
-                                        nghttp3_buf *dbuf) {
-  uint8_t *p;
-  size_t n = 0;
+size_t
+nghttp3_qpack_decoder_get_decoder_streamlen(nghttp3_qpack_decoder *decoder) {
+  size_t n;
   size_t len = 0;
-  int rv;
 
   if (decoder->written_icnt < decoder->ctx.next_absidx) {
     n = decoder->ctx.next_absidx - decoder->written_icnt;
     len = nghttp3_qpack_put_varint_len(n, 6);
   }
 
-  if (nghttp3_buf_len(dbuf)) {
-    rv = reserve_buf_small(dbuf, nghttp3_buf_len(&decoder->dbuf) + len,
-                           decoder->ctx.mem);
-    if (rv != 0) {
-      return rv;
-    }
-    dbuf->last = nghttp3_cpymem(dbuf->last, decoder->dbuf.pos,
-                                nghttp3_buf_len(&decoder->dbuf));
-    nghttp3_buf_reset(&decoder->dbuf);
-  } else {
-    rv = reserve_buf_small(&decoder->dbuf, len, decoder->ctx.mem);
-    if (rv != 0) {
-      return rv;
-    }
+  return nghttp3_buf_len(&decoder->dbuf) + len;
+}
 
-    nghttp3_buf_swap(dbuf, &decoder->dbuf);
+int nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
+                                        nghttp3_buf *dbuf) {
+  uint8_t *p;
+  size_t n = 0;
+  size_t len = 0;
+
+  if (decoder->written_icnt < decoder->ctx.next_absidx) {
+    n = decoder->ctx.next_absidx - decoder->written_icnt;
+    len = nghttp3_qpack_put_varint_len(n, 6);
   }
 
+  assert(nghttp3_buf_left(dbuf) >= nghttp3_buf_len(&decoder->dbuf) + len);
+
+  dbuf->last = nghttp3_cpymem(dbuf->last, decoder->dbuf.pos,
+                              nghttp3_buf_len(&decoder->dbuf));
   if (n) {
     p = dbuf->last;
     *p = 0;
@@ -3674,6 +3672,8 @@ int nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
 
     decoder->written_icnt = decoder->ctx.next_absidx;
   }
+
+  nghttp3_buf_reset(&decoder->dbuf);
 
   return 0;
 }

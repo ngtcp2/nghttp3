@@ -568,6 +568,8 @@ void test_nghttp3_qpack_decoder_feedback(void) {
   nghttp3_buf_init(&ebuf);
   nghttp3_buf_init(&dbuf);
 
+  nghttp3_buf_reserve(&dbuf, 4096, mem);
+
   rv = nghttp3_qpack_encoder_init(&enc, 4096, 2, mem);
 
   CU_ASSERT(0 == rv);
