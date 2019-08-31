@@ -151,6 +151,10 @@ struct nghttp3_conn {
   } remote;
 
   struct {
+    struct {
+      nghttp3_buf rbuf;
+      nghttp3_buf ebuf;
+    } qpack;
     nghttp3_stream *ctrl;
     nghttp3_stream *qenc;
     nghttp3_stream *qdec;

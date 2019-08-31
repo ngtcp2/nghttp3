@@ -406,6 +406,9 @@ void nghttp3_conn_del(nghttp3_conn *conn) {
     return;
   }
 
+  nghttp3_buf_free(&conn->tx.qpack.ebuf, conn->mem);
+  nghttp3_buf_free(&conn->tx.qpack.rbuf, conn->mem);
+
   nghttp3_gaptr_free(&conn->remote.uni.push_idtr);
 
   nghttp3_idtr_free(&conn->remote.bidi.idtr);

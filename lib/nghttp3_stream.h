@@ -318,6 +318,7 @@ int nghttp3_stream_write_push_promise(nghttp3_stream *stream,
 int nghttp3_stream_write_header_block(nghttp3_stream *stream,
                                       nghttp3_qpack_encoder *qenc,
                                       nghttp3_stream *qenc_stream,
+                                      nghttp3_buf *rbuf, nghttp3_buf *ebuf,
                                       int64_t frame_type, int64_t push_id,
                                       const nghttp3_nv *nva, size_t nvlen);
 

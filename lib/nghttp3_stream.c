@@ -35,6 +35,10 @@
 #include "nghttp3_str.h"
 #include "nghttp3_http.h"
 
+/* NGHTTP3_STREAM_MAX_COPY_THRES is the maximum size of buffer which
+   makes a copy to outq. */
+#define NGHTTP3_STREAM_MAX_COPY_THRES 128
+
 int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
                        uint64_t seq, uint32_t weight, nghttp3_tnode *parent,
                        const nghttp3_stream_callbacks *callbacks,
@@ -505,9 +509,9 @@ int nghttp3_stream_write_headers(nghttp3_stream *stream,
 
   assert(conn);
 
-  return nghttp3_stream_write_header_block(stream, &conn->qenc, conn->tx.qenc,
-                                           NGHTTP3_FRAME_HEADERS, 0, fr->nva,
-                                           fr->nvlen);
+  return nghttp3_stream_write_header_block(
+      stream, &conn->qenc, conn->tx.qenc, &conn->tx.qpack.rbuf,
+      &conn->tx.qpack.ebuf, NGHTTP3_FRAME_HEADERS, 0, fr->nva, fr->nvlen);
 }
 
 int nghttp3_stream_write_push_promise(nghttp3_stream *stream,
@@ -517,43 +521,52 @@ int nghttp3_stream_write_push_promise(nghttp3_stream *stream,
 
   assert(conn);
 
-  return nghttp3_stream_write_header_block(stream, &conn->qenc, conn->tx.qenc,
-                                           NGHTTP3_FRAME_PUSH_PROMISE,
-                                           fr->push_id, fr->nva, fr->nvlen);
+  return nghttp3_stream_write_header_block(
+      stream, &conn->qenc, conn->tx.qenc, &conn->tx.qpack.rbuf,
+      &conn->tx.qpack.ebuf, NGHTTP3_FRAME_PUSH_PROMISE, fr->push_id, fr->nva,
+      fr->nvlen);
 }
 
 int nghttp3_stream_write_header_block(nghttp3_stream *stream,
                                       nghttp3_qpack_encoder *qenc,
                                       nghttp3_stream *qenc_stream,
+                                      nghttp3_buf *rbuf, nghttp3_buf *ebuf,
                                       int64_t frame_type, int64_t push_id,
                                       const nghttp3_nv *nva, size_t nvlen) {
-  nghttp3_buf pbuf, rbuf, ebuf;
+  nghttp3_buf pbuf;
   int rv;
   size_t len;
   nghttp3_buf *chunk;
   nghttp3_typed_buf tbuf;
   nghttp3_frame_hd hd;
   size_t push_idlen = 0;
+  uint8_t raw_pbuf[16];
+  size_t pbuflen, rbuflen, ebuflen;
 
-  nghttp3_buf_init(&pbuf);
-  nghttp3_buf_init(&rbuf);
-  nghttp3_buf_init(&ebuf);
+  nghttp3_buf_wrap_init(&pbuf, raw_pbuf, sizeof(raw_pbuf));
 
-  rv = nghttp3_qpack_encoder_encode(qenc, &pbuf, &rbuf, &ebuf,
+  rv = nghttp3_qpack_encoder_encode(qenc, &pbuf, rbuf, ebuf,
                                     stream->node.nid.id, nva, nvlen);
   if (rv != 0) {
     goto fail;
   }
+
+  pbuflen = nghttp3_buf_len(&pbuf);
+  rbuflen = nghttp3_buf_len(rbuf);
+  ebuflen = nghttp3_buf_len(ebuf);
 
   if (frame_type == NGHTTP3_FRAME_PUSH_PROMISE) {
     push_idlen = nghttp3_put_varint_len(push_id);
   }
 
   hd.type = frame_type;
-  hd.length =
-      (int64_t)(nghttp3_buf_len(&pbuf) + nghttp3_buf_len(&rbuf) + push_idlen);
+  hd.length = (int64_t)(pbuflen + rbuflen + push_idlen);
 
-  len = nghttp3_frame_write_hd_len(&hd) + push_idlen;
+  len = nghttp3_frame_write_hd_len(&hd) + push_idlen + pbuflen;
+
+  if (rbuflen <= NGHTTP3_STREAM_MAX_COPY_THRES) {
+    len += rbuflen;
+  }
 
   rv = nghttp3_stream_ensure_chunk(stream, len);
   if (rv != 0) {
@@ -569,51 +582,71 @@ int nghttp3_stream_write_header_block(nghttp3_stream *stream,
     chunk->last = nghttp3_put_varint(chunk->last, push_id);
   }
 
-  tbuf.buf.last = chunk->last;
-
-  rv = nghttp3_stream_outq_add(stream, &tbuf);
-  if (rv != 0) {
-    goto fail;
-  }
-
-  nghttp3_typed_buf_init(&tbuf, &pbuf, NGHTTP3_BUF_TYPE_PRIVATE);
-  rv = nghttp3_stream_outq_add(stream, &tbuf);
-  if (rv != 0) {
-    goto fail;
-  }
+  chunk->last = nghttp3_cpymem(chunk->last, pbuf.pos, pbuflen);
   nghttp3_buf_init(&pbuf);
 
-  if (nghttp3_buf_len(&rbuf)) {
-    nghttp3_typed_buf_init(&tbuf, &rbuf, NGHTTP3_BUF_TYPE_PRIVATE);
+  if (rbuflen > NGHTTP3_STREAM_MAX_COPY_THRES) {
+    tbuf.buf.last = chunk->last;
+
     rv = nghttp3_stream_outq_add(stream, &tbuf);
     if (rv != 0) {
       goto fail;
     }
-    nghttp3_buf_init(&rbuf);
+
+    nghttp3_typed_buf_init(&tbuf, rbuf, NGHTTP3_BUF_TYPE_PRIVATE);
+    rv = nghttp3_stream_outq_add(stream, &tbuf);
+    if (rv != 0) {
+      goto fail;
+    }
+    nghttp3_buf_init(rbuf);
+  } else if (rbuflen) {
+    chunk->last = nghttp3_cpymem(chunk->last, rbuf->pos, rbuflen);
+    tbuf.buf.last = chunk->last;
+
+    rv = nghttp3_stream_outq_add(stream, &tbuf);
+    if (rv != 0) {
+      goto fail;
+    }
+    nghttp3_buf_reset(rbuf);
   }
 
-  if (nghttp3_buf_len(&ebuf)) {
+  if (ebuflen > NGHTTP3_STREAM_MAX_COPY_THRES) {
     assert(qenc_stream);
 
-    nghttp3_typed_buf_init(&tbuf, &ebuf, NGHTTP3_BUF_TYPE_PRIVATE);
+    nghttp3_typed_buf_init(&tbuf, ebuf, NGHTTP3_BUF_TYPE_PRIVATE);
     rv = nghttp3_stream_outq_add(qenc_stream, &tbuf);
     if (rv != 0) {
-      nghttp3_buf_free(&ebuf, stream->mem);
       return rv;
     }
-    nghttp3_buf_init(&ebuf);
+    nghttp3_buf_init(ebuf);
+  } else if (ebuflen) {
+    assert(qenc_stream);
+
+    rv = nghttp3_stream_ensure_chunk(qenc_stream, ebuflen);
+    if (rv != 0) {
+      goto fail;
+    }
+
+    chunk = nghttp3_stream_get_chunk(qenc_stream);
+    typed_buf_shared_init(&tbuf, chunk);
+
+    chunk->last = nghttp3_cpymem(chunk->last, ebuf->pos, ebuflen);
+    tbuf.buf.last = chunk->last;
+
+    rv = nghttp3_stream_outq_add(qenc_stream, &tbuf);
+    if (rv != 0) {
+      goto fail;
+    }
+    nghttp3_buf_reset(ebuf);
   }
 
   assert(0 == nghttp3_buf_len(&pbuf));
-  assert(0 == nghttp3_buf_len(&rbuf));
-  assert(0 == nghttp3_buf_len(&ebuf));
+  assert(0 == nghttp3_buf_len(rbuf));
+  assert(0 == nghttp3_buf_len(ebuf));
 
   return 0;
 
 fail:
-  nghttp3_buf_free(&ebuf, stream->mem);
-  nghttp3_buf_free(&rbuf, stream->mem);
-  nghttp3_buf_free(&pbuf, stream->mem);
 
   return rv;
 }
