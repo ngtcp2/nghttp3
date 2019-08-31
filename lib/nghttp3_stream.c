@@ -719,10 +719,7 @@ int nghttp3_stream_write_qpack_decoder_stream(nghttp3_stream *stream) {
   chunk = nghttp3_stream_get_chunk(stream);
   typed_buf_shared_init(&tbuf, chunk);
 
-  rv = nghttp3_qpack_decoder_write_decoder(qdec, chunk);
-  if (rv != 0) {
-    return rv;
-  }
+  nghttp3_qpack_decoder_write_decoder(qdec, chunk);
 
   tbuf.buf.last = chunk->last;
 

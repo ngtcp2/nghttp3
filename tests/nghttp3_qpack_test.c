@@ -602,9 +602,7 @@ void test_nghttp3_qpack_decoder_feedback(void) {
 
   CU_ASSERT(2 == dec.written_icnt);
 
-  rv = nghttp3_qpack_decoder_write_decoder(&dec, &dbuf);
-
-  CU_ASSERT(0 == rv);
+  nghttp3_qpack_decoder_write_decoder(&dec, &dbuf);
 
   nread = nghttp3_qpack_encoder_read_decoder(&enc, dbuf.pos,
                                              nghttp3_buf_len(&dbuf));
@@ -621,9 +619,7 @@ void test_nghttp3_qpack_decoder_feedback(void) {
   /* Process stream 0 */
   decode_header_block(&dec, &pbuf1, &rbuf1, 0, mem);
   nghttp3_buf_reset(&dbuf);
-  rv = nghttp3_qpack_decoder_write_decoder(&dec, &dbuf);
-
-  CU_ASSERT(0 == rv);
+  nghttp3_qpack_decoder_write_decoder(&dec, &dbuf);
 
   nread = nghttp3_qpack_encoder_read_decoder(&enc, dbuf.pos,
                                              nghttp3_buf_len(&dbuf));
@@ -648,9 +644,8 @@ void test_nghttp3_qpack_decoder_feedback(void) {
   CU_ASSERT((ssize_t)nghttp3_buf_len(&ebuf) == nread);
 
   nghttp3_buf_reset(&dbuf);
-  rv = nghttp3_qpack_decoder_write_decoder(&dec, &dbuf);
+  nghttp3_qpack_decoder_write_decoder(&dec, &dbuf);
 
-  CU_ASSERT(0 == rv);
   CU_ASSERT(nghttp3_buf_len(&dbuf) > 0);
   CU_ASSERT(3 == dec.written_icnt);
 
@@ -668,9 +663,8 @@ void test_nghttp3_qpack_decoder_feedback(void) {
   CU_ASSERT(0 == rv);
 
   nghttp3_buf_reset(&dbuf);
-  rv = nghttp3_qpack_decoder_write_decoder(&dec, &dbuf);
+  nghttp3_qpack_decoder_write_decoder(&dec, &dbuf);
 
-  CU_ASSERT(0 == rv);
   CU_ASSERT(nghttp3_buf_len(&dbuf) > 0);
 
   nread = nghttp3_qpack_encoder_read_decoder(&enc, dbuf.pos,

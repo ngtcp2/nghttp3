@@ -896,24 +896,19 @@ NGHTTP3_EXTERN ssize_t nghttp3_qpack_decoder_read_request(
  * `nghttp3_qpack_decoder_write_decoder` writes decoder stream into
  * |dbuf|.
  *
- * The buffer pointed by |dbuf| can be empty buffer.  It is fine to
- * pass a buffer initialized by nghttp3_buf_init(buf).  This function
- * allocates memory for these buffers as necessary.  In particular, it
- * frees and expands buffer if the current capacity of buffer is not
- * enough.  If begin field of any buffer is not NULL, it must be
- * allocated by the same memory allocator passed to
- * `nghttp3_qpack_encoder_new()`.
- *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * :enum:`NGHTTP3_ERR_NOMEM`
- *     Out of memory
+ * The caller must ensure that nghttp3_buf_left(dbuf) >=
+ * nghttp3_qpack_decoder_get_decoder_streamlen(decoder).
  */
-NGHTTP3_EXTERN int
+NGHTTP3_EXTERN void
 nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
                                     nghttp3_buf *dbuf);
 
+/**
+ * @function
+ *
+ * `nghttp3_qpack_decoder_get_decoder_streamlen` returns the length of
+ * decoder stream.
+ */
 NGHTTP3_EXTERN size_t
 nghttp3_qpack_decoder_get_decoder_streamlen(nghttp3_qpack_decoder *decoder);
 

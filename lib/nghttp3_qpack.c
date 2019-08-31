@@ -3650,7 +3650,7 @@ nghttp3_qpack_decoder_get_decoder_streamlen(nghttp3_qpack_decoder *decoder) {
   return nghttp3_buf_len(&decoder->dbuf) + len;
 }
 
-int nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
+void nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
                                         nghttp3_buf *dbuf) {
   uint8_t *p;
   size_t n = 0;
@@ -3674,8 +3674,6 @@ int nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
   }
 
   nghttp3_buf_reset(&decoder->dbuf);
-
-  return 0;
 }
 
 int nghttp3_qpack_decoder_cancel_stream(nghttp3_qpack_decoder *decoder,
