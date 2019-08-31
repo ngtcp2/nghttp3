@@ -782,7 +782,6 @@ int nghttp3_stream_ensure_chunk(nghttp3_stream *stream, size_t need) {
   uint8_t *p;
   int rv;
   size_t n = NGHTTP3_STREAM_MIN_CHUNK_SIZE;
-  ;
 
   if (len) {
     chunk = nghttp3_ringbuf_get(chunks, len - 1);
