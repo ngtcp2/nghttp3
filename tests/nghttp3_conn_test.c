@@ -102,15 +102,15 @@ static int end_headers(nghttp3_conn *conn, int64_t stream_id, void *user_data,
   return 0;
 }
 
-static int step_read_data(nghttp3_conn *conn, int64_t stream_id,
-                          const uint8_t **pdata, size_t *pdatalen,
-                          uint32_t *pflags, void *user_data,
-                          void *stream_user_data) {
+static ssize_t step_read_data(nghttp3_conn *conn, int64_t stream_id,
+                              nghttp3_vec *vec, size_t veccnt, uint32_t *pflags,
+                              void *user_data, void *stream_user_data) {
   userdata *ud = user_data;
   size_t n = nghttp3_min(ud->data.left, ud->data.step);
 
   (void)conn;
   (void)stream_id;
+  (void)veccnt;
   (void)stream_user_data;
 
   ud->data.left -= n;
@@ -118,10 +118,10 @@ static int step_read_data(nghttp3_conn *conn, int64_t stream_id,
     *pflags = NGHTTP3_DATA_FLAG_EOF;
   }
 
-  *pdata = nulldata;
-  *pdatalen = n;
+  vec[0].base = nulldata;
+  vec[0].len = n;
 
-  return 0;
+  return 1;
 }
 
 static int cancel_push(nghttp3_conn *conn, int64_t push_id, int64_t stream_id,

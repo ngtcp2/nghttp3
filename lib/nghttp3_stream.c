@@ -660,10 +660,13 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
   nghttp3_buf *chunk;
   nghttp3_read_data_callback read_data = frent->aux.data.dr.read_data;
   nghttp3_conn *conn = stream->conn;
-  const uint8_t *data = NULL;
-  size_t datalen = 0;
+  size_t datalen;
   uint32_t flags = 0;
   nghttp3_frame_hd hd;
+  nghttp3_vec vec[8];
+  nghttp3_vec *v;
+  ssize_t sveccnt;
+  size_t i;
 
   assert(!(stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED));
   assert(read_data);
@@ -671,15 +674,17 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
 
   *peof = 0;
 
-  rv = read_data(conn, stream->node.nid.id, &data, &datalen, &flags,
-                 conn->user_data, stream->user_data);
-  if (rv != 0) {
-    if (rv == NGHTTP3_ERR_WOULDBLOCK) {
+  sveccnt = read_data(conn, stream->node.nid.id, vec, nghttp3_arraylen(vec),
+                      &flags, conn->user_data, stream->user_data);
+  if (sveccnt < 0) {
+    if (sveccnt == NGHTTP3_ERR_WOULDBLOCK) {
       stream->flags |= NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED;
       return 0;
     }
     return NGHTTP3_ERR_CALLBACK_FAILURE;
   }
+
+  datalen = nghttp3_vec_len(vec, (size_t)sveccnt);
 
   assert(datalen || flags & NGHTTP3_DATA_FLAG_EOF);
 
@@ -713,12 +718,18 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
   }
 
   if (datalen) {
-    nghttp3_buf_wrap_init(&buf, (uint8_t *)data, datalen);
-    buf.last = buf.end;
-    nghttp3_typed_buf_init(&tbuf, &buf, NGHTTP3_BUF_TYPE_ALIEN);
-    rv = nghttp3_stream_outq_add(stream, &tbuf);
-    if (rv != 0) {
-      return rv;
+    for (i = 0; i < (size_t)sveccnt; ++i) {
+      v = &vec[i];
+      if (v->len == 0) {
+        continue;
+      }
+      nghttp3_buf_wrap_init(&buf, v->base, v->len);
+      buf.last = buf.end;
+      nghttp3_typed_buf_init(&tbuf, &buf, NGHTTP3_BUF_TYPE_ALIEN);
+      rv = nghttp3_stream_outq_add(stream, &tbuf);
+      if (rv != 0) {
+        return rv;
+      }
     }
   }
 

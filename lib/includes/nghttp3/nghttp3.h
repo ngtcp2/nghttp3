@@ -1490,11 +1490,11 @@ nghttp3_conn_set_max_client_streams_bidi(nghttp3_conn *conn,
  * when the library asks an application to provide stream data for a
  * stream denoted by |stream_id|.
  *
- * The application should store the pointer to data to |*pdata| and
- * the data length to |*pdatalen|.  They are initialized to NULL and 0
- * respectively.  The application must retain data until they are safe
- * to free.  It is notified by :type:`nghttp3_acked_stream_data`
- * callback.
+ * The library provides |vec| of length |veccnt| to the application.
+ * The application should fill data and its length to |vec|.  It has
+ * to return the number of the filled objects.  The application must
+ * retain data until they are safe to free.  It is notified by
+ * :type:`nghttp3_acked_stream_data` callback.
  *
  * If this is the last data to send (or there is no data to send
  * because all data have been sent already), set
@@ -1504,17 +1504,16 @@ nghttp3_conn_set_max_client_streams_bidi(nghttp3_conn *conn,
  * :enum:`NGHTTP3_ERR_WOULDBLOCK`.  When it is ready to provide
  * data, call `nghttp3_conn_resume_stream()`.
  *
- * The callback should return 0 if it succeeds, or
+ * The callback should return the number of objects in |vec| that the
+ * application filled if it succeeds, or
  * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  *
  * TODO Add NGHTTP3_ERR_TEMPORAL_CALLBACK_FAILURE to reset just this
  * stream.
  */
-typedef int (*nghttp3_read_data_callback)(nghttp3_conn *conn, int64_t stream_id,
-                                          const uint8_t **pdata,
-                                          size_t *pdatalen, uint32_t *pflags,
-                                          void *conn_user_data,
-                                          void *stream_user_data);
+typedef ssize_t (*nghttp3_read_data_callback)(
+    nghttp3_conn *conn, int64_t stream_id, nghttp3_vec *vec, size_t veccnt,
+    uint32_t *pflags, void *conn_user_data, void *stream_user_data);
 
 /**
  * @struct
