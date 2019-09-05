@@ -1039,6 +1039,9 @@ typedef int (*nghttp3_stream_close)(nghttp3_conn *conn, int64_t stream_id,
  * |stream_id| is received.  |data| points to the received data and
  * its length is |datalen|.
  *
+ * The application is responsible for increasing flow control credit
+ * by |datalen| bytes.
+ *
  * The implementation of this callback must return 0 if it succeeds.
  * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
  * caller immediately.  Any values other than 0 is treated as
@@ -1054,7 +1057,9 @@ typedef int (*nghttp3_recv_data)(nghttp3_conn *conn, int64_t stream_id,
  * :type:`nghttp3_deferred_consume` is a callback function which is
  * invoked when the library consumed |consumed| bytes for a stream
  * identified by |stream_id|.  This callback is used to notify the
- * consumed bytes for stream blocked by QPACK decoder.
+ * consumed bytes for stream blocked by QPACK decoder.  The
+ * application is responsible for increasing flow control credit by
+ * |consumed| bytes.
  *
  * The implementation of this callback must return 0 if it succeeds.
  * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
