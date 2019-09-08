@@ -39,6 +39,9 @@
    makes a copy to outq. */
 #define NGHTTP3_STREAM_MAX_COPY_THRES 128
 
+/* NGHTTP3_MIN_RBLEN is the minimum length of nghttp3_ringbuf */
+#define NGHTTP3_MIN_RBLEN 4
+
 int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
                        uint64_t seq, uint32_t weight, nghttp3_tnode *parent,
                        const nghttp3_stream_callbacks *callbacks,
@@ -56,22 +59,22 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
       nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_STREAM, stream_id), seq,
       weight, parent, mem);
 
-  rv = nghttp3_ringbuf_init(&stream->frq, 16, sizeof(nghttp3_frame_entry), mem);
+  rv = nghttp3_ringbuf_init(&stream->frq, 0, sizeof(nghttp3_frame_entry), mem);
   if (rv != 0) {
     goto frq_init_fail;
   }
 
-  rv = nghttp3_ringbuf_init(&stream->chunks, 16, sizeof(nghttp3_buf), mem);
+  rv = nghttp3_ringbuf_init(&stream->chunks, 0, sizeof(nghttp3_buf), mem);
   if (rv != 0) {
     goto chunks_init_fail;
   }
 
-  rv = nghttp3_ringbuf_init(&stream->outq, 16, sizeof(nghttp3_typed_buf), mem);
+  rv = nghttp3_ringbuf_init(&stream->outq, 0, sizeof(nghttp3_typed_buf), mem);
   if (rv != 0) {
     goto outq_init_fail;
   }
 
-  rv = nghttp3_ringbuf_init(&stream->inq, 16, sizeof(nghttp3_buf), mem);
+  rv = nghttp3_ringbuf_init(&stream->inq, 0, sizeof(nghttp3_buf), mem);
   if (rv != 0) {
     goto inq_init_fail;
   }
@@ -226,7 +229,8 @@ int nghttp3_stream_frq_add(nghttp3_stream *stream,
   int rv;
 
   if (nghttp3_ringbuf_full(frq)) {
-    rv = nghttp3_ringbuf_reserve(frq, nghttp3_ringbuf_len(frq) * 2);
+    size_t nlen = nghttp3_max(NGHTTP3_MIN_RBLEN, nghttp3_ringbuf_len(frq) * 2);
+    rv = nghttp3_ringbuf_reserve(frq, nlen);
     if (rv != 0) {
       return rv;
     }
@@ -822,7 +826,8 @@ int nghttp3_stream_outq_add(nghttp3_stream *stream,
   }
 
   if (nghttp3_ringbuf_full(outq)) {
-    rv = nghttp3_ringbuf_reserve(outq, len * 2);
+    size_t nlen = nghttp3_max(NGHTTP3_MIN_RBLEN, len * 2);
+    rv = nghttp3_ringbuf_reserve(outq, nlen);
     if (rv != 0) {
       return rv;
     }
@@ -858,7 +863,8 @@ int nghttp3_stream_ensure_chunk(nghttp3_stream *stream, size_t need) {
   }
 
   if (nghttp3_ringbuf_full(chunks)) {
-    rv = nghttp3_ringbuf_reserve(chunks, len * 2);
+    size_t nlen = nghttp3_max(NGHTTP3_MIN_RBLEN, len * 2);
+    rv = nghttp3_ringbuf_reserve(chunks, nlen);
     if (rv != 0) {
       return rv;
     }
@@ -1128,7 +1134,9 @@ int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *data,
 
   for (; datalen;) {
     if (nghttp3_ringbuf_full(inq)) {
-      rv = nghttp3_ringbuf_reserve(inq, nghttp3_ringbuf_len(inq) * 2);
+      size_t nlen =
+          nghttp3_max(NGHTTP3_MIN_RBLEN, nghttp3_ringbuf_len(inq) * 2);
+      rv = nghttp3_ringbuf_reserve(inq, nlen);
       if (rv != 0) {
         return rv;
       }

@@ -32,11 +32,15 @@
 
 int nghttp3_ringbuf_init(nghttp3_ringbuf *rb, size_t nmemb, size_t size,
                          const nghttp3_mem *mem) {
-  assert(1 == __builtin_popcount((unsigned int)nmemb));
+  if (nmemb) {
+    assert(1 == __builtin_popcount((unsigned int)nmemb));
 
-  rb->buf = nghttp3_mem_malloc(mem, nmemb * size);
-  if (rb->buf == NULL) {
-    return NGHTTP3_ERR_NOMEM;
+    rb->buf = nghttp3_mem_malloc(mem, nmemb * size);
+    if (rb->buf == NULL) {
+      return NGHTTP3_ERR_NOMEM;
+    }
+  } else {
+    rb->buf = NULL;
   }
 
   rb->mem = mem;
@@ -103,11 +107,11 @@ int nghttp3_ringbuf_full(nghttp3_ringbuf *rb) { return rb->len == rb->nmemb; }
 int nghttp3_ringbuf_reserve(nghttp3_ringbuf *rb, size_t nmemb) {
   uint8_t *buf;
 
-  assert(1 == __builtin_popcount((unsigned int)nmemb));
-
   if (rb->nmemb >= nmemb) {
     return 0;
   }
+
+  assert(1 == __builtin_popcount((unsigned int)nmemb));
 
   buf = nghttp3_mem_malloc(rb->mem, nmemb * rb->size);
   if (buf == NULL) {
