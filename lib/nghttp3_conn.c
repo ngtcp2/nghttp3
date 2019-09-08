@@ -2827,7 +2827,9 @@ static ssize_t conn_writev_stream(nghttp3_conn *conn, int64_t *pstream_id,
   if (n < 0) {
     return n;
   }
-  if (n == 0) {
+  /* We might just want to write stream fin without sending any stream
+     data. */
+  if (n == 0 && *pfin == 0) {
     return 0;
   }
 
@@ -2842,6 +2844,7 @@ ssize_t nghttp3_conn_writev_stream(nghttp3_conn *conn, int64_t *pstream_id,
   nghttp3_stream *stream;
   int rv;
 
+  *pstream_id = -1;
   *pfin = 0;
 
   if (veccnt == 0) {
@@ -2935,10 +2938,6 @@ int nghttp3_conn_add_write_offset(nghttp3_conn *conn, int64_t stream_id,
   }
 
   stream->unscheduled_nwrite += n;
-  if (nghttp3_stream_is_blocked(stream)) {
-    return 0;
-  }
-
   if (nghttp3_stream_bidi_or_push(stream)) {
     if (nghttp3_stream_require_schedule(stream)) {
       return nghttp3_stream_schedule(stream);

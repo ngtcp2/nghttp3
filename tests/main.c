@@ -103,6 +103,7 @@ int main() {
                    test_nghttp3_conn_recv_push_promise) ||
       !CU_add_test(pSuite, "conn_recv_push_stream",
                    test_nghttp3_conn_recv_push_stream) ||
+      !CU_add_test(pSuite, "conn_just_fin", test_nghttp3_conn_just_fin) ||
       !CU_add_test(pSuite, "tnode_mutation", test_nghttp3_tnode_mutation) ||
       !CU_add_test(pSuite, "tnode_schedule", test_nghttp3_tnode_schedule)) {
     CU_cleanup_registry();

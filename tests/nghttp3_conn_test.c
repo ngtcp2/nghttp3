@@ -38,6 +38,7 @@ static uint8_t nulldata[4096];
 
 typedef struct {
   struct {
+    size_t nblock;
     size_t left;
     size_t step;
   } data;
@@ -116,12 +117,32 @@ static ssize_t step_read_data(nghttp3_conn *conn, int64_t stream_id,
   ud->data.left -= n;
   if (ud->data.left == 0) {
     *pflags = NGHTTP3_DATA_FLAG_EOF;
+
+    if (n == 0) {
+      return 0;
+    }
   }
 
   vec[0].base = nulldata;
   vec[0].len = n;
 
   return 1;
+}
+
+static ssize_t block_then_step_read_data(nghttp3_conn *conn, int64_t stream_id,
+                                         nghttp3_vec *vec, size_t veccnt,
+                                         uint32_t *pflags, void *user_data,
+                                         void *stream_user_data) {
+  userdata *ud = user_data;
+
+  if (ud->data.nblock == 0) {
+    return step_read_data(conn, stream_id, vec, veccnt, pflags, user_data,
+                          stream_user_data);
+  }
+
+  --ud->data.nblock;
+
+  return NGHTTP3_ERR_WOULDBLOCK;
 }
 
 static int cancel_push(nghttp3_conn *conn, int64_t push_id, int64_t stream_id,
@@ -3188,4 +3209,114 @@ void test_nghttp3_conn_recv_push_stream(void) {
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
+}
+
+void test_nghttp3_conn_just_fin(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  nghttp3_conn_callbacks callbacks;
+  nghttp3_conn_settings settings;
+  nghttp3_vec vec[256];
+  ssize_t sveccnt;
+  int rv;
+  int64_t stream_id;
+  const nghttp3_nv nva[] = {
+      MAKE_NV(":path", "/"),
+      MAKE_NV(":authority", "example.com"),
+      MAKE_NV(":scheme", "https"),
+      MAKE_NV(":method", "GET"),
+  };
+  nghttp3_data_reader dr;
+  int fin;
+  userdata ud;
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  nghttp3_conn_settings_default(&settings);
+  memset(&ud, 0, sizeof(ud));
+
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
+
+  nghttp3_conn_bind_control_stream(conn, 2);
+  nghttp3_conn_bind_qpack_streams(conn, 6, 10);
+
+  /* Write control streams */
+  for (;;) {
+    sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                         nghttp3_arraylen(vec));
+
+    CU_ASSERT(sveccnt >= 0);
+
+    if (sveccnt == 0) {
+      break;
+    }
+
+    rv = nghttp3_conn_add_write_offset(conn, stream_id,
+                                       nghttp3_vec_len(vec, (size_t)sveccnt));
+
+    CU_ASSERT(0 == rv);
+  }
+
+  /* No DATA frame header */
+  dr.read_data = step_read_data;
+  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr,
+                                   NULL);
+
+  CU_ASSERT(0 == rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(1 == sveccnt);
+  CU_ASSERT(0 == stream_id);
+  CU_ASSERT(1 == fin);
+
+  rv = nghttp3_conn_add_write_offset(conn, stream_id,
+                                     nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  CU_ASSERT(0 == rv);
+
+  /* Just fin */
+  ud.data.nblock = 1;
+  dr.read_data = block_then_step_read_data;
+
+  rv = nghttp3_conn_submit_request(conn, 4, nva, nghttp3_arraylen(nva), &dr,
+                                   NULL);
+
+  CU_ASSERT(0 == rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(1 == sveccnt);
+  CU_ASSERT(4 == stream_id);
+  CU_ASSERT(0 == fin);
+
+  rv = nghttp3_conn_add_write_offset(conn, stream_id,
+                                     nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  CU_ASSERT(0 == rv);
+
+  /* Resume stream 4 because it was blocked */
+  nghttp3_conn_resume_stream(conn, 4);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(0 == sveccnt);
+  CU_ASSERT(4 == stream_id);
+  CU_ASSERT(1 == fin);
+
+  rv = nghttp3_conn_add_write_offset(conn, stream_id,
+                                     nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  CU_ASSERT(0 == rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(0 == sveccnt);
+  CU_ASSERT(-1 == stream_id);
+  CU_ASSERT(0 == fin);
+
+  nghttp3_conn_del(conn);
 }

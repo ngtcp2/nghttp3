@@ -692,6 +692,24 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
     *peof = 1;
     if (!(flags & NGHTTP3_DATA_FLAG_NO_END_STREAM)) {
       stream->flags |= NGHTTP3_STREAM_FLAG_WRITE_END_STREAM;
+      if (datalen == 0) {
+        if (nghttp3_stream_outq_write_done(stream)) {
+          /* If this is the last data and its is 0 length, we don't
+             need send DATA frame.  We rely on the non-emptiness of
+             outq to schedule stream, so add empty tbuf to outq to
+             just send fin. */
+          nghttp3_buf_init(&buf);
+          nghttp3_typed_buf_init(&tbuf, &buf, NGHTTP3_BUF_TYPE_PRIVATE);
+          return nghttp3_stream_outq_add(stream, &tbuf);
+        }
+        return 0;
+      }
+    }
+
+    if (datalen == 0) {
+      /* We are going to send more frames, but no DATA frame this
+         time. */
+      return 0;
     }
   }
 
@@ -867,9 +885,10 @@ int nghttp3_stream_is_blocked(nghttp3_stream *stream) {
 }
 
 int nghttp3_stream_is_active(nghttp3_stream *stream) {
-  return (!nghttp3_stream_outq_write_done(stream) ||
-          nghttp3_ringbuf_len(&stream->frq)) &&
-         !nghttp3_stream_is_blocked(stream);
+  return (!nghttp3_stream_outq_write_done(stream) &&
+          !(stream->flags & NGHTTP3_STREAM_FLAG_FC_BLOCKED)) ||
+         (nghttp3_ringbuf_len(&stream->frq) &&
+          !(stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED));
 }
 
 int nghttp3_stream_require_schedule(nghttp3_stream *stream) {
