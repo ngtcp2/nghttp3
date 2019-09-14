@@ -922,8 +922,7 @@ void test_nghttp3_conn_recv_control_priority(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_HTTP_MALFORMED_FRAME - NGHTTP3_FRAME_PRIORITY ==
-            sconsumed);
+  CU_ASSERT(NGHTTP3_ERR_HTTP_FRAME_ERROR == sconsumed);
 
   nghttp3_conn_del(conn);
 
@@ -1623,7 +1622,7 @@ void test_nghttp3_conn_http_non_final_response(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME == sconsumed);
+  CU_ASSERT(NGHTTP3_ERR_HTTP_FRAME_UNEXPECTED == sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1828,7 +1827,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME == sconsumed);
+  CU_ASSERT(NGHTTP3_ERR_HTTP_FRAME_UNEXPECTED == sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1860,7 +1859,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME == sconsumed);
+  CU_ASSERT(NGHTTP3_ERR_HTTP_FRAME_UNEXPECTED == sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1937,7 +1936,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME == sconsumed);
+  CU_ASSERT(NGHTTP3_ERR_HTTP_FRAME_UNEXPECTED == sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1964,7 +1963,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME == sconsumed);
+  CU_ASSERT(NGHTTP3_ERR_HTTP_FRAME_UNEXPECTED == sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1992,7 +1991,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME == sconsumed);
+  CU_ASSERT(NGHTTP3_ERR_HTTP_FRAME_UNEXPECTED == sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -3044,8 +3043,7 @@ void test_nghttp3_conn_recv_push_promise(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_HTTP_MALFORMED_FRAME - NGHTTP3_FRAME_PUSH_PROMISE ==
-            sconsumed);
+  CU_ASSERT(NGHTTP3_ERR_HTTP_FRAME_ERROR == sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -3068,8 +3066,7 @@ void test_nghttp3_conn_recv_push_promise(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_HTTP_MALFORMED_FRAME - NGHTTP3_FRAME_PUSH_PROMISE ==
-            sconsumed);
+  CU_ASSERT(NGHTTP3_ERR_HTTP_FRAME_ERROR == sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);

@@ -31,6 +31,4 @@
 
 #include <nghttp3/nghttp3.h>
 
-int nghttp3_err_malformed_frame(int64_t type);
-
 #endif /* NGHTTP3_ERR_H */

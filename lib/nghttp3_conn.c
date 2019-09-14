@@ -682,7 +682,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       assert(end - p > 0);
       nread = nghttp3_read_varint(rvint, p, (size_t)(end - p), /* fin = */ 0);
       if (nread < 0) {
-        return nghttp3_err_malformed_frame(rstate->fr.hd.type);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
 
       p += nread;
@@ -700,22 +700,22 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
         }
         conn->flags |= NGHTTP3_CONN_FLAG_SETTINGS_RECVED;
       } else if (rstate->fr.hd.type == NGHTTP3_FRAME_SETTINGS) {
-        return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+        return NGHTTP3_ERR_HTTP_FRAME_UNEXPECTED;
       }
 
       switch (rstate->fr.hd.type) {
       case NGHTTP3_FRAME_PRIORITY:
         if (!conn->server) {
-          return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+          return NGHTTP3_ERR_HTTP_FRAME_UNEXPECTED;
         }
         if (rstate->left < 3) {
-          return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+          return NGHTTP3_ERR_HTTP_FRAME_ERROR;
         }
         rstate->state = NGHTTP3_CTRL_STREAM_STATE_PRIORITY;
         break;
       case NGHTTP3_FRAME_CANCEL_PUSH:
         if (rstate->left == 0) {
-          return nghttp3_err_malformed_frame(NGHTTP3_FRAME_CANCEL_PUSH);
+          return NGHTTP3_ERR_HTTP_FRAME_ERROR;
         }
         rstate->state = NGHTTP3_CTRL_STREAM_STATE_CANCEL_PUSH;
         break;
@@ -729,16 +729,16 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
         break;
       case NGHTTP3_FRAME_GOAWAY:
         if (rstate->left == 0) {
-          return nghttp3_err_malformed_frame(NGHTTP3_FRAME_GOAWAY);
+          return NGHTTP3_ERR_HTTP_FRAME_ERROR;
         }
         rstate->state = NGHTTP3_CTRL_STREAM_STATE_GOAWAY;
         break;
       case NGHTTP3_FRAME_MAX_PUSH_ID:
         if (!conn->server) {
-          return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+          return NGHTTP3_ERR_HTTP_FRAME_UNEXPECTED;
         }
         if (rstate->left == 0) {
-          return nghttp3_err_malformed_frame(NGHTTP3_FRAME_MAX_PUSH_ID);
+          return NGHTTP3_ERR_HTTP_FRAME_ERROR;
         }
         rstate->state = NGHTTP3_CTRL_STREAM_STATE_MAX_PUSH_ID;
         break;
@@ -746,7 +746,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       case NGHTTP3_FRAME_HEADERS:
       case NGHTTP3_FRAME_PUSH_PROMISE:
       case NGHTTP3_FRAME_DUPLICATE_PUSH:
-        return NGHTTP3_ERR_HTTP_WRONG_STREAM;
+        return NGHTTP3_ERR_HTTP_FRAME_UNEXPECTED;
       default:
         /* TODO Handle reserved frame type */
         busy = 1;
@@ -761,7 +761,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       case NGHTTP3_PRI_ELEM_TYPE_PLACEHOLDER:
         break;
       default:
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
       rstate->fr.priority.pt = nghttp3_frame_pri_elem_type(*p);
       rstate->fr.priority.dt = nghttp3_frame_elem_dep_type(*p);
@@ -781,7 +781,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       nread = nghttp3_read_varint(rvint, p, (size_t)(end - p),
                                   (int64_t)len == rstate->left);
       if (nread < 0) {
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
 
       p += nread;
@@ -796,14 +796,14 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
 
       if (rstate->fr.priority.dt == NGHTTP3_ELEM_DEP_TYPE_ROOT) {
         if (rstate->left != 1) {
-          return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+          return NGHTTP3_ERR_HTTP_FRAME_ERROR;
         }
         rstate->state = NGHTTP3_CTRL_STREAM_STATE_PRIORITY_WEIGHT;
         break;
       }
 
       if (rstate->left < 2) {
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
 
       rstate->state = NGHTTP3_CTRL_STREAM_STATE_PRIORITY_ELEM_DEP_ID;
@@ -817,7 +817,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       nread = nghttp3_read_varint(rvint, p, (size_t)(end - p),
                                   (int64_t)len == rstate->left);
       if (nread < 0) {
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
 
       p += nread;
@@ -831,7 +831,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       nghttp3_varint_read_state_reset(rvint);
 
       if (rstate->left != 1) {
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
 
       rstate->state = NGHTTP3_CTRL_STREAM_STATE_PRIORITY_WEIGHT;
@@ -860,7 +860,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       assert(len > 0);
       nread = nghttp3_read_varint(rvint, p, len, frame_fin(rstate, len));
       if (nread < 0) {
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_CANCEL_PUSH);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
 
       p += nread;
@@ -894,7 +894,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
         assert(len > 0);
         nread = nghttp3_read_varint(rvint, p, len, frame_fin(rstate, len));
         if (nread < 0) {
-          return nghttp3_err_malformed_frame(NGHTTP3_FRAME_SETTINGS);
+          return NGHTTP3_ERR_HTTP_FRAME_ERROR;
         }
 
         p += nread;
@@ -909,7 +909,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
 
         /* Read Value */
         if (rstate->left == 0) {
-          return nghttp3_err_malformed_frame(NGHTTP3_FRAME_SETTINGS);
+          return NGHTTP3_ERR_HTTP_FRAME_ERROR;
         }
 
         len -= (size_t)nread;
@@ -920,7 +920,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
 
         nread = nghttp3_read_varint(rvint, p, len, frame_fin(rstate, len));
         if (nread < 0) {
-          return nghttp3_err_malformed_frame(NGHTTP3_FRAME_SETTINGS);
+          return NGHTTP3_ERR_HTTP_FRAME_ERROR;
         }
 
         p += nread;
@@ -945,7 +945,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       assert(len > 0);
       nread = nghttp3_read_varint(rvint, p, len, frame_fin(rstate, len));
       if (nread < 0) {
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_SETTINGS);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
 
       p += nread;
@@ -958,7 +958,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       nghttp3_varint_read_state_reset(rvint);
 
       if (rstate->left == 0) {
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_SETTINGS);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
 
       rstate->state = NGHTTP3_CTRL_STREAM_STATE_SETTINGS_VALUE;
@@ -972,7 +972,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       assert(len > 0);
       nread = nghttp3_read_varint(rvint, p, len, frame_fin(rstate, len));
       if (nread < 0) {
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_SETTINGS);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
 
       p += nread;
@@ -1006,7 +1006,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       assert(len > 0);
       nread = nghttp3_read_varint(rvint, p, len, frame_fin(rstate, len));
       if (nread < 0) {
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_MAX_PUSH_ID);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
 
       p += nread;
@@ -1017,7 +1017,7 @@ ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
       }
 
       if (conn->local.uni.max_pushes > (uint64_t)rvint->acc) {
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_MAX_PUSH_ID);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
 
       conn->local.uni.max_pushes = (uint64_t)rvint->acc;
@@ -1150,7 +1150,7 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, size_t *pnproc,
       assert(end - p > 0);
       nread = nghttp3_read_varint(rvint, p, (size_t)(end - p), fin);
       if (nread < 0) {
-        return nghttp3_err_malformed_frame(rstate->fr.hd.type);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
 
       p += nread;
@@ -1225,7 +1225,7 @@ ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, size_t *pnproc,
       case NGHTTP3_FRAME_SETTINGS:
       case NGHTTP3_FRAME_GOAWAY:
       case NGHTTP3_FRAME_MAX_PUSH_ID:
-        return NGHTTP3_ERR_HTTP_WRONG_STREAM;
+        return NGHTTP3_ERR_HTTP_FRAME_UNEXPECTED;
       default:
         /* TODO Handle reserved frame type */
         busy = 1;
@@ -1342,7 +1342,7 @@ almost_done:
     case NGHTTP3_PUSH_STREAM_STATE_IGN_REST:
       break;
     default:
-      return nghttp3_err_malformed_frame(rstate->fr.hd.type);
+      return NGHTTP3_ERR_HTTP_FRAME_ERROR;
     }
   }
 
@@ -1553,7 +1553,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       assert(end - p > 0);
       nread = nghttp3_read_varint(rvint, p, (size_t)(end - p), fin);
       if (nread < 0) {
-        return nghttp3_err_malformed_frame(rstate->fr.hd.type);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
 
       p += nread;
@@ -1627,11 +1627,11 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
         break;
       case NGHTTP3_FRAME_PUSH_PROMISE:
         if (conn->server) {
-          return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+          return NGHTTP3_ERR_HTTP_FRAME_UNEXPECTED;
         }
 
         if (rstate->left == 0) {
-          return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PUSH_PROMISE);
+          return NGHTTP3_ERR_HTTP_FRAME_ERROR;
         }
 
         /* No stream->rx.hstate change with PUSH_PROMISE */
@@ -1640,11 +1640,11 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
         break;
       case NGHTTP3_FRAME_DUPLICATE_PUSH:
         if (conn->server) {
-          return NGHTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+          return NGHTTP3_ERR_HTTP_FRAME_UNEXPECTED;
         }
 
         if (rstate->left == 0) {
-          return nghttp3_err_malformed_frame(NGHTTP3_FRAME_DUPLICATE_PUSH);
+          return NGHTTP3_ERR_HTTP_FRAME_ERROR;
         }
         rstate->state = NGHTTP3_REQ_STREAM_STATE_DUPLICATE_PUSH;
         break;
@@ -1653,7 +1653,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       case NGHTTP3_FRAME_GOAWAY:
       case NGHTTP3_FRAME_MAX_PUSH_ID:
       case NGHTTP3_FRAME_PRIORITY:
-        return NGHTTP3_ERR_HTTP_WRONG_STREAM;
+        return NGHTTP3_ERR_HTTP_FRAME_UNEXPECTED;
       default:
         /* TODO Handle reserved frame type */
         busy = 1;
@@ -1685,7 +1685,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       nread = nghttp3_read_varint(rvint, p, (size_t)(end - p),
                                   (int64_t)len == rstate->left);
       if (nread < 0) {
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PUSH_PROMISE);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
 
       p += nread;
@@ -1699,7 +1699,7 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       nghttp3_varint_read_state_reset(rvint);
 
       if (rstate->left == 0) {
-        return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PUSH_PROMISE);
+        return NGHTTP3_ERR_HTTP_FRAME_ERROR;
       }
 
       rv = nghttp3_conn_on_push_promise_push_id(
@@ -1895,7 +1895,7 @@ almost_done:
       }
       break;
     default:
-      return nghttp3_err_malformed_frame(rstate->fr.hd.type);
+      return NGHTTP3_ERR_HTTP_FRAME_ERROR;
     }
   }
 
@@ -1940,7 +1940,7 @@ static int conn_ensure_dependency(nghttp3_conn *conn,
   switch (dep_nid->type) {
   case NGHTTP3_NODE_ID_TYPE_STREAM:
     if (!nghttp3_client_stream_bidi(dep_nid->id)) {
-      return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+      return NGHTTP3_ERR_HTTP_FRAME_ERROR;
     }
     if (nghttp3_ord_stream_id(dep_nid->id) >
         conn->remote.bidi.max_client_streams) {
@@ -2056,7 +2056,7 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
   switch (nid.type) {
   case NGHTTP3_NODE_ID_TYPE_STREAM:
     if (!nghttp3_client_stream_bidi(nid.id)) {
-      return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+      return NGHTTP3_ERR_HTTP_FRAME_ERROR;
     }
     if (nghttp3_ord_stream_id(nid.id) > conn->remote.bidi.max_client_streams) {
       return NGHTTP3_ERR_HTTP_ID_ERROR;
@@ -2095,7 +2095,7 @@ int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
   }
 
   if (nghttp3_node_id_eq(&nid, &dep_nid)) {
-    return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PRIORITY);
+    return NGHTTP3_ERR_HTTP_FRAME_ERROR;
   }
 
   if (tnode && tnode->weight == fr->weight &&
@@ -2190,7 +2190,7 @@ int nghttp3_conn_on_push_promise_push_id(nghttp3_conn *conn, int64_t push_id,
   nghttp3_push_promise *pp;
 
   if (conn->remote.uni.max_pushes <= (uint64_t)push_id) {
-    return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PUSH_PROMISE);
+    return NGHTTP3_ERR_HTTP_FRAME_ERROR;
   }
 
   pp = nghttp3_conn_find_push_promise(conn, push_id);
@@ -2203,7 +2203,7 @@ int nghttp3_conn_on_push_promise_push_id(nghttp3_conn *conn, int64_t push_id,
       /* We will call begin_push_promise callback even if push is
          cancelled */
     } else {
-      return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PUSH_PROMISE);
+      return NGHTTP3_ERR_HTTP_FRAME_ERROR;
     }
 
     if (!(pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED) &&
@@ -2212,7 +2212,7 @@ int nghttp3_conn_on_push_promise_push_id(nghttp3_conn *conn, int64_t push_id,
       nghttp3_tnode_insert(&pp->node, &stream->node);
     }
   } else if (nghttp3_gaptr_is_pushed(push_idtr, (uint64_t)push_id, 1)) {
-    return nghttp3_err_malformed_frame(NGHTTP3_FRAME_PUSH_PROMISE);
+    return NGHTTP3_ERR_HTTP_FRAME_ERROR;
   } else {
     rv = nghttp3_gaptr_push(push_idtr, (uint64_t)push_id, 1);
     if (rv != 0) {
