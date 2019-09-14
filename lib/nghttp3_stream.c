@@ -259,12 +259,6 @@ int nghttp3_stream_fill_outq(nghttp3_stream *stream) {
         return rv;
       }
       break;
-    case NGHTTP3_FRAME_PRIORITY:
-      rv = nghttp3_stream_write_priority(stream, frent);
-      if (rv != 0) {
-        return rv;
-      }
-      break;
     case NGHTTP3_FRAME_HEADERS:
       rv = nghttp3_stream_write_headers(stream, frent);
       if (rv != 0) {
@@ -390,11 +384,6 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
     iv[fr.settings.niv].value = local_settings->max_header_list_size;
     ++fr.settings.niv;
   }
-  if (local_settings->num_placeholders) {
-    iv[fr.settings.niv].id = NGHTTP3_SETTINGS_ID_NUM_PLACEHOLDERS;
-    iv[fr.settings.niv].value = local_settings->num_placeholders;
-    ++fr.settings.niv;
-  }
   if (local_settings->qpack_max_table_capacity) {
     iv[fr.settings.niv].id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY;
     iv[fr.settings.niv].value = local_settings->qpack_max_table_capacity;
@@ -417,31 +406,6 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
   typed_buf_shared_init(&tbuf, chunk);
 
   chunk->last = nghttp3_frame_write_settings(chunk->last, &fr.settings);
-
-  tbuf.buf.last = chunk->last;
-
-  return nghttp3_stream_outq_add(stream, &tbuf);
-}
-
-int nghttp3_stream_write_priority(nghttp3_stream *stream,
-                                  nghttp3_frame_entry *frent) {
-  nghttp3_frame_priority *fr = &frent->fr.priority;
-  size_t len;
-  int rv;
-  nghttp3_buf *chunk;
-  nghttp3_typed_buf tbuf;
-
-  len = nghttp3_frame_write_priority_len(&fr->hd.length, fr);
-
-  rv = nghttp3_stream_ensure_chunk(stream, len);
-  if (rv != 0) {
-    return rv;
-  }
-
-  chunk = nghttp3_stream_get_chunk(stream);
-  typed_buf_shared_init(&tbuf, chunk);
-
-  chunk->last = nghttp3_frame_write_priority(chunk->last, fr);
 
   tbuf.buf.last = chunk->last;
 

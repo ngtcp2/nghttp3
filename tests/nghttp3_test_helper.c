@@ -36,10 +36,6 @@ void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr) {
     nghttp3_frame_write_settings_len(&fr->hd.length, &fr->settings);
     dest->last = nghttp3_frame_write_settings(dest->last, &fr->settings);
     break;
-  case NGHTTP3_FRAME_PRIORITY:
-    nghttp3_frame_write_priority_len(&fr->hd.length, &fr->priority);
-    dest->last = nghttp3_frame_write_priority(dest->last, &fr->priority);
-    break;
   case NGHTTP3_FRAME_CANCEL_PUSH:
     nghttp3_frame_write_cancel_push_len(&fr->hd.length, &fr->cancel_push);
     dest->last = nghttp3_frame_write_cancel_push(dest->last, &fr->cancel_push);

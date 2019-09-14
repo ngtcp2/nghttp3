@@ -206,9 +206,6 @@ ssize_t nghttp3_conn_read_qpack_encoder(nghttp3_conn *conn, const uint8_t *src,
 ssize_t nghttp3_conn_read_qpack_decoder(nghttp3_conn *conn, const uint8_t *src,
                                         size_t srclen);
 
-int nghttp3_conn_on_control_priority(nghttp3_conn *conn,
-                                     const nghttp3_frame_priority *fr);
-
 int nghttp3_conn_on_push_promise_push_id(nghttp3_conn *conn, int64_t push_id,
                                          nghttp3_stream *stream);
 

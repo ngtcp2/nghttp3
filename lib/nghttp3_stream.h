@@ -56,10 +56,6 @@ typedef enum {
 typedef enum {
   NGHTTP3_CTRL_STREAM_STATE_FRAME_TYPE,
   NGHTTP3_CTRL_STREAM_STATE_FRAME_LENGTH,
-  NGHTTP3_CTRL_STREAM_STATE_PRIORITY,
-  NGHTTP3_CTRL_STREAM_STATE_PRIORITY_PRI_ELEM_ID,
-  NGHTTP3_CTRL_STREAM_STATE_PRIORITY_ELEM_DEP_ID,
-  NGHTTP3_CTRL_STREAM_STATE_PRIORITY_WEIGHT,
   NGHTTP3_CTRL_STREAM_STATE_CANCEL_PUSH,
   NGHTTP3_CTRL_STREAM_STATE_SETTINGS,
   NGHTTP3_CTRL_STREAM_STATE_GOAWAY,
@@ -128,10 +124,6 @@ typedef enum {
      blocked because the corresponding PUSH_PROMISE has not been
      received yet. */
   NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED = 0x0080,
-  /* NGHTTP3_STREAM_FLAG_CTRL_PRIORITY_APPLIED indicates that stream
-     has been prioritized by PRIORITY frame received in control
-     stream. */
-  NGHTTP3_STREAM_FLAG_CTRL_PRIORITY_APPLIED = 0x0100,
   /* NGHTTP3_STREAM_FLAG_RESET indicates that stream is reset. */
   NGHTTP3_STREAM_FLAG_RESET = 0x0200,
 } nghttp3_stream_flag;
@@ -140,8 +132,6 @@ typedef enum {
   NGHTTP3_HTTP_STATE_NONE,
   NGHTTP3_HTTP_STATE_REQ_INITIAL,
   NGHTTP3_HTTP_STATE_REQ_BEGIN,
-  NGHTTP3_HTTP_STATE_REQ_PRIORITY_BEGIN,
-  NGHTTP3_HTTP_STATE_REQ_PRIORITY_END,
   NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN,
   NGHTTP3_HTTP_STATE_REQ_HEADERS_END,
   NGHTTP3_HTTP_STATE_REQ_DATA_BEGIN,
@@ -326,9 +316,6 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
                               nghttp3_frame_entry *frent);
 
 int nghttp3_stream_write_settings(nghttp3_stream *stream,
-                                  nghttp3_frame_entry *frent);
-
-int nghttp3_stream_write_priority(nghttp3_stream *stream,
                                   nghttp3_frame_entry *frent);
 
 int nghttp3_stream_write_cancel_push(nghttp3_stream *stream,

@@ -1183,7 +1183,6 @@ typedef struct {
 
 typedef struct {
   uint64_t max_header_list_size;
-  uint64_t num_placeholders;
   uint64_t max_pushes;
   uint64_t qpack_max_table_capacity;
   uint64_t qpack_blocked_streams;
@@ -1244,7 +1243,6 @@ NGHTTP3_EXTERN int nghttp3_conn_bind_qpack_streams(nghttp3_conn *conn,
 typedef enum {
   NGHTTP3_FRAME_DATA = 0x00,
   NGHTTP3_FRAME_HEADERS = 0x01,
-  NGHTTP3_FRAME_PRIORITY = 0x02,
   NGHTTP3_FRAME_CANCEL_PUSH = 0x03,
   NGHTTP3_FRAME_SETTINGS = 0x04,
   NGHTTP3_FRAME_PUSH_PROMISE = 0x05,
@@ -1268,40 +1266,14 @@ typedef struct {
   size_t nvlen;
 } nghttp3_frame_headers;
 
-typedef enum {
-  NGHTTP3_PRI_ELEM_TYPE_REQUEST = 0x00,
-  NGHTTP3_PRI_ELEM_TYPE_PUSH = 0x01,
-  NGHTTP3_PRI_ELEM_TYPE_PLACEHOLDER = 0x02
-} nghttp3_pri_elem_type;
-
-typedef enum {
-  NGHTTP3_ELEM_DEP_TYPE_REQUEST = 0x00,
-  NGHTTP3_ELEM_DEP_TYPE_PUSH = 0x01,
-  NGHTTP3_ELEM_DEP_TYPE_PLACEHOLDER = 0x02,
-  NGHTTP3_ELEM_DEP_TYPE_ROOT = 0x03
-} nghttp3_elem_dep_type;
-
-typedef struct {
-  nghttp3_frame_hd hd;
-  nghttp3_pri_elem_type pt;
-  nghttp3_elem_dep_type dt;
-  int64_t pri_elem_id;
-  int64_t elem_dep_id;
-  uint32_t weight;
-  uint8_t exclusive;
-} nghttp3_frame_priority;
-
 typedef struct {
   nghttp3_frame_hd hd;
   int64_t push_id;
 } nghttp3_frame_cancel_push;
 
-typedef enum {
-  NGHTTP3_SETTINGS_ID_MAX_HEADER_LIST_SIZE = 0x06,
-  NGHTTP3_SETTINGS_ID_NUM_PLACEHOLDERS = 0x09,
-  NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY = 0x01,
-  NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS = 0x07,
-} nghttp3_settings_id;
+#define NGHTTP3_SETTINGS_ID_MAX_HEADER_LIST_SIZE 0x06
+#define NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY 0x01
+#define NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS 0x07
 
 typedef struct {
   uint64_t id;
@@ -1340,7 +1312,6 @@ typedef union {
   nghttp3_frame_hd hd;
   nghttp3_frame_data data;
   nghttp3_frame_headers headers;
-  nghttp3_frame_priority priority;
   nghttp3_frame_cancel_push cancel_push;
   nghttp3_frame_settings settings;
   nghttp3_frame_push_promise push_promise;
@@ -1634,43 +1605,12 @@ NGHTTP3_EXTERN int nghttp3_conn_cancel_push(nghttp3_conn *conn,
 /**
  * @function
  *
- * `nghttp3_conn_submit_priority` submits priority change to the
- * connection |conn|.  |pt| specifies the type of ID |pri_elem_id|.
- * |dt| specifies the type of ID |elem_dep_id|.  |weight| must be [1,
- * 256], inclusive.  function can be called with client |conn|.  This
- * function makes node identified by |pri_elem_id| depend on another
- * node identified by |elem_dep_id|.  It is an error to attempt to
- * make a dependency to itself.  If |exclusive| is nonzero, this makes
- * exclusive dependency.
- *
- * Before calling this function, control stream must be bound to a
- * stream ID using `nghttp3_conn_bind_control_stream()`.
- */
-NGHTTP3_EXTERN int nghttp3_conn_submit_priority(nghttp3_conn *conn,
-                                                nghttp3_pri_elem_type pt,
-                                                int64_t pri_elem_id,
-                                                nghttp3_elem_dep_type dt,
-                                                int64_t elem_dep_id,
-                                                uint32_t weight, int exclusive);
-
-/**
- * @function
- *
  * `nghttp3_conn_set_stream_user_data` sets |stream_user_data| to the
  * stream identified by |stream_id|.
  */
 NGHTTP3_EXTERN int nghttp3_conn_set_stream_user_data(nghttp3_conn *conn,
                                                      int64_t stream_id,
                                                      void *stream_user_data);
-
-/**
- * @function
- *
- * `nghttp3_conn_get_num_placeholders` returns the number of
- * placeholders that remote endpoint permits.
- */
-NGHTTP3_EXTERN uint64_t
-nghttp3_conn_get_remote_num_placeholders(nghttp3_conn *conn);
 
 /**
  * @function

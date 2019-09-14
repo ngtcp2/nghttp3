@@ -70,41 +70,6 @@ size_t nghttp3_frame_write_settings_len(int64_t *ppayloadlen,
          nghttp3_put_varint_len((int64_t)payloadlen) + payloadlen;
 }
 
-uint8_t *nghttp3_frame_write_priority(uint8_t *p,
-                                      const nghttp3_frame_priority *fr) {
-  p = nghttp3_frame_write_hd(p, &fr->hd);
-
-  *p++ = (uint8_t)((fr->pt << 6) | (fr->dt << 4) |
-                   (uint8_t)((fr->exclusive & 0x1) << 3));
-  p = nghttp3_put_varint(p, fr->pri_elem_id);
-  if (fr->dt != NGHTTP3_ELEM_DEP_TYPE_ROOT) {
-    p = nghttp3_put_varint(p, fr->elem_dep_id);
-  }
-  *p++ = (uint8_t)(fr->weight - 1);
-
-  return p;
-}
-
-size_t nghttp3_frame_write_priority_len(int64_t *ppayloadlen,
-                                        const nghttp3_frame_priority *fr) {
-  size_t payloadlen = 2 + nghttp3_put_varint_len(fr->pri_elem_id);
-
-  switch (fr->dt) {
-  case NGHTTP3_ELEM_DEP_TYPE_REQUEST:
-  case NGHTTP3_ELEM_DEP_TYPE_PUSH:
-  case NGHTTP3_ELEM_DEP_TYPE_PLACEHOLDER:
-    payloadlen += nghttp3_put_varint_len(fr->elem_dep_id);
-    break;
-  case NGHTTP3_ELEM_DEP_TYPE_ROOT:
-    break;
-  }
-
-  *ppayloadlen = (int64_t)payloadlen;
-
-  return nghttp3_put_varint_len(NGHTTP3_FRAME_PRIORITY) +
-         nghttp3_put_varint_len((int64_t)payloadlen) + payloadlen;
-}
-
 uint8_t *nghttp3_frame_write_cancel_push(uint8_t *p,
                                          const nghttp3_frame_cancel_push *fr) {
   p = nghttp3_frame_write_hd(p, &fr->hd);
@@ -233,11 +198,3 @@ void nghttp3_frame_push_promise_free(nghttp3_frame_push_promise *fr,
 
   nghttp3_nva_del(fr->nva, mem);
 }
-
-nghttp3_pri_elem_type nghttp3_frame_pri_elem_type(uint8_t c) { return c >> 6; }
-
-nghttp3_elem_dep_type nghttp3_frame_elem_dep_type(uint8_t c) {
-  return (c >> 4) & 0x3;
-}
-
-uint8_t nghttp3_frame_pri_exclusive(uint8_t c) { return (c & 0x8) != 0; }

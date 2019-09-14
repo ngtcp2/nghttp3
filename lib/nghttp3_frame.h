@@ -66,23 +66,6 @@ size_t nghttp3_frame_write_settings_len(int64_t *pppayloadlen,
                                         const nghttp3_frame_settings *fr);
 
 /*
- * nghttp3_frame_write_priority writes PRIORITY frame |fr| to |dest|.
- * This function assumes that |dest| has enough space to write |fr|.
- *
- * This function returns |dest| plus the number of bytes written.
- */
-uint8_t *nghttp3_frame_write_priority(uint8_t *dest,
-                                      const nghttp3_frame_priority *fr);
-
-/*
- * nghttp3_frame_write_priority_len returns the number of bytes
- * required to write |fr|.  fr->hd.length is ignored.  This function
- * stores payload length in |*ppayloadlen|.
- */
-size_t nghttp3_frame_write_priority_len(int64_t *ppayloadlen,
-                                        const nghttp3_frame_priority *fr);
-
-/*
  * nghttp3_frame_write_cancel_push writes CANCEL_PUSH frame |fr| to
  * |dest|.  This function assumes that |dest| has enough space to
  * write |fr|.
@@ -154,23 +137,5 @@ void nghttp3_frame_headers_free(nghttp3_frame_headers *fr,
  */
 void nghttp3_frame_push_promise_free(nghttp3_frame_push_promise *fr,
                                      const nghttp3_mem *mem);
-
-/*
- * nghttp3_frame_pri_elem_type returns Prioritized Element Type from
- * the first byte |c| of PRIORITY frame.
- */
-nghttp3_pri_elem_type nghttp3_frame_pri_elem_type(uint8_t c);
-
-/*
- * nghttp3_frame_elem_dep_type returns Element Dependency Type from
- * the first byte |c| of PRIORITY frame.
- */
-nghttp3_elem_dep_type nghttp3_frame_elem_dep_type(uint8_t c);
-
-/*
- * nghttp3_frame_pri_exclusive returns exclusive bit from the first
- * byte |c| of PRIORITY frame.
- */
-uint8_t nghttp3_frame_pri_exclusive(uint8_t c);
 
 #endif /* NGHTTP3_FRAME_H */
