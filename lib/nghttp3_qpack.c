@@ -3716,10 +3716,14 @@ int nghttp3_qpack_decoder_reconstruct_ricnt(nghttp3_qpack_decoder *decoder,
   ricnt = max_wrapped + encricnt - 1;
 
   if (ricnt > max) {
-    if (ricnt < full) {
+    if (ricnt <= full) {
       return NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
     }
     ricnt -= full;
+  }
+
+  if (ricnt == 0) {
+    return NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED;
   }
 
   *dest = ricnt;
