@@ -1,5 +1,5 @@
 /*
- * ngtcp2
+ * nghttp3
  *
  * Copyright (c) 2019 nghttp3 contributors
  * Copyright (c) 2017 ngtcp2 contributors
