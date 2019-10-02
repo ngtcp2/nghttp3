@@ -66,6 +66,10 @@ set_target_properties(nghttp3 PROPERTIES
   C_VISIBILITY_PRESET hidden
 )
 
+if(WIN32)
+	target_link_libraries(nghttp3 PUBLIC ws2_32)
+endif(WIN32)
+
 if(HAVE_CUNIT)
   # Static library (for unittests because of symbol visibility)
   add_library(nghttp3_static STATIC ${nghttp3_SOURCES})
