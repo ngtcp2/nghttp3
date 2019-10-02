@@ -27,13 +27,20 @@
 
 #include <assert.h>
 #include <string.h>
+#ifdef WIN32
+  #include <intrin.h>
+#endif
 
 #include "nghttp3_macro.h"
 
 int nghttp3_ringbuf_init(nghttp3_ringbuf *rb, size_t nmemb, size_t size,
                          const nghttp3_mem *mem) {
   if (nmemb) {
-    assert(1 == __builtin_popcount((unsigned int)nmemb));
+    #ifdef WIN32
+      assert(1 == __popcnt((unsigned int)nmemb));
+    #else
+      assert(1 == __builtin_popcount((unsigned int)nmemb));
+    #endif
 
     rb->buf = nghttp3_mem_malloc(mem, nmemb * size);
     if (rb->buf == NULL) {
@@ -111,7 +118,11 @@ int nghttp3_ringbuf_reserve(nghttp3_ringbuf *rb, size_t nmemb) {
     return 0;
   }
 
-  assert(1 == __builtin_popcount((unsigned int)nmemb));
+  #ifdef WIN32
+    assert(1 == __popcnt((unsigned int)nmemb));
+  #else
+    assert(1 == __builtin_popcount((unsigned int)nmemb));
+  #endif
 
   buf = nghttp3_mem_malloc(rb->mem, nmemb * rb->size);
   if (buf == NULL) {
