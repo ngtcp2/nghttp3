@@ -378,7 +378,7 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
 
   fr.settings.hd.type = NGHTTP3_FRAME_SETTINGS;
   fr.settings.niv = 3;
-  iv = fr.settings.iv;
+  iv = &fr.settings.iv[0];
 
   iv[0].id = NGHTTP3_SETTINGS_ID_MAX_HEADER_LIST_SIZE;
   iv[0].value = local_settings->max_header_list_size;
@@ -1083,9 +1083,6 @@ int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *data,
     buf->last = nghttp3_cpymem(buf->last, data, nwrite);
     data += nwrite;
     datalen -= nwrite;
-    if (len == 0) {
-      return 0;
-    }
   }
 
   for (; datalen;) {
