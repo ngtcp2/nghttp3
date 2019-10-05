@@ -79,41 +79,38 @@ uint8_t *nghttp3_qpack_huffman_encode(uint8_t *dest, const uint8_t *src,
 
 void nghttp3_qpack_huffman_decode_context_init(
     nghttp3_qpack_huffman_decode_context *ctx) {
-  ctx->state = 0;
-  ctx->accept = 1;
+  ctx->fstate = NGHTTP3_QPACK_HUFFMAN_ACCEPTED;
 }
 
 ssize_t nghttp3_qpack_huffman_decode(nghttp3_qpack_huffman_decode_context *ctx,
                                      uint8_t *dest, const uint8_t *src,
                                      size_t srclen, int fin) {
   uint8_t *p = dest;
-  size_t i;
-  const nghttp3_qpack_huffman_decode_node *t;
+  const uint8_t *end = src + srclen;
+  nghttp3_qpack_huffman_decode_node node = {ctx->fstate, 0};
+  const nghttp3_qpack_huffman_decode_node *t = &node;
+  uint8_t c;
 
   /* We use the decoding algorithm described in
      http://graphics.ics.uci.edu/pub/Prefix.pdf */
-  for (i = 0; i < srclen; ++i) {
-    t = &qpack_huffman_decode_table[ctx->state][src[i] >> 4];
-    if (t->flags & NGHTTP3_QPACK_HUFFMAN_FAIL) {
-      return NGHTTP3_ERR_QPACK_FATAL;
-    }
-    if (t->flags & NGHTTP3_QPACK_HUFFMAN_SYM) {
+  for (; src != end;) {
+    c = *src++;
+    t = &qpack_huffman_decode_table[t->fstate & 0x1ff][c >> 4];
+    if (t->fstate & NGHTTP3_QPACK_HUFFMAN_SYM) {
       *p++ = t->sym;
     }
 
-    t = &qpack_huffman_decode_table[t->state][src[i] & 0xf];
-    if (t->flags & NGHTTP3_QPACK_HUFFMAN_FAIL) {
-      return NGHTTP3_ERR_QPACK_FATAL;
-    }
-    if (t->flags & NGHTTP3_QPACK_HUFFMAN_SYM) {
+    t = &qpack_huffman_decode_table[t->fstate & 0x1ff][c & 0xf];
+    if (t->fstate & NGHTTP3_QPACK_HUFFMAN_SYM) {
       *p++ = t->sym;
     }
-
-    ctx->state = t->state;
-    ctx->accept = (t->flags & NGHTTP3_QPACK_HUFFMAN_ACCEPTED) != 0;
   }
-  if (fin && !ctx->accept) {
+
+  ctx->fstate = t->fstate;
+
+  if (fin && !(ctx->fstate & NGHTTP3_QPACK_HUFFMAN_ACCEPTED)) {
     return NGHTTP3_ERR_QPACK_FATAL;
   }
+
   return p - dest;
 }
