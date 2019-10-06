@@ -24,6 +24,8 @@
  */
 #include "nghttp3_qpack_test.h"
 
+#include <stdlib.h>
+
 #include <CUnit/CUnit.h>
 
 #include "nghttp3_qpack.h"
@@ -686,4 +688,31 @@ void test_nghttp3_qpack_decoder_feedback(void) {
   nghttp3_buf_free(&pbuf2, mem);
   nghttp3_buf_free(&rbuf1, mem);
   nghttp3_buf_free(&pbuf1, mem);
+}
+
+void test_nghttp3_qpack_huffman(void) {
+  size_t i, j;
+  uint8_t raw[100], ebuf[4096], dbuf[4096];
+  uint8_t *end;
+  nghttp3_qpack_huffman_decode_context ctx;
+  ssize_t nwrite;
+
+  srandom(1000000007);
+
+  for (i = 0; i < 100000; ++i) {
+    for (j = 0; j < sizeof(raw); ++j) {
+      raw[j] = (uint8_t)round(((double)random() / RAND_MAX * 255));
+    }
+    end = nghttp3_qpack_huffman_encode(ebuf, raw, sizeof(raw));
+
+    nghttp3_qpack_huffman_decode_context_init(&ctx);
+    nwrite =
+        nghttp3_qpack_huffman_decode(&ctx, dbuf, ebuf, (size_t)(end - ebuf), 1);
+    if (nwrite <= 0) {
+      CU_ASSERT(nwrite > 0);
+      continue;
+    }
+    CU_ASSERT((sizeof(raw) == (size_t)nwrite));
+    CU_ASSERT(0 == memcmp(raw, dbuf, sizeof(raw)));
+  }
 }
