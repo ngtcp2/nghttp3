@@ -57,7 +57,7 @@ uint8_t *nghttp3_qpack_huffman_encode(uint8_t *dest, const uint8_t *src,
     if (nbits < 32) {
       continue;
     }
-    x = htonl(code >> 32);
+    x = htonl((uint32_t)(code >> 32));
     memcpy(dest, &x, 4);
     dest += 4;
     code <<= 32;
@@ -71,7 +71,7 @@ uint8_t *nghttp3_qpack_huffman_encode(uint8_t *dest, const uint8_t *src,
   }
 
   if (nbits) {
-    *dest++ = (uint8_t)((code >> 56) | ((1 << (8 - nbits)) - 1));
+    *dest++ = (uint8_t)((uint8_t)(code >> 56) | ((1 << (8 - nbits)) - 1));
   }
 
   return dest;
