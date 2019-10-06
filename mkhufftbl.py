@@ -3,11 +3,10 @@
 
 # This script reads Huffman Code table [1] and generates symbol table
 # and decoding tables in C language.  The resulting code is used in
-# lib/nghttp2_hd_huffman.h and lib/nghttp2_hd_huffman_data.c
+# lib/nghttp3_qpack_huffman.h and lib/nghttp3_qpack_huffman_data.c
 #
 # [1] http://http2.github.io/http2-spec/compression.html
 
-from __future__ import unicode_literals
 import re
 import sys
 import io
@@ -357,8 +356,8 @@ def _build_transition_table(ctx, node):
 def huffman_tree_build_transition_table(ctx):
     _build_transition_table(ctx, ctx.root)
 
-NGHTTP2_HUFF_ACCEPTED = 1 << 14
-NGHTTP2_HUFF_SYM = 1 << 15
+NGHTTP3_QPACK_HUFFMAN_ACCEPTED = 1 << 14
+NGHTTP3_QPACK_HUFFMAN_SYM = 1 << 15
 
 def _print_transition_table(node):
     if node.term is not None:
@@ -371,7 +370,7 @@ def _print_transition_table(node):
             out = 0
         else:
             out = sym
-            flags |= NGHTTP2_HUFF_SYM
+            flags |= NGHTTP3_QPACK_HUFFMAN_SYM
         if nd is None:
             id = 256
         else:
@@ -379,9 +378,9 @@ def _print_transition_table(node):
             if id is None:
                 # if nd.id is None, it is a leaf node
                 id = 0
-                flags |= NGHTTP2_HUFF_ACCEPTED
+                flags |= NGHTTP3_QPACK_HUFFMAN_ACCEPTED
             elif nd.accept:
-                flags |= NGHTTP2_HUFF_ACCEPTED
+                flags |= NGHTTP3_QPACK_HUFFMAN_ACCEPTED
         print('  {{0x{:02x}, {}}},'.format(id | flags, out))
     print('},')
     _print_transition_table(node.left)
@@ -434,11 +433,11 @@ if __name__ == '__main__':
 typedef struct {
   uint32_t nbits;
   uint32_t code;
-} nghttp2_huff_sym;
+} nghttp3_qpack_huffman_sym;
 ''')
 
     print('''\
-const nghttp2_huff_sym huff_sym_table[] = {''')
+const nghttp3_qpack_huffman_sym huffman_sym_table[] = {''')
     for i in range(257):
         nbits = symbol_tbl[i][0]
         k = int(symbol_tbl[i][1], 16)
@@ -451,19 +450,19 @@ const nghttp2_huff_sym huff_sym_table[] = {''')
 
     print('''\
 enum {{
-  NGHTTP2_HUFF_ACCEPTED = {},
-  NGHTTP2_HUFF_SYM = {},
-}} nghttp2_huff_decode_flag;
-'''.format(NGHTTP2_HUFF_ACCEPTED, NGHTTP2_HUFF_SYM))
+  NGHTTP3_QPACK_HUFFMAN_ACCEPTED = {},
+  NGHTTP3_QPACK_HUFFMAN_SYM = {},
+}} nghttp3_qpack_huffman_decode_flag;
+'''.format(NGHTTP3_QPACK_HUFFMAN_ACCEPTED, NGHTTP3_QPACK_HUFFMAN_SYM))
 
     print('''\
 typedef struct {
   uint16_t fstate;
   uint8_t sym;
-} nghttp2_huff_decode;
+} nghttp3_qpack_huffman_decode_node;
 ''')
 
     print('''\
-const nghttp2_huff_decode huff_decode_table[][16] = {''')
+const nghttp3_qpack_huffman_decode_node qpack_huffman_decode_table[][16] = {''')
     huffman_tree_print_transition_table(ctx)
     print('};')
