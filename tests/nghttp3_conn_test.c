@@ -158,7 +158,7 @@ static ssize_t step_then_block_read_data(nghttp3_conn *conn, int64_t stream_id,
 
   assert(rv >= 0);
 
-  if (*pflags &  NGHTTP3_DATA_FLAG_EOF) {
+  if (*pflags & NGHTTP3_DATA_FLAG_EOF) {
     *pflags &= (uint32_t)~NGHTTP3_DATA_FLAG_EOF;
 
     if (nghttp3_vec_len(vec, (size_t)rv) == 0) {
