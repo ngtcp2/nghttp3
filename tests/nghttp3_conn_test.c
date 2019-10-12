@@ -24,6 +24,8 @@
  */
 #include "nghttp3_conn_test.h"
 
+#include <assert.h>
+
 #include <CUnit/CUnit.h>
 
 #include "nghttp3_conn.h"
@@ -143,6 +145,28 @@ static ssize_t block_then_step_read_data(nghttp3_conn *conn, int64_t stream_id,
   --ud->data.nblock;
 
   return NGHTTP3_ERR_WOULDBLOCK;
+}
+
+static ssize_t step_then_block_read_data(nghttp3_conn *conn, int64_t stream_id,
+                                         nghttp3_vec *vec, size_t veccnt,
+                                         uint32_t *pflags, void *user_data,
+                                         void *stream_user_data) {
+  ssize_t rv;
+
+  rv = step_read_data(conn, stream_id, vec, veccnt, pflags, user_data,
+                      stream_user_data);
+
+  assert(rv >= 0);
+
+  if (*pflags &  NGHTTP3_DATA_FLAG_EOF) {
+    *pflags &= (uint32_t)~NGHTTP3_DATA_FLAG_EOF;
+
+    if (nghttp3_vec_len(vec, (size_t)rv) == 0) {
+      return NGHTTP3_ERR_WOULDBLOCK;
+    }
+  }
+
+  return rv;
 }
 
 static int cancel_push(nghttp3_conn *conn, int64_t push_id, int64_t stream_id,
@@ -2903,6 +2927,60 @@ void test_nghttp3_conn_just_fin(void) {
   CU_ASSERT(0 == sveccnt);
   CU_ASSERT(-1 == stream_id);
   CU_ASSERT(0 == fin);
+
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_submit_response_read_blocked(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  nghttp3_conn_callbacks callbacks;
+  nghttp3_conn_settings settings;
+  const nghttp3_nv nva[] = {
+      MAKE_NV(":status", "200"),
+  };
+  nghttp3_stream *stream;
+  int rv;
+  nghttp3_vec vec[256];
+  int fin;
+  int64_t stream_id;
+  ssize_t sveccnt;
+  nghttp3_data_reader dr = {step_then_block_read_data};
+  userdata ud;
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  nghttp3_conn_settings_default(&settings);
+  memset(&ud, 0, sizeof(ud));
+
+  /* Make sure that flushing serialized data while
+     NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED is set does not cause any
+     error */
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn->remote.bidi.max_client_streams = 1;
+  nghttp3_conn_bind_qpack_streams(conn, 7, 11);
+
+  nghttp3_conn_create_stream(conn, &stream, 0);
+
+  ud.data.left = 1000;
+  ud.data.step = 1000;
+  rv = nghttp3_conn_submit_response(conn, 0, nva, nghttp3_arraylen(nva), &dr);
+
+  CU_ASSERT(0 == rv);
+
+  for (;;) {
+    sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                         nghttp3_arraylen(vec));
+
+    CU_ASSERT(sveccnt >= 0);
+
+    if (sveccnt <= 0) {
+      break;
+    }
+
+    rv = nghttp3_conn_add_write_offset(conn, stream_id, 1);
+
+    CU_ASSERT(0 == rv);
+  }
 
   nghttp3_conn_del(conn);
 }

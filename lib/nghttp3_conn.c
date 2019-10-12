@@ -2424,9 +2424,13 @@ static ssize_t conn_writev_stream(nghttp3_conn *conn, int64_t *pstream_id,
 
   assert(veccnt > 0);
 
-  rv = nghttp3_stream_fill_outq(stream);
-  if (rv != 0) {
-    return rv;
+  /* If stream is blocked by read callback, don't attempt to fill
+     more. */
+  if (!(stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED)) {
+    rv = nghttp3_stream_fill_outq(stream);
+    if (rv != 0) {
+      return rv;
+    }
   }
 
   if (!nghttp3_stream_uni(stream->node.nid.id) && conn->tx.qenc &&
