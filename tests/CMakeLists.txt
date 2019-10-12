@@ -48,6 +48,7 @@ if(HAVE_CUNIT)
   target_link_libraries(main
     nghttp3_static
     ${CUNIT_LIBRARIES}
+    m
   )
   add_test(main main)
   add_dependencies(check main)
