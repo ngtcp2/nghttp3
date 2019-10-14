@@ -37,10 +37,13 @@
 #include <nghttp3/nghttp3.h>
 
 #ifdef WORDS_BIGENDIAN
-#  define bswap64(N) (N)
+#  define nghttp3_ntohl64(N) (N)
+#  define nghttp3_htonl64(N) (N)
 #else /* !WORDS_BIGENDIAN */
-#  define bswap64(N)                                                           \
+#  define nghttp3_bswap64(N)                                                   \
     ((uint64_t)(ntohl((uint32_t)(N))) << 32 | ntohl((uint32_t)((N) >> 32)))
+#  define nghttp3_ntohl64(N) nghttp3_bswap64(N)
+#  define nghttp3_htonl64(N) nghttp3_bswap64(N)
 #endif /* !WORDS_BIGENDIAN */
 
 /*

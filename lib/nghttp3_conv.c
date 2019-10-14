@@ -54,7 +54,7 @@ int64_t nghttp3_get_varint(size_t *plen, const uint8_t *p) {
   case 8:
     memcpy(&n, p, 8);
     n.b[0] &= 0x3f;
-    return (int64_t)bswap64(n.n64);
+    return (int64_t)nghttp3_ntohl64(n.n64);
   }
 
   assert(0);
@@ -65,12 +65,12 @@ int64_t nghttp3_get_varint_fb(const uint8_t *p) { return *p & 0x3f; }
 size_t nghttp3_get_varint_len(const uint8_t *p) { return 1u << (*p >> 6); }
 
 uint8_t *nghttp3_put_uint64be(uint8_t *p, uint64_t n) {
-  n = bswap64(n);
+  n = nghttp3_htonl64(n);
   return nghttp3_cpymem(p, (const uint8_t *)&n, sizeof(n));
 }
 
 uint8_t *nghttp3_put_uint48be(uint8_t *p, uint64_t n) {
-  n = bswap64(n);
+  n = nghttp3_htonl64(n);
   return nghttp3_cpymem(p, ((const uint8_t *)&n) + 2, 6);
 }
 
