@@ -101,7 +101,7 @@ void write_encoder_stream(std::ostream &out, nghttp3_buf *ebuf) {
 namespace {
 void write_request_stream(std::ostream &out, int64_t stream_id,
                           nghttp3_buf *pbuf, nghttp3_buf *rbuf) {
-  stream_id = htonl64(stream_id);
+  stream_id = nghttp3_htonl64(stream_id);
   out.write(reinterpret_cast<char *>(&stream_id), sizeof(stream_id));
   uint32_t size = htonl(nghttp3_buf_len(pbuf) + nghttp3_buf_len(rbuf));
   out.write(reinterpret_cast<char *>(&size), sizeof(size));

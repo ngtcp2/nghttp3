@@ -142,6 +142,8 @@ AC_CHECK_HEADERS([ \
   stdlib.h \
   string.h \
   unistd.h \
+  sys/endian.h \
+  endian.h \
 ])
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -168,6 +170,16 @@ AC_CHECK_FUNCS([ \
   memmove \
   memset \
 ])
+
+# Checks for symbols.
+AC_CHECK_DECLS([be64toh], [], [], [[
+#ifdef HAVE_ENDIAN_H
+#  include <endian.h>
+#endif
+#ifdef HAVE_SYS_ENDIAN_H
+#  include <sys/endian.h>
+#endif
+]])
 
 # More compiler flags from nghttp2.
 save_CFLAGS=$CFLAGS

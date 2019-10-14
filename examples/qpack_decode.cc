@@ -230,7 +230,7 @@ int decode(const std::string_view &outfile, const std::string_view &infile) {
     }
 
     memcpy(&stream_id, p, sizeof(stream_id));
-    stream_id = ntohl64(stream_id);
+    stream_id = nghttp3_ntohl64(stream_id);
     p += sizeof(stream_id);
 
     memcpy(&size, p, sizeof(size));
