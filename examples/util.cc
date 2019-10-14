@@ -33,14 +33,14 @@ uint64_t ntohl64(uint64_t n) { return n; }
 uint64_t htonl64(uint64_t n) { return n; }
 #else  // !WORDS_BIGENDIAN
 namespace {
-uint64_t bswap64(uint64_t n) {
+uint64_t nghttp3_bswap64(uint64_t n) {
   return (static_cast<uint64_t>(ntohl(static_cast<uint32_t>(n))) << 32 |
           ntohl(static_cast<uint32_t>((n) >> 32)));
 }
 } // namespace
 
-uint64_t ntohl64(uint64_t n) { return bswap64(n); }
-uint64_t htonl64(uint64_t n) { return bswap64(n); }
+uint64_t ntohl64(uint64_t n) { return nghttp3_bswap64(n); }
+uint64_t htonl64(uint64_t n) { return nghttp3_bswap64(n); }
 #endif // !WORDS_BIGENDIAN
 
 } // namespace nghttp3
