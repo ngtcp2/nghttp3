@@ -1711,8 +1711,13 @@ ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
         rv = nghttp3_http_on_response_headers(&stream->rx.http);
         break;
-      default:
+      case NGHTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN:
+      case NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:
+        rv = 0;
         break;
+      default:
+        /* Unreachable */
+        assert(0);
       }
 
       if (rv != 0) {
