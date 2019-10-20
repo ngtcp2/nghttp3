@@ -162,7 +162,7 @@ typedef struct {
      the authority to decide how many entries are inserted into
      dynamic table. */
   size_t hard_max_dtable_size;
-  /* dtable_size is the effective maximum size of dynamic table. */
+  /* max_dtable_size is the effective maximum size of dynamic table. */
   size_t max_dtable_size;
   /* max_blocked is the maximum number of stream which can be
      blocked. */
