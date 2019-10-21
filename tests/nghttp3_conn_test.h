@@ -37,6 +37,7 @@ void test_nghttp3_conn_http_request(void);
 void test_nghttp3_conn_http_resp_header(void);
 void test_nghttp3_conn_http_req_header(void);
 void test_nghttp3_conn_http_content_length(void);
+void test_nghttp3_conn_http_content_length_with_data(void);
 void test_nghttp3_conn_http_content_length_mismatch(void);
 void test_nghttp3_conn_http_non_final_response(void);
 void test_nghttp3_conn_http_trailers(void);

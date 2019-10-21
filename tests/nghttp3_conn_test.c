@@ -1067,6 +1067,49 @@ void test_nghttp3_conn_http_content_length(void) {
   nghttp3_qpack_encoder_free(&qenc);
 }
 
+void test_nghttp3_conn_http_content_length_with_data(void) {
+  uint8_t rawbuf[4096];
+  nghttp3_buf buf;
+  nghttp3_frame_headers fr;
+  nghttp3_conn *conn;
+  nghttp3_conn_callbacks callbacks;
+  nghttp3_conn_settings settings;
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  ssize_t sconsumed;
+  nghttp3_qpack_encoder qenc;
+  const nghttp3_nv reqnv[] = {
+      MAKE_NV(":path", "/"),
+      MAKE_NV(":method", "PUT"),
+      MAKE_NV(":authority", "localhost"),
+      MAKE_NV(":scheme", "https"),
+      MAKE_NV("content-length", "20"),
+  };
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  nghttp3_conn_settings_default(&settings);
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_qpack_encoder_init(&qenc, 0, 0, mem);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.nva = (nghttp3_nv *)reqnv;
+  fr.nvlen = nghttp3_arraylen(reqnv);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_data(&buf, 20);
+
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 1);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+}
+
 void test_nghttp3_conn_http_content_length_mismatch(void) {
   uint8_t rawbuf[4096];
   nghttp3_buf buf;

@@ -81,6 +81,8 @@ int main() {
                    test_nghttp3_conn_http_req_header) ||
       !CU_add_test(pSuite, "conn_http_content_length",
                    test_nghttp3_conn_http_content_length) ||
+      !CU_add_test(pSuite, "conn_http_content_length_with_data",
+                   test_nghttp3_conn_http_content_length_with_data) ||
       !CU_add_test(pSuite, "conn_http_content_length_mismatch",
                    test_nghttp3_conn_http_content_length_mismatch) ||
       !CU_add_test(pSuite, "conn_http_non_final_response",
