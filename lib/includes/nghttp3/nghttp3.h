@@ -1327,8 +1327,11 @@ typedef union {
  * stream identified by |stream_id|.  It returns the number of bytes
  * consumed.  The "consumed" means that application can increase flow
  * control credit (both stream and connection) of underlying QUIC
- * connection by that amount.  If |fin| is nonzero, this is the last
- * data from remote endpoint in this stream.
+ * connection by that amount.  It does not include the amount of data
+ * carried by DATA frame which contains application data (excluding
+ * any control or QPACK unidirectional streams) .  See
+ * type:`nghttp3_recv_data` to handle those bytes.  If |fin| is
+ * nonzero, this is the last data from remote endpoint in this stream.
  */
 NGHTTP3_EXTERN ssize_t nghttp3_conn_read_stream(nghttp3_conn *conn,
                                                 int64_t stream_id,
