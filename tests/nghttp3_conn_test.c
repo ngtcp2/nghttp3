@@ -552,6 +552,8 @@ void test_nghttp3_conn_http_request(void) {
   int fin;
   userdata clud, svud;
   size_t i;
+  size_t nconsumed;
+  size_t nread;
 
   memset(&callbacks, 0, sizeof(callbacks));
   nghttp3_conn_settings_default(&settings);
@@ -585,6 +587,9 @@ void test_nghttp3_conn_http_request(void) {
 
   CU_ASSERT(0 == rv);
 
+  nread = 0;
+  nconsumed = 0;
+
   for (;;) {
     sveccnt = nghttp3_conn_writev_stream(cl, &stream_id, &fin, vec,
                                          nghttp3_arraylen(vec));
@@ -605,6 +610,9 @@ void test_nghttp3_conn_http_request(void) {
           nghttp3_conn_read_stream(sv, stream_id, vec[i].base, vec[i].len,
                                    fin && i == (size_t)sveccnt - 1);
       CU_ASSERT(sconsumed >= 0);
+
+      nread += vec[i].len;
+      nconsumed += (size_t)sconsumed;
     }
 
     rv = nghttp3_conn_add_ack_offset(cl, stream_id,
@@ -613,10 +621,15 @@ void test_nghttp3_conn_http_request(void) {
     CU_ASSERT(0 == rv);
   }
 
+  CU_ASSERT(nread == nconsumed + 2000);
+
   rv = nghttp3_conn_submit_response(sv, 0, respnva, nghttp3_arraylen(respnva),
                                     &dr);
 
   CU_ASSERT(0 == rv);
+
+  nread = 0;
+  nconsumed = 0;
 
   for (;;) {
     sveccnt = nghttp3_conn_writev_stream(sv, &stream_id, &fin, vec,
@@ -638,6 +651,9 @@ void test_nghttp3_conn_http_request(void) {
           nghttp3_conn_read_stream(cl, stream_id, vec[i].base, vec[i].len,
                                    fin && i == (size_t)sveccnt - 1);
       CU_ASSERT(sconsumed >= 0);
+
+      nread += vec[i].len;
+      nconsumed += (size_t)sconsumed;
     }
 
     rv = nghttp3_conn_add_ack_offset(sv, stream_id,
@@ -645,6 +661,8 @@ void test_nghttp3_conn_http_request(void) {
 
     CU_ASSERT(0 == rv);
   }
+
+  CU_ASSERT(nread == nconsumed + 1999);
 
   nghttp3_conn_del(sv);
   nghttp3_conn_del(cl);
