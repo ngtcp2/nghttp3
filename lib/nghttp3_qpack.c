@@ -917,7 +917,7 @@ int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
   encoder->krcnt = 0;
   encoder->state = NGHTTP3_QPACK_DS_STATE_OPCODE;
   encoder->opcode = 0;
-  encoder->min_dtable_update = NGHTTP3_QPACK_INT_MAX;
+  encoder->min_dtable_update = SIZE_MAX;
   encoder->last_max_dtable_update = 0;
   encoder->flags = NGHTTP3_QPACK_ENCODER_FLAG_NONE;
 
@@ -1275,7 +1275,7 @@ int nghttp3_qpack_encoder_process_dtable_update(nghttp3_qpack_encoder *encoder,
   }
 
   encoder->flags &= (uint8_t)~NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP;
-  encoder->min_dtable_update = NGHTTP3_QPACK_INT_MAX;
+  encoder->min_dtable_update = SIZE_MAX;
   encoder->ctx.max_dtable_size = encoder->last_max_dtable_update;
 
   return 0;
