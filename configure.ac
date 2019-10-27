@@ -66,7 +66,7 @@ AC_ARG_ENABLE([debug],
                     [Turn on debug output])],
     [debug=$enableval], [debug=no])
 
-if test "x${debug}" = "x${enableval}"; then
+if test "x${debug}" = "xyes"; then
   DEBUGCFLAGS="-O0 -g3"
   AC_SUBST([DEBUGCFLAGS])
   AC_DEFINE([DEBUGBUILD], [1], [Define to 1 to enable debug output.])
@@ -279,11 +279,6 @@ EXTRACFLAG=
 AX_CHECK_COMPILE_FLAG([-fvisibility=hidden], [EXTRACFLAG="-fvisibility=hidden"])
 
 AC_SUBST([EXTRACFLAG])
-
-# debug build
-if test "x$debug" != "xno"; then
-    AC_DEFINE([DEBUGBUILD], [1], [Define to 1 to enable debug output.])
-fi
 
 AC_CONFIG_FILES([
   Makefile
