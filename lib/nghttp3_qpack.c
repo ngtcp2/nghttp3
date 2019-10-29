@@ -2402,18 +2402,18 @@ int nghttp3_qpack_encoder_write_header_block_prefix(
 
 /*
  * qpack_read_varint reads |rstate->prefix| prefixed integer stored
- * from |in|.  The |last| represents the 1 beyond the last of the
- * valid contiguous memory region from |in|.  The decoded integer must
+ * from |begin|.  The |end| represents the 1 beyond the last of the
+ * valid contiguous memory region from |begin|.  The decoded integer must
  * be less than or equal to NGHTTP3_QPACK_INT_MAX.
  *
- * If the |rstate->left| is nonzero, it is used as a initial value,
- * and this function assumes the |in| starts with intermediate data.
+ * If the |rstate->left| is nonzero, it is used as an initial value,
+ * and this function assumes the |begin| starts with intermediate data.
  * |rstate->shift| is used as initial integer shift.
  *
  * If an entire integer is decoded successfully, the |*fin| is set to
  * nonzero.
  *
- * This function stores the decoded integer in |*dest| if it succeeds,
+ * This function stores the decoded integer in |rstate->left| if it succeeds,
  * including partial decoding (in this case, number of shift to make
  * in the next call will be stored in |rstate->shift|) and returns
  * number of bytes processed, or returns negative error code
