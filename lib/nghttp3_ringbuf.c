@@ -135,9 +135,9 @@ int nghttp3_ringbuf_reserve(nghttp3_ringbuf *rb, size_t nmemb) {
       rb->first = 0;
     } else {
       memcpy(buf, rb->buf + rb->first * rb->size,
-            (rb->nmemb - rb->first) * rb->size);
+             (rb->nmemb - rb->first) * rb->size);
       memcpy(buf + (rb->nmemb - rb->first) * rb->size, rb->buf,
-            (rb->len - (rb->nmemb - rb->first)) * rb->size);
+             (rb->len - (rb->nmemb - rb->first)) * rb->size);
       rb->first = 0;
     }
 
