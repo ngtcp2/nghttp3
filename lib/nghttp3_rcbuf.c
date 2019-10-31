@@ -53,6 +53,7 @@ int nghttp3_rcbuf_new(nghttp3_rcbuf **rcbuf_ptr, size_t size,
 int nghttp3_rcbuf_new2(nghttp3_rcbuf **rcbuf_ptr, const uint8_t *src,
                        size_t srclen, const nghttp3_mem *mem) {
   int rv;
+  uint8_t *p;
 
   rv = nghttp3_rcbuf_new(rcbuf_ptr, srclen + 1, mem);
   if (rv != 0) {
@@ -60,7 +61,13 @@ int nghttp3_rcbuf_new2(nghttp3_rcbuf **rcbuf_ptr, const uint8_t *src,
   }
 
   (*rcbuf_ptr)->len = srclen;
-  *nghttp3_cpymem((*rcbuf_ptr)->base, src, srclen) = '\0';
+  p = (*rcbuf_ptr)->base;
+
+  if (srclen) {
+    p = nghttp3_cpymem(p, src, srclen);
+  }
+
+  *p = '\0';
 
   return 0;
 }
