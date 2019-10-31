@@ -3661,12 +3661,7 @@ void nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
     len = nghttp3_qpack_put_varint_len(n, 6);
   }
 
-  if (nghttp3_buf_len(&decoder->dbuf) + len == 0) {
-    return;
-  }
-
   assert(nghttp3_buf_left(dbuf) >= nghttp3_buf_len(&decoder->dbuf) + len);
-  assert(dbuf->last);
 
   dbuf->last = nghttp3_cpymem(dbuf->last, decoder->dbuf.pos,
                               nghttp3_buf_len(&decoder->dbuf));
