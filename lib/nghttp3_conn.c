@@ -2167,8 +2167,8 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
   const nghttp3_settings_entry *ent = &fr->iv[0];
   nghttp3_conn_settings *dest = &conn->remote.settings;
   int rv;
-  uint64_t max_table_capacity = NGHTTP3_QPACK_ENCODER_MAX_TABLE_CAPACITY;
-  uint64_t max_blocked_streams = NGHTTP3_QPACK_ENCODER_MAX_BLOCK_STREAMS;
+  size_t max_table_capacity = SIZE_MAX;
+  size_t max_blocked_streams = SIZE_MAX;
 
   /* TODO Check for duplicates */
   switch (ent->id) {
@@ -2176,7 +2176,7 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
     dest->max_header_list_size = ent->value;
     break;
   case NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY:
-    dest->qpack_max_table_capacity = ent->value;
+    dest->qpack_max_table_capacity = (size_t)ent->value;
     max_table_capacity =
         nghttp3_min(max_table_capacity, dest->qpack_max_table_capacity);
     rv = nghttp3_qpack_encoder_set_hard_max_dtable_size(&conn->qenc,
@@ -2191,7 +2191,7 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
     }
     break;
   case NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS:
-    dest->qpack_blocked_streams = ent->value;
+    dest->qpack_blocked_streams = (size_t)ent->value;
     max_blocked_streams =
         nghttp3_min(max_blocked_streams, dest->qpack_blocked_streams);
     rv =
