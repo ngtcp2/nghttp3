@@ -990,10 +990,9 @@ void test_nghttp3_conn_http_req_header(void) {
   check_http_req_header(asteriskoptions2_reqnv,
                         nghttp3_arraylen(asteriskoptions2_reqnv), 0);
   check_http_req_header(invalidname_reqnv, nghttp3_arraylen(invalidname_reqnv),
-                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+                        0);
   check_http_req_header(invalidvalue_reqnv,
-                        nghttp3_arraylen(invalidvalue_reqnv),
-                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+                        nghttp3_arraylen(invalidvalue_reqnv), 0);
   check_http_req_header(connectproto_reqnv,
                         nghttp3_arraylen(connectproto_reqnv),
                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);

@@ -411,9 +411,25 @@ static int check_scheme(const uint8_t *value, size_t len) {
 int nghttp3_http_on_header(nghttp3_http_state *http, int64_t frame_type,
                            nghttp3_qpack_nv *nv, int request, int trailers) {
   int rv;
+  size_t i;
+  uint8_t c;
 
   if (!nghttp3_check_header_name(nv->name->base, nv->name->len)) {
-    return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    if (nv->name->len > 0 && nv->name->base[0] == ':') {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    /* header field name must be lower-cased without exception */
+    for (i = 0; i < nv->name->len; ++i) {
+      c = nv->name->base[i];
+      if ('A' <= c && c <= 'Z') {
+        return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+      }
+    }
+    /* When ignoring regular header fields, we set this flag so that
+       we still enforce header field ordering rule for pseudo header
+       fields. */
+    http->flags |= NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED;
+    return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
   }
 
   if (nv->token == NGHTTP3_QPACK_TOKEN__AUTHORITY ||
@@ -426,7 +442,15 @@ int nghttp3_http_on_header(nghttp3_http_state *http, int64_t frame_type,
   }
 
   if (rv == 0) {
-    return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    assert(nv->name->len > 0);
+    if (nv->name->base[0] == ':') {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    /* When ignoring regular header fields, we set this flag so that
+       we still enforce header field ordering rule for pseudo header
+       fields. */
+    http->flags |= NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED;
+    return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
   }
 
   if (request) {

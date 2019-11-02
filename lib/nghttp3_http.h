@@ -87,7 +87,7 @@ typedef enum {
  *
  * NGHTTP3_ERR_MALFORMED_HTTP_HEADER
  *     Invalid HTTP header field was received.
- * NGHTTP3_ERR_IGN_HTTP_HEADER
+ * NGHTTP3_ERR_REMOVE_HTTP_HEADER
  *     Invalid HTTP header field was received but it can be treated as
  *     if it was not received because of compatibility reasons.
  */
