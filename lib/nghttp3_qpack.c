@@ -2642,6 +2642,7 @@ int nghttp3_qpack_decoder_init(nghttp3_qpack_decoder *decoder,
   decoder->state = NGHTTP3_QPACK_ES_STATE_OPCODE;
   decoder->opcode = 0;
   decoder->written_icnt = 0;
+  decoder->max_concurrent_streams = 0;
 
   nghttp3_qpack_read_state_reset(&decoder->rstate);
   nghttp3_buf_init(&decoder->dbuf);
@@ -3173,6 +3174,12 @@ int nghttp3_qpack_decoder_dtable_literal_add(nghttp3_qpack_decoder *decoder) {
   return rv;
 }
 
+void nghttp3_qpack_decoder_set_max_concurrent_streams(
+    nghttp3_qpack_decoder *decoder, size_t max_concurrent_streams) {
+  decoder->max_concurrent_streams =
+      nghttp3_max(decoder->max_concurrent_streams, max_concurrent_streams);
+}
+
 void nghttp3_qpack_stream_context_init(nghttp3_qpack_stream_context *sctx,
                                        int64_t stream_id,
                                        const nghttp3_mem *mem) {
@@ -3604,8 +3611,7 @@ almost_ok:
     *pflags |= NGHTTP3_QPACK_DECODE_FLAG_FINAL;
 
     if (sctx->ricnt) {
-      rv =
-          nghttp3_qpack_decoder_write_header_ack(decoder, &decoder->dbuf, sctx);
+      rv = nghttp3_qpack_decoder_write_header_ack(decoder, sctx);
       if (rv != 0) {
         goto fail;
       }
@@ -3619,11 +3625,21 @@ fail:
   return rv;
 }
 
+static int qpack_decoder_dbuf_overflow(nghttp3_qpack_decoder *decoder) {
+  size_t limit = nghttp3_max(decoder->max_concurrent_streams, 100);
+  /* 10 = nghttp3_qpack_put_varint_len((1ULL << 62) - 1, 2)) */
+  return nghttp3_buf_len(&decoder->dbuf) > limit * 2 * 10;
+}
+
 int nghttp3_qpack_decoder_write_header_ack(
-    nghttp3_qpack_decoder *decoder, nghttp3_buf *dbuf,
-    const nghttp3_qpack_stream_context *sctx) {
+    nghttp3_qpack_decoder *decoder, const nghttp3_qpack_stream_context *sctx) {
+  nghttp3_buf *dbuf = &decoder->dbuf;
   uint8_t *p;
   int rv;
+
+  if (qpack_decoder_dbuf_overflow(decoder)) {
+    return NGHTTP3_ERR_QPACK_FATAL;
+  }
 
   rv = reserve_buf_small(
       dbuf, nghttp3_qpack_put_varint_len((uint64_t)sctx->stream_id, 7),
@@ -3689,6 +3705,10 @@ int nghttp3_qpack_decoder_cancel_stream(nghttp3_qpack_decoder *decoder,
                                         int64_t stream_id) {
   uint8_t *p;
   int rv;
+
+  if (qpack_decoder_dbuf_overflow(decoder)) {
+    return NGHTTP3_ERR_QPACK_FATAL;
+  }
 
   rv = reserve_buf(&decoder->dbuf,
                    nghttp3_qpack_put_varint_len((uint64_t)stream_id, 6),

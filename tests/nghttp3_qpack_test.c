@@ -690,6 +690,24 @@ void test_nghttp3_qpack_decoder_feedback(void) {
   nghttp3_buf_free(&pbuf1, mem);
 }
 
+void test_nghttp3_qpack_decoder_stream_overflow(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_qpack_decoder dec;
+  size_t i;
+  int rv;
+
+  nghttp3_qpack_decoder_init(&dec, 4096, 0, mem);
+
+  for (i = 0;; ++i) {
+    rv = nghttp3_qpack_decoder_cancel_stream(&dec, (int64_t)i);
+    if (rv == NGHTTP3_ERR_QPACK_FATAL) {
+      break;
+    }
+  }
+
+  nghttp3_qpack_decoder_free(&dec);
+}
+
 void test_nghttp3_qpack_huffman(void) {
   size_t i, j;
   uint8_t raw[100], ebuf[4096], dbuf[4096];

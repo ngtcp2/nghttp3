@@ -3007,6 +3007,12 @@ void nghttp3_conn_set_max_client_streams_bidi(nghttp3_conn *conn,
   conn->remote.bidi.max_client_streams = max_streams;
 }
 
+void nghttp3_conn_set_max_concurrent_streams(nghttp3_conn *conn,
+                                             size_t max_concurrent_streams) {
+  nghttp3_qpack_decoder_set_max_concurrent_streams(&conn->qdec,
+                                                   max_concurrent_streams);
+}
+
 int nghttp3_conn_submit_max_push_id(nghttp3_conn *conn) {
   nghttp3_frame_entry frent;
   int rv;

@@ -916,6 +916,8 @@ nghttp3_qpack_decoder_get_decoder_streamlen(nghttp3_qpack_decoder *decoder);
  *
  * :enum:`NGHTTP3_ERR_NOMEM`
  *     Out of memory.
+ * :enum:`NGHTTP3_ERR_QPACK_FATAL`
+ *     Decoder stream overflow.
  */
 NGHTTP3_EXTERN int
 nghttp3_qpack_decoder_cancel_stream(nghttp3_qpack_decoder *decoder,
@@ -932,6 +934,19 @@ nghttp3_qpack_decoder_cancel_stream(nghttp3_qpack_decoder *decoder,
 NGHTTP3_EXTERN void
 nghttp3_qpack_decoder_set_dtable_cap(nghttp3_qpack_decoder *decoder,
                                      size_t cap);
+
+/**
+ * @function
+ *
+ * `nghttp3_qpack_decoder_set_max_concurrent_streams` tells |decoder|
+ * the maximum number of concurrent streams that a remote endpoint can
+ * open, including both bidirectional and unidirectional streams which
+ * potentially receive QPACK encoded HEADERS frame.  This value is
+ * used as a hint to limit the length of decoder stream.
+ */
+NGHTTP3_EXTERN void
+nghttp3_qpack_decoder_set_max_concurrent_streams(nghttp3_qpack_decoder *decoder,
+                                                 size_t max_concurrent_streams);
 
 /**
  * @function
@@ -1460,6 +1475,19 @@ typedef enum {
 NGHTTP3_EXTERN void
 nghttp3_conn_set_max_client_streams_bidi(nghttp3_conn *conn,
                                          uint64_t max_streams);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_set_max_concurrent_streams` tells |conn| the maximum
+ * number of concurrent streams that a remote endpoint can open,
+ * including both bidirectional and unidirectional streams which
+ * potentially receive QPACK encoded HEADERS frame.  This value is
+ * used as a hint to limit the internal resource consumption.
+ */
+NGHTTP3_EXTERN void
+nghttp3_conn_set_max_concurrent_streams(nghttp3_conn *conn,
+                                        size_t max_concurrent_streams);
 
 /**
  * @functypedef

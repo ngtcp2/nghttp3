@@ -64,6 +64,8 @@ int main() {
                    test_nghttp3_qpack_encoder_set_dtable_cap) ||
       !CU_add_test(pSuite, "qpack_decoder_feedback",
                    test_nghttp3_qpack_decoder_feedback) ||
+      !CU_add_test(pSuite, "qpack_decoder_stream_overflow",
+                   test_nghttp3_qpack_decoder_stream_overflow) ||
       !CU_add_test(pSuite, "qpack_huffman", test_nghttp3_qpack_huffman) ||
       !CU_add_test(pSuite, "conn_read_control",
                    test_nghttp3_conn_read_control) ||
