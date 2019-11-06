@@ -1819,7 +1819,7 @@ int nghttp3_conn_on_push_promise_push_id(nghttp3_conn *conn, int64_t push_id,
   nghttp3_push_promise *pp;
 
   if (conn->remote.uni.max_pushes <= (uint64_t)push_id) {
-    return NGHTTP3_ERR_HTTP_FRAME_ERROR;
+    return NGHTTP3_ERR_HTTP_ID_ERROR;
   }
 
   pp = nghttp3_conn_find_push_promise(conn, push_id);
