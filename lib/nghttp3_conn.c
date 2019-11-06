@@ -2867,6 +2867,10 @@ int nghttp3_conn_client_cancel_push(nghttp3_conn *conn, int64_t push_id) {
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
+  if (pp->stream) {
+    return NGHTTP3_ERR_TOO_LATE;
+  }
+
   frent.fr.hd.type = NGHTTP3_FRAME_CANCEL_PUSH;
   frent.fr.cancel_push.push_id = push_id;
 
@@ -2875,21 +2879,12 @@ int nghttp3_conn_client_cancel_push(nghttp3_conn *conn, int64_t push_id) {
     return rv;
   }
 
-  if (!pp->stream && (pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_RECVED)) {
+  if (pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_RECVED) {
     conn_delete_push_promise(conn, pp);
     return 0;
   }
 
   pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL;
-
-  if (pp->stream) {
-    rv = conn_call_deferred_consume(
-        conn, pp->stream, nghttp3_stream_get_buffered_datalen(pp->stream));
-    if (rv != 0) {
-      return rv;
-    }
-    nghttp3_stream_clear_buffered_data(pp->stream);
-  }
 
   return 0;
 }
