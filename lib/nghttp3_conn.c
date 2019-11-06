@@ -617,7 +617,7 @@ ssize_t nghttp3_conn_read_uni(nghttp3_conn *conn, nghttp3_stream *stream,
     nconsumed = (ssize_t)srclen;
 
     rv = conn_call_send_stop_sending(conn, stream,
-                                     NGHTTP3_HTTP_STREAM_CREATION_ERROR);
+                                     NGHTTP3_H3_STREAM_CREATION_ERROR);
     if (rv != 0) {
       return rv;
     }
@@ -1944,7 +1944,7 @@ int nghttp3_conn_on_server_cancel_push(nghttp3_conn *conn,
 
   if (stream) {
     rv = nghttp3_conn_close_stream(conn, stream->node.nid.id,
-                                   NGHTTP3_HTTP_REQUEST_CANCELLED);
+                                   NGHTTP3_H3_REQUEST_CANCELLED);
     if (rv != 0) {
       assert(NGHTTP3_ERR_INVALID_ARGUMENT != rv);
       return rv;
@@ -2001,8 +2001,8 @@ int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
     if (rv != 0) {
       return rv;
     }
-    rv = conn_call_send_stop_sending(conn, stream,
-                                     NGHTTP3_HTTP_REQUEST_CANCELLED);
+    rv =
+        conn_call_send_stop_sending(conn, stream, NGHTTP3_H3_REQUEST_CANCELLED);
     if (rv != 0) {
       return rv;
     }

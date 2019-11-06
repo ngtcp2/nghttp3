@@ -1129,7 +1129,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
 
   CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
 
-  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_HTTP_NO_ERROR);
+  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
   CU_ASSERT(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING == rv);
 
@@ -1179,7 +1179,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
 
   CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
 
-  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_HTTP_NO_ERROR);
+  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
   CU_ASSERT(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING == rv);
 
@@ -1676,7 +1676,7 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
   CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
   CU_ASSERT(0 == stream->rx.http.content_length);
 
-  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_HTTP_NO_ERROR);
+  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
   CU_ASSERT(0 == rv);
 
@@ -1705,7 +1705,7 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
 
   CU_ASSERT(-1 == stream->rx.http.content_length);
 
-  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_HTTP_NO_ERROR);
+  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
   CU_ASSERT(0 == rv);
 
@@ -1733,7 +1733,7 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
   CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed);
   CU_ASSERT(-1 == stream->rx.http.content_length);
 
-  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_HTTP_NO_ERROR);
+  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
   CU_ASSERT(0 == rv);
 
@@ -1881,7 +1881,7 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   CU_ASSERT(sconsumed > 0);
   CU_ASSERT(sconsumed != (ssize_t)nghttp3_buf_len(&buf));
 
-  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_HTTP_NO_ERROR);
+  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
   CU_ASSERT(0 == rv);
 
@@ -2267,7 +2267,7 @@ void test_nghttp3_conn_recv_cancel_push(void) {
   CU_ASSERT(NULL != pp);
   CU_ASSERT(pp->stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF);
 
-  nghttp3_conn_close_stream(conn, 7, NGHTTP3_HTTP_NO_ERROR);
+  nghttp3_conn_close_stream(conn, 7, NGHTTP3_H3_NO_ERROR);
 
   pp = nghttp3_conn_find_push_promise(conn, 0);
 
@@ -2428,7 +2428,7 @@ void test_nghttp3_conn_cancel_push(void) {
   CU_ASSERT(NULL == stream->pp);
   CU_ASSERT(NGHTTP3_PUSH_STREAM_STATE_IGN_REST == stream->rstate.state);
 
-  rv = nghttp3_conn_close_stream(conn, 7, NGHTTP3_HTTP_NO_ERROR);
+  rv = nghttp3_conn_close_stream(conn, 7, NGHTTP3_H3_NO_ERROR);
 
   CU_ASSERT(0 == rv);
   CU_ASSERT(NULL == nghttp3_conn_find_stream(conn, 7));
@@ -2541,7 +2541,7 @@ void test_nghttp3_conn_cancel_push(void) {
   CU_ASSERT((ssize_t)nghttp3_buf_len(&buf) == sconsumed + 1024);
   CU_ASSERT(1 == ud.recv_data_cb.ncalled);
 
-  rv = nghttp3_conn_close_stream(conn, 7, NGHTTP3_HTTP_NO_ERROR);
+  rv = nghttp3_conn_close_stream(conn, 7, NGHTTP3_H3_NO_ERROR);
 
   CU_ASSERT(0 == rv);
   CU_ASSERT(NULL == nghttp3_conn_find_stream(conn, 7));
