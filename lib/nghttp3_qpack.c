@@ -2687,6 +2687,10 @@ static ssize_t qpack_read_huffman_string(nghttp3_qpack_read_state *rstate,
     return nwrite;
   }
 
+  if (nghttp3_qpack_huffman_decode_failure_state(&rstate->huffman_ctx)) {
+    return NGHTTP3_ERR_QPACK_FATAL;
+  }
+
   dest->last += nwrite;
   rstate->left -= len;
   return (ssize_t)len;

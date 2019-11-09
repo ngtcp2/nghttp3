@@ -67,6 +67,8 @@ int main() {
       !CU_add_test(pSuite, "qpack_decoder_stream_overflow",
                    test_nghttp3_qpack_decoder_stream_overflow) ||
       !CU_add_test(pSuite, "qpack_huffman", test_nghttp3_qpack_huffman) ||
+      !CU_add_test(pSuite, "qpack_huffman_decode_failure_state",
+                   test_nghttp3_qpack_huffman_decode_failure_state) ||
       !CU_add_test(pSuite, "conn_read_control",
                    test_nghttp3_conn_read_control) ||
       !CU_add_test(pSuite, "conn_write_control",

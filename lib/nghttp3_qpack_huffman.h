@@ -97,4 +97,11 @@ ssize_t nghttp3_qpack_huffman_decode(nghttp3_qpack_huffman_decode_context *ctx,
                                      uint8_t *dest, const uint8_t *src,
                                      size_t srclen, int fin);
 
+/*
+ * nghttp3_qpack_huffman_decode_failure_state returns nonzero if |ctx|
+ * indicates that huffman decoding context is in failure state.
+ */
+int nghttp3_qpack_huffman_decode_failure_state(
+    nghttp3_qpack_huffman_decode_context *ctx);
+
 #endif /* NGHTTP3_QPACK_HUFFMAN_H */

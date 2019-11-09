@@ -734,3 +734,21 @@ void test_nghttp3_qpack_huffman(void) {
     CU_ASSERT(0 == memcmp(raw, dbuf, sizeof(raw)));
   }
 }
+
+void test_nghttp3_qpack_huffman_decode_failure_state(void) {
+  nghttp3_qpack_huffman_decode_context ctx;
+  const uint8_t data[] = {0xff, 0xff, 0xff, 0xff};
+  uint8_t buf[4096];
+  ssize_t nwrite;
+
+  nghttp3_qpack_huffman_decode_context_init(&ctx);
+  nwrite = nghttp3_qpack_huffman_decode(&ctx, buf, data, sizeof(data) - 1, 0);
+
+  CU_ASSERT(0 == nwrite);
+  CU_ASSERT(!nghttp3_qpack_huffman_decode_failure_state(&ctx));
+
+  nwrite = nghttp3_qpack_huffman_decode(&ctx, buf, data, 1, 0);
+
+  CU_ASSERT(0 == nwrite);
+  CU_ASSERT(nghttp3_qpack_huffman_decode_failure_state(&ctx));
+}

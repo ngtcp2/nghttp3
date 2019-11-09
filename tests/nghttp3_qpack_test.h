@@ -35,5 +35,6 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void);
 void test_nghttp3_qpack_decoder_feedback(void);
 void test_nghttp3_qpack_huffman(void);
 void test_nghttp3_qpack_decoder_stream_overflow(void);
+void test_nghttp3_qpack_huffman_decode_failure_state(void);
 
 #endif /* NGTCP2_QPCK_TEST_H */
