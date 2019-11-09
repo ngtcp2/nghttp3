@@ -93,9 +93,10 @@ void nghttp3_qpack_huffman_decode_context_init(
  * NGHTTP3_ERR_QPACK_FATAL
  *     Could not decode huffman string.
  */
-ssize_t nghttp3_qpack_huffman_decode(nghttp3_qpack_huffman_decode_context *ctx,
-                                     uint8_t *dest, const uint8_t *src,
-                                     size_t srclen, int fin);
+nghttp3_ssize
+nghttp3_qpack_huffman_decode(nghttp3_qpack_huffman_decode_context *ctx,
+                             uint8_t *dest, const uint8_t *src, size_t srclen,
+                             int fin);
 
 /*
  * nghttp3_qpack_huffman_decode_failure_state returns nonzero if |ctx|

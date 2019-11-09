@@ -178,8 +178,8 @@ void nghttp3_stream_read_state_reset(nghttp3_stream_read_state *rstate) {
   memset(rstate, 0, sizeof(*rstate));
 }
 
-ssize_t nghttp3_read_varint(nghttp3_varint_read_state *rvint,
-                            const uint8_t *src, size_t srclen, int fin) {
+nghttp3_ssize nghttp3_read_varint(nghttp3_varint_read_state *rvint,
+                                  const uint8_t *src, size_t srclen, int fin) {
   size_t nread = 0;
   size_t n;
   size_t i;
@@ -193,7 +193,7 @@ ssize_t nghttp3_read_varint(nghttp3_varint_read_state *rvint,
     if (rvint->left <= srclen) {
       rvint->acc = nghttp3_get_varint(&nread, src);
       rvint->left = 0;
-      return (ssize_t)nread;
+      return (nghttp3_ssize)nread;
     }
 
     if (fin) {
@@ -220,7 +220,7 @@ ssize_t nghttp3_read_varint(nghttp3_varint_read_state *rvint,
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
-  return (ssize_t)nread;
+  return (nghttp3_ssize)nread;
 }
 
 int nghttp3_stream_frq_add(nghttp3_stream *stream,
@@ -625,7 +625,7 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
   nghttp3_frame_hd hd;
   nghttp3_vec vec[8];
   nghttp3_vec *v;
-  ssize_t sveccnt;
+  nghttp3_ssize sveccnt;
   size_t i;
 
   assert(!(stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED));
@@ -858,8 +858,8 @@ int nghttp3_stream_require_schedule(nghttp3_stream *stream) {
          nghttp3_tnode_has_active_descendant(&stream->node);
 }
 
-ssize_t nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
-                              nghttp3_vec *vec, size_t veccnt) {
+nghttp3_ssize nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
+                                    nghttp3_vec *vec, size_t veccnt) {
   nghttp3_ringbuf *outq = &stream->outq;
   size_t len = nghttp3_ringbuf_len(outq);
   size_t i;

@@ -265,7 +265,7 @@ static void ksl_insert_node(nghttp3_ksl *ksl, nghttp3_ksl_blk *blk, size_t i,
 static size_t ksl_bsearch(nghttp3_ksl *ksl, nghttp3_ksl_blk *blk,
                           const nghttp3_ksl_key *key,
                           nghttp3_ksl_compar compar) {
-  ssize_t left = -1, right = (ssize_t)blk->n, mid;
+  nghttp3_ssize left = -1, right = (nghttp3_ssize)blk->n, mid;
   nghttp3_ksl_node *node;
   nghttp3_ksl_key node_key;
 

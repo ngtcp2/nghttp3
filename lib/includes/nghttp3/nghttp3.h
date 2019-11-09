@@ -48,6 +48,7 @@ extern "C" {
 #endif /* !defined(_MSC_VER) || (_MSC_VER >= 1800) */
 #include <sys/types.h>
 #include <stdarg.h>
+#include <stddef.h>
 
 #include <nghttp3/version.h>
 
@@ -66,6 +67,8 @@ extern "C" {
 #    define NGHTTP3_EXTERN
 #  endif /* !BUILDING_NGHTTP3 */
 #endif   /* !defined(WIN32) */
+
+typedef ptrdiff_t nghttp3_ssize;
 
 typedef enum {
   NGHTTP3_ERR_INVALID_ARGUMENT = -101,
@@ -585,7 +588,7 @@ NGHTTP3_EXTERN int nghttp3_qpack_encoder_encode(
  * :enum:`NGHTTP3_ERR_QPACK_DECODER_STREAM`
  *     |encoder| is unable to process input because it is malformed.
  */
-NGHTTP3_EXTERN ssize_t nghttp3_qpack_encoder_read_decoder(
+NGHTTP3_EXTERN nghttp3_ssize nghttp3_qpack_encoder_read_decoder(
     nghttp3_qpack_encoder *encoder, const uint8_t *src, size_t srclen);
 
 /**
@@ -802,7 +805,7 @@ NGHTTP3_EXTERN void nghttp3_qpack_decoder_del(nghttp3_qpack_decoder *decoder);
  * :enum:`NGHTTP3_ERR_QPACK_ENCODER_STREAM`
  *     Could not interpret encoder stream instruction.
  */
-NGHTTP3_EXTERN ssize_t nghttp3_qpack_decoder_read_encoder(
+NGHTTP3_EXTERN nghttp3_ssize nghttp3_qpack_decoder_read_encoder(
     nghttp3_qpack_decoder *decoder, const uint8_t *src, size_t srclen);
 
 /**
@@ -878,7 +881,7 @@ typedef enum {
  * :enum:`NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE`
  *     Header field is too large.
  */
-NGHTTP3_EXTERN ssize_t nghttp3_qpack_decoder_read_request(
+NGHTTP3_EXTERN nghttp3_ssize nghttp3_qpack_decoder_read_request(
     nghttp3_qpack_decoder *decoder, nghttp3_qpack_stream_context *sctx,
     nghttp3_qpack_nv *nv, uint8_t *pflags, const uint8_t *src, size_t srclen,
     int fin);
@@ -1348,10 +1351,10 @@ typedef union {
  * type:`nghttp3_recv_data` to handle those bytes.  If |fin| is
  * nonzero, this is the last data from remote endpoint in this stream.
  */
-NGHTTP3_EXTERN ssize_t nghttp3_conn_read_stream(nghttp3_conn *conn,
-                                                int64_t stream_id,
-                                                const uint8_t *src,
-                                                size_t srclen, int fin);
+NGHTTP3_EXTERN nghttp3_ssize nghttp3_conn_read_stream(nghttp3_conn *conn,
+                                                      int64_t stream_id,
+                                                      const uint8_t *src,
+                                                      size_t srclen, int fin);
 
 /**
  * @function
@@ -1365,10 +1368,11 @@ NGHTTP3_EXTERN ssize_t nghttp3_conn_read_stream(nghttp3_conn *conn,
  * send.  If there is no stream to write data or send fin, this
  * function returns 0, and -1 is assigned to |*pstream_id|.
  */
-NGHTTP3_EXTERN ssize_t nghttp3_conn_writev_stream(nghttp3_conn *conn,
-                                                  int64_t *pstream_id,
-                                                  int *pfin, nghttp3_vec *vec,
-                                                  size_t veccnt);
+NGHTTP3_EXTERN nghttp3_ssize nghttp3_conn_writev_stream(nghttp3_conn *conn,
+                                                        int64_t *pstream_id,
+                                                        int *pfin,
+                                                        nghttp3_vec *vec,
+                                                        size_t veccnt);
 
 /**
  * @function
@@ -1517,7 +1521,7 @@ nghttp3_conn_set_max_concurrent_streams(nghttp3_conn *conn,
  * TODO Add NGHTTP3_ERR_TEMPORAL_CALLBACK_FAILURE to reset just this
  * stream.
  */
-typedef ssize_t (*nghttp3_read_data_callback)(
+typedef nghttp3_ssize (*nghttp3_read_data_callback)(
     nghttp3_conn *conn, int64_t stream_id, nghttp3_vec *vec, size_t veccnt,
     uint32_t *pflags, void *conn_user_data, void *stream_user_data);
 

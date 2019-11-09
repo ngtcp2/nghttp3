@@ -186,25 +186,28 @@ int nghttp3_conn_create_push_promise(nghttp3_conn *conn,
                                      int64_t push_id, uint32_t weight,
                                      nghttp3_tnode *parent);
 
-ssize_t nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
-                               nghttp3_stream *stream, const uint8_t *src,
-                               size_t srclen, int fin);
+nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
+                                     nghttp3_stream *stream, const uint8_t *src,
+                                     size_t srclen, int fin);
 
-ssize_t nghttp3_conn_read_uni(nghttp3_conn *conn, nghttp3_stream *stream,
-                              const uint8_t *src, size_t srclen, int fin);
+nghttp3_ssize nghttp3_conn_read_uni(nghttp3_conn *conn, nghttp3_stream *stream,
+                                    const uint8_t *src, size_t srclen, int fin);
 
-ssize_t nghttp3_conn_read_control(nghttp3_conn *conn, nghttp3_stream *stream,
-                                  const uint8_t *src, size_t srclen);
+nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
+                                        nghttp3_stream *stream,
+                                        const uint8_t *src, size_t srclen);
 
-ssize_t nghttp3_conn_read_push(nghttp3_conn *conn, size_t *pnproc,
-                               nghttp3_stream *stream, const uint8_t *src,
-                               size_t srclen, int fin);
+nghttp3_ssize nghttp3_conn_read_push(nghttp3_conn *conn, size_t *pnproc,
+                                     nghttp3_stream *stream, const uint8_t *src,
+                                     size_t srclen, int fin);
 
-ssize_t nghttp3_conn_read_qpack_encoder(nghttp3_conn *conn, const uint8_t *src,
-                                        size_t srclen);
+nghttp3_ssize nghttp3_conn_read_qpack_encoder(nghttp3_conn *conn,
+                                              const uint8_t *src,
+                                              size_t srclen);
 
-ssize_t nghttp3_conn_read_qpack_decoder(nghttp3_conn *conn, const uint8_t *src,
-                                        size_t srclen);
+nghttp3_ssize nghttp3_conn_read_qpack_decoder(nghttp3_conn *conn,
+                                              const uint8_t *src,
+                                              size_t srclen);
 
 int nghttp3_conn_on_push_promise_push_id(nghttp3_conn *conn, int64_t push_id,
                                          nghttp3_stream *stream);
@@ -221,9 +224,11 @@ int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
 int nghttp3_conn_on_data(nghttp3_conn *conn, nghttp3_stream *stream,
                          const uint8_t *data, size_t datalen);
 
-ssize_t nghttp3_conn_on_headers(nghttp3_conn *conn, nghttp3_stream *stream,
-                                nghttp3_push_promise *pp, const uint8_t *data,
-                                size_t datalen, int fin);
+nghttp3_ssize nghttp3_conn_on_headers(nghttp3_conn *conn,
+                                      nghttp3_stream *stream,
+                                      nghttp3_push_promise *pp,
+                                      const uint8_t *data, size_t datalen,
+                                      int fin);
 
 int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
                                             const nghttp3_frame_settings *fr);

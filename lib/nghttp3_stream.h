@@ -277,8 +277,8 @@ void nghttp3_varint_read_state_reset(nghttp3_varint_read_state *rvint);
 
 void nghttp3_stream_read_state_reset(nghttp3_stream_read_state *rstate);
 
-ssize_t nghttp3_read_varint(nghttp3_varint_read_state *rvint,
-                            const uint8_t *src, size_t srclen, int fin);
+nghttp3_ssize nghttp3_read_varint(nghttp3_varint_read_state *rvint,
+                                  const uint8_t *src, size_t srclen, int fin);
 
 int nghttp3_stream_frq_add(nghttp3_stream *stream,
                            const nghttp3_frame_entry *frent);
@@ -289,8 +289,8 @@ int nghttp3_stream_write_stream_type(nghttp3_stream *stream);
 
 int nghttp3_stream_write_stream_type_push_id(nghttp3_stream *stream);
 
-ssize_t nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
-                              nghttp3_vec *vec, size_t veccnt);
+nghttp3_ssize nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
+                                    nghttp3_vec *vec, size_t veccnt);
 
 int nghttp3_stream_write_qpack_decoder_stream(nghttp3_stream *stream);
 

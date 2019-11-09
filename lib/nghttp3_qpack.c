@@ -1490,7 +1490,7 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
       }
 
       new_ent = nghttp3_qpack_context_dtable_top(&encoder->ctx);
-      dres.index = (ssize_t)new_ent->absidx;
+      dres.index = (nghttp3_ssize)new_ent->absidx;
     }
     *pmax_cnt = nghttp3_max(*pmax_cnt, (size_t)(dres.index + 1));
     *pmin_cnt = nghttp3_min(*pmin_cnt, (size_t)(dres.index + 1));
@@ -1589,8 +1589,8 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
 nghttp3_qpack_lookup_result
 nghttp3_qpack_lookup_stable(const nghttp3_nv *nv, int32_t token,
                             nghttp3_qpack_indexing_mode indexing_mode) {
-  nghttp3_qpack_lookup_result res = {(ssize_t)token_stable[token].absidx, 0,
-                                     -1};
+  nghttp3_qpack_lookup_result res = {(nghttp3_ssize)token_stable[token].absidx,
+                                     0, -1};
   nghttp3_qpack_static_entry *ent;
   nghttp3_qpack_static_header *hdr;
   size_t i;
@@ -1608,7 +1608,7 @@ nghttp3_qpack_lookup_stable(const nghttp3_nv *nv, int32_t token,
     hdr = &stable[ent->absidx];
     if (hdr->value.len == nv->valuelen &&
         memeq(hdr->value.base, nv->value, nv->valuelen)) {
-      res.index = (ssize_t)ent->absidx;
+      res.index = (nghttp3_ssize)ent->absidx;
       res.name_value_match = 1;
       return res;
     }
@@ -1628,11 +1628,11 @@ nghttp3_qpack_lookup_result nghttp3_qpack_encoder_lookup_dtable(
                          hash, krcnt, allow_blocking,
                          indexing_mode == NGHTTP3_QPACK_INDEXING_MODE_NEVER);
   if (match) {
-    res.index = (ssize_t)match->absidx;
+    res.index = (nghttp3_ssize)match->absidx;
     res.name_value_match = exact_match;
   }
   if (pb_match) {
-    res.pb_index = (ssize_t)pb_match->absidx;
+    res.pb_index = (nghttp3_ssize)pb_match->absidx;
   }
 
   return res;
@@ -2425,8 +2425,10 @@ int nghttp3_qpack_encoder_write_header_block_prefix(
  * returns number of bytes processed, or returns negative error code
  * NGHTTP3_ERR_QPACK_FATAL, indicating decoding error.
  */
-static ssize_t qpack_read_varint(int *fin, nghttp3_qpack_read_state *rstate,
-                                 const uint8_t *begin, const uint8_t *end) {
+static nghttp3_ssize qpack_read_varint(int *fin,
+                                       nghttp3_qpack_read_state *rstate,
+                                       const uint8_t *begin,
+                                       const uint8_t *end) {
   uint64_t k = (uint8_t)((1 << rstate->prefix) - 1);
   uint64_t n = rstate->left;
   uint64_t add;
@@ -2447,7 +2449,7 @@ static ssize_t qpack_read_varint(int *fin, nghttp3_qpack_read_state *rstate,
 
     if (++p == end) {
       rstate->left = n;
-      return (ssize_t)(p - begin);
+      return (nghttp3_ssize)(p - begin);
     }
   }
 
@@ -2479,19 +2481,20 @@ static ssize_t qpack_read_varint(int *fin, nghttp3_qpack_read_state *rstate,
 
   if (p == end) {
     rstate->left = n;
-    return (ssize_t)(p - begin);
+    return (nghttp3_ssize)(p - begin);
   }
 
   rstate->left = n;
   *fin = 1;
-  return (ssize_t)(p + 1 - begin);
+  return (nghttp3_ssize)(p + 1 - begin);
 }
 
-ssize_t nghttp3_qpack_encoder_read_decoder(nghttp3_qpack_encoder *encoder,
-                                           const uint8_t *src, size_t srclen) {
+nghttp3_ssize nghttp3_qpack_encoder_read_decoder(nghttp3_qpack_encoder *encoder,
+                                                 const uint8_t *src,
+                                                 size_t srclen) {
   const uint8_t *p = src, *end = src + srclen;
   int rv;
-  ssize_t nread;
+  nghttp3_ssize nread;
   int rfin;
 
   if (encoder->ctx.bad) {
@@ -2667,11 +2670,11 @@ void nghttp3_qpack_decoder_free(nghttp3_qpack_decoder *decoder) {
  * NGHTTP3_ERR_QPACK_FATAL
  *     Could not decode huffman string.
  */
-static ssize_t qpack_read_huffman_string(nghttp3_qpack_read_state *rstate,
-                                         nghttp3_buf *dest,
-                                         const uint8_t *begin,
-                                         const uint8_t *end) {
-  ssize_t nwrite;
+static nghttp3_ssize qpack_read_huffman_string(nghttp3_qpack_read_state *rstate,
+                                               nghttp3_buf *dest,
+                                               const uint8_t *begin,
+                                               const uint8_t *end) {
+  nghttp3_ssize nwrite;
   size_t len = (size_t)(end - begin);
   int fin = 0;
 
@@ -2693,19 +2696,19 @@ static ssize_t qpack_read_huffman_string(nghttp3_qpack_read_state *rstate,
 
   dest->last += nwrite;
   rstate->left -= len;
-  return (ssize_t)len;
+  return (nghttp3_ssize)len;
 }
 
-static ssize_t qpack_read_string(nghttp3_qpack_read_state *rstate,
-                                 nghttp3_buf *dest, const uint8_t *begin,
-                                 const uint8_t *end) {
+static nghttp3_ssize qpack_read_string(nghttp3_qpack_read_state *rstate,
+                                       nghttp3_buf *dest, const uint8_t *begin,
+                                       const uint8_t *end) {
   size_t len = (size_t)(end - begin);
   size_t n = nghttp3_min(len, rstate->left);
 
   dest->last = nghttp3_cpymem(dest->last, begin, n);
 
   rstate->left -= n;
-  return (ssize_t)n;
+  return (nghttp3_ssize)n;
 }
 
 /*
@@ -2745,13 +2748,14 @@ static void qpack_read_state_terminate_value(nghttp3_qpack_read_state *rstate) {
   rstate->value->len = nghttp3_buf_len(&rstate->valuebuf);
 }
 
-ssize_t nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
-                                           const uint8_t *src, size_t srclen) {
+nghttp3_ssize nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
+                                                 const uint8_t *src,
+                                                 size_t srclen) {
   const uint8_t *p = src, *end = src + srclen;
   int rv;
   int busy = 0;
   const nghttp3_mem *mem = decoder->ctx.mem;
-  ssize_t nread;
+  nghttp3_ssize nread;
   int rfin;
 
   if (decoder->ctx.bad) {
@@ -3212,15 +3216,15 @@ nghttp3_qpack_stream_context_get_ricnt(nghttp3_qpack_stream_context *sctx) {
   return sctx->ricnt;
 }
 
-ssize_t nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
-                                           nghttp3_qpack_stream_context *sctx,
-                                           nghttp3_qpack_nv *nv,
-                                           uint8_t *pflags, const uint8_t *src,
-                                           size_t srclen, int fin) {
+nghttp3_ssize
+nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
+                                   nghttp3_qpack_stream_context *sctx,
+                                   nghttp3_qpack_nv *nv, uint8_t *pflags,
+                                   const uint8_t *src, size_t srclen, int fin) {
   const uint8_t *p = src, *end = src + srclen;
   int rv;
   int busy = 0;
-  ssize_t nread;
+  nghttp3_ssize nread;
   int rfin;
   const nghttp3_mem *mem = decoder->ctx.mem;
 

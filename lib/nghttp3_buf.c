@@ -54,7 +54,7 @@ void nghttp3_buf_reset(nghttp3_buf *buf) { buf->pos = buf->last = buf->begin; }
 
 int nghttp3_buf_reserve(nghttp3_buf *buf, size_t size, const nghttp3_mem *mem) {
   uint8_t *p;
-  ssize_t pos_offset, last_offset;
+  nghttp3_ssize pos_offset, last_offset;
 
   if ((size_t)(buf->end - buf->begin) >= size) {
     return 0;

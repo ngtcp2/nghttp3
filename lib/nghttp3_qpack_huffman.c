@@ -82,9 +82,10 @@ void nghttp3_qpack_huffman_decode_context_init(
   ctx->fstate = NGHTTP3_QPACK_HUFFMAN_ACCEPTED;
 }
 
-ssize_t nghttp3_qpack_huffman_decode(nghttp3_qpack_huffman_decode_context *ctx,
-                                     uint8_t *dest, const uint8_t *src,
-                                     size_t srclen, int fin) {
+nghttp3_ssize
+nghttp3_qpack_huffman_decode(nghttp3_qpack_huffman_decode_context *ctx,
+                             uint8_t *dest, const uint8_t *src, size_t srclen,
+                             int fin) {
   uint8_t *p = dest;
   const uint8_t *end = src + srclen;
   nghttp3_qpack_huffman_decode_node node = {ctx->fstate, 0};
