@@ -962,7 +962,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
 nghttp3_ssize nghttp3_conn_read_push(nghttp3_conn *conn, size_t *pnproc,
                                      nghttp3_stream *stream, const uint8_t *src,
                                      size_t srclen, int fin) {
-  const uint8_t *p = src, *end = src + srclen;
+  const uint8_t *p = src, *end = src ? src + srclen : src;
   int rv;
   nghttp3_stream_read_state *rstate = &stream->rstate;
   nghttp3_varint_read_state *rvint = &rstate->rvint;
@@ -1416,7 +1416,7 @@ nghttp3_ssize nghttp3_conn_read_qpack_decoder(nghttp3_conn *conn,
 nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
                                      nghttp3_stream *stream, const uint8_t *src,
                                      size_t srclen, int fin) {
-  const uint8_t *p = src, *end = src + srclen;
+  const uint8_t *p = src, *end = src ? src + srclen : src;
   int rv;
   nghttp3_stream_read_state *rstate = &stream->rstate;
   nghttp3_varint_read_state *rvint = &rstate->rvint;
