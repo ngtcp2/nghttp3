@@ -49,5 +49,6 @@ void test_nghttp3_conn_recv_push_promise(void);
 void test_nghttp3_conn_recv_push_stream(void);
 void test_nghttp3_conn_just_fin(void);
 void test_nghttp3_conn_submit_response_read_blocked(void);
+void test_nghttp3_conn_recv_uni(void);
 
 #endif /* NGTCP2_CONN_TEST_H */

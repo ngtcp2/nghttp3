@@ -2987,3 +2987,57 @@ void test_nghttp3_conn_submit_response_read_blocked(void) {
 
   nghttp3_conn_del(conn);
 }
+
+void test_nghttp3_conn_recv_uni(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  nghttp3_conn_callbacks callbacks;
+  nghttp3_conn_settings settings;
+  nghttp3_ssize nread;
+  uint8_t buf[256];
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  nghttp3_conn_settings_default(&settings);
+
+  /* 0 length unidirectional stream must be ignored */
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+
+  nread = nghttp3_conn_read_stream(conn, 3, NULL, 0, /* fin = */ 1);
+
+  CU_ASSERT(0 == nread);
+  CU_ASSERT(NULL == nghttp3_conn_find_stream(conn, 3));
+
+  nghttp3_conn_del(conn);
+
+  /* 0 length unidirectional stream; first get 0 length without fin,
+     and then get 0 length with fin. */
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+
+  nread = nghttp3_conn_read_stream(conn, 3, NULL, 0, /* fin = */ 0);
+
+  CU_ASSERT(0 == nread);
+  CU_ASSERT(NULL != nghttp3_conn_find_stream(conn, 3));
+
+  nread = nghttp3_conn_read_stream(conn, 3, NULL, 0, /* fin = */ 1);
+
+  CU_ASSERT(0 == nread);
+  CU_ASSERT(NULL == nghttp3_conn_find_stream(conn, 3));
+
+  nghttp3_conn_del(conn);
+
+  /* Fin while reading stream header is treated as error. */
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+
+  /* 4 bytes integer */
+  buf[0] = 0xc0;
+  nread = nghttp3_conn_read_stream(conn, 3, buf, 1, /* fin = */ 0);
+
+  CU_ASSERT(1 == nread);
+  CU_ASSERT(NULL != nghttp3_conn_find_stream(conn, 3));
+
+  nread = nghttp3_conn_read_stream(conn, 3, NULL, 0, /* fin = */ 1);
+
+  CU_ASSERT(NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR == nread);
+
+  nghttp3_conn_del(conn);
+}
