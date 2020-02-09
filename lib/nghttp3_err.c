@@ -87,6 +87,8 @@ const char *nghttp3_strerror(int liberr) {
 
 uint64_t nghttp3_err_infer_quic_app_error_code(int liberr) {
   switch (liberr) {
+  case 0:
+    return NGHTTP3_H3_NO_ERROR;
   case NGHTTP3_ERR_HTTP_QPACK_DECOMPRESSION_FAILED:
     return NGHTTP3_HTTP_QPACK_DECOMPRESSION_FAILED;
   case NGHTTP3_ERR_HTTP_QPACK_ENCODER_STREAM_ERROR:
