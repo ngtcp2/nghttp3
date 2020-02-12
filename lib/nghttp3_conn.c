@@ -2679,7 +2679,7 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
   if (stream != NULL) {
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
+    return NGHTTP3_ERR_STREAM_IN_USE;
   }
 
   rv = nghttp3_conn_create_stream(conn, &stream, stream_id);
