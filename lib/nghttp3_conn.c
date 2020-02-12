@@ -1975,7 +1975,7 @@ int nghttp3_conn_on_server_cancel_push(nghttp3_conn *conn,
     rv = nghttp3_conn_close_stream(conn, stream->node.nid.id,
                                    NGHTTP3_H3_REQUEST_CANCELLED);
     if (rv != 0) {
-      assert(NGHTTP3_ERR_INVALID_ARGUMENT != rv);
+      assert(NGHTTP3_ERR_STREAM_NOT_FOUND != rv);
       return rv;
     }
     return 0;
@@ -2590,7 +2590,7 @@ int nghttp3_conn_add_write_offset(nghttp3_conn *conn, int64_t stream_id,
   int rv;
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
   rv = nghttp3_stream_add_outq_offset(stream, n);
@@ -2614,7 +2614,7 @@ int nghttp3_conn_add_ack_offset(nghttp3_conn *conn, int64_t stream_id,
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
   return nghttp3_stream_add_ack_offset(stream, n);
@@ -2710,7 +2710,7 @@ int nghttp3_conn_submit_info(nghttp3_conn *conn, int64_t stream_id,
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
   if (stream == NULL) {
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
   return conn_submit_headers_data(conn, stream, nva, nvlen, NULL);
@@ -2727,7 +2727,7 @@ int nghttp3_conn_submit_response(nghttp3_conn *conn, int64_t stream_id,
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
   if (stream == NULL) {
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
   if (dr == NULL) {
@@ -2746,7 +2746,7 @@ int nghttp3_conn_submit_trailers(nghttp3_conn *conn, int64_t stream_id,
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
   if (stream == NULL) {
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
   if (stream->flags & NGHTTP3_STREAM_FLAG_WRITE_END_STREAM) {
@@ -2774,7 +2774,7 @@ int nghttp3_conn_submit_push_promise(nghttp3_conn *conn, int64_t *ppush_id,
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
   if (stream == NULL) {
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
   if (conn->local.uni.max_pushes <= (uint64_t)conn->local.uni.next_push_id) {
@@ -2927,7 +2927,7 @@ int nghttp3_conn_block_stream(nghttp3_conn *conn, int64_t stream_id) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
   stream->flags |= NGHTTP3_STREAM_FLAG_FC_BLOCKED;
@@ -2943,7 +2943,7 @@ int nghttp3_conn_unblock_stream(nghttp3_conn *conn, int64_t stream_id) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
   stream->flags &= (uint16_t)~NGHTTP3_STREAM_FLAG_FC_BLOCKED;
@@ -2960,7 +2960,7 @@ int nghttp3_conn_resume_stream(nghttp3_conn *conn, int64_t stream_id) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
   stream->flags &= (uint16_t)~NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED;
@@ -2979,7 +2979,7 @@ int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id,
   int rv;
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
   if (nghttp3_stream_uni(stream_id) &&
@@ -3067,7 +3067,7 @@ int nghttp3_conn_set_stream_user_data(nghttp3_conn *conn, int64_t stream_id,
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
   stream->user_data = stream_user_data;
@@ -3080,7 +3080,7 @@ int64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_INVALID_ARGUMENT;
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
   return stream->rstate.left;
