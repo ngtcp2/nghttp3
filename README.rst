@@ -19,6 +19,7 @@ only.
 
 For older draft implementations:
 
+- `draft-25 <https://github.com/ngtcp2/nghttp3/tree/draft-25>`_
 - `draft-24 <https://github.com/ngtcp2/nghttp3/tree/draft-24>`_
 - `draft-23 <https://github.com/ngtcp2/nghttp3/tree/draft-23>`_
 - `draft-22 <https://github.com/ngtcp2/nghttp3/tree/draft-22>`_
@@ -26,14 +27,14 @@ For older draft implementations:
 HTTP/3
 ------
 
-This library implements HTTP/3 draft-25.  It can exchange basic HTTP
+This library implements HTTP/3 draft-27.  It can exchange basic HTTP
 request, response and server push, but does not fully implement the
 specification at the moment.
 
 QPACK
 -----
 
-This library implements QPACK draft-12.  It supports dynamic table.
+This library implements QPACK draft-14.  It supports dynamic table.
 
 License
 -------
