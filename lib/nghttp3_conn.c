@@ -759,7 +759,6 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
       case NGHTTP3_FRAME_DATA:
       case NGHTTP3_FRAME_HEADERS:
       case NGHTTP3_FRAME_PUSH_PROMISE:
-      case NGHTTP3_FRAME_DUPLICATE_PUSH:
         return NGHTTP3_ERR_H3_FRAME_UNEXPECTED;
       default:
         /* TODO Handle reserved frame type */
@@ -1132,7 +1131,6 @@ nghttp3_ssize nghttp3_conn_read_push(nghttp3_conn *conn, size_t *pnproc,
         rstate->state = NGHTTP3_PUSH_STREAM_STATE_HEADERS;
         break;
       case NGHTTP3_FRAME_PUSH_PROMISE:
-      case NGHTTP3_FRAME_DUPLICATE_PUSH:
       case NGHTTP3_FRAME_CANCEL_PUSH:
       case NGHTTP3_FRAME_SETTINGS:
       case NGHTTP3_FRAME_GOAWAY:
@@ -1550,16 +1548,6 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
 
         rstate->state = NGHTTP3_REQ_STREAM_STATE_PUSH_PROMISE_PUSH_ID;
         break;
-      case NGHTTP3_FRAME_DUPLICATE_PUSH:
-        if (conn->server) {
-          return NGHTTP3_ERR_H3_FRAME_UNEXPECTED;
-        }
-
-        if (rstate->left == 0) {
-          return NGHTTP3_ERR_H3_FRAME_ERROR;
-        }
-        rstate->state = NGHTTP3_REQ_STREAM_STATE_DUPLICATE_PUSH;
-        break;
       case NGHTTP3_FRAME_CANCEL_PUSH:
       case NGHTTP3_FRAME_SETTINGS:
       case NGHTTP3_FRAME_GOAWAY:
@@ -1777,7 +1765,6 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
 
       nghttp3_stream_read_state_reset(rstate);
       break;
-    case NGHTTP3_REQ_STREAM_STATE_DUPLICATE_PUSH:
     case NGHTTP3_REQ_STREAM_STATE_IGN_FRAME:
       len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
       p += len;

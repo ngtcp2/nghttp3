@@ -1266,7 +1266,6 @@ typedef enum {
   NGHTTP3_FRAME_PUSH_PROMISE = 0x05,
   NGHTTP3_FRAME_GOAWAY = 0x07,
   NGHTTP3_FRAME_MAX_PUSH_ID = 0x0d,
-  NGHTTP3_FRAME_DUPLICATE_PUSH = 0x0e,
 } nghttp3_frame_type;
 
 typedef struct {
@@ -1321,11 +1320,6 @@ typedef struct {
   int64_t push_id;
 } nghttp3_frame_max_push_id;
 
-typedef struct {
-  nghttp3_frame_hd hd;
-  int64_t push_id;
-} nghttp3_frame_duplicate_push;
-
 typedef union {
   nghttp3_frame_hd hd;
   nghttp3_frame_data data;
@@ -1335,7 +1329,6 @@ typedef union {
   nghttp3_frame_push_promise push_promise;
   nghttp3_frame_goaway goaway;
   nghttp3_frame_max_push_id max_push_id;
-  nghttp3_frame_duplicate_push duplicate_push;
 } nghttp3_frame;
 
 /**
