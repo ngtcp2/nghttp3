@@ -1423,7 +1423,9 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
   int busy = 0;
   size_t len;
   nghttp3_push_promise *pp;
-  nghttp3_push_promise fake_pp = {0};
+  nghttp3_push_promise fake_pp = {
+      {0}, {{0}, {0}, NULL, NULL, NULL, 0, {0}, 0, 0, 0, 0, 0}, {0}, NULL, -1,
+      0};
 
   if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
     *pnproc = 0;
@@ -1705,7 +1707,6 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       nghttp3_stream_read_state_reset(rstate);
       break;
     case NGHTTP3_REQ_STREAM_STATE_IGN_PUSH_PROMISE:
-      fake_pp.stream_id = -1;
       len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
       nread = nghttp3_conn_on_headers(conn, stream, &fake_pp, p, len,
                                       (int64_t)len == rstate->left);
