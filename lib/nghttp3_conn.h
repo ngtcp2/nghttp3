@@ -71,6 +71,12 @@ typedef enum {
   /* NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_RECLAIMED indicates that
      unsent_max_pushes has been updated for this push ID. */
   NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_RECLAIMED = 0x08,
+  /* NGHTTP3_PUSH_PROMISE_FLAG_BOUND is set if nghttp3_push_promise
+     object is bound to a stream where PUSH_PROMISE frame is received
+     first.  nghttp3_push_promise object might be created before
+     receiving any PUSH_PROMISE when pushed stream is received before
+     it.*/
+  NGHTTP3_PUSH_PROMISE_FLAG_BOUND = 0x10,
 } nghttp3_push_promise_flag;
 
 struct nghttp3_push_promise;
@@ -83,9 +89,17 @@ struct nghttp3_push_promise {
   /* stream is server initiated unidirectional stream which fulfils
      the push promise. */
   nghttp3_stream *stream;
+  /* stream_id is the stream ID where this PUSH_PROMISE is first
+     received.  PUSH_PROMISE with same push ID is allowed to be sent
+     in the multiple streams.  We ignore those duplicated PUSH_PROMISE
+     entirely because we don't see any value to add extra cost of
+     processing for it.  Even ignoring those frame is not yet easy
+     because we have to decode the header blocks.  Server push is
+     overly complex and there is no good use case after all. */
+  int64_t stream_id;
   /* flags is bitwise OR of zero or more of
      nghttp3_push_promise_flag. */
-  uint8_t flags;
+  uint16_t flags;
 };
 
 typedef enum {

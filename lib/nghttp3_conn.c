@@ -1423,6 +1423,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
   int busy = 0;
   size_t len;
   nghttp3_push_promise *pp;
+  nghttp3_push_promise fake_pp = {0};
 
   if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
     *pnproc = 0;
@@ -1604,10 +1605,19 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       rv = nghttp3_conn_on_push_promise_push_id(
           conn, rstate->fr.push_promise.push_id, stream);
       if (rv != 0) {
+        if (rv == NGHTTP3_ERR_IGNORE_PUSH_PROMISE) {
+          rstate->state = NGHTTP3_REQ_STREAM_STATE_IGN_PUSH_PROMISE;
+          if (p == end) {
+            goto almost_done;
+          }
+          break;
+        }
+
         return rv;
       }
 
       rstate->state = NGHTTP3_REQ_STREAM_STATE_PUSH_PROMISE;
+
       if (p == end) {
         goto almost_done;
       }
@@ -1690,6 +1700,36 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
             return rv;
           }
         }
+      }
+
+      nghttp3_stream_read_state_reset(rstate);
+      break;
+    case NGHTTP3_REQ_STREAM_STATE_IGN_PUSH_PROMISE:
+      fake_pp.stream_id = -1;
+      len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
+      nread = nghttp3_conn_on_headers(conn, stream, &fake_pp, p, len,
+                                      (int64_t)len == rstate->left);
+      if (nread < 0) {
+        return nread;
+      }
+
+      p += nread;
+      nconsumed += (size_t)nread;
+      rstate->left -= nread;
+
+      if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
+        if (p != end && nghttp3_stream_get_buffered_datalen(stream) == 0) {
+          rv = nghttp3_stream_buffer_data(stream, p, (size_t)(end - p));
+          if (rv != 0) {
+            return rv;
+          }
+        }
+        *pnproc = (size_t)(p - src);
+        return (nghttp3_ssize)nconsumed;
+      }
+
+      if (rstate->left) {
+        goto almost_done;
       }
 
       nghttp3_stream_read_state_reset(rstate);
@@ -1840,6 +1880,10 @@ int nghttp3_conn_on_push_promise_push_id(nghttp3_conn *conn, int64_t push_id,
 
   pp = nghttp3_conn_find_push_promise(conn, push_id);
   if (pp) {
+    if ((pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_BOUND) ||
+        (pp->stream_id != -1 && pp->stream_id != stream->node.nid.id)) {
+      return NGHTTP3_ERR_IGNORE_PUSH_PROMISE;
+    }
     if (pp->stream) {
       assert(pp->stream->flags & NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED);
       /* Push unidirectional stream has already been received and
@@ -1851,13 +1895,18 @@ int nghttp3_conn_on_push_promise_push_id(nghttp3_conn *conn, int64_t push_id,
       return NGHTTP3_ERR_H3_FRAME_ERROR;
     }
 
+    assert(pp->stream_id == -1);
+
+    pp->stream_id = stream->node.nid.id;
+    pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_BOUND;
+
     if (!(pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED) &&
         pp->node.parent == &conn->orphan_root) {
       nghttp3_tnode_remove(&pp->node);
       nghttp3_tnode_insert(&pp->node, &stream->node);
     }
   } else if (nghttp3_gaptr_is_pushed(push_idtr, (uint64_t)push_id, 1)) {
-    return NGHTTP3_ERR_H3_FRAME_ERROR;
+    return NGHTTP3_ERR_IGNORE_PUSH_PROMISE;
   } else {
     rv = nghttp3_gaptr_push(push_idtr, (uint64_t)push_id, 1);
     if (rv != 0) {
@@ -2064,12 +2113,18 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
   nghttp3_http_state *http;
   int request = 0;
   int trailers = 0;
+  int ignore_pp = 0;
 
   assert(srclen);
 
   if (pp) {
     request = 1;
-    http = &pp->http;
+    ignore_pp = pp->stream_id != stream->node.nid.id;
+    if (ignore_pp) {
+      http = NULL;
+    } else {
+      http = &pp->http;
+    }
   } else {
     switch (stream->rx.hstate) {
     case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
@@ -2130,6 +2185,15 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
     }
 
     if (flags & NGHTTP3_QPACK_DECODE_FLAG_EMIT) {
+      if (ignore_pp) {
+        nghttp3_rcbuf_decref(nv.name);
+        nghttp3_rcbuf_decref(nv.value);
+
+        continue;
+      }
+
+      assert(http);
+
       rv = nghttp3_http_on_header(http, stream->rstate.fr.hd.type, &nv, request,
                                   trailers);
       switch (rv) {
@@ -3142,6 +3206,13 @@ int nghttp3_push_promise_new(nghttp3_push_promise **ppp, int64_t push_id,
   pp->node.nid.id = push_id;
   pp->http.status_code = -1;
   pp->http.content_length = -1;
+
+  if (parent->nid.type == NGHTTP3_NODE_ID_TYPE_STREAM) {
+    pp->stream_id = parent->nid.id;
+    pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_BOUND;
+  } else {
+    pp->stream_id = -1;
+  }
 
   *ppp = pp;
 

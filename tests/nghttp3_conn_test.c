@@ -57,6 +57,15 @@ typedef struct {
   struct {
     size_t ncalled;
   } push_stream_cb;
+  struct {
+    size_t ncalled;
+  } begin_push_promise_cb;
+  struct {
+    size_t ncalled;
+  } recv_push_promise_cb;
+  struct {
+    size_t ncalled;
+  } end_push_promise_cb;
 } userdata;
 
 static int acked_stream_data(nghttp3_conn *conn, int64_t stream_id,
@@ -102,6 +111,57 @@ static int end_headers(nghttp3_conn *conn, int64_t stream_id, void *user_data,
   (void)stream_id;
   (void)stream_user_data;
   (void)user_data;
+  return 0;
+}
+
+static int begin_push_promise(nghttp3_conn *conn, int64_t stream_id,
+                              int64_t push_id, void *user_data,
+                              void *stream_user_data) {
+  userdata *ud = user_data;
+
+  (void)conn;
+  (void)stream_id;
+  (void)push_id;
+  (void)stream_user_data;
+
+  ++ud->begin_push_promise_cb.ncalled;
+
+  return 0;
+}
+
+static int recv_push_promise(nghttp3_conn *conn, int64_t stream_id,
+                             int64_t push_id, int32_t token,
+                             nghttp3_rcbuf *name, nghttp3_rcbuf *value,
+                             uint8_t flags, void *user_data,
+                             void *stream_user_data) {
+  userdata *ud = user_data;
+
+  (void)conn;
+  (void)stream_id;
+  (void)push_id;
+  (void)token;
+  (void)name;
+  (void)value;
+  (void)flags;
+  (void)stream_user_data;
+
+  ++ud->recv_push_promise_cb.ncalled;
+
+  return 0;
+}
+
+static int end_push_promise(nghttp3_conn *conn, int64_t stream_id,
+                            int64_t push_id, void *user_data,
+                            void *stream_user_data) {
+  userdata *ud = user_data;
+
+  (void)conn;
+  (void)stream_id;
+  (void)push_id;
+  (void)stream_user_data;
+
+  ++ud->end_push_promise_cb.ncalled;
+
   return 0;
 }
 
@@ -2607,14 +2667,20 @@ void test_nghttp3_conn_recv_push_promise(void) {
   nghttp3_stream *stream;
   nghttp3_ssize sconsumed;
   nghttp3_push_promise *pp;
+  userdata ud;
 
   memset(&callbacks, 0, sizeof(callbacks));
   nghttp3_conn_settings_default(&settings);
 
+  callbacks.begin_push_promise = begin_push_promise;
+  callbacks.recv_push_promise = recv_push_promise;
+  callbacks.end_push_promise = end_push_promise;
+
   /* Receive PUSH_PROMISE */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, 0, mem);
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  memset(&ud, 0, sizeof(ud));
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
   conn->remote.uni.max_pushes = 1;
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
@@ -2640,10 +2706,11 @@ void test_nghttp3_conn_recv_push_promise(void) {
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
 
-  /* Receiving same push ID twice is illegal */
+  /* Receiving same push ID twice is allowed */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, 0, mem);
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  memset(&ud, 0, sizeof(ud));
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
   conn->remote.uni.max_pushes = 1;
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
@@ -2659,7 +2726,10 @@ void test_nghttp3_conn_recv_push_promise(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_H3_FRAME_ERROR == sconsumed);
+  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
+  CU_ASSERT(1 == ud.begin_push_promise_cb.ncalled);
+  CU_ASSERT(nghttp3_arraylen(reqnv) == ud.recv_push_promise_cb.ncalled);
+  CU_ASSERT(1 == ud.end_push_promise_cb.ncalled);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2667,7 +2737,8 @@ void test_nghttp3_conn_recv_push_promise(void) {
   /* Receiving push ID which exceeds the limit is illegal */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, 0, mem);
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  memset(&ud, 0, sizeof(ud));
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
   conn->remote.uni.max_pushes = 1;
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
@@ -2953,7 +3024,6 @@ void test_nghttp3_conn_submit_response_read_blocked(void) {
 
   memset(&callbacks, 0, sizeof(callbacks));
   nghttp3_conn_settings_default(&settings);
-  memset(&ud, 0, sizeof(ud));
 
   /* Make sure that flushing serialized data while
      NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED is set does not cause any
