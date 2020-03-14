@@ -3434,7 +3434,7 @@ nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
         goto almost_ok;
       }
 
-      if (decoder->rstate.left > NGHTTP3_QPACK_MAX_NAMELEN) {
+      if (sctx->rstate.left > NGHTTP3_QPACK_MAX_NAMELEN) {
         rv = NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE;
         goto fail;
       }
@@ -3513,7 +3513,7 @@ nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
         goto almost_ok;
       }
 
-      if (decoder->rstate.left > NGHTTP3_QPACK_MAX_VALUELEN) {
+      if (sctx->rstate.left > NGHTTP3_QPACK_MAX_VALUELEN) {
         rv = NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE;
         goto fail;
       }
