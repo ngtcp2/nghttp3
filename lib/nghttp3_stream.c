@@ -1126,17 +1126,6 @@ size_t nghttp3_stream_get_buffered_datalen(nghttp3_stream *stream) {
   return n;
 }
 
-void nghttp3_stream_clear_buffered_data(nghttp3_stream *stream) {
-  nghttp3_ringbuf *inq = &stream->inq;
-  nghttp3_buf *buf;
-
-  for (; nghttp3_ringbuf_len(inq);) {
-    buf = nghttp3_ringbuf_get(inq, 0);
-    nghttp3_buf_free(buf, stream->mem);
-    nghttp3_ringbuf_pop_front(inq);
-  }
-}
-
 int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
                                          nghttp3_stream_http_event event) {
   int rv;
