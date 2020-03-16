@@ -1912,16 +1912,17 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   nghttp3_conn_settings_default(&settings);
   settings.qpack_max_table_capacity = 4096;
   settings.qpack_blocked_streams = 100;
+
+  /* The deletion of QPACK blocked stream is deferred to the moment
+     when it is unblocked */
+  nghttp3_buf_init(&ebuf);
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
   nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_table_capacity,
                              settings.qpack_blocked_streams, mem);
   nghttp3_qpack_encoder_set_max_dtable_size(&qenc,
                                             settings.qpack_max_table_capacity);
 
-  nghttp3_buf_init(&ebuf);
-  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
-
-  /* The deletion of QPACK blocked stream is deferred to the moment
-     when it is unblocked */
   nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
   nghttp3_conn_bind_qpack_streams(conn, 2, 6);
 
@@ -1964,6 +1965,71 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
 
   CU_ASSERT(sconsumed == (nghttp3_ssize)nghttp3_buf_len(&ebuf));
   CU_ASSERT(NULL == nghttp3_conn_find_stream(conn, 0));
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_buf_free(&ebuf, mem);
+
+  /* Stream that is blocked receives HEADERS which has empty
+     representation (that is only include Header Block Prefix) */
+  nghttp3_buf_init(&ebuf);
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_table_capacity,
+                             settings.qpack_blocked_streams, mem);
+  nghttp3_qpack_encoder_set_max_dtable_size(&qenc,
+                                            settings.qpack_max_table_capacity);
+
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_bind_qpack_streams(conn, 2, 6);
+
+  rv = nghttp3_conn_submit_request(conn, 0, reqnv, nghttp3_arraylen(reqnv),
+                                   NULL, NULL);
+
+  CU_ASSERT(0 == rv);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.headers.nva = (nghttp3_nv *)resnv;
+  fr.headers.nvlen = nghttp3_arraylen(resnv);
+
+  nghttp3_write_frame_qpack_dyn(&buf, &ebuf, &qenc, 0, &fr);
+
+  assert(nghttp3_buf_len(&buf) > 4);
+
+  /* Craft empty HEADERS (just leave Header Block Prefix) */
+  buf.pos[1] = 2;
+  /* Write garbage to continue to read stream */
+  buf.pos[4] = 0xff;
+
+  sconsumed = nghttp3_conn_read_stream(
+      conn, 0, buf.pos, 5 /* Frame header + Header Block Prefix */,
+      /* fin = */ 1);
+
+  CU_ASSERT(sconsumed > 0);
+  CU_ASSERT(sconsumed != (nghttp3_ssize)nghttp3_buf_len(&buf));
+
+  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
+
+  CU_ASSERT(0 == rv);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_CLOSED);
+
+  nghttp3_buf_reset(&buf);
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_QPACK_ENCODER);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 7, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT(sconsumed == (nghttp3_ssize)nghttp3_buf_len(&buf));
+  CU_ASSERT(NULL != nghttp3_conn_find_stream(conn, 0));
+
+  sconsumed = nghttp3_conn_read_stream(conn, 7, ebuf.pos,
+                                       nghttp3_buf_len(&ebuf), /* fin = */ 0);
+
+  CU_ASSERT(NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED == sconsumed);
+  CU_ASSERT(NULL != nghttp3_conn_find_stream(conn, 0));
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);

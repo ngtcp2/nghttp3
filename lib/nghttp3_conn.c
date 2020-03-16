@@ -2116,8 +2116,6 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
   int trailers = 0;
   int ignore_pp = 0;
 
-  assert(srclen);
-
   if (pp) {
     request = 1;
     ignore_pp = pp->stream_id != stream->node.nid.id;
