@@ -192,6 +192,13 @@ static int http_request_on_header(nghttp3_http_state *http, int64_t frame_type,
     }
     break;
   case NGHTTP3_QPACK_TOKEN_CONTENT_LENGTH: {
+    /* https://tools.ietf.org/html/rfc7230#section-4.1.2: A sender
+       MUST NOT generate a trailer that contains a field necessary for
+       message framing (e.g., Transfer-Encoding and Content-Length),
+       ... */
+    if (trailers) {
+      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
+    }
     if (http->content_length != -1) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
