@@ -752,3 +752,23 @@ void test_nghttp3_qpack_huffman_decode_failure_state(void) {
   CU_ASSERT(0 == nwrite);
   CU_ASSERT(nghttp3_qpack_huffman_decode_failure_state(&ctx));
 }
+
+void test_nghttp3_qpack_decoder_reconstruct_ricnt(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_qpack_decoder dec;
+  size_t ricnt;
+  int rv;
+
+  rv = nghttp3_qpack_decoder_init(&dec, 100, 1, mem);
+
+  CU_ASSERT(0 == rv);
+
+  dec.ctx.next_absidx = 10;
+
+  rv = nghttp3_qpack_decoder_reconstruct_ricnt(&dec, &ricnt, 3);
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(8 == ricnt);
+
+  nghttp3_qpack_decoder_free(&dec);
+}
