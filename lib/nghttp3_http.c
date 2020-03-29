@@ -250,6 +250,13 @@ static int http_response_on_header(nghttp3_http_state *http,
     break;
   }
   case NGHTTP3_QPACK_TOKEN_CONTENT_LENGTH: {
+    /* https://tools.ietf.org/html/rfc7230#section-4.1.2: A sender
+       MUST NOT generate a trailer that contains a field necessary for
+       message framing (e.g., Transfer-Encoding and Content-Length),
+       ... */
+    if (trailers) {
+      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
+    }
     if (http->status_code == 204) {
       /* content-length header field in 204 response is prohibited by
          RFC 7230.  But some widely used servers send content-length:
