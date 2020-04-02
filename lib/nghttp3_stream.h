@@ -44,6 +44,10 @@
    enough to fill outgoing single QUIC packet. */
 #define NGHTTP3_MIN_UNSENT_BYTES 4096
 
+/* NGHTTP3_STREAM_MIN_WRITELEN is the minimum length of write to cause
+   the stream to reschedule. */
+#define NGHTTP3_STREAM_MIN_WRITELEN 1200
+
 /* nghttp3_stream_type is unidirectional stream type. */
 typedef enum {
   NGHTTP3_STREAM_TYPE_CONTROL = 0x00,

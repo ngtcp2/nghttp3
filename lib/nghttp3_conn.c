@@ -2649,14 +2649,21 @@ int nghttp3_conn_add_write_offset(nghttp3_conn *conn, int64_t stream_id,
   }
 
   stream->unscheduled_nwrite += n;
-  if (nghttp3_stream_bidi_or_push(stream)) {
-    if (nghttp3_stream_require_schedule(stream)) {
-      return nghttp3_stream_schedule(stream);
-    }
-    nghttp3_stream_unschedule(stream);
+
+  if (!nghttp3_stream_bidi_or_push(stream)) {
+    return 0;
   }
 
-  return 0;
+  if (!nghttp3_stream_require_schedule(stream)) {
+    nghttp3_stream_unschedule(stream);
+    return 0;
+  }
+
+  if (stream->unscheduled_nwrite < NGHTTP3_STREAM_MIN_WRITELEN) {
+    return 0;
+  }
+
+  return nghttp3_stream_schedule(stream);
 }
 
 int nghttp3_conn_add_ack_offset(nghttp3_conn *conn, int64_t stream_id,
