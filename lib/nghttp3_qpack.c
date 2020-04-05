@@ -462,6 +462,11 @@ static int32_t qpack_lookup_token(const uint8_t *name, size_t namelen) {
         return NGHTTP3_QPACK_TOKEN_LOCATION;
       }
       break;
+    case 'y':
+      if (memeq("priorit", name, 7)) {
+        return NGHTTP3_QPACK_TOKEN_PRIORITY;
+      }
+      break;
     }
     break;
   case 9:

@@ -112,6 +112,105 @@ static int check_path(nghttp3_http_state *http) {
            (http->flags & NGHTTP3_HTTP_FLAG_PATH_ASTERISK)));
 }
 
+/*
+ * http_parse_priority parses priority HTTP header field stored to the
+ * buffer pointed by |value| of length |len|.  If it successfully
+ * processed header field value, it stores the result into |dest|.
+ * This function just overwrites what it sees in the header field
+ * value and not initializes any field in |*dest|.
+ *
+ * This function returns 0 if it succeeds, or -1.
+ */
+static int http_parse_priority(nghttp3_pri *dest, uint8_t *value, size_t len) {
+  nghttp3_pri pri = *dest;
+  uint8_t *p, *end = value + len;
+
+  for (p = value; p != end;) {
+    if (*p == ' ' || *p == '\t') {
+      ++p;
+      continue;
+    }
+
+    if (*p == 'u') {
+      ++p;
+
+      if (p == end || *p != '=') {
+        return -1;
+      }
+
+      ++p;
+
+      if (p == end || !('0' <= *p && *p <= '7')) {
+        return -1;
+      }
+
+      pri.urgency = (uint32_t)(*p - '0');
+
+      ++p;
+
+      if (p != end) {
+        if (*p != ',') {
+          return -1;
+        }
+
+        ++p;
+      }
+
+      continue;
+    }
+
+    if (*p == 'i') {
+      ++p;
+
+      if (p == end) {
+        pri.inc = 1;
+        continue;
+      }
+
+      if (*p == ',') {
+        pri.inc = 1;
+        continue;
+      }
+
+      if (*p != '=') {
+        return -1;
+      }
+
+      ++p;
+
+      if (p == end || *p != '?') {
+        return -1;
+      }
+
+      ++p;
+
+      if (p == end || *p != '0') {
+        return -1;
+      }
+
+      ++p;
+
+      if (p != end) {
+        if (*p != ',') {
+          return -1;
+        }
+
+        ++p;
+      }
+
+      pri.inc = 0;
+
+      continue;
+    }
+
+    return -1;
+  }
+
+  *dest = pri;
+
+  return 0;
+}
+
 static int http_request_on_header(nghttp3_http_state *http, int64_t frame_type,
                                   nghttp3_qpack_nv *nv, int trailers,
                                   int connect_protocol) {
@@ -219,6 +318,9 @@ static int http_request_on_header(nghttp3_http_state *http, int64_t frame_type,
     if (!lstrieq("trailers", nv->value->base, nv->value->len)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
+    break;
+  case NGHTTP3_QPACK_TOKEN_PRIORITY:
+    http_parse_priority(&http->pri, nv->value->base, nv->value->len);
     break;
   default:
     if (nv->name->base[0] == ':') {

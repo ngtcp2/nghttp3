@@ -189,6 +189,11 @@ typedef struct {
   nghttp3_stream_acked_data acked_data;
 } nghttp3_stream_callbacks;
 
+typedef struct nghttp3_pri {
+  uint32_t urgency;
+  int inc;
+} nghttp3_pri;
+
 struct nghttp3_http_state {
   /* status_code is HTTP status code received.  This field is used
      if connection is initialized as client. */
@@ -199,6 +204,7 @@ struct nghttp3_http_state {
   /* recv_content_length is the number of body bytes received so
      far. */
   int64_t recv_content_length;
+  nghttp3_pri pri;
   uint16_t flags;
 };
 
@@ -271,7 +277,7 @@ typedef struct {
 } nghttp3_frame_entry;
 
 int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
-                       uint64_t seq, uint32_t weight, nghttp3_tnode *parent,
+                       uint64_t seq, uint32_t urgency, int inc,
                        const nghttp3_stream_callbacks *callbacks,
                        const nghttp3_mem *mem);
 
@@ -357,28 +363,6 @@ int nghttp3_stream_is_active(nghttp3_stream *stream);
  * something to send.
  */
 int nghttp3_stream_require_schedule(nghttp3_stream *stream);
-
-/*
- * nghttp3_stream_schedule schedules |stream|.  This function works
- * whether |stream| has already been scheduled or not.  If it has been
- * scheduled already, it is rescheduled by delaying its pending
- * penalty.
- */
-int nghttp3_stream_schedule(nghttp3_stream *stream);
-
-/*
- * nghttp3_stream_ensure_scheduled schedules |stream| if it has not
- * been scheduled.
- */
-int nghttp3_stream_ensure_scheduled(nghttp3_stream *stream);
-
-void nghttp3_stream_unschedule(nghttp3_stream *stream);
-
-/*
- * nghttp3_stream_squash unschedules |stream| and removes it from
- * dependency tree.
- */
-int nghttp3_stream_squash(nghttp3_stream *stream);
 
 int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *src,
                                size_t srclen);
