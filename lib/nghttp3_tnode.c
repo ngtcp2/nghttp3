@@ -102,31 +102,21 @@ int nghttp3_tnode_schedule(nghttp3_tnode *tnode, nghttp3_pq *pq,
                            size_t nwrite) {
   uint64_t cycle;
 
-  if (tnode->inc) {
-    if (tnode->pe.index == NGHTTP3_PQ_BAD_INDEX) {
-      cycle = pq_get_first_cycle(pq);
-    } else if (nwrite > 0) {
-      if (nghttp3_pq_size(pq) == 1) {
-        return 0;
-      }
-
-      cycle = tnode->cycle;
-      nghttp3_pq_remove(pq, &tnode->pe);
-      tnode->pe.index = NGHTTP3_PQ_BAD_INDEX;
-    } else {
+  if (tnode->pe.index == NGHTTP3_PQ_BAD_INDEX) {
+    cycle = pq_get_first_cycle(pq);
+  } else if (nwrite > 0) {
+    if (!tnode->inc || nghttp3_pq_size(pq) == 1) {
       return 0;
     }
 
-    tnode->cycle = cycle + nwrite;
-
-    return nghttp3_pq_push(pq, &tnode->pe);
-  }
-
-  assert(tnode->cycle == 0);
-
-  if (tnode->pe.index != NGHTTP3_PQ_BAD_INDEX) {
+    cycle = tnode->cycle;
+    nghttp3_pq_remove(pq, &tnode->pe);
+    tnode->pe.index = NGHTTP3_PQ_BAD_INDEX;
+  } else {
     return 0;
   }
+
+  tnode->cycle = cycle + nwrite;
 
   return nghttp3_pq_push(pq, &tnode->pe);
 }

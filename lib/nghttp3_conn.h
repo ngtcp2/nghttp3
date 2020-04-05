@@ -117,7 +117,6 @@ struct nghttp3_conn {
   nghttp3_pq qpack_blocked_streams;
   struct {
     nghttp3_pq spq;
-    nghttp3_pq ipq;
   } sched[NGHTTP3_URGENCY_LEVELS];
   const nghttp3_mem *mem;
   void *user_data;
