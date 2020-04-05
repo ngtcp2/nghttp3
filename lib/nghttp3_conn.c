@@ -300,7 +300,6 @@ static int conn_new(nghttp3_conn **pconn, int server,
 
   for (i = 0; i < NGHTTP3_URGENCY_LEVELS; ++i) {
     nghttp3_pq_init(&conn->sched[i].spq, cycle_less, mem);
-    nghttp3_pq_init(&conn->sched[i].ipq, cycle_less, mem);
   }
 
   rv = nghttp3_idtr_init(&conn->remote.bidi.idtr, server, mem);
@@ -406,7 +405,6 @@ void nghttp3_conn_del(nghttp3_conn *conn) {
 
   for (i = 0; i < NGHTTP3_URGENCY_LEVELS; ++i) {
     nghttp3_pq_free(&conn->sched[i].spq);
-    nghttp3_pq_free(&conn->sched[i].ipq);
   }
 
   nghttp3_pq_free(&conn->qpack_blocked_streams);
@@ -2003,9 +2001,6 @@ int nghttp3_conn_on_client_cancel_push(nghttp3_conn *conn,
 }
 
 static nghttp3_pq *conn_get_sched_pq(nghttp3_conn *conn, nghttp3_tnode *tnode) {
-  if (tnode->inc) {
-    return &conn->sched[tnode->urgency].ipq;
-  }
   return &conn->sched[tnode->urgency].spq;
 }
 
@@ -2607,12 +2602,9 @@ nghttp3_stream *nghttp3_conn_get_next_tx_stream(nghttp3_conn *conn) {
   nghttp3_pq *pq;
 
   for (i = 0; i < NGHTTP3_URGENCY_LEVELS; ++i) {
-    pq = &conn->sched[i].ipq;
+    pq = &conn->sched[i].spq;
     if (nghttp3_pq_empty(pq)) {
-      pq = &conn->sched[i].spq;
-      if (nghttp3_pq_empty(pq)) {
-        continue;
-      }
+      continue;
     }
 
     tnode = nghttp3_struct_of(nghttp3_pq_top(pq), nghttp3_tnode, pe);
