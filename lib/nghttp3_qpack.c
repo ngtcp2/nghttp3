@@ -885,8 +885,8 @@ typedef struct {
 
 static int max_cnt_greater(const nghttp3_ksl_key *lhs,
                            const nghttp3_ksl_key *rhs) {
-  const nghttp3_blocked_streams_key *a = lhs->ptr;
-  const nghttp3_blocked_streams_key *b = rhs->ptr;
+  const nghttp3_blocked_streams_key *a = lhs;
+  const nghttp3_blocked_streams_key *b = rhs;
   return a->max_cnt > b->max_cnt || (a->max_cnt == b->max_cnt && a->id < b->id);
 }
 
@@ -2236,10 +2236,8 @@ int nghttp3_qpack_encoder_block_stream(nghttp3_qpack_encoder *encoder,
                         nghttp3_qpack_header_block_ref, max_cnts_pe)
           ->max_cnt,
       stream->me.key};
-  nghttp3_ksl_key key;
 
-  return nghttp3_ksl_insert(&encoder->blocked_streams, NULL,
-                            nghttp3_ksl_key_ptr(&key, &bsk), stream);
+  return nghttp3_ksl_insert(&encoder->blocked_streams, NULL, &bsk, stream);
 }
 
 void nghttp3_qpack_encoder_unblock_stream(nghttp3_qpack_encoder *encoder,
@@ -2249,32 +2247,27 @@ void nghttp3_qpack_encoder_unblock_stream(nghttp3_qpack_encoder *encoder,
                         nghttp3_qpack_header_block_ref, max_cnts_pe)
           ->max_cnt,
       stream->me.key};
-  nghttp3_ksl_key key;
   nghttp3_ksl_it it;
 
   /* This is purely debugging purpose only */
-  it = nghttp3_ksl_lower_bound(&encoder->blocked_streams,
-                               nghttp3_ksl_key_ptr(&key, &bsk));
+  it = nghttp3_ksl_lower_bound(&encoder->blocked_streams, &bsk);
 
   assert(!nghttp3_ksl_it_end(&it));
   assert(nghttp3_ksl_it_get(&it) == stream);
 
-  nghttp3_ksl_remove(&encoder->blocked_streams, NULL, &key);
+  nghttp3_ksl_remove(&encoder->blocked_streams, NULL, &bsk);
 }
 
 void nghttp3_qpack_encoder_unblock(nghttp3_qpack_encoder *encoder,
                                    size_t max_cnt) {
   nghttp3_blocked_streams_key bsk = {max_cnt, 0};
-  nghttp3_ksl_key key;
   nghttp3_ksl_it it;
 
-  it = nghttp3_ksl_lower_bound(&encoder->blocked_streams,
-                               nghttp3_ksl_key_ptr(&key, &bsk));
+  it = nghttp3_ksl_lower_bound(&encoder->blocked_streams, &bsk);
 
   for (; !nghttp3_ksl_it_end(&it);) {
-    bsk = *(nghttp3_blocked_streams_key *)nghttp3_ksl_it_key(&it).ptr;
-    nghttp3_ksl_remove(&encoder->blocked_streams, &it,
-                       nghttp3_ksl_key_ptr(&key, &bsk));
+    bsk = *(nghttp3_blocked_streams_key *)nghttp3_ksl_it_key(&it);
+    nghttp3_ksl_remove(&encoder->blocked_streams, &it, &bsk);
   }
 }
 
