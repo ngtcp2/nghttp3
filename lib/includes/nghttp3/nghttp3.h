@@ -1654,6 +1654,61 @@ NGHTTP3_EXTERN int64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
                                                            int64_t stream_id);
 
 /**
+ * @struct
+ *
+ * :type:`nghttp3_pri` represents HTTP priority.
+ */
+typedef struct nghttp3_pri {
+  /**
+   * urgency is the urgency of a stream, it must be in [0, 7],
+   * inclusive, and 0 is the highest urgency.
+   */
+  uint32_t urgency;
+  /**
+   * inc indicates that a content can be processed incrementally or
+   * not.  If inc is 0, it cannot be processed incrementally.  If inc
+   * is 1, it can be processed incrementally.  Other value is not
+   * permitted.
+   */
+  int inc;
+} nghttp3_pri;
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_get_stream_priority` stores stream priority of a
+ * stream denoted by |stream_id| into |*dest|.  Only server can use
+ * this function.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :enum:`NGHTTP3_ERR_STREAM_NOT_FOUND`
+ *     Stream not found.
+ */
+NGHTTP3_EXTERN int nghttp3_conn_get_stream_priority(nghttp3_conn *conn,
+                                                    nghttp3_pri *dest,
+                                                    int64_t stream_id);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_set_stream_priority` updates stream priority of a
+ * stream denoted by |stream_id| by the value pointed by |pri|.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :enum:`NGHTTP3_ERR_STREAM_NOT_FOUND`
+ *     Stream not found.
+ * :enum:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
+ */
+NGHTTP3_EXTERN int nghttp3_conn_set_stream_priority(nghttp3_conn *conn,
+                                                    int64_t stream_id,
+                                                    const nghttp3_pri *pri);
+
+/**
  * @function
  *
  * `nghttp3_conn_is_remote_qpack_encoder_stream` returns nonzero if a
@@ -1710,11 +1765,6 @@ NGHTTP3_EXTERN int nghttp3_check_header_name(const uint8_t *name, size_t len);
  * http://tools.ietf.org/html/rfc7230#section-3.2
  */
 NGHTTP3_EXTERN int nghttp3_check_header_value(const uint8_t *value, size_t len);
-
-typedef struct nghttp3_pri {
-  uint32_t urgency;
-  int inc;
-} nghttp3_pri;
 
 /**
  * @function

@@ -1417,7 +1417,7 @@ static int conn_update_stream_priority(nghttp3_conn *conn,
   assert(nghttp3_stream_bidi_or_push(stream));
 
   if (nghttp3_stream_require_schedule(stream)) {
-    nghttp3_conn_schedule_stream(conn, stream);
+    return nghttp3_conn_schedule_stream(conn, stream);
   }
 
   return 0;
@@ -3164,6 +3164,38 @@ int64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
   }
 
   return stream->rstate.left;
+}
+
+int nghttp3_conn_get_stream_priority(nghttp3_conn *conn, nghttp3_pri *dest,
+                                     int64_t stream_id) {
+  nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
+
+  assert(conn->server);
+
+  if (stream == NULL) {
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
+  }
+
+  *dest = stream->rx.http.pri;
+
+  return 0;
+}
+
+int nghttp3_conn_set_stream_priority(nghttp3_conn *conn, int64_t stream_id,
+                                     const nghttp3_pri *pri) {
+  nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
+
+  assert(conn->server);
+  assert(0 <= pri->urgency >= 0 && pri->urgency <= 7);
+  assert(pri->inc == 0 || pri->inc == 1);
+
+  if (stream == NULL) {
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
+  }
+
+  stream->rx.http.pri = *pri;
+
+  return conn_update_stream_priority(conn, stream, &stream->rx.http.pri);
 }
 
 int nghttp3_conn_is_remote_qpack_encoder_stream(nghttp3_conn *conn,

@@ -86,7 +86,8 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
   stream->mem = mem;
   stream->rx.http.status_code = -1;
   stream->rx.http.content_length = -1;
-  stream->rx.http.pri.urgency = NGHTTP3_DEFAULT_URGENCY;
+  stream->rx.http.pri.urgency = urgency;
+  stream->rx.http.pri.inc = inc;
   stream->error_code = NGHTTP3_H3_NO_ERROR;
 
   if (callbacks) {
