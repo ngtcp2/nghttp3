@@ -162,11 +162,12 @@ int nghttp3_http_parse_priority(nghttp3_pri *dest, const uint8_t *value,
         break;
       }
 
-      if (p + 3 > end || *p != '=' || *(p + 1) != '?' || *(p + 2) != '0') {
+      if (p + 3 > end || *p != '=' || *(p + 1) != '?' ||
+          (*(p + 2) != '0' && *(p + 2) != '1')) {
         return NGHTTP3_ERR_INVALID_ARGUMENT;
       }
 
-      pri.inc = 0;
+      pri.inc = *(p + 2) == '1';
 
       p += 3;
 
