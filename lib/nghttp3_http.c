@@ -112,99 +112,83 @@ static int check_path(nghttp3_http_state *http) {
            (http->flags & NGHTTP3_HTTP_FLAG_PATH_ASTERISK)));
 }
 
-/*
- * http_parse_priority parses priority HTTP header field stored to the
- * buffer pointed by |value| of length |len|.  If it successfully
- * processed header field value, it stores the result into |dest|.
- * This function just overwrites what it sees in the header field
- * value and not initializes any field in |*dest|.
- *
- * This function returns 0 if it succeeds, or -1.
- */
-static int http_parse_priority(nghttp3_pri *dest, uint8_t *value, size_t len) {
+int nghttp3_http_parse_priority(nghttp3_pri *dest, const uint8_t *value,
+                                size_t len) {
   nghttp3_pri pri = *dest;
-  uint8_t *p, *end = value + len;
+  const uint8_t *p = value, *end = value + len;
 
-  for (p = value; p != end;) {
-    if (*p == ' ' || *p == '\t') {
-      ++p;
-      continue;
+  for (;;) {
+    for (; p != end && (*p == ' ' || *p == '\t'); ++p)
+      ;
+
+    if (p == end) {
+      break;
     }
 
-    if (*p == 'u') {
+    switch (*p) {
+    case 'u':
       ++p;
 
-      if (p == end || *p != '=') {
-        return -1;
+      if (p + 2 > end || *p++ != '=') {
+        return NGHTTP3_ERR_INVALID_ARGUMENT;
       }
 
-      ++p;
-
-      if (p == end || !('0' <= *p && *p <= '7')) {
-        return -1;
+      if (!('0' <= *p && *p <= '7')) {
+        return NGHTTP3_ERR_INVALID_ARGUMENT;
       }
 
-      pri.urgency = (uint32_t)(*p - '0');
+      pri.urgency = (uint32_t)(*p++ - '0');
 
-      ++p;
-
-      if (p != end) {
-        if (*p != ',') {
-          return -1;
-        }
-
-        ++p;
+      if (p == end) {
+        goto fin;
       }
 
-      continue;
-    }
+      if (*p++ != ',') {
+        return NGHTTP3_ERR_INVALID_ARGUMENT;
+      }
 
-    if (*p == 'i') {
+      break;
+    case 'i':
       ++p;
 
       if (p == end) {
         pri.inc = 1;
-        continue;
+        goto fin;
       }
 
       if (*p == ',') {
         pri.inc = 1;
-        continue;
-      }
-
-      if (*p != '=') {
-        return -1;
-      }
-
-      ++p;
-
-      if (p == end || *p != '?') {
-        return -1;
-      }
-
-      ++p;
-
-      if (p == end || *p != '0') {
-        return -1;
-      }
-
-      ++p;
-
-      if (p != end) {
-        if (*p != ',') {
-          return -1;
-        }
-
         ++p;
+        break;
+      }
+
+      if (p + 3 > end || *p != '=' || *(p + 1) != '?' || *(p + 2) != '0') {
+        return NGHTTP3_ERR_INVALID_ARGUMENT;
       }
 
       pri.inc = 0;
 
-      continue;
+      p += 3;
+
+      if (p == end) {
+        goto fin;
+      }
+
+      if (*p++ != ',') {
+        return NGHTTP3_ERR_INVALID_ARGUMENT;
+      }
+
+      break;
+    default:
+      return NGHTTP3_ERR_INVALID_ARGUMENT;
     }
 
-    return -1;
+    if (p == end) {
+      return NGHTTP3_ERR_INVALID_ARGUMENT;
+    }
   }
+
+fin:
 
   *dest = pri;
 
@@ -320,7 +304,8 @@ static int http_request_on_header(nghttp3_http_state *http, int64_t frame_type,
     }
     break;
   case NGHTTP3_QPACK_TOKEN_PRIORITY:
-    http_parse_priority(&http->pri, nv->value->base, nv->value->len);
+    /* We don't care about the outcome of this function call. */
+    nghttp3_http_parse_priority(&http->pri, nv->value->base, nv->value->len);
     break;
   default:
     if (nv->name->base[0] == ':') {

@@ -35,6 +35,7 @@
 #include "nghttp3_qpack_test.h"
 #include "nghttp3_conn_test.h"
 #include "nghttp3_tnode_test.h"
+#include "nghttp3_http_test.h"
 
 static int init_suite1(void) { return 0; }
 
@@ -110,7 +111,9 @@ int main() {
                    test_nghttp3_conn_submit_response_read_blocked) ||
       !CU_add_test(pSuite, "conn_just_fin", test_nghttp3_conn_just_fin) ||
       !CU_add_test(pSuite, "conn_recv_uni", test_nghttp3_conn_recv_uni) ||
-      !CU_add_test(pSuite, "tnode_schedule", test_nghttp3_tnode_schedule)) {
+      !CU_add_test(pSuite, "tnode_schedule", test_nghttp3_tnode_schedule) ||
+      !CU_add_test(pSuite, "http_parse_priority",
+                   test_nghttp3_http_parse_priority)) {
     CU_cleanup_registry();
     return (int)CU_get_error();
   }

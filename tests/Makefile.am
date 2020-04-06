@@ -32,11 +32,13 @@ OBJECTS = \
 	nghttp3_qpack_test.c \
 	nghttp3_conn_test.c \
 	nghttp3_tnode_test.c \
+	nghttp3_http_test.c \
 	nghttp3_test_helper.c
 HFILES = \
 	nghttp3_qpack_test.h \
 	nghttp3_conn_test.h \
 	nghttp3_tnode_test.h \
+	nghttp3_http_test.h \
 	nghttp3_test_helper.h
 
 main_SOURCES = $(HFILES) $(OBJECTS)
