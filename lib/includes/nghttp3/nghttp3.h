@@ -1711,6 +1711,30 @@ NGHTTP3_EXTERN int nghttp3_check_header_name(const uint8_t *name, size_t len);
  */
 NGHTTP3_EXTERN int nghttp3_check_header_value(const uint8_t *value, size_t len);
 
+typedef struct nghttp3_pri {
+  uint32_t urgency;
+  int inc;
+} nghttp3_pri;
+
+/**
+ * @function
+ *
+ * `nghttp3_http_parse_priority` parses priority HTTP header field
+ * stored in the buffer pointed by |value| of length |len|.  If it
+ * successfully processed header field value, it stores the result
+ * into |*dest|.  This function just overwrites what it sees in the
+ * header field value and does not initialize any field in |*dest|.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :enum:`NGHTTP3_ERR_INVALID_ARGUMENT`
+ *     The function could not parse the provided value.
+ */
+NGHTTP3_EXTERN int nghttp3_http_parse_priority(nghttp3_pri *dest,
+                                               const uint8_t *value,
+                                               size_t len);
+
 /**
  * @macro
  *

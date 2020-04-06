@@ -189,11 +189,6 @@ typedef struct {
   nghttp3_stream_acked_data acked_data;
 } nghttp3_stream_callbacks;
 
-typedef struct nghttp3_pri {
-  uint32_t urgency;
-  int inc;
-} nghttp3_pri;
-
 struct nghttp3_http_state {
   /* status_code is HTTP status code received.  This field is used
      if connection is initialized as client. */
