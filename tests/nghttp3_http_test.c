@@ -123,7 +123,9 @@ void test_nghttp3_http_parse_priority(void) {
 
     rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
 
-    CU_ASSERT(NGHTTP3_ERR_INVALID_ARGUMENT == rv);
+    CU_ASSERT(0 == rv);
+    CU_ASSERT((uint32_t)-1 == pri.urgency);
+    CU_ASSERT(1 == pri.inc);
   }
 
   {
