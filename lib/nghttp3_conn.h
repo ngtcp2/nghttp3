@@ -178,10 +178,6 @@ nghttp3_push_promise *nghttp3_conn_find_push_promise(nghttp3_conn *conn,
 int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
                                int64_t stream_id);
 
-int nghttp3_conn_create_stream_dependency(nghttp3_conn *conn,
-                                          nghttp3_stream **pstream,
-                                          int64_t stream_id);
-
 int nghttp3_conn_create_push_promise(nghttp3_conn *conn,
                                      nghttp3_push_promise **ppp,
                                      int64_t push_id, nghttp3_tnode *parent);
