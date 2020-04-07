@@ -74,13 +74,6 @@ void nghttp3_tnode_init(nghttp3_tnode *tnode, const nghttp3_node_id *nid,
 
 void nghttp3_tnode_free(nghttp3_tnode *tnode);
 
-/*
- * nghttp3_tnode_is_active returns nonzero if |tnode| is active.  Only
- * NGHTTP3_NODE_ID_TYPE_STREAM and NGHTTP3_NODE_ID_TYPE_PUSH (and
- * NGHTTP3_NODE_ID_TYPE_UT for unit test) can become active.
- */
-int nghttp3_tnode_is_active(nghttp3_tnode *tnode);
-
 void nghttp3_tnode_unschedule(nghttp3_tnode *tnode, nghttp3_pq *pq);
 
 /*

@@ -54,24 +54,6 @@ void nghttp3_tnode_init(nghttp3_tnode *tnode, const nghttp3_node_id *nid,
 
 void nghttp3_tnode_free(nghttp3_tnode *tnode) { (void)tnode; }
 
-int nghttp3_tnode_is_active(nghttp3_tnode *tnode) {
-  nghttp3_push_promise *pp;
-
-  switch (tnode->nid.type) {
-  case NGHTTP3_NODE_ID_TYPE_STREAM:
-    return nghttp3_stream_is_active(
-        nghttp3_struct_of(tnode, nghttp3_stream, node));
-  case NGHTTP3_NODE_ID_TYPE_PUSH:
-    pp = nghttp3_struct_of(tnode, nghttp3_push_promise, node);
-    return pp->stream && nghttp3_stream_is_active(pp->stream);
-  case NGHTTP3_NODE_ID_TYPE_UT:
-    /* For unit test */
-    return tnode->active;
-  default:
-    return 0;
-  }
-}
-
 static void tnode_unschedule(nghttp3_tnode *tnode, nghttp3_pq *pq) {
   assert(tnode->pe.index != NGHTTP3_PQ_BAD_INDEX);
 
