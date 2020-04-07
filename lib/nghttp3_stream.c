@@ -43,8 +43,7 @@
 #define NGHTTP3_MIN_RBLEN 4
 
 int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
-                       uint64_t seq, uint32_t urgency, int inc,
-                       const nghttp3_stream_callbacks *callbacks,
+                       uint64_t seq, const nghttp3_stream_callbacks *callbacks,
                        const nghttp3_mem *mem) {
   int rv;
   nghttp3_stream *stream = nghttp3_mem_calloc(mem, 1, sizeof(nghttp3_stream));
@@ -57,7 +56,7 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
   nghttp3_tnode_init(
       &stream->node,
       nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_STREAM, stream_id), seq,
-      urgency, inc);
+      NGHTTP3_DEFAULT_URGENCY, /* inc = */ 0);
 
   rv = nghttp3_ringbuf_init(&stream->frq, 0, sizeof(nghttp3_frame_entry), mem);
   if (rv != 0) {
@@ -86,8 +85,8 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
   stream->mem = mem;
   stream->rx.http.status_code = -1;
   stream->rx.http.content_length = -1;
-  stream->rx.http.pri.urgency = urgency;
-  stream->rx.http.pri.inc = inc;
+  stream->rx.http.pri.urgency = NGHTTP3_DEFAULT_URGENCY;
+  stream->rx.http.pri.inc = 0;
   stream->error_code = NGHTTP3_H3_NO_ERROR;
 
   if (callbacks) {
