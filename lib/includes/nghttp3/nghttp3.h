@@ -1654,14 +1654,43 @@ NGHTTP3_EXTERN int64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
                                                            int64_t stream_id);
 
 /**
+ * @macro
+ *
+ * :macro:`NGHTTP3_DEFAULT_URGENCY` is the default urgency level.
+ */
+#define NGHTTP3_DEFAULT_URGENCY 1
+
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_URGENCY_HIGH` is the highest urgency level.
+ */
+#define NGHTTP3_URGENCY_HIGH 0
+
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_URGENCY_LOW` is the lowest urgency level.
+ */
+#define NGHTTP3_URGENCY_LOW 7
+
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_URGENCY_LEVELS` is the number of urgency levels.
+ */
+#define NGHTTP3_URGENCY_LEVELS (NGHTTP3_URGENCY_LOW + 1)
+
+/**
  * @struct
  *
  * :type:`nghttp3_pri` represents HTTP priority.
  */
 typedef struct nghttp3_pri {
   /**
-   * urgency is the urgency of a stream, it must be in [0, 7],
-   * inclusive, and 0 is the highest urgency.
+   * urgency is the urgency of a stream, it must be in
+   * [NGHTTP3_URGENCY_HIGH, NGHTTP3_URGENCY_LOW], inclusive, and 0 is
+   * the highest urgency.
    */
   uint32_t urgency;
   /**

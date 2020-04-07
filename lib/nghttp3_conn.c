@@ -3186,7 +3186,7 @@ int nghttp3_conn_set_stream_priority(nghttp3_conn *conn, int64_t stream_id,
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   assert(conn->server);
-  assert(pri->urgency <= 7);
+  assert(pri->urgency < NGHTTP3_URGENCY_LEVELS);
   assert(pri->inc == 0 || pri->inc == 1);
 
   if (stream == NULL) {
