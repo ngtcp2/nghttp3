@@ -33,8 +33,6 @@
 
 #include "nghttp3_pq.h"
 
-#define NGHTTP3_URGENCY_LEVELS 8
-#define NGHTTP3_DEFAULT_URGENCY 1
 #define NGHTTP3_TNODE_MAX_CYCLE_GAP ((1llu << 24) * 256 + 255)
 
 typedef enum {
