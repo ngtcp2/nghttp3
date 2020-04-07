@@ -272,8 +272,7 @@ typedef struct {
 } nghttp3_frame_entry;
 
 int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
-                       uint64_t seq, uint32_t urgency, int inc,
-                       const nghttp3_stream_callbacks *callbacks,
+                       uint64_t seq, const nghttp3_stream_callbacks *callbacks,
                        const nghttp3_mem *mem);
 
 void nghttp3_stream_del(nghttp3_stream *stream);
