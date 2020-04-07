@@ -33,7 +33,7 @@
 
 #include "nghttp3_pq.h"
 
-#define NGHTTP3_TNODE_MAX_CYCLE_GAP ((1llu << 24) * 256 + 255)
+#define NGHTTP3_TNODE_MAX_CYCLE_GAP (1llu << 24)
 
 typedef enum {
   NGHTTP3_NODE_ID_TYPE_STREAM = 0x00,
