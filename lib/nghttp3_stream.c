@@ -848,15 +848,11 @@ int nghttp3_stream_is_blocked(nghttp3_stream *stream) {
          (stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED);
 }
 
-int nghttp3_stream_is_active(nghttp3_stream *stream) {
+int nghttp3_stream_require_schedule(nghttp3_stream *stream) {
   return (!nghttp3_stream_outq_write_done(stream) &&
           !(stream->flags & NGHTTP3_STREAM_FLAG_FC_BLOCKED)) ||
          (nghttp3_ringbuf_len(&stream->frq) &&
           !(stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED));
-}
-
-int nghttp3_stream_require_schedule(nghttp3_stream *stream) {
-  return nghttp3_stream_is_active(stream);
 }
 
 nghttp3_ssize nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
