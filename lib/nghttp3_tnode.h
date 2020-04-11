@@ -38,9 +38,6 @@
 typedef enum {
   NGHTTP3_NODE_ID_TYPE_STREAM = 0x00,
   NGHTTP3_NODE_ID_TYPE_PUSH = 0x01,
-  NGHTTP3_NODE_ID_TYPE_PLACEHOLDER = 0x02,
-  /* NGHTTP3_NODE_ID_TYPE_UT is defined for unit test */
-  NGHTTP3_NODE_ID_TYPE_UT = 0xff,
 } nghttp3_node_id_type;
 
 typedef struct {

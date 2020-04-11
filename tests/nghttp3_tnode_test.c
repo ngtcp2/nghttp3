@@ -49,8 +49,8 @@ void test_nghttp3_tnode_schedule(void) {
   nghttp3_pq pq;
   int rv;
 
-  nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_UT, 0);
-  nghttp3_node_id_init(&nid2, NGHTTP3_NODE_ID_TYPE_UT, 1);
+  nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_STREAM, 0);
+  nghttp3_node_id_init(&nid2, NGHTTP3_NODE_ID_TYPE_STREAM, 1);
 
   /* Schedule node with incremental enabled */
   nghttp3_tnode_init(&node, &nid, 0, NGHTTP3_DEFAULT_URGENCY, 1);
