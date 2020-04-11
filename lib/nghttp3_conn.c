@@ -1401,16 +1401,14 @@ nghttp3_ssize nghttp3_conn_read_qpack_decoder(nghttp3_conn *conn,
 }
 
 static int conn_update_stream_priority(nghttp3_conn *conn,
-                                       nghttp3_stream *stream,
-                                       nghttp3_pri *pri) {
-  if (pri->urgency == stream->node.urgency && pri->inc == stream->node.inc) {
+                                       nghttp3_stream *stream, uint8_t pri) {
+  if (stream->node.pri == pri) {
     return 0;
   }
 
   nghttp3_conn_unschedule_stream(conn, stream);
 
-  stream->node.urgency = pri->urgency;
-  stream->node.inc = pri->inc;
+  stream->node.pri = pri;
 
   assert(nghttp3_stream_bidi_or_push(stream));
 
@@ -1433,7 +1431,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
   int busy = 0;
   size_t len;
   nghttp3_push_promise *pp;
-  nghttp3_push_promise fake_pp = {{0}, {{0}, 0, {0}, 0, 0, 0, 0}, {0}, NULL, -1,
+  nghttp3_push_promise fake_pp = {{0}, {{0}, 0, {0}, 0, 0, 0}, {0}, NULL, -1,
                                   0};
 
   if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
@@ -1796,7 +1794,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
         /* Only server utilizes priority information to schedule
            streams. */
         if (conn->server) {
-          rv = conn_update_stream_priority(conn, stream, &stream->rx.http.pri);
+          rv = conn_update_stream_priority(conn, stream, stream->rx.http.pri);
           if (rv != 0) {
             return rv;
           }
@@ -1997,7 +1995,11 @@ int nghttp3_conn_on_client_cancel_push(nghttp3_conn *conn,
 }
 
 static nghttp3_pq *conn_get_sched_pq(nghttp3_conn *conn, nghttp3_tnode *tnode) {
-  return &conn->sched[tnode->urgency].spq;
+  uint32_t urgency = nghttp3_pri_uint8_urgency(tnode->pri);
+
+  assert(urgency < NGHTTP3_URGENCY_LEVELS);
+
+  return &conn->sched[urgency].spq;
 }
 
 int nghttp3_conn_on_server_cancel_push(nghttp3_conn *conn,
@@ -2698,8 +2700,6 @@ int nghttp3_conn_schedule_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
   /* Assume that stream stays on the same urgency level */
   int rv;
 
-  assert(stream->node.urgency < NGHTTP3_URGENCY_LEVELS);
-
   rv = nghttp3_tnode_schedule(stream_get_dependency_node(stream),
                               conn_get_sched_pq(conn, &stream->node),
                               stream->unscheduled_nwrite);
@@ -2723,8 +2723,6 @@ int nghttp3_conn_ensure_stream_scheduled(nghttp3_conn *conn,
 
 void nghttp3_conn_unschedule_stream(nghttp3_conn *conn,
                                     nghttp3_stream *stream) {
-  assert(stream->node.urgency < NGHTTP3_URGENCY_LEVELS);
-
   nghttp3_tnode_unschedule(stream_get_dependency_node(stream),
                            conn_get_sched_pq(conn, &stream->node));
 }
@@ -3158,7 +3156,8 @@ int nghttp3_conn_get_stream_priority(nghttp3_conn *conn, nghttp3_pri *dest,
     return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
-  *dest = stream->rx.http.pri;
+  dest->urgency = nghttp3_pri_uint8_urgency(stream->rx.http.pri);
+  dest->inc = nghttp3_pri_uint8_inc(stream->rx.http.pri);
 
   return 0;
 }
@@ -3175,9 +3174,9 @@ int nghttp3_conn_set_stream_priority(nghttp3_conn *conn, int64_t stream_id,
     return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
-  stream->rx.http.pri = *pri;
+  stream->rx.http.pri = nghttp3_pri_to_uint8(pri);
 
-  return conn_update_stream_priority(conn, stream, &stream->rx.http.pri);
+  return conn_update_stream_priority(conn, stream, stream->rx.http.pri);
 }
 
 int nghttp3_conn_is_remote_qpack_encoder_stream(nghttp3_conn *conn,
@@ -3210,7 +3209,7 @@ int nghttp3_push_promise_new(nghttp3_push_promise **ppp, int64_t push_id,
 
   nghttp3_tnode_init(
       &pp->node, nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_PUSH, push_id),
-      seq, NGHTTP3_DEFAULT_URGENCY, /* inc = */ 0);
+      seq, NGHTTP3_DEFAULT_URGENCY);
 
   pp->me.key = (key_type)push_id;
   pp->node.nid.id = push_id;

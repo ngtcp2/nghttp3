@@ -56,7 +56,7 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
   nghttp3_tnode_init(
       &stream->node,
       nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_STREAM, stream_id), seq,
-      NGHTTP3_DEFAULT_URGENCY, /* inc = */ 0);
+      NGHTTP3_DEFAULT_URGENCY);
 
   rv = nghttp3_ringbuf_init(&stream->frq, 0, sizeof(nghttp3_frame_entry), mem);
   if (rv != 0) {
@@ -85,8 +85,7 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
   stream->mem = mem;
   stream->rx.http.status_code = -1;
   stream->rx.http.content_length = -1;
-  stream->rx.http.pri.urgency = NGHTTP3_DEFAULT_URGENCY;
-  stream->rx.http.pri.inc = 0;
+  stream->rx.http.pri = NGHTTP3_DEFAULT_URGENCY;
   stream->error_code = NGHTTP3_H3_NO_ERROR;
 
   if (callbacks) {

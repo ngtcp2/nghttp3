@@ -30,6 +30,7 @@
 
 #include "nghttp3_stream.h"
 #include "nghttp3_macro.h"
+#include "nghttp3_conv.h"
 
 static uint8_t downcase(uint8_t c) {
   return 'A' <= c && c <= 'Z' ? (uint8_t)(c - 'A' + 'a') : c;
@@ -199,6 +200,8 @@ fin:
 static int http_request_on_header(nghttp3_http_state *http, int64_t frame_type,
                                   nghttp3_qpack_nv *nv, int trailers,
                                   int connect_protocol) {
+  nghttp3_pri pri;
+
   if (nv->name->base[0] == ':') {
     if (trailers ||
         (http->flags & NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED)) {
@@ -305,8 +308,12 @@ static int http_request_on_header(nghttp3_http_state *http, int64_t frame_type,
     }
     break;
   case NGHTTP3_QPACK_TOKEN_PRIORITY:
-    /* We don't care about the outcome of this function call. */
-    nghttp3_http_parse_priority(&http->pri, nv->value->base, nv->value->len);
+    pri.urgency = nghttp3_pri_uint8_urgency(http->pri);
+    pri.inc = nghttp3_pri_uint8_inc(http->pri);
+    if (nghttp3_http_parse_priority(&pri, nv->value->base, nv->value->len) ==
+        0) {
+      http->pri = nghttp3_pri_to_uint8(&pri);
+    }
     break;
   default:
     if (nv->name->base[0] == ':') {

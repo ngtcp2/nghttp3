@@ -2947,7 +2947,7 @@ void test_nghttp3_conn_recv_push_stream(void) {
   CU_ASSERT(pp == stream->pp);
   CU_ASSERT(!(stream->flags & NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED));
   CU_ASSERT(0 == nghttp3_ringbuf_len(&stream->inq));
-  CU_ASSERT(NGHTTP3_DEFAULT_URGENCY == pp->node.urgency);
+  CU_ASSERT(NGHTTP3_DEFAULT_URGENCY == pp->node.pri);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);

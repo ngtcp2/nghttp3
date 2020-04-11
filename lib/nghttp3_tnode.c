@@ -29,6 +29,7 @@
 #include "nghttp3_macro.h"
 #include "nghttp3_stream.h"
 #include "nghttp3_conn.h"
+#include "nghttp3_conv.h"
 
 nghttp3_node_id *nghttp3_node_id_init(nghttp3_node_id *nid,
                                       nghttp3_node_id_type type, int64_t id) {
@@ -42,13 +43,14 @@ int nghttp3_node_id_eq(const nghttp3_node_id *a, const nghttp3_node_id *b) {
 }
 
 void nghttp3_tnode_init(nghttp3_tnode *tnode, const nghttp3_node_id *nid,
-                        uint64_t seq, uint32_t urgency, int inc) {
+                        uint64_t seq, uint8_t pri) {
+  assert(nghttp3_pri_uint8_urgency(pri) < NGHTTP3_URGENCY_LEVELS);
+
   tnode->pe.index = NGHTTP3_PQ_BAD_INDEX;
   tnode->nid = *nid;
   tnode->seq = seq;
   tnode->cycle = 0;
-  tnode->urgency = urgency;
-  tnode->inc = inc;
+  tnode->pri = pri;
 }
 
 void nghttp3_tnode_free(nghttp3_tnode *tnode) { (void)tnode; }
@@ -86,7 +88,7 @@ int nghttp3_tnode_schedule(nghttp3_tnode *tnode, nghttp3_pq *pq,
   if (tnode->pe.index == NGHTTP3_PQ_BAD_INDEX) {
     cycle = pq_get_first_cycle(pq);
   } else if (nwrite > 0) {
-    if (!tnode->inc || nghttp3_pq_size(pq) == 1) {
+    if (!nghttp3_pri_uint8_inc(tnode->pri) || nghttp3_pq_size(pq) == 1) {
       return 0;
     }
 
