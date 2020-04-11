@@ -1433,8 +1433,8 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
   int busy = 0;
   size_t len;
   nghttp3_push_promise *pp;
-  nghttp3_push_promise fake_pp = {
-      {0}, {{0}, 0, {0}, 0, 0, 0, 0, 0}, {0}, NULL, -1, 0};
+  nghttp3_push_promise fake_pp = {{0}, {{0}, 0, {0}, 0, 0, 0, 0}, {0}, NULL, -1,
+                                  0};
 
   if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
     *pnproc = 0;

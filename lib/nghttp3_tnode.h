@@ -64,9 +64,6 @@ struct nghttp3_tnode {
   uint64_t cycle;
   uint32_t urgency;
   int inc;
-  /* active is defined for unit test and is nonzero if this node is
-     active. */
-  int active;
 };
 
 void nghttp3_tnode_init(nghttp3_tnode *tnode, const nghttp3_node_id *nid,

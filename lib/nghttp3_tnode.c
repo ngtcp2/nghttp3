@@ -49,7 +49,6 @@ void nghttp3_tnode_init(nghttp3_tnode *tnode, const nghttp3_node_id *nid,
   tnode->cycle = 0;
   tnode->urgency = urgency;
   tnode->inc = inc;
-  tnode->active = 0;
 }
 
 void nghttp3_tnode_free(nghttp3_tnode *tnode) { (void)tnode; }
