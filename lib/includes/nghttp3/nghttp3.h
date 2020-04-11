@@ -1709,6 +1709,9 @@ typedef struct nghttp3_pri {
  * stream denoted by |stream_id| into |*dest|.  Only server can use
  * this function.
  *
+ * This function must not be called if |conn| is initialized as
+ * client.
+ *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
@@ -1724,6 +1727,9 @@ NGHTTP3_EXTERN int nghttp3_conn_get_stream_priority(nghttp3_conn *conn,
  *
  * `nghttp3_conn_set_stream_priority` updates stream priority of a
  * stream denoted by |stream_id| by the value pointed by |pri|.
+ *
+ * This function must not be called if |conn| is initialized as
+ * client.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:

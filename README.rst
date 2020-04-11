@@ -31,6 +31,11 @@ This library implements HTTP/3 draft-27.  It can exchange basic HTTP
 request, response and server push, but does not fully implement the
 specification at the moment.
 
+It also partially implements `Extensible Prioritization Scheme for
+HTTP
+<https://httpwg.org/http-extensions/draft-ietf-httpbis-priority.html>`_.
+HTTP/3 PRIORITY_UPDATE frame is not implemented yet.
+
 QPACK
 -----
 
