@@ -130,5 +130,5 @@ uint64_t nghttp3_ord_stream_id(int64_t stream_id) {
 }
 
 uint8_t nghttp3_pri_to_uint8(const nghttp3_pri *pri) {
-  return (uint8_t)((uint32_t)pri->inc << 7 || pri->urgency);
+  return (uint8_t)((uint32_t)pri->inc << 7 | pri->urgency);
 }
