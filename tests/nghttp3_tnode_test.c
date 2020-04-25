@@ -74,14 +74,14 @@ void test_nghttp3_tnode_schedule(void) {
   rv = nghttp3_tnode_schedule(&node, &pq, 1000);
 
   CU_ASSERT(0 == rv);
-  CU_ASSERT(1000 == node.cycle);
+  CU_ASSERT(1 == node.cycle);
 
-  /* Rescheduling node with nwrit == 0 */
+  /* Rescheduling node with nwrite == 0 */
 
   rv = nghttp3_tnode_schedule(&node, &pq, 0);
 
   CU_ASSERT(0 == rv);
-  CU_ASSERT(1000 == node.cycle);
+  CU_ASSERT(1 == node.cycle);
 
   nghttp3_pq_free(&pq);
 

@@ -83,23 +83,22 @@ static uint64_t pq_get_first_cycle(nghttp3_pq *pq) {
 
 int nghttp3_tnode_schedule(nghttp3_tnode *tnode, nghttp3_pq *pq,
                            size_t nwrite) {
-  uint64_t cycle;
+  uint64_t penalty = nwrite / NGHTTP3_STREAM_MIN_WRITELEN;
 
   if (tnode->pe.index == NGHTTP3_PQ_BAD_INDEX) {
-    cycle = pq_get_first_cycle(pq);
+    tnode->cycle =
+        pq_get_first_cycle(pq) + (nwrite == 0 ? 0 : nghttp3_max(1, penalty));
   } else if (nwrite > 0) {
     if (!nghttp3_pri_uint8_inc(tnode->pri) || nghttp3_pq_size(pq) == 1) {
       return 0;
     }
 
-    cycle = tnode->cycle;
     nghttp3_pq_remove(pq, &tnode->pe);
     tnode->pe.index = NGHTTP3_PQ_BAD_INDEX;
+    tnode->cycle += nghttp3_max(1, penalty);
   } else {
     return 0;
   }
-
-  tnode->cycle = cycle + nghttp3_max(1, nwrite / NGHTTP3_STREAM_MIN_WRITELEN);
 
   return nghttp3_pq_push(pq, &tnode->pe);
 }

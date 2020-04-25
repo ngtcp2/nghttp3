@@ -37,6 +37,7 @@ if(HAVE_CUNIT)
     nghttp3_conn_test.c
     nghttp3_tnode_test.c
     nghttp3_http_test.c
+    nghttp3_conv_test.c
     nghttp3_test_helper.c
   )
 
