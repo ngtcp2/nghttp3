@@ -99,7 +99,7 @@ int nghttp3_tnode_schedule(nghttp3_tnode *tnode, nghttp3_pq *pq,
     return 0;
   }
 
-  tnode->cycle = cycle + nwrite;
+  tnode->cycle = cycle + nghttp3_max(1, nwrite / NGHTTP3_STREAM_MIN_WRITELEN);
 
   return nghttp3_pq_push(pq, &tnode->pe);
 }
