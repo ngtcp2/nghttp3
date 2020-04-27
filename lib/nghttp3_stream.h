@@ -46,7 +46,7 @@
 
 /* NGHTTP3_STREAM_MIN_WRITELEN is the minimum length of write to cause
    the stream to reschedule. */
-#define NGHTTP3_STREAM_MIN_WRITELEN 1200
+#define NGHTTP3_STREAM_MIN_WRITELEN 800
 
 /* nghttp3_stream_type is unidirectional stream type. */
 typedef enum {
