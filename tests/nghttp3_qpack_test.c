@@ -756,7 +756,7 @@ void test_nghttp3_qpack_huffman_decode_failure_state(void) {
 void test_nghttp3_qpack_decoder_reconstruct_ricnt(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_qpack_decoder dec;
-  size_t ricnt;
+  uint64_t ricnt;
   int rv;
 
   rv = nghttp3_qpack_decoder_init(&dec, 100, 1, mem);

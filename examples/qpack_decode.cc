@@ -237,7 +237,7 @@ int decode(const std::string_view &outfile, const std::string_view &infile) {
     size = ntohl(size);
     p += sizeof(size);
 
-    if (end - p < size) {
+    if ((size_t)(end - p) < size) {
       std::cerr << "Insufficient input: require " << size << " but "
                 << (end - p) << " is available" << std::endl;
       return -1;

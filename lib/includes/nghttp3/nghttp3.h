@@ -671,7 +671,7 @@ nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
  */
 NGHTTP3_EXTERN int
 nghttp3_qpack_encoder_add_insert_count(nghttp3_qpack_encoder *encoder,
-                                       size_t n);
+                                       uint64_t n);
 
 /**
  * @function
@@ -749,7 +749,7 @@ nghttp3_qpack_stream_context_del(nghttp3_qpack_stream_context *sctx);
  * `nghttp3_qpack_stream_context_get_ricnt` returns required insert
  * count.
  */
-NGHTTP3_EXTERN size_t
+NGHTTP3_EXTERN uint64_t
 nghttp3_qpack_stream_context_get_ricnt(nghttp3_qpack_stream_context *sctx);
 
 struct nghttp3_qpack_decoder;
@@ -815,7 +815,7 @@ NGHTTP3_EXTERN nghttp3_ssize nghttp3_qpack_decoder_read_encoder(
  *
  * `nghttp3_qpack_decoder_get_icnt` returns insert count.
  */
-NGHTTP3_EXTERN size_t
+NGHTTP3_EXTERN uint64_t
 nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
 
 /**
