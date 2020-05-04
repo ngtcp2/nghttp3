@@ -1394,7 +1394,7 @@ NGHTTP3_EXTERN int nghttp3_conn_add_write_offset(nghttp3_conn *conn,
  * for stream denoted by |stream_id| QUIC stack has acknowledged.
  */
 NGHTTP3_EXTERN int nghttp3_conn_add_ack_offset(nghttp3_conn *conn,
-                                               int64_t stream_id, size_t n);
+                                               int64_t stream_id, uint64_t n);
 
 /**
  * @function

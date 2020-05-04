@@ -2638,7 +2638,7 @@ int nghttp3_conn_add_write_offset(nghttp3_conn *conn, int64_t stream_id,
 }
 
 int nghttp3_conn_add_ack_offset(nghttp3_conn *conn, int64_t stream_id,
-                                size_t n) {
+                                uint64_t n) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
