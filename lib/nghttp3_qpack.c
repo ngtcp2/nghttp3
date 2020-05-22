@@ -1203,7 +1203,8 @@ int nghttp3_qpack_encoder_encode(nghttp3_qpack_encoder *encoder,
     }
   }
 
-  nghttp3_qpack_encoder_write_header_block_prefix(encoder, pbuf, max_cnt, base);
+  nghttp3_qpack_encoder_write_field_section_prefix(encoder, pbuf, max_cnt,
+                                                   base);
 
   /* TODO If max_cnt == 0, no reference is made to dtable. */
   if (!max_cnt) {
@@ -2377,7 +2378,7 @@ size_t nghttp3_qpack_encoder_get_num_blocked(nghttp3_qpack_encoder *encoder) {
   return nghttp3_ksl_len(&encoder->blocked_streams);
 }
 
-int nghttp3_qpack_encoder_write_header_block_prefix(
+int nghttp3_qpack_encoder_write_field_section_prefix(
     nghttp3_qpack_encoder *encoder, nghttp3_buf *pbuf, uint64_t ricnt,
     uint64_t base) {
   size_t max_ents =

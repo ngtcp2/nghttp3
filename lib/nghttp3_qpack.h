@@ -336,9 +336,9 @@ nghttp3_qpack_lookup_result nghttp3_qpack_encoder_lookup_dtable(
     int allow_blocking);
 
 /*
- * nghttp3_qpack_encoder_write_header_block_prefix writes Header Block
- * Prefix into |pbuf|.  |ricnt| is Required Insert Count.  |base| is
- * Base.
+ * nghttp3_qpack_encoder_write_field_section_prefix writes Encoded
+ * Field Section Prefix into |pbuf|.  |ricnt| is Required Insert
+ * Count.  |base| is Base.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -346,7 +346,7 @@ nghttp3_qpack_lookup_result nghttp3_qpack_encoder_lookup_dtable(
  * NGHTTP3_ERR_NOMEM
  *     Out of memory.
  */
-int nghttp3_qpack_encoder_write_header_block_prefix(
+int nghttp3_qpack_encoder_write_field_section_prefix(
     nghttp3_qpack_encoder *encoder, nghttp3_buf *pbuf, uint64_t ricnt,
     uint64_t base);
 
