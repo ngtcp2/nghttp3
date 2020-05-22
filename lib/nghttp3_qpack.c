@@ -1781,7 +1781,7 @@ void nghttp3_qpack_stream_pop_ref(nghttp3_qpack_stream *stream) {
 int nghttp3_qpack_encoder_write_static_indexed(nghttp3_qpack_encoder *encoder,
                                                nghttp3_buf *rbuf,
                                                uint64_t absidx) {
-  DEBUGF("qpack::encode: Indexed Header Field (static) absidx=%" PRIu64 "\n",
+  DEBUGF("qpack::encode: Indexed Field Line (static) absidx=%" PRIu64 "\n",
          absidx);
   return qpack_write_number(rbuf, 0xc0, absidx, 6, encoder->ctx.mem);
 }
@@ -1790,7 +1790,7 @@ int nghttp3_qpack_encoder_write_dynamic_indexed(nghttp3_qpack_encoder *encoder,
                                                 nghttp3_buf *rbuf,
                                                 uint64_t absidx,
                                                 uint64_t base) {
-  DEBUGF("qpack::encode: Indexed Header Field (dynamic) absidx=%" PRIu64
+  DEBUGF("qpack::encode: Indexed Field Line (dynamic) absidx=%" PRIu64
          " base=%" PRIu64 "\n",
          absidx, base);
 
@@ -1867,7 +1867,7 @@ int nghttp3_qpack_encoder_write_static_indexed_name(
   uint8_t fb =
       (uint8_t)(0x50 | ((nv->flags & NGHTTP3_NV_FLAG_NEVER_INDEX) ? 0x20 : 0));
 
-  DEBUGF("qpack::encode: Literal Header Field With Name Reference (static) "
+  DEBUGF("qpack::encode: Literal Field Line With Name Reference (static) "
          "absidx=%" PRIu64 " never=%d\n",
          absidx, (nv->flags & NGHTTP3_NV_FLAG_NEVER_INDEX) != 0);
   return qpack_encoder_write_indexed_name(encoder, rbuf, fb, absidx, 4, nv);
@@ -1878,7 +1878,7 @@ int nghttp3_qpack_encoder_write_dynamic_indexed_name(
     uint64_t base, const nghttp3_nv *nv) {
   uint8_t fb;
 
-  DEBUGF("qpack::encode: Literal Header Field With Name Reference (dynamic) "
+  DEBUGF("qpack::encode: Literal Field Line With Name Reference (dynamic) "
          "absidx=%" PRIu64 " base=%" PRIu64 " never=%d\n",
          absidx, base, (nv->flags & NGHTTP3_NV_FLAG_NEVER_INDEX) != 0);
 
@@ -1976,7 +1976,7 @@ int nghttp3_qpack_encoder_write_literal(nghttp3_qpack_encoder *encoder,
   uint8_t fb =
       (uint8_t)(0x20 | ((nv->flags & NGHTTP3_NV_FLAG_NEVER_INDEX) ? 0x10 : 0));
 
-  DEBUGF("qpack::encode: Literal Header Field Without Name Reference\n");
+  DEBUGF("qpack::encode: Literal Field Line Without Name Reference\n");
   return qpack_encoder_write_literal(encoder, rbuf, fb, 3, nv);
 }
 
