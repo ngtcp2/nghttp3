@@ -2520,8 +2520,8 @@ nghttp3_ssize nghttp3_qpack_encoder_read_decoder(nghttp3_qpack_encoder *encoder,
     switch (encoder->state) {
     case NGHTTP3_QPACK_DS_STATE_OPCODE:
       if ((*p) & 0x80) {
-        DEBUGF("qpack::encode: OPCODE_HEADER_ACK\n");
-        encoder->opcode = NGHTTP3_QPACK_DS_OPCODE_HEADER_ACK;
+        DEBUGF("qpack::encode: OPCODE_SECTION_ACK\n");
+        encoder->opcode = NGHTTP3_QPACK_DS_OPCODE_SECTION_ACK;
         encoder->rstate.prefix = 7;
       } else if ((*p) & 0x40) {
         DEBUGF("qpack::encode: OPCODE_STREAM_CANCEL\n");
@@ -2556,7 +2556,7 @@ nghttp3_ssize nghttp3_qpack_encoder_read_decoder(nghttp3_qpack_encoder *encoder,
           goto fail;
         }
         break;
-      case NGHTTP3_QPACK_DS_OPCODE_HEADER_ACK:
+      case NGHTTP3_QPACK_DS_OPCODE_SECTION_ACK:
         nghttp3_qpack_encoder_ack_header(encoder,
                                          (int64_t)encoder->rstate.left);
         break;
@@ -3653,7 +3653,7 @@ almost_ok:
     *pflags |= NGHTTP3_QPACK_DECODE_FLAG_FINAL;
 
     if (sctx->ricnt) {
-      rv = nghttp3_qpack_decoder_write_header_ack(decoder, sctx);
+      rv = nghttp3_qpack_decoder_write_section_ack(decoder, sctx);
       if (rv != 0) {
         goto fail;
       }
@@ -3673,7 +3673,7 @@ static int qpack_decoder_dbuf_overflow(nghttp3_qpack_decoder *decoder) {
   return nghttp3_buf_len(&decoder->dbuf) > limit * 2 * 10;
 }
 
-int nghttp3_qpack_decoder_write_header_ack(
+int nghttp3_qpack_decoder_write_section_ack(
     nghttp3_qpack_decoder *decoder, const nghttp3_qpack_stream_context *sctx) {
   nghttp3_buf *dbuf = &decoder->dbuf;
   uint8_t *p;

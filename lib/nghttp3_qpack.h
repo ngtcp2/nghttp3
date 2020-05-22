@@ -212,7 +212,7 @@ typedef enum {
    stream. */
 typedef enum {
   NGHTTP3_QPACK_DS_OPCODE_ICNT_INCREMENT,
-  NGHTTP3_QPACK_DS_OPCODE_HEADER_ACK,
+  NGHTTP3_QPACK_DS_OPCODE_SECTION_ACK,
   NGHTTP3_QPACK_DS_OPCODE_STREAM_CANCEL,
 } nghttp3_qpack_decoder_stream_opcode;
 
@@ -949,7 +949,7 @@ void nghttp3_qpack_decoder_emit_literal(nghttp3_qpack_decoder *decoder,
                                         nghttp3_qpack_nv *nv);
 
 /*
- * nghttp3_qpack_decoder_write_header_ack writes Header
+ * nghttp3_qpack_decoder_write_section_ack writes Section
  * Acknowledgement to decoder stream.
  *
  * This function returns 0 if it succeeds, or one of the following
@@ -960,7 +960,7 @@ void nghttp3_qpack_decoder_emit_literal(nghttp3_qpack_decoder *decoder,
  * NGHTTP3_ERR_QPACK_FATAL
  *     Decoder stream overflow.
  */
-int nghttp3_qpack_decoder_write_header_ack(
+int nghttp3_qpack_decoder_write_section_ack(
     nghttp3_qpack_decoder *decoder, const nghttp3_qpack_stream_context *sctx);
 
 #endif /* NGHTTP3_QPACK_H */
