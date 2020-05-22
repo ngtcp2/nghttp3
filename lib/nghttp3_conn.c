@@ -2267,8 +2267,8 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
 
   /* TODO Check for duplicates */
   switch (ent->id) {
-  case NGHTTP3_SETTINGS_ID_MAX_HEADER_LIST_SIZE:
-    dest->max_header_list_size = ent->value;
+  case NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE:
+    dest->max_field_section_size = ent->value;
     break;
   case NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY:
     dest->qpack_max_table_capacity = (size_t)ent->value;
@@ -3194,7 +3194,7 @@ int nghttp3_conn_is_remote_qpack_encoder_stream(nghttp3_conn *conn,
 
 void nghttp3_conn_settings_default(nghttp3_conn_settings *settings) {
   memset(settings, 0, sizeof(nghttp3_conn_settings));
-  settings->max_header_list_size = NGHTTP3_VARINT_MAX;
+  settings->max_field_section_size = NGHTTP3_VARINT_MAX;
 }
 
 int nghttp3_push_promise_new(nghttp3_push_promise **ppp, int64_t push_id,

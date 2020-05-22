@@ -1202,7 +1202,7 @@ typedef struct {
 } nghttp3_conn_callbacks;
 
 typedef struct {
-  uint64_t max_header_list_size;
+  uint64_t max_field_section_size;
   uint64_t max_pushes;
   size_t qpack_max_table_capacity;
   size_t qpack_blocked_streams;
@@ -1290,7 +1290,7 @@ typedef struct {
   int64_t push_id;
 } nghttp3_frame_cancel_push;
 
-#define NGHTTP3_SETTINGS_ID_MAX_HEADER_LIST_SIZE 0x06
+#define NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE 0x06
 #define NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY 0x01
 #define NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS 0x07
 

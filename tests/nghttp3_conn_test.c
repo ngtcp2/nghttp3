@@ -296,7 +296,7 @@ void test_nghttp3_conn_read_control(void) {
 
   fr.settings.hd.type = NGHTTP3_FRAME_SETTINGS;
   iv = fr.settings.iv;
-  iv[0].id = NGHTTP3_SETTINGS_ID_MAX_HEADER_LIST_SIZE;
+  iv[0].id = NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE;
   iv[0].value = 65536;
   iv[1].id = 1000000009;
   iv[1].value = 1000000007;
@@ -316,7 +316,7 @@ void test_nghttp3_conn_read_control(void) {
                                        /* fin = */ 0);
 
   CU_ASSERT(nconsumed == (nghttp3_ssize)nghttp3_buf_len(&buf));
-  CU_ASSERT(65536 == conn->remote.settings.max_header_list_size);
+  CU_ASSERT(65536 == conn->remote.settings.max_field_section_size);
   CU_ASSERT(4096 == conn->remote.settings.qpack_max_table_capacity);
   CU_ASSERT(99 == conn->remote.settings.qpack_blocked_streams);
 
@@ -334,7 +334,7 @@ void test_nghttp3_conn_read_control(void) {
     CU_ASSERT(1 == nconsumed);
   }
 
-  CU_ASSERT(65536 == conn->remote.settings.max_header_list_size);
+  CU_ASSERT(65536 == conn->remote.settings.max_field_section_size);
   CU_ASSERT(4096 == conn->remote.settings.qpack_max_table_capacity);
   CU_ASSERT(99 == conn->remote.settings.qpack_blocked_streams);
 
