@@ -242,11 +242,10 @@ size_t nghttp3_ksl_len(nghttp3_ksl *ksl);
 void nghttp3_ksl_clear(nghttp3_ksl *ksl);
 
 /*
- * nghttp3_ksl_nth_node returns the |n|th node under |blk|.  This
- * function is provided for unit testing.
+ * nghttp3_ksl_nth_node returns the |n|th node under |blk|.
  */
-nghttp3_ksl_node *nghttp3_ksl_nth_node(nghttp3_ksl *ksl, nghttp3_ksl_blk *blk,
-                                       size_t n);
+#define nghttp3_ksl_nth_node(KSL, BLK, N)                                      \
+  ((nghttp3_ksl_node *)(void *)((BLK)->nodes + (KSL)->nodelen * (N)))
 
 /*
  * nghttp3_ksl_print prints its internal state in stderr.  It assumes
@@ -305,10 +304,7 @@ int nghttp3_ksl_it_begin(const nghttp3_ksl_it *it);
  * returns nonzero.
  */
 #define nghttp3_ksl_it_key(IT)                                                 \
-  ((nghttp3_ksl_key *)((nghttp3_ksl_node *)(void *)((IT)->blk->nodes +         \
-                                                    (IT)->ksl->nodelen *       \
-                                                        (IT)->i))              \
-       ->key)
+  ((nghttp3_ksl_key *)nghttp3_ksl_nth_node((IT)->ksl, (IT)->blk, (IT)->i)->key)
 
 /*
  * nghttp3_ksl_range_compar is an implementation of
