@@ -869,7 +869,7 @@ typedef enum {
  * due to required insert count.
  *
  * When a header field is decoded, an application receives it in |nv|.
- * nv->name and nv->value are reference counted buffer, and the their
+ * nv->name and nv->value are reference counted buffer, and their
  * reference counts are already incremented for application use.
  * Therefore, when application finishes processing the header field,
  * it must call nghttp3_rcbuf_decref(nv->name) and
