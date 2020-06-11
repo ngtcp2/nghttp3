@@ -2487,6 +2487,7 @@ void test_nghttp3_conn_cancel_push(void) {
   pp = nghttp3_conn_find_push_promise(conn, 0);
 
   CU_ASSERT(NULL != pp);
+  CU_ASSERT(pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL);
 
   stream = nghttp3_conn_find_stream(conn, 15);
 

@@ -59,7 +59,7 @@ typedef enum {
      opened. */
   NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL = 0x02,
   /* NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL is set when push is
-     canceled by client. */
+     canceled by the local endpoint. */
   NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL = 0x04,
   NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED = NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL |
                                         NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL,

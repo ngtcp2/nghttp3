@@ -2936,16 +2936,22 @@ int nghttp3_conn_server_cancel_push(nghttp3_conn *conn, int64_t push_id) {
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
-  if (pp->stream) {
-    return NGHTTP3_ERR_TOO_LATE;
+  if (!(pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL)) {
+    frent.fr.hd.type = NGHTTP3_FRAME_CANCEL_PUSH;
+    frent.fr.cancel_push.push_id = push_id;
+
+    rv = nghttp3_stream_frq_add(conn->tx.ctrl, &frent);
+    if (rv != 0) {
+      return rv;
+    }
+
+    pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL;
   }
 
-  frent.fr.hd.type = NGHTTP3_FRAME_CANCEL_PUSH;
-  frent.fr.cancel_push.push_id = push_id;
-
-  rv = nghttp3_stream_frq_add(conn->tx.ctrl, &frent);
-  if (rv != 0) {
-    return rv;
+  if (pp->stream) {
+    /* CANCEL_PUSH will be sent, but it does not affect pushed stream.
+       Application should explicitly shutdown the stream. */
+    return NGHTTP3_ERR_TOO_LATE;
   }
 
   nghttp3_tnode_unschedule(&pp->node, conn_get_sched_pq(conn, &pp->node));
