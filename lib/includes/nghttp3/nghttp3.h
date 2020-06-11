@@ -73,7 +73,7 @@ typedef ptrdiff_t nghttp3_ssize;
 /* NGHTTP3_ALPN_H3 is a serialized form of HTTP/3 ALPN protocol
    identifier this library supports.  Notice that the first byte is
    the length of the following protocol identifier. */
-#define NGHTTP3_ALPN_H3 "\x5h3-28"
+#define NGHTTP3_ALPN_H3 "\x5h3-29"
 
 typedef enum {
   NGHTTP3_ERR_INVALID_ARGUMENT = -101,
