@@ -308,11 +308,11 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   nghttp3_buf pbuf, rbuf, ebuf;
   const nghttp3_nv nva1[] = {
       MAKE_NV(":path", "/"),
-      MAKE_NV("foo1", "bar1"),
+      MAKE_NV("date", "bar1"),
   };
   const nghttp3_nv nva2[] = {
       MAKE_NV(":path", "/"),
-      MAKE_NV("foo2", "bar2"),
+      MAKE_NV("vary", "bar2"),
   };
   int rv;
   nghttp3_ssize nread;
@@ -336,7 +336,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
 
   CU_ASSERT(0 == rv);
   CU_ASSERT(1 == enc.ctx.next_absidx);
-  CU_ASSERT(strlen("foo1") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
+  CU_ASSERT(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             enc.ctx.dtable_size);
 
   nread = nghttp3_qpack_decoder_read_encoder(&dec, ebuf.pos,
@@ -344,7 +344,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
 
   CU_ASSERT(nread == (nghttp3_ssize)nghttp3_buf_len(&ebuf));
   CU_ASSERT(1 == dec.ctx.next_absidx);
-  CU_ASSERT(strlen("foo1") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
+  CU_ASSERT(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             dec.ctx.dtable_size);
   CU_ASSERT(4096 == dec.ctx.max_dtable_size);
 
@@ -357,8 +357,8 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
                                     nghttp3_arraylen(nva2));
 
   CU_ASSERT(0 == rv);
-  CU_ASSERT(strlen("foo1") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD +
-                strlen("foo2") + strlen("bar2") +
+  CU_ASSERT(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD +
+                strlen("vary") + strlen("bar2") +
                 NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             enc.ctx.dtable_size);
   CU_ASSERT(2 == enc.ctx.next_absidx);
@@ -369,8 +369,8 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
 
   CU_ASSERT(nread == (nghttp3_ssize)nghttp3_buf_len(&ebuf));
   CU_ASSERT(2 == dec.ctx.next_absidx);
-  CU_ASSERT(strlen("foo1") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD +
-                strlen("foo2") + strlen("bar2") +
+  CU_ASSERT(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD +
+                strlen("vary") + strlen("bar2") +
                 NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             dec.ctx.dtable_size);
   CU_ASSERT(4096 == dec.ctx.max_dtable_size);
@@ -400,8 +400,8 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
 
   CU_ASSERT(nread == (nghttp3_ssize)nghttp3_buf_len(&ebuf));
   CU_ASSERT(2 == dec.ctx.next_absidx);
-  CU_ASSERT(strlen("foo1") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD +
-                strlen("foo2") + strlen("bar2") +
+  CU_ASSERT(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD +
+                strlen("vary") + strlen("bar2") +
                 NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             dec.ctx.dtable_size);
   CU_ASSERT(4096 == dec.ctx.max_dtable_size);
@@ -418,7 +418,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
                                     nghttp3_arraylen(nva2));
 
   CU_ASSERT(0 == rv);
-  CU_ASSERT(strlen("foo2") + strlen("bar2") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
+  CU_ASSERT(strlen("vary") + strlen("bar2") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             enc.ctx.dtable_size);
   CU_ASSERT(0 == enc.ctx.max_dtable_size);
   CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked(&enc));
@@ -430,8 +430,8 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   /* decoder still has 2 entries because encoder does not emit Set
      Dynamic Table Capacity. */
   CU_ASSERT(2 == dec.ctx.next_absidx);
-  CU_ASSERT(strlen("foo1") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD +
-                strlen("foo2") + strlen("bar2") +
+  CU_ASSERT(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD +
+                strlen("vary") + strlen("bar2") +
                 NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             dec.ctx.dtable_size);
   CU_ASSERT(4096 == dec.ctx.max_dtable_size);
@@ -480,7 +480,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
 
   CU_ASSERT(0 == rv);
   CU_ASSERT(1 == enc.ctx.next_absidx);
-  CU_ASSERT(strlen("foo1") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
+  CU_ASSERT(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             enc.ctx.dtable_size);
 
   nread = nghttp3_qpack_decoder_read_encoder(&dec, ebuf.pos,
@@ -488,7 +488,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
 
   CU_ASSERT(nread == (nghttp3_ssize)nghttp3_buf_len(&ebuf));
   CU_ASSERT(1 == dec.ctx.next_absidx);
-  CU_ASSERT(strlen("foo1") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
+  CU_ASSERT(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             dec.ctx.dtable_size);
   CU_ASSERT(4096 == dec.ctx.max_dtable_size);
 
@@ -514,7 +514,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
 
   CU_ASSERT(0 == rv);
   CU_ASSERT(2 == enc.ctx.next_absidx);
-  CU_ASSERT(strlen("foo1") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
+  CU_ASSERT(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             enc.ctx.dtable_size);
   CU_ASSERT(SIZE_MAX == enc.min_dtable_update);
   CU_ASSERT(1024 == enc.last_max_dtable_update);
@@ -525,7 +525,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
 
   CU_ASSERT(nread == (nghttp3_ssize)nghttp3_buf_len(&ebuf));
   CU_ASSERT(2 == dec.ctx.next_absidx);
-  CU_ASSERT(strlen("foo1") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
+  CU_ASSERT(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             dec.ctx.dtable_size);
   CU_ASSERT(1024 == dec.ctx.max_dtable_size);
 
@@ -548,15 +548,15 @@ void test_nghttp3_qpack_decoder_feedback(void) {
   nghttp3_buf pbuf1, rbuf1, pbuf2, rbuf2, pbuf3, rbuf3, ebuf, dbuf;
   const nghttp3_nv nva1[] = {
       MAKE_NV(":path", "/"),
-      MAKE_NV("foo1", "bar1"),
+      MAKE_NV("date", "bar1"),
   };
   const nghttp3_nv nva2[] = {
       MAKE_NV(":path", "/"),
-      MAKE_NV("foo2", "bar2"),
+      MAKE_NV("vary", "bar2"),
   };
   const nghttp3_nv nva3[] = {
       MAKE_NV(":path", "/"),
-      MAKE_NV("foo3", "bar3"),
+      MAKE_NV("link", "bar3"),
   };
   int rv;
   nghttp3_ssize nread;

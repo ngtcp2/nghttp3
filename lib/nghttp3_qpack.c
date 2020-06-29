@@ -1341,6 +1341,7 @@ qpack_encoder_decide_indexing_mode(nghttp3_qpack_encoder *encoder,
       return NGHTTP3_QPACK_INDEXING_MODE_NEVER;
     }
     break;
+  case -1:
   case NGHTTP3_QPACK_TOKEN__PATH:
   case NGHTTP3_QPACK_TOKEN_AGE:
   case NGHTTP3_QPACK_TOKEN_CONTENT_LENGTH:
@@ -1350,6 +1351,15 @@ qpack_encoder_decide_indexing_mode(nghttp3_qpack_encoder *encoder,
   case NGHTTP3_QPACK_TOKEN_LOCATION:
   case NGHTTP3_QPACK_TOKEN_SET_COOKIE:
     return NGHTTP3_QPACK_INDEXING_MODE_LITERAL;
+  case NGHTTP3_QPACK_TOKEN_HOST:
+  case NGHTTP3_QPACK_TOKEN_TE:
+  case NGHTTP3_QPACK_TOKEN__PROTOCOL:
+  case NGHTTP3_QPACK_TOKEN_PRIORITY:
+    break;
+  default:
+    if (token >= 1000) {
+      return NGHTTP3_QPACK_INDEXING_MODE_LITERAL;
+    }
   }
 
   if (table_space(nv->namelen, nv->valuelen) >
