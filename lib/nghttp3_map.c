@@ -100,7 +100,7 @@ static uint32_t hash(key_type key, uint32_t mod) {
 
   for (; p != end; ++p) {
     h ^= *p;
-    h *= 0x01000193u;
+    h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
   }
 
   return h & (mod - 1);
