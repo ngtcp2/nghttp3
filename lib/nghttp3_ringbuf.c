@@ -107,8 +107,6 @@ void *nghttp3_ringbuf_get(nghttp3_ringbuf *rb, size_t offset) {
   return &rb->buf[offset * rb->size];
 }
 
-size_t nghttp3_ringbuf_len(nghttp3_ringbuf *rb) { return rb->len; }
-
 int nghttp3_ringbuf_full(nghttp3_ringbuf *rb) { return rb->len == rb->nmemb; }
 
 int nghttp3_ringbuf_reserve(nghttp3_ringbuf *rb, size_t nmemb) {
