@@ -2960,6 +2960,7 @@ nghttp3_ssize nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
       qpack_read_state_terminate_name(&decoder->rstate);
 
       decoder->state = NGHTTP3_QPACK_ES_STATE_CHECK_VALUE_HUFFMAN;
+      decoder->rstate.prefix = 7;
       break;
     case NGHTTP3_QPACK_ES_STATE_CHECK_VALUE_HUFFMAN:
       qpack_read_state_check_huffman(&decoder->rstate, *p);
