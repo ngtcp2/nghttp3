@@ -1043,8 +1043,10 @@ void nghttp3_qpack_encoder_shrink_dtable(nghttp3_qpack_encoder *encoder) {
 
 /*
  * qpack_encoder_add_stream_ref adds another dynamic table reference
- * to a stream denoted by |stream_id|.  |max_cnt| and |min_cnt| is the
- * maximum and minimum insert count it references respectively.
+ * to a stream denoted by |stream_id|.  |stream| must be NULL if no
+ * stream object is not found for the given stream ID.  |max_cnt| and
+ * |min_cnt| is the maximum and minimum insert count it references
+ * respectively.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -1053,10 +1055,9 @@ void nghttp3_qpack_encoder_shrink_dtable(nghttp3_qpack_encoder *encoder) {
  *     Out of memory.
  */
 static int qpack_encoder_add_stream_ref(nghttp3_qpack_encoder *encoder,
-                                        int64_t stream_id, uint64_t max_cnt,
-                                        uint64_t min_cnt) {
-  nghttp3_qpack_stream *stream =
-      nghttp3_qpack_encoder_find_stream(encoder, stream_id);
+                                        int64_t stream_id,
+                                        nghttp3_qpack_stream *stream,
+                                        uint64_t max_cnt, uint64_t min_cnt) {
   nghttp3_qpack_header_block_ref *ref;
   const nghttp3_mem *mem = encoder->ctx.mem;
   uint64_t prev_max_cnt = 0;
@@ -1211,7 +1212,8 @@ int nghttp3_qpack_encoder_encode(nghttp3_qpack_encoder *encoder,
     return 0;
   }
 
-  rv = qpack_encoder_add_stream_ref(encoder, stream_id, max_cnt, min_cnt);
+  rv = qpack_encoder_add_stream_ref(encoder, stream_id, stream, max_cnt,
+                                    min_cnt);
   if (rv != 0) {
     goto fail;
   }
