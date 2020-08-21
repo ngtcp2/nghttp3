@@ -33,6 +33,16 @@
 
 #include "nghttp3_macro.h"
 
+#if defined(_MSC_VER) && defined(_M_ARM64)
+unsigned int __popcnt(unsigned int x) {
+  unsigned int c = 0;
+  for (; x; ++c) {
+    x &= x - 1;
+  }
+  return c;
+}
+#endif
+
 int nghttp3_ringbuf_init(nghttp3_ringbuf *rb, size_t nmemb, size_t size,
                          const nghttp3_mem *mem) {
   if (nmemb) {
