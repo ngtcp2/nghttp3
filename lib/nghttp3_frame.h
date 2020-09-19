@@ -44,6 +44,13 @@ typedef enum {
   NGHTTP3_FRAME_MAX_PUSH_ID = 0x0d,
 } nghttp3_frame_type;
 
+typedef enum {
+  NGHTTP3_H2_FRAME_PRIORITY = 0x02,
+  NGHTTP3_H2_FRAME_PING = 0x06,
+  NGHTTP3_H2_FRAME_WINDOW_UPDATE = 0x08,
+  NGHTTP3_H2_FRAME_CONTINUATION = 0x9,
+} nghttp3_h2_reserved_type;
+
 typedef struct {
   int64_t type;
   int64_t length;

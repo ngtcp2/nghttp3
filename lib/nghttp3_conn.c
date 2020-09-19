@@ -748,6 +748,10 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
       case NGHTTP3_FRAME_DATA:
       case NGHTTP3_FRAME_HEADERS:
       case NGHTTP3_FRAME_PUSH_PROMISE:
+      case NGHTTP3_H2_FRAME_PRIORITY:
+      case NGHTTP3_H2_FRAME_PING:
+      case NGHTTP3_H2_FRAME_WINDOW_UPDATE:
+      case NGHTTP3_H2_FRAME_CONTINUATION:
         return NGHTTP3_ERR_H3_FRAME_UNEXPECTED;
       default:
         /* TODO Handle reserved frame type */
@@ -1124,6 +1128,10 @@ nghttp3_ssize nghttp3_conn_read_push(nghttp3_conn *conn, size_t *pnproc,
       case NGHTTP3_FRAME_SETTINGS:
       case NGHTTP3_FRAME_GOAWAY:
       case NGHTTP3_FRAME_MAX_PUSH_ID:
+      case NGHTTP3_H2_FRAME_PRIORITY:
+      case NGHTTP3_H2_FRAME_PING:
+      case NGHTTP3_H2_FRAME_WINDOW_UPDATE:
+      case NGHTTP3_H2_FRAME_CONTINUATION:
         return NGHTTP3_ERR_H3_FRAME_UNEXPECTED;
       default:
         /* TODO Handle reserved frame type */
@@ -1562,6 +1570,10 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       case NGHTTP3_FRAME_SETTINGS:
       case NGHTTP3_FRAME_GOAWAY:
       case NGHTTP3_FRAME_MAX_PUSH_ID:
+      case NGHTTP3_H2_FRAME_PRIORITY:
+      case NGHTTP3_H2_FRAME_PING:
+      case NGHTTP3_H2_FRAME_WINDOW_UPDATE:
+      case NGHTTP3_H2_FRAME_CONTINUATION:
         return NGHTTP3_ERR_H3_FRAME_UNEXPECTED;
       default:
         /* TODO Handle reserved frame type */
