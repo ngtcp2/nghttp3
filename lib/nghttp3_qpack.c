@@ -1989,7 +1989,7 @@ int nghttp3_qpack_encoder_write_literal(nghttp3_qpack_encoder *encoder,
   uint8_t fb =
       (uint8_t)(0x20 | ((nv->flags & NGHTTP3_NV_FLAG_NEVER_INDEX) ? 0x10 : 0));
 
-  DEBUGF("qpack::encode: Literal Field Line Without Name Reference\n");
+  DEBUGF("qpack::encode: Literal Field Line With Literal Name\n");
   return qpack_encoder_write_literal(encoder, rbuf, fb, 3, nv);
 }
 
@@ -2044,7 +2044,7 @@ int nghttp3_qpack_encoder_write_duplicate_insert(nghttp3_qpack_encoder *encoder,
 int nghttp3_qpack_encoder_write_literal_insert(nghttp3_qpack_encoder *encoder,
                                                nghttp3_buf *ebuf,
                                                const nghttp3_nv *nv) {
-  DEBUGF("qpack::encode: Insert Without Name Reference\n");
+  DEBUGF("qpack::encode: Insert With Literal Name\n");
   return qpack_encoder_write_literal(encoder, ebuf, 0x40, 5, nv);
 }
 
@@ -3206,7 +3206,7 @@ int nghttp3_qpack_decoder_dtable_literal_add(nghttp3_qpack_decoder *decoder) {
   nghttp3_qpack_nv qnv;
   int rv;
 
-  DEBUGF("qpack::decode: Insert Without Name Reference: name=%*s value=%*s\n",
+  DEBUGF("qpack::decode: Insert With Literal Name: name=%*s value=%*s\n",
          (int)decoder->rstate.name->len, decoder->rstate.name->base,
          (int)decoder->rstate.value->len, decoder->rstate.value->base);
 

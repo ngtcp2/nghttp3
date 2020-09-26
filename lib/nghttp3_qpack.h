@@ -413,8 +413,7 @@ int nghttp3_qpack_encoder_write_dynamic_indexed_name(
 
 /*
  * nghttp3_qpack_encoder_write_literal writes Literal Header Field
- * Without Name Reference to |rbuf|.  |nv| is a header field to
- * encode.
+ * With Literal Name to |rbuf|.  |nv| is a header field to encode.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -474,8 +473,8 @@ int nghttp3_qpack_encoder_write_duplicate_insert(nghttp3_qpack_encoder *encoder,
                                                  uint64_t absidx);
 
 /*
- * nghttp3_qpack_encoder_write_literal_insert writes Insert Without
- * Name Reference to |ebuf|.  |nv| is a header field to insert.
+ * nghttp3_qpack_encoder_write_literal_insert writes Insert With
+ * Literal Name to |ebuf|.  |nv| is a header field to insert.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -834,7 +833,7 @@ int nghttp3_qpack_decoder_dtable_duplicate_add(nghttp3_qpack_decoder *decoder);
 
 /*
  * nghttp3_qpack_decoder_dtable_literal_add adds entry received in
- * Insert Without Name Reference to dynamic table.
+ * Insert With Literal Name to dynamic table.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
