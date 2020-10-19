@@ -52,18 +52,18 @@
 
 #include <nghttp3/nghttp3.h>
 
-#if defined HAVE_BSWAP_64 || HAVE_DECL_BSWAP_64
+#if defined(HAVE_BSWAP_64) || (defined(HAVE_DECL_BSWAP_64) && HAVE_DECL_BSWAP_64 > 0)
 #  define nghttp3_bswap64 bswap_64
 #else /* !HAVE_BSWAP_64 */
 #  define nghttp3_bswap64(N)                                                   \
     ((uint64_t)(ntohl((uint32_t)(N))) << 32 | ntohl((uint32_t)((N) >> 32)))
 #endif /* !HAVE_BSWAP_64 */
 
-#if defined HAVE_BE64TOH || HAVE_DECL_BE64TOH
+#if defined(HAVE_BE64TOH) || (defined(HAVE_DECL_BE64TOH) && HAVE_DECL_BE64TOH > 0)
 #  define nghttp3_ntohl64(N) be64toh(N)
 #  define nghttp3_htonl64(N) htobe64(N)
 #else /* !HAVE_BE64TOH */
-#  if defined WORDS_BIGENDIAN
+#  if defined(WORDS_BIGENDIAN)
 #    define nghttp3_ntohl64(N) (N)
 #    define nghttp3_htonl64(N) (N)
 #  else /* !WORDS_BIGENDIAN */
