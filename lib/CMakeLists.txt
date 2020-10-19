@@ -66,15 +66,19 @@ set_target_properties(nghttp3 PROPERTIES
   C_VISIBILITY_PRESET hidden
 )
 
-if(HAVE_CUNIT)
+if(HAVE_CUNIT OR ENABLE_STATIC_LIB)
   # Static library (for unittests because of symbol visibility)
   add_library(nghttp3_static STATIC ${nghttp3_SOURCES})
   set_target_properties(nghttp3_static PROPERTIES
     COMPILE_FLAGS "${WARNCFLAGS}"
     VERSION ${LT_VERSION} SOVERSION ${LT_SOVERSION}
-    ARCHIVE_OUTPUT_NAME nghttp3
+    ARCHIVE_OUTPUT_NAME nghttp3${STATIC_LIB_SUFFIX}
   )
   target_compile_definitions(nghttp3_static PUBLIC "-DNGHTTP3_STATICLIB")
+  if(ENABLE_STATIC_LIB)
+    install(TARGETS nghttp3_static
+      DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+  endif()
 endif()
 
 install(TARGETS nghttp3
