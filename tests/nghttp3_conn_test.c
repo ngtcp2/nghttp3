@@ -3170,3 +3170,129 @@ void test_nghttp3_conn_recv_uni(void) {
 
   nghttp3_conn_del(conn);
 }
+
+void test_nghttp3_conn_recv_goaway(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  nghttp3_conn_callbacks callbacks;
+  nghttp3_conn_settings settings;
+  nghttp3_frame fr;
+  uint8_t rawbuf[1024];
+  nghttp3_buf buf;
+  nghttp3_ssize nconsumed;
+  const nghttp3_nv nva[] = {
+      MAKE_NV(":path", "/"),
+      MAKE_NV(":authority", "example.com"),
+      MAKE_NV(":scheme", "https"),
+      MAKE_NV(":method", "GET"),
+  };
+  int rv;
+  nghttp3_stream *stream;
+  int64_t push_id;
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  nghttp3_conn_settings_default(&settings);
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  /* Client receives GOAWAY */
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_bind_control_stream(conn, 2);
+  nghttp3_conn_bind_qpack_streams(conn, 6, 10);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.hd.type = NGHTTP3_FRAME_SETTINGS;
+  fr.settings.niv = 0;
+
+  nghttp3_write_frame(&buf, &fr);
+
+  fr.hd.type = NGHTTP3_FRAME_GOAWAY;
+  fr.goaway.id = 12;
+
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream(conn, 3, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
+  CU_ASSERT(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED);
+  CU_ASSERT(12 == conn->rx.goaway_id);
+
+  /* Cannot submit request anymore */
+  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), NULL,
+                                   NULL);
+
+  CU_ASSERT(NGHTTP3_ERR_CONN_CLOSING == rv);
+
+  nghttp3_conn_del(conn);
+
+  nghttp3_buf_reset(&buf);
+
+  /* Receiving GOAWAY with increased ID is treated as error */
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_bind_control_stream(conn, 2);
+  nghttp3_conn_bind_qpack_streams(conn, 6, 10);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.hd.type = NGHTTP3_FRAME_SETTINGS;
+  fr.settings.niv = 0;
+
+  nghttp3_write_frame(&buf, &fr);
+
+  fr.hd.type = NGHTTP3_FRAME_GOAWAY;
+  fr.goaway.id = 12;
+
+  nghttp3_write_frame(&buf, &fr);
+
+  fr.hd.type = NGHTTP3_FRAME_GOAWAY;
+  fr.goaway.id = 16;
+
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream(conn, 3, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT(NGHTTP3_ERR_H3_ID_ERROR == nconsumed);
+  CU_ASSERT(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED);
+  CU_ASSERT(12 == conn->rx.goaway_id);
+
+  nghttp3_conn_del(conn);
+
+  nghttp3_buf_reset(&buf);
+
+  /* Server receives GOAWAY */
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_bind_control_stream(conn, 3);
+  nghttp3_conn_bind_qpack_streams(conn, 7, 11);
+  conn->local.uni.max_pushes = 1;
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.hd.type = NGHTTP3_FRAME_SETTINGS;
+  fr.settings.niv = 0;
+
+  nghttp3_write_frame(&buf, &fr);
+
+  fr.hd.type = NGHTTP3_FRAME_GOAWAY;
+  fr.goaway.id = 100;
+
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
+  CU_ASSERT(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED);
+  CU_ASSERT(100 == conn->rx.goaway_id);
+
+  nghttp3_conn_create_stream(conn, &stream, 0);
+
+  /* Cannot submit push promise anymore */
+  rv = nghttp3_conn_submit_push_promise(conn, &push_id, 0, nva,
+                                        nghttp3_arraylen(nva));
+
+  CU_ASSERT(NGHTTP3_ERR_CONN_CLOSING == rv);
+
+  nghttp3_conn_del(conn);
+}

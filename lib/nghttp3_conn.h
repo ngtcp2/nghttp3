@@ -106,6 +106,9 @@ typedef enum {
   /* NGHTTP3_CONN_FLAG_MAX_PUSH_ID_QUEUED indicates that MAX_PUSH_ID
      has been queued to control stream. */
   NGHTTP3_CONN_FLAG_MAX_PUSH_ID_QUEUED = 0x0010,
+  /* NGHTTP3_CONN_FLAG_GOAWAY_RECVED indicates that GOAWAY frame has
+     received. */
+  NGHTTP3_CONN_FLAG_GOAWAY_RECVED = 0x0020,
 } nghttp3_conn_flag;
 
 struct nghttp3_conn {
@@ -158,6 +161,11 @@ struct nghttp3_conn {
     } uni;
     nghttp3_conn_settings settings;
   } remote;
+
+  struct {
+    /* goaway_id is the latest ID received in GOAWAY frame. */
+    int64_t goaway_id;
+  } rx;
 
   struct {
     struct {

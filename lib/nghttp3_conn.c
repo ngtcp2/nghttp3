@@ -319,6 +319,7 @@ static int conn_new(nghttp3_conn **pconn, int server,
   conn->user_data = user_data;
   conn->next_seq = 0;
   conn->server = server;
+  conn->rx.goaway_id = server ? (1ull << 62) - 1 : (1ull << 62) - 4;
 
   *pconn = conn;
 
@@ -902,8 +903,32 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
       nghttp3_stream_read_state_reset(rstate);
       break;
     case NGHTTP3_CTRL_STREAM_STATE_GOAWAY:
-      /* TODO Not implemented yet */
-      rstate->state = NGHTTP3_CTRL_STREAM_STATE_IGN_FRAME;
+      len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
+      assert(len > 0);
+      nread = nghttp3_read_varint(rvint, p, len, frame_fin(rstate, len));
+      if (nread < 0) {
+        return NGHTTP3_ERR_H3_FRAME_ERROR;
+      }
+
+      p += nread;
+      nconsumed += (size_t)nread;
+      rstate->left -= nread;
+      if (rvint->left) {
+        return (nghttp3_ssize)nconsumed;
+      }
+
+      if (conn->server && !nghttp3_client_stream_bidi(rvint->acc)) {
+        return NGHTTP3_ERR_H3_ID_ERROR;
+      }
+      if (conn->rx.goaway_id < rvint->acc) {
+        return NGHTTP3_ERR_H3_ID_ERROR;
+      }
+
+      conn->flags |= NGHTTP3_CONN_FLAG_GOAWAY_RECVED;
+      conn->rx.goaway_id = rvint->acc;
+      nghttp3_varint_read_state_reset(rvint);
+
+      nghttp3_stream_read_state_reset(rstate);
       break;
     case NGHTTP3_CTRL_STREAM_STATE_MAX_PUSH_ID:
       /* server side only */
@@ -2763,6 +2788,10 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
+  if (conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED) {
+    return NGHTTP3_ERR_CONN_CLOSING;
+  }
+
   stream = nghttp3_conn_find_stream(conn, stream_id);
   if (stream != NULL) {
     return NGHTTP3_ERR_STREAM_IN_USE;
@@ -2857,6 +2886,10 @@ int nghttp3_conn_submit_push_promise(nghttp3_conn *conn, int64_t *ppush_id,
   assert(conn->server);
   assert(conn->tx.qenc);
   assert(nghttp3_client_stream_bidi(stream_id));
+
+  if (conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED) {
+    return NGHTTP3_ERR_CONN_CLOSING;
+  }
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
   if (stream == NULL) {

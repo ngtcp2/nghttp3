@@ -40,6 +40,10 @@ void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr) {
     nghttp3_frame_write_cancel_push_len(&fr->hd.length, &fr->cancel_push);
     dest->last = nghttp3_frame_write_cancel_push(dest->last, &fr->cancel_push);
     break;
+  case NGHTTP3_FRAME_GOAWAY:
+    nghttp3_frame_write_goaway_len(&fr->hd.length, &fr->goaway);
+    dest->last = nghttp3_frame_write_goaway(dest->last, &fr->goaway);
+    break;
   default:
     assert(0);
   }

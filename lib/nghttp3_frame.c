@@ -108,6 +108,24 @@ nghttp3_frame_write_max_push_id_len(int64_t *ppayloadlen,
          nghttp3_put_varint_len((int64_t)payloadlen) + payloadlen;
 }
 
+uint8_t *nghttp3_frame_write_goaway(uint8_t *p,
+                                    const nghttp3_frame_goaway *fr) {
+  p = nghttp3_frame_write_hd(p, &fr->hd);
+  p = nghttp3_put_varint(p, fr->id);
+
+  return p;
+}
+
+size_t nghttp3_frame_write_goaway_len(int64_t *ppayloadlen,
+                                      const nghttp3_frame_goaway *fr) {
+  size_t payloadlen = nghttp3_put_varint_len(fr->id);
+
+  *ppayloadlen = (int64_t)payloadlen;
+
+  return nghttp3_put_varint_len(NGHTTP3_FRAME_GOAWAY) +
+         nghttp3_put_varint_len((int64_t)payloadlen) + payloadlen;
+}
+
 int nghttp3_nva_copy(nghttp3_nv **pnva, const nghttp3_nv *nva, size_t nvlen,
                      const nghttp3_mem *mem) {
   size_t i;
