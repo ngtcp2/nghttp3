@@ -113,6 +113,10 @@ int main() {
       !CU_add_test(pSuite, "conn_just_fin", test_nghttp3_conn_just_fin) ||
       !CU_add_test(pSuite, "conn_recv_uni", test_nghttp3_conn_recv_uni) ||
       !CU_add_test(pSuite, "conn_recv_goaway", test_nghttp3_conn_recv_goaway) ||
+      !CU_add_test(pSuite, "conn_shutdown_server",
+                   test_nghttp3_conn_shutdown_server) ||
+      !CU_add_test(pSuite, "conn_shutdown_client",
+                   test_nghttp3_conn_shutdown_client) ||
       !CU_add_test(pSuite, "tnode_schedule", test_nghttp3_tnode_schedule) ||
       !CU_add_test(pSuite, "http_parse_priority",
                    test_nghttp3_http_parse_priority) ||

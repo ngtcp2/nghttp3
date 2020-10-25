@@ -293,6 +293,9 @@ int nghttp3_stream_fill_outq(nghttp3_stream *stream) {
       }
       break;
     case NGHTTP3_FRAME_MAX_PUSH_ID:
+      if (stream->conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_QUEUED) {
+        break;
+      }
       rv = nghttp3_stream_write_max_push_id(stream, frent);
       if (rv != 0) {
         return rv;

@@ -109,6 +109,9 @@ typedef enum {
   /* NGHTTP3_CONN_FLAG_GOAWAY_RECVED indicates that GOAWAY frame has
      received. */
   NGHTTP3_CONN_FLAG_GOAWAY_RECVED = 0x0020,
+  /* NGHTTP3_CONN_FLAG_GOAWAY_QUEUED indicates that GOAWAY frame has
+     been submitted for transmission. */
+  NGHTTP3_CONN_FLAG_GOAWAY_QUEUED = 0x0040,
 } nghttp3_conn_flag;
 
 struct nghttp3_conn {
@@ -165,6 +168,9 @@ struct nghttp3_conn {
   struct {
     /* goaway_id is the latest ID received in GOAWAY frame. */
     int64_t goaway_id;
+
+    int64_t max_stream_id_bidi;
+    int64_t max_push_id;
   } rx;
 
   struct {
@@ -175,6 +181,8 @@ struct nghttp3_conn {
     nghttp3_stream *ctrl;
     nghttp3_stream *qenc;
     nghttp3_stream *qdec;
+    /* goaway_id is the latest ID sent in GOAWAY frame. */
+    int64_t goaway_id;
   } tx;
 };
 
@@ -255,6 +263,12 @@ int nghttp3_conn_ensure_stream_scheduled(nghttp3_conn *conn,
                                          nghttp3_stream *stream);
 
 void nghttp3_conn_unschedule_stream(nghttp3_conn *conn, nghttp3_stream *stream);
+
+int nghttp3_conn_reject_stream(nghttp3_conn *conn, nghttp3_stream *stream);
+
+int nghttp3_conn_reject_push_stream(nghttp3_conn *conn, nghttp3_stream *stream);
+
+int nghttp3_conn_cancel_push_stream(nghttp3_conn *conn, nghttp3_stream *stream);
 
 /*
  * nghttp3_conn_get_next_tx_stream returns next stream to send.  It

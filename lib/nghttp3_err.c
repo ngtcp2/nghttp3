@@ -44,8 +44,6 @@ const char *nghttp3_strerror(int liberr) {
     return "ERR_REMOVE_HTTP_HEADER";
   case NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING:
     return "ERR_MALFORMED_HTTP_MESSAGING";
-  case NGHTTP3_ERR_TOO_LATE:
-    return "ERR_TOO_LATE";
   case NGHTTP3_ERR_QPACK_FATAL:
     return "ERR_QPACK_FATAL";
   case NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE:

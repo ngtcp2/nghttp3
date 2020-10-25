@@ -51,5 +51,7 @@ void test_nghttp3_conn_just_fin(void);
 void test_nghttp3_conn_submit_response_read_blocked(void);
 void test_nghttp3_conn_recv_uni(void);
 void test_nghttp3_conn_recv_goaway(void);
+void test_nghttp3_conn_shutdown_server(void);
+void test_nghttp3_conn_shutdown_client(void);
 
 #endif /* NGTCP2_CONN_TEST_H */

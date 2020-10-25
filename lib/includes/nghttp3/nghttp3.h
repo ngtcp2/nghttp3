@@ -85,7 +85,6 @@ typedef enum {
   NGHTTP3_ERR_MALFORMED_HTTP_HEADER = -107,
   NGHTTP3_ERR_REMOVE_HTTP_HEADER = -108,
   NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING = -109,
-  NGHTTP3_ERR_TOO_LATE = -110,
   NGHTTP3_ERR_QPACK_FATAL = -111,
   NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE = -112,
   NGHTTP3_ERR_IGNORE_STREAM = -113,
@@ -1187,6 +1186,24 @@ typedef int (*nghttp3_send_stop_sending)(nghttp3_conn *conn, int64_t stream_id,
 typedef int (*nghttp3_push_stream)(nghttp3_conn *conn, int64_t push_id,
                                    int64_t stream_id, void *conn_user_data);
 
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_reset_stream` is a callback function which is
+ * invoked when the library asks application to reset stream
+ * identified by |stream_id|.  |app_error_code| indicates the reason
+ * for this action.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
+typedef int (*nghttp3_reset_stream)(nghttp3_conn *conn, int64_t stream_id,
+                                    uint64_t app_error_code,
+                                    void *conn_user_data,
+                                    void *stream_user_data);
+
 typedef struct {
   nghttp3_acked_stream_data acked_stream_data;
   nghttp3_stream_close stream_close;
@@ -1205,6 +1222,7 @@ typedef struct {
   nghttp3_send_stop_sending send_stop_sending;
   nghttp3_push_stream push_stream;
   nghttp3_end_stream end_stream;
+  nghttp3_reset_stream reset_stream;
 } nghttp3_conn_callbacks;
 
 typedef struct {
@@ -1557,13 +1575,31 @@ NGHTTP3_EXTERN int nghttp3_conn_bind_push_stream(nghttp3_conn *conn,
  * @function
  *
  * `nghttp3_conn_cancel_push` cancels the push identified by
- * |push_id|.  It is not possible to cancel the push after the
- * response stream opens.  In that case, send RESET_STREAM (if |conn|
- * is server) or STOP_SENDING (if |conn| is client) on the underlying
- * QUIC stream.
+ * |push_id|.
  */
 NGHTTP3_EXTERN int nghttp3_conn_cancel_push(nghttp3_conn *conn,
                                             int64_t push_id);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_submit_shutdown_notice` notifies the other endpoint
+ * to stop creating new stream (for server) or push (for client).
+ * After a couple of RTT later, call `nghttp3_conn_shutdown` to start
+ * graceful shutdown.
+ */
+NGHTTP3_EXTERN int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_shutdown` starts graceful shutdown.  It should be
+ * called after `nghttp3_conn_submit_shutdown_notice` and a couple of
+ * RTT.  After calling this function, the local endpoint starts to
+ * reject incoming stream (for server) or push (for client).  The
+ * existing streams or pushes are processed normally.
+ */
+NGHTTP3_EXTERN int nghttp3_conn_shutdown(nghttp3_conn *conn);
 
 /**
  * @function
