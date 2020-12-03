@@ -359,35 +359,36 @@ NGHTTP3_EXTERN size_t nghttp3_buf_len(const nghttp3_buf *buf);
 NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
 
 /**
- * @enum
+ * @macrosection
  *
- * :type:`nghttp3_nv_flag` is the flags for header field name/value
- * pair.
+ * Flags for header field name/value pair
  */
-typedef enum {
-  /**
-   * :enum:`NGHTTP3_NV_FLAG_NONE` indicates no flag set.
-   */
-  NGHTTP3_NV_FLAG_NONE = 0,
-  /**
-   * :enum:`NGHTTP3_NV_FLAG_NEVER_INDEX` indicates that this
-   * name/value pair must not be indexed.  Other implementation calls
-   * this bit as "sensitive".
-   */
-  NGHTTP3_NV_FLAG_NEVER_INDEX = 0x01,
-  /**
-   * :enum:`NGHTTP3_NV_FLAG_NO_COPY_NAME` is set solely by
-   * application.  If this flag is set, the library does not make a
-   * copy of header field name.  This could improve performance.
-   */
-  NGHTTP3_NV_FLAG_NO_COPY_NAME = 0x02,
-  /**
-   * :enum:`NGHTTP3_NV_FLAG_NO_COPY_VALUE` is set solely by
-   * application.  If this flag is set, the library does not make a
-   * copy of header field value.  This could improve performance.
-   */
-  NGHTTP3_NV_FLAG_NO_COPY_VALUE = 0x04
-} nghttp3_nv_flag;
+
+/**
+ * :macro:`NGHTTP3_NV_FLAG_NONE` indicates no flag set.
+ */
+#define NGHTTP3_NV_FLAG_NONE 0
+
+/**
+ * :macro:`NGHTTP3_NV_FLAG_NEVER_INDEX` indicates that this name/value
+ * pair must not be indexed.  Other implementation calls this bit as
+ * "sensitive".
+ */
+#define NGHTTP3_NV_FLAG_NEVER_INDEX 0x01
+
+/**
+ * :macro:`NGHTTP3_NV_FLAG_NO_COPY_NAME` is set solely by application.
+ * If this flag is set, the library does not make a copy of header
+ * field name.  This could improve performance.
+ */
+#define NGHTTP3_NV_FLAG_NO_COPY_NAME 0x02
+
+/**
+ * :macro:`NGHTTP3_NV_FLAG_NO_COPY_VALUE` is set solely by
+ * application.  If this flag is set, the library does not make a copy
+ * of header field value.  This could improve performance.
+ */
+#define NGHTTP3_NV_FLAG_NO_COPY_VALUE 0x04
 
 /**
  * @struct
@@ -414,7 +415,7 @@ typedef struct {
    */
   size_t valuelen;
   /**
-   * flags is bitwise OR of one or more of :type:`nghttp3_nv_flag`.
+   * flags is bitwise OR of one or more of NGHTTP3_NV_FLAG_*.
    */
   uint8_t flags;
 } nghttp3_nv;
@@ -503,7 +504,7 @@ typedef struct {
   /* nghttp3_qpack_token value for name.  It could be -1 if we have no
      token for that header field name. */
   int32_t token;
-  /* Bitwise OR of one or more of nghttp3_nv_flag. */
+  /* Bitwise OR of one or more of NGHTTP3_NV_FLAG_* */
   uint8_t flags;
 } nghttp3_qpack_nv;
 
