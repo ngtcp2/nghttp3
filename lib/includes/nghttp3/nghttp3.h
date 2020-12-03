@@ -1397,26 +1397,34 @@ NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
 NGHTTP3_EXTERN int nghttp3_conn_reset_stream(nghttp3_conn *conn,
                                              int64_t stream_id);
 
-typedef enum {
-  NGHTTP3_DATA_FLAG_NONE = 0x00,
-  /**
-   * ``NGHTTP3_DATA_FLAG_EOF`` indicates that all request or response
-   * body has been provided to the library.  It also indicates that
-   * sending side of stream is closed unless
-   * :enum:`NGHTTP3_DATA_FLAG_NO_END_STREAM` is given at the same
-   * time.
-   */
-  NGHTTP3_DATA_FLAG_EOF = 0x01,
-  /**
-   * ``NGHTTP3_DATA_FLAG_NO_END_STREAM`` indicates that sending side
-   * of stream is not closed even if NGHTTP3_DATA_FLAG_EOF is set.
-   * Usually this flag is used to send trailer fields with
-   * `nghttp3_conn_submit_trailers()`.  If
-   * `nghttp3_conn_submit_trailers()` has been called, regardless of
-   * this flag, the submitted trailer fields are sent.
-   */
-  NGHTTP3_DATA_FLAG_NO_END_STREAM = 0x02
-} nghttp3_data_flag;
+/**
+ * @macrosection
+ *
+ * Data flags
+ */
+
+/**
+ * :macro:`NGHTTP3_DATA_FLAG_NONE` indicates no flag set.
+ */
+#define NGHTTP3_DATA_FLAG_NONE 0x00
+
+/**
+ * :macro:`NGHTTP3_DATA_FLAG_EOF` indicates that all request or
+ * response body has been provided to the library.  It also indicates
+ * that sending side of stream is closed unless
+ * :macro:`NGHTTP3_DATA_FLAG_NO_END_STREAM` is given at the same time.
+ */
+#define NGHTTP3_DATA_FLAG_EOF 0x01
+
+/**
+ * :macro:`NGHTTP3_DATA_FLAG_NO_END_STREAM` indicates that sending
+ * side of stream is not closed even if :macro:`NGHTTP3_DATA_FLAG_EOF`
+ * is set.  Usually this flag is used to send trailer fields with
+ * `nghttp3_conn_submit_trailers()`.  If
+ * `nghttp3_conn_submit_trailers()` has been called, regardless of
+ * this flag, the submitted trailer fields are sent.
+ */
+#define NGHTTP3_DATA_FLAG_NO_END_STREAM 0x02
 
 /**
  * @function
@@ -1456,7 +1464,7 @@ nghttp3_conn_set_max_concurrent_streams(nghttp3_conn *conn,
  *
  * If this is the last data to send (or there is no data to send
  * because all data have been sent already), set
- * :enum:`NGHTTP3_DATA_FLAG_EOF` to |*pflags|.
+ * :macro:`NGHTTP3_DATA_FLAG_EOF` to |*pflags|.
  *
  * If the application is unable to provide data temporarily, return
  * :enum:`NGHTTP3_ERR_WOULDBLOCK`.  When it is ready to provide
