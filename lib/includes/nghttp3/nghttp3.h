@@ -825,32 +825,33 @@ NGHTTP3_EXTERN uint64_t
 nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
 
 /**
- * @enum
+ * @macrosection
  *
- * :type:`nghttp3_qpack_decode_flag` is a set of flags for decoder.
+ * Flags for QPACK decoder
  */
-typedef enum {
-  /**
-   * :enum:`NGHTTP3_QPACK_DECODE_FLAG_NONE` indicates that no flag
-   * set.
-   */
-  NGHTTP3_QPACK_DECODE_FLAG_NONE,
-  /**
-   * :enum:`NGHTTP3_QPACK_DECODE_FLAG_EMIT` indicates that a header
-   * field is successfully decoded.
-   */
-  NGHTTP3_QPACK_DECODE_FLAG_EMIT = 0x01,
-  /**
-   * :enum:`NGHTTP3_QPACK_DECODE_FLAG_FINAL` indicates that all header
-   * fields have been decoded.
-   */
-  NGHTTP3_QPACK_DECODE_FLAG_FINAL = 0x02,
-  /**
-   * :enum:`NGHTTP3_QPACK_DECODE_FLAG_BLOCKED` indicates that decoding
-   * has been blocked.
-   */
-  NGHTTP3_QPACK_DECODE_FLAG_BLOCKED = 0x04
-} nghttp3_qpack_decode_flag;
+
+/**
+ * :macro:`NGHTTP3_QPACK_DECODE_FLAG_NONE` indicates that no flag set.
+ */
+#define NGHTTP3_QPACK_DECODE_FLAG_NONE 0
+
+/**
+ * :macro:`NGHTTP3_QPACK_DECODE_FLAG_EMIT` indicates that a header
+ * field is successfully decoded.
+ */
+#define NGHTTP3_QPACK_DECODE_FLAG_EMIT 0x01
+
+/**
+ * :macro:`NGHTTP3_QPACK_DECODE_FLAG_FINAL` indicates that all header
+ * fields have been decoded.
+ */
+#define NGHTTP3_QPACK_DECODE_FLAG_FINAL 0x02
+
+/**
+ * :macro:`NGHTTP3_QPACK_DECODE_FLAG_BLOCKED` indicates that decoding
+ * has been blocked.
+ */
+#define NGHTTP3_QPACK_DECODE_FLAG_BLOCKED 0x04
 
 /**
  * @function
@@ -862,11 +863,11 @@ typedef enum {
  * non-NULL pointer.  |nv| must be non-NULL pointer.
  *
  * If this function succeeds, it assigns flags to |*pflags|.  If
- * |*pflags| has :enum:`NGHTTP3_QPACK_DECODE_FLAG_EMIT` set, a decoded
- * header field is assigned to |nv|.  If |*pflags| has
- * :enum:`NGHTTP3_QPACK_DECODE_FLAG_FINAL` set, all header fields have
- * been successfully decoded.  If |*pflags| has
- * :enum:`NGHTTP3_QPACK_DECODE_FLAG_BLOCKED` set, decoding is blocked
+ * |*pflags| has :macro:`NGHTTP3_QPACK_DECODE_FLAG_EMIT` set, a
+ * decoded header field is assigned to |nv|.  If |*pflags| has
+ * :macro:`NGHTTP3_QPACK_DECODE_FLAG_FINAL` set, all header fields
+ * have been successfully decoded.  If |*pflags| has
+ * :macro:`NGHTTP3_QPACK_DECODE_FLAG_BLOCKED` set, decoding is blocked
  * due to required insert count.
  *
  * When a header field is decoded, an application receives it in |nv|.
