@@ -252,8 +252,6 @@ typedef struct {
   size_t len;
 } nghttp3_vec;
 
-struct nghttp3_rcbuf;
-
 /**
  * @struct
  *
@@ -525,8 +523,6 @@ typedef struct {
   uint8_t flags;
 } nghttp3_qpack_nv;
 
-struct nghttp3_qpack_encoder;
-
 /**
  * @struct
  *
@@ -728,8 +724,6 @@ nghttp3_qpack_encoder_cancel_stream(nghttp3_qpack_encoder *encoder,
 NGHTTP3_EXTERN size_t
 nghttp3_qpack_encoder_get_num_blocked(nghttp3_qpack_encoder *encoder);
 
-struct nghttp3_qpack_stream_context;
-
 /**
  * @struct
  *
@@ -774,8 +768,6 @@ nghttp3_qpack_stream_context_del(nghttp3_qpack_stream_context *sctx);
  */
 NGHTTP3_EXTERN uint64_t
 nghttp3_qpack_stream_context_get_ricnt(nghttp3_qpack_stream_context *sctx);
-
-struct nghttp3_qpack_decoder;
 
 /**
  * @struct
@@ -1039,7 +1031,6 @@ typedef void (*nghttp3_debug_vprintf_callback)(const char *format,
 NGHTTP3_EXTERN void nghttp3_set_debug_vprintf_callback(
     nghttp3_debug_vprintf_callback debug_vprintf_callback);
 
-struct nghttp3_conn;
 typedef struct nghttp3_conn nghttp3_conn;
 
 /**
