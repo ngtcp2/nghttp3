@@ -68,11 +68,20 @@ extern "C" {
 #  endif /* !BUILDING_NGHTTP3 */
 #endif   /* !defined(WIN32) */
 
+/**
+ * @typedef
+ *
+ * :type:`nghttp3_ssize` is signed counterpart of size_t.
+ */
 typedef ptrdiff_t nghttp3_ssize;
 
-/* NGHTTP3_ALPN_H3 is a serialized form of HTTP/3 ALPN protocol
-   identifier this library supports.  Notice that the first byte is
-   the length of the following protocol identifier. */
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ALPN_H3` is a serialized form of HTTP/3 ALPN
+ * protocol identifier this library supports.  Notice that the first
+ * byte is the length of the following protocol identifier.
+ */
 #define NGHTTP3_ALPN_H3 "\x5h3-29"
 
 typedef enum {
@@ -1307,14 +1316,14 @@ NGHTTP3_EXTERN int nghttp3_conn_bind_qpack_streams(nghttp3_conn *conn,
 /**
  * @function
  *
- * nghttp3_conn_read_stream reads data |src| of length |srclen| on
+ * `nghttp3_conn_read_stream` reads data |src| of length |srclen| on
  * stream identified by |stream_id|.  It returns the number of bytes
  * consumed.  The "consumed" means that application can increase flow
  * control credit (both stream and connection) of underlying QUIC
  * connection by that amount.  It does not include the amount of data
  * carried by DATA frame which contains application data (excluding
  * any control or QPACK unidirectional streams) .  See
- * type:`nghttp3_recv_data` to handle those bytes.  If |fin| is
+ * :type:`nghttp3_recv_data` to handle those bytes.  If |fin| is
  * nonzero, this is the last data from remote endpoint in this stream.
  */
 NGHTTP3_EXTERN nghttp3_ssize nghttp3_conn_read_stream(nghttp3_conn *conn,
