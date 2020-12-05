@@ -84,38 +84,222 @@ typedef ptrdiff_t nghttp3_ssize;
  */
 #define NGHTTP3_ALPN_H3 "\x5h3-29"
 
-typedef enum {
-  NGHTTP3_ERR_INVALID_ARGUMENT = -101,
-  NGHTTP3_ERR_NOBUF = -102,
-  NGHTTP3_ERR_INVALID_STATE = -103,
-  NGHTTP3_ERR_WOULDBLOCK = -104,
-  NGHTTP3_ERR_STREAM_IN_USE = -105,
-  NGHTTP3_ERR_PUSH_ID_BLOCKED = -106,
-  NGHTTP3_ERR_MALFORMED_HTTP_HEADER = -107,
-  NGHTTP3_ERR_REMOVE_HTTP_HEADER = -108,
-  NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING = -109,
-  NGHTTP3_ERR_QPACK_FATAL = -111,
-  NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE = -112,
-  NGHTTP3_ERR_IGNORE_STREAM = -113,
-  NGHTTP3_ERR_STREAM_NOT_FOUND = -114,
-  NGHTTP3_ERR_IGNORE_PUSH_PROMISE = -115,
-  NGHTTP3_ERR_CONN_CLOSING = -116,
-  NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED = -402,
-  NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR = -403,
-  NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR = -404,
-  NGHTTP3_ERR_H3_FRAME_UNEXPECTED = -408,
-  NGHTTP3_ERR_H3_FRAME_ERROR = -409,
-  NGHTTP3_ERR_H3_MISSING_SETTINGS = -665,
-  NGHTTP3_ERR_H3_INTERNAL_ERROR = -667,
-  NGHTTP3_ERR_H3_CLOSED_CRITICAL_STREAM = -668,
-  NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR = -669,
-  NGHTTP3_ERR_H3_ID_ERROR = -670,
-  NGHTTP3_ERR_H3_SETTINGS_ERROR = -671,
-  NGHTTP3_ERR_H3_STREAM_CREATION_ERROR = -672,
-  NGHTTP3_ERR_FATAL = -900,
-  NGHTTP3_ERR_NOMEM = -901,
-  NGHTTP3_ERR_CALLBACK_FAILURE = -902
-} nghttp3_lib_error;
+/**
+ * @macrosection
+ *
+ * nghttp3 library error codes
+ */
+
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_INVALID_ARGUMENT` indicates that a passed
+ * argument is invalid.
+ */
+#define NGHTTP3_ERR_INVALID_ARGUMENT -101
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_NOBUF` indicates that a provided buffer does
+ * not have enough space to store data.
+ */
+#define NGHTTP3_ERR_NOBUF -102
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_INVALID_STATE` indicates that a requested
+ * operation is not allowed at the current connection state.
+ */
+#define NGHTTP3_ERR_INVALID_STATE -103
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_WOULDBLOCK` indicates that an operation might
+ * block.
+ */
+#define NGHTTP3_ERR_WOULDBLOCK -104
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_STREAM_IN_USE` indicates that a stream ID is
+ * already in use.
+ */
+#define NGHTTP3_ERR_STREAM_IN_USE -105
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_PUSH_ID_BLOCKED` indicates that there are no
+ * spare push ID available.
+ */
+#define NGHTTP3_ERR_PUSH_ID_BLOCKED -106
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_MALFORMED_HTTP_HEADER` indicates that an HTTP
+ * header field is malformed.
+ */
+#define NGHTTP3_ERR_MALFORMED_HTTP_HEADER -107
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_REMOVE_HTTP_HEADER` indicates that an HTTP
+ * header field is discarded.
+ */
+#define NGHTTP3_ERR_REMOVE_HTTP_HEADER -108
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING` indicates that HTTP
+ * messaging is malformed.
+ */
+#define NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING -109
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_QPACK_FATAL` indicates that a fatal error is
+ * occurred during QPACK processing and it cannot be recoverable.
+ */
+#define NGHTTP3_ERR_QPACK_FATAL -111
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE` indicates that a header
+ * field is too large to process.
+ */
+#define NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE -112
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_IGNORE_STREAM` indicates that a stream should
+ * be ignored.
+ */
+#define NGHTTP3_ERR_IGNORE_STREAM -113
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_STREAM_NOT_FOUND` indicates that a stream is
+ * not found.
+ */
+#define NGHTTP3_ERR_STREAM_NOT_FOUND -114
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_IGNORE_PUSH_PROMISE` indicates that a push
+ * promise should be ignored.
+ */
+#define NGHTTP3_ERR_IGNORE_PUSH_PROMISE -115
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_CONN_CLOSING` indicates that a connection is
+ * closing state.
+ */
+#define NGHTTP3_ERR_CONN_CLOSING -116
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED` indicates that a
+ * QPACK decompression failed.
+ */
+#define NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED -402
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR` indicates that an
+ * error occurred while reading QPACK encoder stream.
+ */
+#define NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR -403
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR` indicates that an
+ * error occurred while reading QPACK decoder stream.
+ */
+#define NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR -404
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_H3_FRAME_UNEXPECTED` indicates that an
+ * unexpected HTTP/3 frame is received.
+ */
+#define NGHTTP3_ERR_H3_FRAME_UNEXPECTED -408
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_H3_FRAME_ERROR` indicates that an HTTP/3 frame
+ * is malformed.
+ */
+#define NGHTTP3_ERR_H3_FRAME_ERROR -409
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_H3_MISSING_SETTINGS` indicates that an HTTP/3
+ * SETTINGS frame is missing.
+ */
+#define NGHTTP3_ERR_H3_MISSING_SETTINGS -665
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_H3_INTERNAL_ERROR` indicates an internal error.
+ */
+#define NGHTTP3_ERR_H3_INTERNAL_ERROR -667
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_H3_CLOSED_CRITICAL_STREAM` indicates that a
+ * critical stream is closed.
+ */
+#define NGHTTP3_ERR_H3_CLOSED_CRITICAL_STREAM -668
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR` indicates a general
+ * protocol error.  This is typically a catch-all error.
+ */
+#define NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR -669
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_H3_ID_ERROR` indicates that an ID related error
+ * occurred.
+ */
+#define NGHTTP3_ERR_H3_ID_ERROR -670
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_H3_SETTINGS_ERROR` indicates that an HTTP/3
+ * SETTINGS frame is malformed.
+ */
+#define NGHTTP3_ERR_H3_SETTINGS_ERROR -671
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_H3_STREAM_CREATION_ERROR` indicates that a
+ * remote endpoint attempts to create a new stream which is not
+ * allowed.
+ */
+#define NGHTTP3_ERR_H3_STREAM_CREATION_ERROR -672
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_FATAL` indicates that error codes less than
+ * this value is fatal error.  When this error is returned, an
+ * endpoint should drop connection immediately.
+ */
+#define NGHTTP3_ERR_FATAL -900
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_NOMEM` indicates out of memory.
+ */
+#define NGHTTP3_ERR_NOMEM -901
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` indicates that user defined
+ * callback function failed.
+ */
+#define NGHTTP3_ERR_CALLBACK_FAILURE -902
 
 #define NGHTTP3_H3_NO_ERROR 0x0100
 #define NGHTTP3_H3_GENERAL_PROTOCOL_ERROR 0x0101
@@ -543,7 +727,7 @@ typedef struct nghttp3_qpack_encoder nghttp3_qpack_encoder;
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * :enum:`NGHTTP3_ERR_NOMEM`
+ * :macro:`NGHTTP3_ERR_NOMEM`
  *     Out of memory.
  */
 NGHTTP3_EXTERN int nghttp3_qpack_encoder_new(nghttp3_qpack_encoder **pencoder,
@@ -582,9 +766,9 @@ NGHTTP3_EXTERN void nghttp3_qpack_encoder_del(nghttp3_qpack_encoder *encoder);
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * :enum:`NGHTTP3_ERR_NOMEM`
+ * :macro:`NGHTTP3_ERR_NOMEM`
  *     Out of memory
- * :enum:`NGHTTP3_ERR_QPACK_FATAL`
+ * :macro:`NGHTTP3_ERR_QPACK_FATAL`
  *      |encoder| is in unrecoverable error state and cannot be used
  *      anymore.
  */
@@ -601,12 +785,12 @@ NGHTTP3_EXTERN int nghttp3_qpack_encoder_encode(
  * This function returns the number of bytes read, or one of the
  * following negative error codes:
  *
- * :enum:`NGHTTP3_ERR_NOMEM`
+ * :macro:`NGHTTP3_ERR_NOMEM`
  *     Out of memory
- * :enum:`NGHTTP3_ERR_QPACK_FATAL`
+ * :macro:`NGHTTP3_ERR_QPACK_FATAL`
  *     |encoder| is in unrecoverable error state and cannot be used
  *     anymore.
- * :enum:`NGHTTP3_ERR_QPACK_DECODER_STREAM`
+ * :macro:`NGHTTP3_ERR_QPACK_DECODER_STREAM`
  *     |encoder| is unable to process input because it is malformed.
  */
 NGHTTP3_EXTERN nghttp3_ssize nghttp3_qpack_encoder_read_decoder(
@@ -621,7 +805,7 @@ NGHTTP3_EXTERN nghttp3_ssize nghttp3_qpack_encoder_read_decoder(
  * This function returns the number of bytes read, or one of the
  * following negative error codes:
  *
- * :enum:`NGHTTP3_ERR_INVALID_ARGUMENT`
+ * :macro:`NGHTTP3_ERR_INVALID_ARGUMENT`
  *     |max_dtable_size| exceeds the hard limit that decoder specifies.
  */
 NGHTTP3_EXTERN int
@@ -683,9 +867,9 @@ nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * :enum:`NGHTTP3_ERR_NOMEM`
+ * :macro:`NGHTTP3_ERR_NOMEM`
  *     Out of memory.
- * :enum:`NGHTTP3_QPACK_DECODER_STREAM`
+ * :macro:`NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR`
  *     |n| is too large.
  */
 NGHTTP3_EXTERN int
@@ -744,7 +928,7 @@ typedef struct nghttp3_qpack_stream_context nghttp3_qpack_stream_context;
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * :enum:`NGHTTP3_ERR_NOMEM`
+ * :macro:`NGHTTP3_ERR_NOMEM`
  *     Out of memory.
  */
 NGHTTP3_EXTERN int
@@ -789,7 +973,7 @@ typedef struct nghttp3_qpack_decoder nghttp3_qpack_decoder;
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * :enum:`NGHTTP3_ERR_NOMEM`
+ * :macro:`NGHTTP3_ERR_NOMEM`
  *     Out of memory.
  */
 NGHTTP3_EXTERN int nghttp3_qpack_decoder_new(nghttp3_qpack_decoder **pdecoder,
@@ -814,12 +998,12 @@ NGHTTP3_EXTERN void nghttp3_qpack_decoder_del(nghttp3_qpack_decoder *decoder);
  * This function returns the number of bytes read, or one of the
  * following negative error codes:
  *
- * :enum:`NGHTTP3_ERR_NOMEM`
+ * :macro:`NGHTTP3_ERR_NOMEM`
  *     Out of memory.
- * :enum:`NGHTTP3_ERR_QPACK_FATAL`
+ * :macro:`NGHTTP3_ERR_QPACK_FATAL`
  *     |decoder| is in unrecoverable error state and cannot be used
  *     anymore.
- * :enum:`NGHTTP3_ERR_QPACK_ENCODER_STREAM`
+ * :macro:`NGHTTP3_ERR_QPACK_ENCODER_STREAM`
  *     Could not interpret encoder stream instruction.
  */
 NGHTTP3_EXTERN nghttp3_ssize nghttp3_qpack_decoder_read_encoder(
@@ -897,14 +1081,14 @@ nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
  * This function returns the number of bytes read, or one of the
  * following negative error codes:
  *
- * :enum:`NGHTTP3_ERR_NOMEM`
+ * :macro:`NGHTTP3_ERR_NOMEM`
  *     Out of memory.
- * :enum:`NGHTTP3_ERR_QPACK_FATAL`
+ * :macro:`NGHTTP3_ERR_QPACK_FATAL`
  *     |decoder| is in unrecoverable error state and cannot be used
  *     anymore.
- * :enum:`NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED`
+ * :macro:`NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED`
  *     Could not interpret header block instruction.
- * :enum:`NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE`
+ * :macro:`NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE`
  *     Header field is too large.
  */
 NGHTTP3_EXTERN nghttp3_ssize nghttp3_qpack_decoder_read_request(
@@ -943,9 +1127,9 @@ nghttp3_qpack_decoder_get_decoder_streamlen(nghttp3_qpack_decoder *decoder);
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * :enum:`NGHTTP3_ERR_NOMEM`
+ * :macro:`NGHTTP3_ERR_NOMEM`
  *     Out of memory.
- * :enum:`NGHTTP3_ERR_QPACK_FATAL`
+ * :macro:`NGHTTP3_ERR_QPACK_FATAL`
  *     Decoder stream overflow.
  */
 NGHTTP3_EXTERN int
@@ -980,8 +1164,7 @@ nghttp3_qpack_decoder_set_max_concurrent_streams(nghttp3_qpack_decoder *decoder,
 /**
  * @function
  *
- * `nghttp3_strerror` returns textual representation of |liberr| which
- * should be one of error codes defined in :type:`nghttp3_lib_error`.
+ * `nghttp3_strerror` returns textual representation of |liberr|.
  */
 NGHTTP3_EXTERN const char *nghttp3_strerror(int liberr);
 
@@ -1042,9 +1225,9 @@ typedef struct nghttp3_conn nghttp3_conn;
  * bytes acknowledged is given in |datalen|.
  *
  * The implementation of this callback must return 0 if it succeeds.
- * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
  * caller immediately.  Any values other than 0 is treated as
- * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_acked_stream_data)(nghttp3_conn *conn, int64_t stream_id,
                                          size_t datalen, void *conn_user_data,
@@ -1058,9 +1241,9 @@ typedef int (*nghttp3_acked_stream_data)(nghttp3_conn *conn, int64_t stream_id,
  * |app_error_code| indicates the reason of this closure.
  *
  * The implementation of this callback must return 0 if it succeeds.
- * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
  * caller immediately.  Any values other than 0 is treated as
- * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_stream_close)(nghttp3_conn *conn, int64_t stream_id,
                                     uint64_t app_error_code,
@@ -1079,9 +1262,9 @@ typedef int (*nghttp3_stream_close)(nghttp3_conn *conn, int64_t stream_id,
  * by |datalen| bytes.
  *
  * The implementation of this callback must return 0 if it succeeds.
- * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
  * caller immediately.  Any values other than 0 is treated as
- * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_recv_data)(nghttp3_conn *conn, int64_t stream_id,
                                  const uint8_t *data, size_t datalen,
@@ -1098,9 +1281,9 @@ typedef int (*nghttp3_recv_data)(nghttp3_conn *conn, int64_t stream_id,
  * |consumed| bytes.
  *
  * The implementation of this callback must return 0 if it succeeds.
- * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
  * caller immediately.  Any values other than 0 is treated as
- * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_deferred_consume)(nghttp3_conn *conn, int64_t stream_id,
                                         size_t consumed, void *conn_user_data,
@@ -1145,9 +1328,9 @@ typedef int (*nghttp3_end_push_promise)(nghttp3_conn *conn, int64_t stream_id,
  * HTTP response is received completely.
  *
  * The implementation of this callback must return 0 if it succeeds.
- * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
  * caller immediately.  Any values other than 0 is treated as
- * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_end_stream)(nghttp3_conn *conn, int64_t stream_id,
                                   void *conn_user_data, void *stream_user_data);
@@ -1163,9 +1346,9 @@ typedef int (*nghttp3_end_stream)(nghttp3_conn *conn, int64_t stream_id,
  * NULL.
  *
  * The implementation of this callback must return 0 if it succeeds.
- * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
  * caller immediately.  Any values other than 0 is treated as
- * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_cancel_push)(nghttp3_conn *conn, int64_t push_id,
                                    int64_t stream_id, void *conn_user_data,
@@ -1180,9 +1363,9 @@ typedef int (*nghttp3_cancel_push)(nghttp3_conn *conn, int64_t push_id,
  * the reason for this action.
  *
  * The implementation of this callback must return 0 if it succeeds.
- * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
  * caller immediately.  Any values other than 0 is treated as
- * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_send_stop_sending)(nghttp3_conn *conn, int64_t stream_id,
                                          uint64_t app_error_code,
@@ -1197,9 +1380,9 @@ typedef int (*nghttp3_send_stop_sending)(nghttp3_conn *conn, int64_t stream_id,
  * |push_id|.
  *
  * The implementation of this callback must return 0 if it succeeds.
- * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
  * caller immediately.  Any values other than 0 is treated as
- * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_push_stream)(nghttp3_conn *conn, int64_t push_id,
                                    int64_t stream_id, void *conn_user_data);
@@ -1213,9 +1396,9 @@ typedef int (*nghttp3_push_stream)(nghttp3_conn *conn, int64_t push_id,
  * for this action.
  *
  * The implementation of this callback must return 0 if it succeeds.
- * Returning :enum:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
  * caller immediately.  Any values other than 0 is treated as
- * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_reset_stream)(nghttp3_conn *conn, int64_t stream_id,
                                     uint64_t app_error_code,
@@ -1276,7 +1459,7 @@ NGHTTP3_EXTERN void nghttp3_conn_del(nghttp3_conn *conn);
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * :enum:`NGHTTP3_ERR_INVALID_STATE`
+ * :macro:`NGHTTP3_ERR_INVALID_STATE`
  *     Control stream has already corresponding stream ID.
  *
  * TBD
@@ -1294,7 +1477,7 @@ NGHTTP3_EXTERN int nghttp3_conn_bind_control_stream(nghttp3_conn *conn,
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * :enum:`NGHTTP3_ERR_INVALID_STATE`
+ * :macro:`NGHTTP3_ERR_INVALID_STATE`
  *     QPACK encoder/decoder stream have already corresponding stream
  *     IDs.
  *
@@ -1485,12 +1668,12 @@ nghttp3_conn_set_max_concurrent_streams(nghttp3_conn *conn,
  * :macro:`NGHTTP3_DATA_FLAG_EOF` to |*pflags|.
  *
  * If the application is unable to provide data temporarily, return
- * :enum:`NGHTTP3_ERR_WOULDBLOCK`.  When it is ready to provide
+ * :macro:`NGHTTP3_ERR_WOULDBLOCK`.  When it is ready to provide
  * data, call `nghttp3_conn_resume_stream()`.
  *
  * The callback should return the number of objects in |vec| that the
  * application filled if it succeeds, or
- * :enum:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  *
  * TODO Add NGHTTP3_ERR_TEMPORAL_CALLBACK_FAILURE to reset just this
  * stream.
@@ -1645,7 +1828,7 @@ NGHTTP3_EXTERN int nghttp3_conn_set_stream_user_data(nghttp3_conn *conn,
  * `nghttp3_conn_get_frame_payload_left` returns the number of bytes
  * left to read current frame payload for a stream denoted by
  * |stream_id|.  If no such stream is found, it returns
- * :enum:`NGHTTP3_ERR_STREAM_NOT_FOUND`.
+ * :macro:`NGHTTP3_ERR_STREAM_NOT_FOUND`.
  */
 NGHTTP3_EXTERN int64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
                                                            int64_t stream_id);
@@ -1712,7 +1895,7 @@ typedef struct nghttp3_pri {
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * :enum:`NGHTTP3_ERR_STREAM_NOT_FOUND`
+ * :macro:`NGHTTP3_ERR_STREAM_NOT_FOUND`
  *     Stream not found.
  */
 NGHTTP3_EXTERN int nghttp3_conn_get_stream_priority(nghttp3_conn *conn,
@@ -1731,9 +1914,9 @@ NGHTTP3_EXTERN int nghttp3_conn_get_stream_priority(nghttp3_conn *conn,
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * :enum:`NGHTTP3_ERR_STREAM_NOT_FOUND`
+ * :macro:`NGHTTP3_ERR_STREAM_NOT_FOUND`
  *     Stream not found.
- * :enum:`NGHTTP3_ERR_NOMEM`
+ * :macro:`NGHTTP3_ERR_NOMEM`
  *     Out of memory.
  */
 NGHTTP3_EXTERN int nghttp3_conn_set_stream_priority(nghttp3_conn *conn,
@@ -1810,7 +1993,7 @@ NGHTTP3_EXTERN int nghttp3_check_header_value(const uint8_t *value, size_t len);
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * :enum:`NGHTTP3_ERR_INVALID_ARGUMENT`
+ * :macro:`NGHTTP3_ERR_INVALID_ARGUMENT`
  *     The function could not parse the provided value.
  */
 NGHTTP3_EXTERN int nghttp3_http_parse_priority(nghttp3_pri *dest,
