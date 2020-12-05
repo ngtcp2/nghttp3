@@ -365,11 +365,15 @@ NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
  */
 
 /**
+ * @macro
+ *
  * :macro:`NGHTTP3_NV_FLAG_NONE` indicates no flag set.
  */
 #define NGHTTP3_NV_FLAG_NONE 0
 
 /**
+ * @macro
+ *
  * :macro:`NGHTTP3_NV_FLAG_NEVER_INDEX` indicates that this name/value
  * pair must not be indexed.  Other implementation calls this bit as
  * "sensitive".
@@ -377,6 +381,8 @@ NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
 #define NGHTTP3_NV_FLAG_NEVER_INDEX 0x01
 
 /**
+ * @macro
+ *
  * :macro:`NGHTTP3_NV_FLAG_NO_COPY_NAME` is set solely by application.
  * If this flag is set, the library does not make a copy of header
  * field name.  This could improve performance.
@@ -384,6 +390,8 @@ NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
 #define NGHTTP3_NV_FLAG_NO_COPY_NAME 0x02
 
 /**
+ * @macro
+ *
  * :macro:`NGHTTP3_NV_FLAG_NO_COPY_VALUE` is set solely by
  * application.  If this flag is set, the library does not make a copy
  * of header field value.  This could improve performance.
@@ -831,23 +839,31 @@ nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
  */
 
 /**
+ * @macro
+ *
  * :macro:`NGHTTP3_QPACK_DECODE_FLAG_NONE` indicates that no flag set.
  */
 #define NGHTTP3_QPACK_DECODE_FLAG_NONE 0
 
 /**
+ * @macro
+ *
  * :macro:`NGHTTP3_QPACK_DECODE_FLAG_EMIT` indicates that a header
  * field is successfully decoded.
  */
 #define NGHTTP3_QPACK_DECODE_FLAG_EMIT 0x01
 
 /**
+ * @macro
+ *
  * :macro:`NGHTTP3_QPACK_DECODE_FLAG_FINAL` indicates that all header
  * fields have been decoded.
  */
 #define NGHTTP3_QPACK_DECODE_FLAG_FINAL 0x02
 
 /**
+ * @macro
+ *
  * :macro:`NGHTTP3_QPACK_DECODE_FLAG_BLOCKED` indicates that decoding
  * has been blocked.
  */
@@ -1262,6 +1278,7 @@ NGHTTP3_EXTERN void nghttp3_conn_del(nghttp3_conn *conn);
  *
  * :enum:`NGHTTP3_ERR_INVALID_STATE`
  *     Control stream has already corresponding stream ID.
+ *
  * TBD
  */
 NGHTTP3_EXTERN int nghttp3_conn_bind_control_stream(nghttp3_conn *conn,
@@ -1280,6 +1297,7 @@ NGHTTP3_EXTERN int nghttp3_conn_bind_control_stream(nghttp3_conn *conn,
  * :enum:`NGHTTP3_ERR_INVALID_STATE`
  *     QPACK encoder/decoder stream have already corresponding stream
  *     IDs.
+ *
  * TBD
  */
 NGHTTP3_EXTERN int nghttp3_conn_bind_qpack_streams(nghttp3_conn *conn,

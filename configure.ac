@@ -292,6 +292,8 @@ AC_CONFIG_FILES([
   lib/includes/Makefile
   lib/includes/nghttp3/version.h
   tests/Makefile
+  doc/Makefile
+  doc/source/conf.py
   examples/Makefile
 ])
 AC_OUTPUT
