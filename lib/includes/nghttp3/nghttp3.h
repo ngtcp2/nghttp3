@@ -301,24 +301,144 @@ typedef ptrdiff_t nghttp3_ssize;
  */
 #define NGHTTP3_ERR_CALLBACK_FAILURE -902
 
+/**
+ * @macrosection
+ *
+ * HTTP/3 application error code
+ */
+
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_NO_ERROR` is HTTP/3 application error code
+ * ``H3_NO_ERROR``.
+ */
 #define NGHTTP3_H3_NO_ERROR 0x0100
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_GENERAL_PROTOCOL_ERROR` is HTTP/3 application
+ * error code ``H3_GENERAL_PROTOCOL_ERROR``.
+ */
 #define NGHTTP3_H3_GENERAL_PROTOCOL_ERROR 0x0101
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_INTERNAL_ERROR` is HTTP/3 application error code
+ * ``H3_INTERNAL_ERROR``.
+ */
 #define NGHTTP3_H3_INTERNAL_ERROR 0x0102
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_STREAM_CREATION_ERROR` is HTTP/3 application
+ * error code ``H3_STREAM_CREATION_ERROR``.
+ */
 #define NGHTTP3_H3_STREAM_CREATION_ERROR 0x0103
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_CLOSED_CRITICAL_STREAM` is HTTP/3 application
+ * error code ``H3_CLOSED_CRITICAL_STREAM``.
+ */
 #define NGHTTP3_H3_CLOSED_CRITICAL_STREAM 0x0104
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_FRAME_UNEXPECTED` is HTTP/3 application error
+ * code ``H3_FRAME_UNEXPECTED``.
+ */
 #define NGHTTP3_H3_FRAME_UNEXPECTED 0x0105
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_FRAME_ERROR` is HTTP/3 application error code
+ * ``H3_FRAME_ERROR``.
+ */
 #define NGHTTP3_H3_FRAME_ERROR 0x0106
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_EXCESSIVE_LOAD` is HTTP/3 application error code
+ * ``H3_EXCESSIVE_LOAD``.
+ */
 #define NGHTTP3_H3_EXCESSIVE_LOAD 0x0107
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_ID_ERROR` is HTTP/3 application error code
+ * ``H3_ID_ERROR``.
+ */
 #define NGHTTP3_H3_ID_ERROR 0x0108
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_SETTINGS_ERROR` is HTTP/3 application error code
+ * ``H3_SETTINGS_ERROR``.
+ */
 #define NGHTTP3_H3_SETTINGS_ERROR 0x0109
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_MISSING_SETTINGS` is HTTP/3 application error
+ * code ``H3_MISSING_SETTINGS``.
+ */
 #define NGHTTP3_H3_MISSING_SETTINGS 0x010a
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_REQUEST_REJECTED` is HTTP/3 application error
+ * code ``H3_REQUEST_REJECTED``.
+ */
 #define NGHTTP3_H3_REQUEST_REJECTED 0x010b
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_REQUEST_CANCELLED` is HTTP/3 application error
+ * code ``H3_REQUEST_CANCELLED``.
+ */
 #define NGHTTP3_H3_REQUEST_CANCELLED 0x010c
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_REQUEST_INCOMPLETE` is HTTP/3 application error
+ * code ``H3_REQUEST_INCOMPLETE``.
+ */
 #define NGHTTP3_H3_REQUEST_INCOMPLETE 0x010d
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_CONNECT_ERROR` is HTTP/3 application error code
+ * ``H3_CONNECT_ERROR``.
+ */
 #define NGHTTP3_H3_CONNECT_ERROR 0x010f
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_H3_VERSION_FALLBACK` is HTTP/3 application error
+ * code ``H3_VERSION_FALLBACK``.
+ */
 #define NGHTTP3_H3_VERSION_FALLBACK 0x0110
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_QPACK_DECOMPRESSION_FAILED` is HTTP/3 application
+ * error code ``QPACK_DECOMPRESSION_FAILED``.
+ */
 #define NGHTTP3_QPACK_DECOMPRESSION_FAILED 0x0200
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_QPACK_ENCODER_STREAM_ERROR` is HTTP/3 application
+ * error code ``QPACK_ENCODER_STREAM_ERROR``.
+ */
 #define NGHTTP3_QPACK_ENCODER_STREAM_ERROR 0x0201
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_QPACK_DECODER_STREAM_ERROR` is HTTP/3 application
+ * error code ``QPACK_DECODER_STREAM_ERROR``.
+ */
 #define NGHTTP3_QPACK_DECODER_STREAM_ERROR 0x0202
 
 /**
@@ -356,9 +476,10 @@ typedef void *(*nghttp3_realloc)(void *ptr, size_t size, void *mem_user_data);
 /**
  * @struct
  *
- * Custom memory allocator functions and user defined pointer.  The
- * |mem_user_data| member is passed to each allocator function.  This
- * can be used, for example, to achieve per-session memory pool.
+ * :type:`nghttp3_mem` is a custom memory allocator functions and user
+ * defined pointer.  The |mem_user_data| member is passed to each
+ * allocator function.  This can be used, for example, to achieve
+ * per-session memory pool.
  *
  * In the following example code, ``my_malloc``, ``my_free``,
  * ``my_calloc`` and ``my_realloc`` are the replacement of the
@@ -386,26 +507,29 @@ typedef void *(*nghttp3_realloc)(void *ptr, size_t size, void *mem_user_data);
  *       ...
  *     }
  */
-typedef struct {
+typedef struct nghttp3_mem {
   /**
-   * An arbitrary user supplied data.  This is passed to each
-   * allocator function.
+   * :member:`mem_user_data` is an arbitrary user supplied data.  This
+   * is passed to each allocator function.
    */
   void *mem_user_data;
   /**
-   * Custom allocator function to replace malloc().
+   * :member:`malloc` is a custom allocator function to replace
+   * malloc().
    */
   nghttp3_malloc malloc;
   /**
-   * Custom allocator function to replace free().
+   * :member:`free` is a custom allocator function to replace free().
    */
   nghttp3_free free;
   /**
-   * Custom allocator function to replace calloc().
+   * :member:`calloc` is a custom allocator function to replace
+   * calloc().
    */
   nghttp3_calloc calloc;
   /**
-   * Custom allocator function to replace realloc().
+   * :member:`realloc` is a custom allocator function to replace
+   * realloc().
    */
   nghttp3_realloc realloc;
 } nghttp3_mem;
@@ -421,17 +545,17 @@ NGHTTP3_EXTERN const nghttp3_mem *nghttp3_mem_default(void);
 /**
  * @struct
  *
- * nghttp3_vec is struct iovec compatible structure to reference
- * arbitrary array of bytes.
+ * :type:`nghttp3_vec` is ``struct iovec`` compatible structure to
+ * reference arbitrary array of bytes.
  */
-typedef struct {
+typedef struct nghttp3_vec {
   /**
-   * base points to the data.
+   * :member:`base` points to the data.
    */
   uint8_t *base;
   /**
-   * len is the number of bytes which the buffer pointed by base
-   * contains.
+   * :member:`len` is the number of bytes which the buffer pointed by
+   * base contains.
    */
   size_t len;
 } nghttp3_vec;
@@ -486,25 +610,26 @@ NGHTTP3_EXTERN int nghttp3_rcbuf_is_static(const nghttp3_rcbuf *rcbuf);
  *
  * :type:`nghttp3_buf` is the variable size buffer.
  */
-typedef struct {
+typedef struct nghttp3_buf {
   /**
-   * begin points to the beginning of the buffer.
+   * :member:`begin` points to the beginning of the buffer.
    */
   uint8_t *begin;
   /**
-   * end points to the one beyond of the last byte of the buffer
+   * :member:`end` points to the one beyond of the last byte of the
+   * buffer
    */
   uint8_t *end;
   /**
-   * pos pointers to the start of data.  Typically, this points to the
-   * point that next data should be read.  Initially, it points to
-   * |begin|.
+   * :member:`pos` pointers to the start of data.  Typically, this
+   * points to the point that next data should be read.  Initially, it
+   * points to :member:`begin`.
    */
   uint8_t *pos;
   /**
-   * last points to the one beyond of the last data of the buffer.
-   * Typically, new data is written at this point.  Initially, it
-   * points to |begin|.
+   * :member:`last` points to the one beyond of the last data of the
+   * buffer.  Typically, new data is written at this point.
+   * Initially, it points to :member:`begin`.
    */
   uint8_t *last;
 } nghttp3_buf;
@@ -595,115 +720,357 @@ NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
  * :type:`nghttp3_nv` is the name/value pair, which mainly used to
  * represent header fields.
  */
-typedef struct {
+typedef struct nghttp3_nv {
   /**
-   * name is the header field name.
+   * :member:`name` is the header field name.
    */
   uint8_t *name;
   /**
-   * value is the header field value.
+   * :member:`value` is the header field value.
    */
   uint8_t *value;
   /**
-   * namelen is the length of the |name|, excluding terminating NULL.
+   * :member:`namelen` is the length of the |name|, excluding
+   * terminating NULL.
    */
   size_t namelen;
   /**
-   * valuelen is the length of the |value|, excluding terminating
-   * NULL.
+   * :member:`valuelen` is the length of the |value|, excluding
+   * terminating NULL.
    */
   size_t valuelen;
   /**
-   * flags is bitwise OR of one or more of NGHTTP3_NV_FLAG_*.
+   * :member:`flags` is bitwise OR of one or more of
+   * NGHTTP3_NV_FLAG_*.
    */
   uint8_t flags;
 } nghttp3_nv;
 
 /* Generated by mkstatichdtbl.py */
-typedef enum {
+/**
+ * @enum
+ *
+ * :type:`nghttp3_qpack_token` defines HTTP header field name tokens
+ * to identify field name quickly.  It appears in
+ * :member:`nghttp3_qpack_nv.token`.
+ */
+typedef enum nghttp3_qpack_token {
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN__AUTHORITY` is a token for
+   * ``:authority``.
+   */
   NGHTTP3_QPACK_TOKEN__AUTHORITY = 0,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN__PATH` is a token for ``:path``.
+   */
   NGHTTP3_QPACK_TOKEN__PATH = 8,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_AGE` is a token for ``age``.
+   */
   NGHTTP3_QPACK_TOKEN_AGE = 43,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_CONTENT_DISPOSITION` is a token for
+   * ``content-disposition``.
+   */
   NGHTTP3_QPACK_TOKEN_CONTENT_DISPOSITION = 52,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_CONTENT_LENGTH` is a token for
+   * ``content-length``.
+   */
   NGHTTP3_QPACK_TOKEN_CONTENT_LENGTH = 55,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_COOKIE` is a token for ``cookie``.
+   */
   NGHTTP3_QPACK_TOKEN_COOKIE = 68,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_DATE` is a token for ``date``.
+   */
   NGHTTP3_QPACK_TOKEN_DATE = 69,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_ETAG` is a token for ``etag``.
+   */
   NGHTTP3_QPACK_TOKEN_ETAG = 71,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_IF_MODIFIED_SINCE` is a token for
+   * ``if-modified-since``.
+   */
   NGHTTP3_QPACK_TOKEN_IF_MODIFIED_SINCE = 74,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_IF_NONE_MATCH` is a token for
+   * ``if-none-match``.
+   */
   NGHTTP3_QPACK_TOKEN_IF_NONE_MATCH = 75,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_LAST_MODIFIED` is a token for
+   * ``last-modified``.
+   */
   NGHTTP3_QPACK_TOKEN_LAST_MODIFIED = 77,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_LINK` is a token for ``link``.
+   */
   NGHTTP3_QPACK_TOKEN_LINK = 78,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_LOCATION` is a token for ``location``.
+   */
   NGHTTP3_QPACK_TOKEN_LOCATION = 79,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_REFERER` is a token for ``referer``.
+   */
   NGHTTP3_QPACK_TOKEN_REFERER = 83,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_SET_COOKIE` is a token for
+   * ``set-cookie``.
+   */
   NGHTTP3_QPACK_TOKEN_SET_COOKIE = 85,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN__METHOD` is a token for ``:method``.
+   */
   NGHTTP3_QPACK_TOKEN__METHOD = 1,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN__SCHEME` is a token for ``:scheme``.
+   */
   NGHTTP3_QPACK_TOKEN__SCHEME = 9,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN__STATUS` is a token for ``:status``.
+   */
   NGHTTP3_QPACK_TOKEN__STATUS = 11,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_ACCEPT` is a token for ``accept``.
+   */
   NGHTTP3_QPACK_TOKEN_ACCEPT = 25,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_ACCEPT_ENCODING` is a token for
+   * ``accept-encoding``.
+   */
   NGHTTP3_QPACK_TOKEN_ACCEPT_ENCODING = 27,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_ACCEPT_RANGES` is a token for
+   * ``accept-ranges``.
+   */
   NGHTTP3_QPACK_TOKEN_ACCEPT_RANGES = 29,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_ACCESS_CONTROL_ALLOW_HEADERS` is a
+   * token for ``access-control-allow-headers``.
+   */
   NGHTTP3_QPACK_TOKEN_ACCESS_CONTROL_ALLOW_HEADERS = 32,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_ACCESS_CONTROL_ALLOW_ORIGIN` is a
+   * token for ``access-control-allow-origin``.
+   */
   NGHTTP3_QPACK_TOKEN_ACCESS_CONTROL_ALLOW_ORIGIN = 38,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_CACHE_CONTROL` is a token for
+   * ``cache-control``.
+   */
   NGHTTP3_QPACK_TOKEN_CACHE_CONTROL = 46,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_CONTENT_ENCODING` is a token for
+   * ``content-encoding``.
+   */
   NGHTTP3_QPACK_TOKEN_CONTENT_ENCODING = 53,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_CONTENT_TYPE` is a token for
+   * ``content-type``.
+   */
   NGHTTP3_QPACK_TOKEN_CONTENT_TYPE = 57,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_RANGE` is a token for ``range``.
+   */
   NGHTTP3_QPACK_TOKEN_RANGE = 82,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_STRICT_TRANSPORT_SECURITY` is a token
+   * for ``strict-transport-security``.
+   */
   NGHTTP3_QPACK_TOKEN_STRICT_TRANSPORT_SECURITY = 86,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_VARY` is a token for ``vary``.
+   */
   NGHTTP3_QPACK_TOKEN_VARY = 92,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_X_CONTENT_TYPE_OPTIONS` is a token for
+   * ``x-content-type-options``.
+   */
   NGHTTP3_QPACK_TOKEN_X_CONTENT_TYPE_OPTIONS = 94,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_X_XSS_PROTECTION` is a token for
+   * ``x-xss-protection``.
+   */
   NGHTTP3_QPACK_TOKEN_X_XSS_PROTECTION = 98,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_ACCEPT_LANGUAGE` is a token for
+   * ``accept-language``.
+   */
   NGHTTP3_QPACK_TOKEN_ACCEPT_LANGUAGE = 28,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_ACCESS_CONTROL_ALLOW_CREDENTIALS` is a
+   * token for ``access-control-allow-credentials``.
+   */
   NGHTTP3_QPACK_TOKEN_ACCESS_CONTROL_ALLOW_CREDENTIALS = 30,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_ACCESS_CONTROL_ALLOW_METHODS` is a
+   * token for ``access-control-allow-methods``.
+   */
   NGHTTP3_QPACK_TOKEN_ACCESS_CONTROL_ALLOW_METHODS = 35,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_ACCESS_CONTROL_EXPOSE_HEADERS` is a
+   * token for ``access-control-expose-headers``.
+   */
   NGHTTP3_QPACK_TOKEN_ACCESS_CONTROL_EXPOSE_HEADERS = 39,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_ACCESS_CONTROL_REQUEST_HEADERS` is a
+   * token for ``access-control-request-headers``.
+   */
   NGHTTP3_QPACK_TOKEN_ACCESS_CONTROL_REQUEST_HEADERS = 40,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_ACCESS_CONTROL_REQUEST_METHOD` is a
+   * token for ``access-control-request-method``.
+   */
   NGHTTP3_QPACK_TOKEN_ACCESS_CONTROL_REQUEST_METHOD = 41,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_ALT_SVC` is a token for ``alt-svc``.
+   */
   NGHTTP3_QPACK_TOKEN_ALT_SVC = 44,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_AUTHORIZATION` is a token for
+   * ``authorization``.
+   */
   NGHTTP3_QPACK_TOKEN_AUTHORIZATION = 45,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_CONTENT_SECURITY_POLICY` is a token
+   * for ``content-security-policy``.
+   */
   NGHTTP3_QPACK_TOKEN_CONTENT_SECURITY_POLICY = 56,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_EARLY_DATA` is a token for
+   * ``early-data``.
+   */
   NGHTTP3_QPACK_TOKEN_EARLY_DATA = 70,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_EXPECT_CT` is a token for
+   * ``expect-ct``.
+   */
   NGHTTP3_QPACK_TOKEN_EXPECT_CT = 72,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_FORWARDED` is a token for
+   * ``forwarded``.
+   */
   NGHTTP3_QPACK_TOKEN_FORWARDED = 73,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_IF_RANGE` is a token for ``if-range``.
+   */
   NGHTTP3_QPACK_TOKEN_IF_RANGE = 76,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_ORIGIN` is a token for ``origin``.
+   */
   NGHTTP3_QPACK_TOKEN_ORIGIN = 80,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_PURPOSE` is a token for ``purpose``.
+   */
   NGHTTP3_QPACK_TOKEN_PURPOSE = 81,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_SERVER` is a token for ``server``.
+   */
   NGHTTP3_QPACK_TOKEN_SERVER = 84,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_TIMING_ALLOW_ORIGIN` is a token for
+   * ``timing-allow-origin``.
+   */
   NGHTTP3_QPACK_TOKEN_TIMING_ALLOW_ORIGIN = 89,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_UPGRADE_INSECURE_REQUESTS` is a token
+   * for ``upgrade-insecure-requests``.
+   */
   NGHTTP3_QPACK_TOKEN_UPGRADE_INSECURE_REQUESTS = 90,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_USER_AGENT` is a token for
+   * ``user-agent``.
+   */
   NGHTTP3_QPACK_TOKEN_USER_AGENT = 91,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_X_FORWARDED_FOR` is a token for
+   * ``x-forwarded-for``.
+   */
   NGHTTP3_QPACK_TOKEN_X_FORWARDED_FOR = 95,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_X_FRAME_OPTIONS` is a token for
+   * ``x-frame-options``.
+   */
   NGHTTP3_QPACK_TOKEN_X_FRAME_OPTIONS = 96,
+
   /* Additional header fields for HTTP messaging validation */
+
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_HOST` is a token for ``host``.
+   */
   NGHTTP3_QPACK_TOKEN_HOST = 1000,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_CONNECTION` is a token for
+   * ``connection``.
+   */
   NGHTTP3_QPACK_TOKEN_CONNECTION,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_KEEP_ALIVE` is a token for
+   * ``keep-alive``.
+   */
   NGHTTP3_QPACK_TOKEN_KEEP_ALIVE,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_PROXY_CONNECTION` is a token for
+   * ``proxy-connection``.
+   */
   NGHTTP3_QPACK_TOKEN_PROXY_CONNECTION,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_TRANSFER_ENCODING` is a token for
+   * ``transfer-encoding``.
+   */
   NGHTTP3_QPACK_TOKEN_TRANSFER_ENCODING,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_UPGRADE` is a token for ``upgrade``.
+   */
   NGHTTP3_QPACK_TOKEN_UPGRADE,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_TE` is a token for ``te``.
+   */
   NGHTTP3_QPACK_TOKEN_TE,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN__PROTOCOL` is a token for
+   * ``:protocol``.
+   */
   NGHTTP3_QPACK_TOKEN__PROTOCOL,
+  /**
+   * :enum:`NGHTTP3_QPACK_TOKEN_PRIORITY` is a token for ``priority``.
+   */
   NGHTTP3_QPACK_TOKEN_PRIORITY
 } nghttp3_qpack_token;
 
 /**
  * @struct
  *
- * nghttp3_qpack_nv represents header field name/value pair just like
- * :type:`nghttp3_nv`.  It is an extended version of
+ * :type:`nghttp3_qpack_nv` represents header field name/value pair
+ * just like :type:`nghttp3_nv`.  It is an extended version of
  * :type:`nghttp3_nv` and has reference counted buffers and tokens
  * which might be useful for applications.
  */
 typedef struct {
-  /* The buffer containing header field name.  NULL-termination is
-     guaranteed. */
+  /**
+   * :member:`name` is the buffer containing header field name.
+   * NULL-termination is guaranteed.
+   */
   nghttp3_rcbuf *name;
-  /* The buffer containing header field value.  NULL-termination is
-     guaranteed. */
+  /**
+   * :member:`value` is the buffer containing header field value.
+   * NULL-termination is guaranteed.
+   */
   nghttp3_rcbuf *value;
-  /* nghttp3_qpack_token value for name.  It could be -1 if we have no
-     token for that header field name. */
+  /**
+   * :member:`token` is :type:`nghttp3_qpack_token` value of
+   *  :member:`name`.  It could be -1 if we have no token for that
+   *  header field name.
+   */
   int32_t token;
-  /* Bitwise OR of one or more of NGHTTP3_NV_FLAG_* */
+  /**
+   * :member:`flags` is a bitwise OR of one or more of
+   * NGHTTP3_NV_FLAG_*.  See :macro:`NGHTTP3_NV_FLAG_NONE`.
+   */
   uint8_t flags;
 } nghttp3_qpack_nv;
 
@@ -751,7 +1118,7 @@ NGHTTP3_EXTERN void nghttp3_qpack_encoder_del(nghttp3_qpack_encoder *encoder);
  * identifier of the stream which this header fields belong to.  This
  * function writes header block prefix, encoded header fields, and
  * encoder stream to |pbuf|, |rbuf|, and |ebuf| respectively.  The
- * last field of nghttp3_buf will be adjusted when data is written.
+ * :member:`nghttp3_buf.last` will be adjusted when data is written.
  * An application should write |pbuf| and |rbuf| to the request stream
  * in this order.
  *
@@ -759,9 +1126,10 @@ NGHTTP3_EXTERN void nghttp3_qpack_encoder_del(nghttp3_qpack_encoder *encoder);
  * buffer.  It is fine to pass a buffer initialized by
  * nghttp3_buf_init(buf).  This function allocates memory for these
  * buffers as necessary.  In particular, it frees and expands buffer
- * if the current capacity of buffer is not enough.  If begin field of
- * any buffer is not NULL, it must be allocated by the same memory
- * allocator passed to `nghttp3_qpack_encoder_new()`.
+ * if the current capacity of buffer is not enough.  If
+ * :member:`nghttp3_buf.begin` of any buffer is not NULL, it must be
+ * allocated by the same memory allocator passed to
+ * `nghttp3_qpack_encoder_new()`.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -903,7 +1271,7 @@ nghttp3_qpack_encoder_cancel_stream(nghttp3_qpack_encoder *encoder,
  * @function
  *
  * `nghttp3_qpack_encoder_get_num_blocked` returns the number of
- * streams which is potentially blocked at decoder side.
+ * streams which are potentially blocked at decoder side.
  */
 NGHTTP3_EXTERN size_t
 nghttp3_qpack_encoder_get_num_blocked(nghttp3_qpack_encoder *encoder);
@@ -956,7 +1324,7 @@ nghttp3_qpack_stream_context_get_ricnt(nghttp3_qpack_stream_context *sctx);
 /**
  * @struct
  *
- * `nghttp3_qpack_decoder` is QPACK decoder.
+ * :type:`nghttp3_qpack_decoder` is QPACK decoder.
  */
 typedef struct nghttp3_qpack_decoder nghttp3_qpack_decoder;
 
@@ -1059,9 +1427,9 @@ nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
  *
  * `nghttp3_qpack_decoder_read_request` reads request stream.  The
  * request stream is given as the buffer pointed by |src| of length
- * |srclen|.  |sctx| is the stream context and it must be initialized
- * by `nghttp3_qpack_stream_context_init()`.  |*pflags| must be
- * non-NULL pointer.  |nv| must be non-NULL pointer.
+ * |srclen|.  |sctx| is the stream context and it must be created by
+ * `nghttp3_qpack_stream_context_new()`.  |*pflags| must be non-NULL
+ * pointer.  |nv| must be non-NULL pointer.
  *
  * If this function succeeds, it assigns flags to |*pflags|.  If
  * |*pflags| has :macro:`NGHTTP3_QPACK_DECODE_FLAG_EMIT` set, a
@@ -1075,8 +1443,9 @@ nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
  * nv->name and nv->value are reference counted buffer, and their
  * reference counts are already incremented for application use.
  * Therefore, when application finishes processing the header field,
- * it must call nghttp3_rcbuf_decref(nv->name) and
- * nghttp3_rcbuf_decref(nv->value) or memory leak might occur.
+ * it must call `nghttp3_rcbuf_decref(nv->name)
+ * <nghttp3_rcbuf_decref>` and `nghttp3_rcbuf_decref(nv->value)
+ * <nghttp3_rcbuf_decref>` or memory leak might occur.
  *
  * This function returns the number of bytes read, or one of the
  * following negative error codes:
@@ -1102,8 +1471,10 @@ NGHTTP3_EXTERN nghttp3_ssize nghttp3_qpack_decoder_read_request(
  * `nghttp3_qpack_decoder_write_decoder` writes decoder stream into
  * |dbuf|.
  *
- * The caller must ensure that nghttp3_buf_left(dbuf) >=
- * nghttp3_qpack_decoder_get_decoder_streamlen(decoder).
+ * The caller must ensure that `nghttp3_buf_left(dbuf)
+ * <nghttp3_buf_left>` >=
+ * `nghttp3_qpack_decoder_get_decoder_streamlen(decoder)
+ * <nghttp3_qpack_decoder_get_decoder_streamlen>`.
  */
 NGHTTP3_EXTERN void
 nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
@@ -1690,7 +2061,7 @@ typedef nghttp3_ssize (*nghttp3_read_data_callback)(
  */
 typedef struct {
   /**
-   * read_data is a callback function to generate body.
+   * :member:`read_data` is a callback function to generate body.
    */
   nghttp3_read_data_callback read_data;
 } nghttp3_data_reader;
@@ -1868,16 +2239,16 @@ NGHTTP3_EXTERN int64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
  */
 typedef struct nghttp3_pri {
   /**
-   * urgency is the urgency of a stream, it must be in
-   * [NGHTTP3_URGENCY_HIGH, NGHTTP3_URGENCY_LOW], inclusive, and 0 is
-   * the highest urgency.
+   * :member:`urgency` is the urgency of a stream, it must be in
+   * [:macro:`NGHTTP3_URGENCY_HIGH`, :macro:`NGHTTP3_URGENCY_LOW`],
+   * inclusive, and 0 is the highest urgency.
    */
   uint32_t urgency;
   /**
-   * inc indicates that a content can be processed incrementally or
-   * not.  If inc is 0, it cannot be processed incrementally.  If inc
-   * is 1, it can be processed incrementally.  Other value is not
-   * permitted.
+   * :member:`inc` indicates that a content can be processed
+   * incrementally or not.  If inc is 0, it cannot be processed
+   * incrementally.  If inc is 1, it can be processed incrementally.
+   * Other value is not permitted.
    */
   int inc;
 } nghttp3_pri;
@@ -2003,29 +2374,31 @@ NGHTTP3_EXTERN int nghttp3_http_parse_priority(nghttp3_pri *dest,
 /**
  * @macro
  *
- * The age of :type:`nghttp3_info`
+ * :macro:`NGHTTP3_VERSION_AGE` is the age of :type:`nghttp3_info`.
  */
 #define NGHTTP3_VERSION_AGE 1
 
 /**
  * @struct
  *
- * This struct is what `nghttp3_version()` returns.  It holds
+ * :type:`nghttp3_info` is what `nghttp3_version()` returns.  It holds
  * information about the particular nghttp3 version.
  */
 typedef struct {
   /**
-   * Age of this struct.  This instance of nghttp3 sets it to
-   * :macro:`NGHTTP3_VERSION_AGE` but a future version may bump it and
-   * add more struct fields at the bottom
+   * :member:`age` is the age of this struct.  This instance of
+   * nghttp3 sets it to :macro:`NGHTTP3_VERSION_AGE` but a future
+   * version may bump it and add more struct fields at the bottom
    */
   int age;
   /**
-   * the :macro:`NGHTTP3_VERSION_NUM` number (since age ==1)
+   * :member:`version_num` is the :macro:`NGHTTP3_VERSION_NUM` number
+   * (since age ==1)
    */
   int version_num;
   /**
-   * points to the :macro:`NGHTTP3_VERSION` string (since age ==1)
+   * :member:`version_str` points to the :macro:`NGHTTP3_VERSION`
+   * string (since age ==1)
    */
   const char *version_str;
   /* -------- the above fields all exist when age == 1 */
@@ -2034,11 +2407,12 @@ typedef struct {
 /**
  * @function
  *
- * Returns a pointer to a nghttp3_info struct with version information
- * about the run-time library in use.  The |least_version| argument
- * can be set to a 24 bit numerical value for the least accepted
- * version number and if the condition is not met, this function will
- * return a ``NULL``.  Pass in 0 to skip the version checking.
+ * `nghttp3_version` returns a pointer to a :type:`nghttp3_info`
+ * struct with version information about the run-time library in use.
+ * The |least_version| argument can be set to a 24 bit numerical value
+ * for the least accepted version number and if the condition is not
+ * met, this function will return a ``NULL``.  Pass in 0 to skip the
+ * version checking.
  */
 NGHTTP3_EXTERN nghttp3_info *nghttp3_version(int least_version);
 

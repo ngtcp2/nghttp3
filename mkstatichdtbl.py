@@ -4,7 +4,7 @@
 # This scripts reads static table entries [1] and generates
 # token_stable and stable.  This table is used in lib/nghttp3_qpack.c.
 #
-# [1] https://quicwg.org/base-drafts/draft-ietf-quic-qpack.html#rfc.appendix.A
+# [1] https://quicwg.org/base-drafts/draft-ietf-quic-qpack.html#name-static-table-2
 
 import re, sys
 
@@ -55,15 +55,20 @@ def to_enum_hd(k):
 
 def gen_enum(entries):
     used = {}
-    print('typedef enum {')
+    print('typedef enum nghttp3_qpack_token {')
     for ent in entries:
+        if ent.name in used:
+            continue
+        used[ent.name] = True
+        enumname = to_enum_hd(ent.name)
+        print('''\
+  /**
+   * :enum:`{enumname}` is a token for ``{name}``.
+   */'''.format(enumname=enumname, name=ent.name))
         if ent.token is None:
-            print('  {},'.format(to_enum_hd(ent.name)))
+            print('  {},'.format(enumname))
         else:
-            if ent.name in used:
-                continue
-            used[ent.name] = True
-            print('  {} = {},'.format(to_enum_hd(ent.name), ent.token))
+            print('  {} = {},'.format(enumname, ent.token))
     print('} nghttp3_qpack_token;')
 
 gen_enum(entries)
