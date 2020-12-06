@@ -1597,6 +1597,11 @@ typedef void (*nghttp3_debug_vprintf_callback)(const char *format,
 NGHTTP3_EXTERN void nghttp3_set_debug_vprintf_callback(
     nghttp3_debug_vprintf_callback debug_vprintf_callback);
 
+/**
+ * @struct
+ *
+ * :type:`nghttp3_conn` represents a single HTTP/3 connection.
+ */
 typedef struct nghttp3_conn nghttp3_conn;
 
 /**
@@ -1672,24 +1677,107 @@ typedef int (*nghttp3_deferred_consume)(nghttp3_conn *conn, int64_t stream_id,
                                         size_t consumed, void *conn_user_data,
                                         void *stream_user_data);
 
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_begin_headers` is a callback function which is
+ * invoked when an incoming header block section is started on a
+ * stream denoted by |stream_id|.  Each header field is passed to
+ * application by :type:`nghttp3_recv_header` callback.  And then
+ * :type:`nghttp3_end_headers` is called when a whole header block is
+ * processed.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
 typedef int (*nghttp3_begin_headers)(nghttp3_conn *conn, int64_t stream_id,
                                      void *conn_user_data,
                                      void *stream_user_data);
 
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_recv_header` is a callback function which is invoked
+ * when a header field is received on a stream denoted by |stream_id|.
+ * |name| contains a field name and |value| contains a field value.
+ * |token| is one of token defined in :type:`nghttp3_qpack_token` or
+ * -1 if no token is defined for |name|.  |flags| is bitwise OR of
+ * zero or more of NGHTTP3_NV_FLAG_*.
+ *
+ * The buffers for |name| and |value| are reference counted. If
+ * application needs to keep them, increment the reference count with
+ * `nghttp3_rcbuf_incref`.  When they are no longer used, call
+ * `nghttp3_rcbuf_decref`.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
 typedef int (*nghttp3_recv_header)(nghttp3_conn *conn, int64_t stream_id,
                                    int32_t token, nghttp3_rcbuf *name,
                                    nghttp3_rcbuf *value, uint8_t flags,
                                    void *conn_user_data,
                                    void *stream_user_data);
 
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_end_headers` is a callback function which is invoked
+ * when an incoming header block has ended.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
 typedef int (*nghttp3_end_headers)(nghttp3_conn *conn, int64_t stream_id,
                                    void *conn_user_data,
                                    void *stream_user_data);
 
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_begin_push_promise` is a callback function which is
+ * invoked when an incoming header block section in PUSH_PROMISE is
+ * started on a stream denoted by |stream_id|.  |push_id| identifies a
+ * push promise.  Each header field is passed to application by
+ * :type:`nghttp3_recv_push_promise` callback.  And then
+ * :type:`nghttp3_end_push_promise` is called when a whole header
+ * block is processed.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
 typedef int (*nghttp3_begin_push_promise)(nghttp3_conn *conn, int64_t stream_id,
                                           int64_t push_id, void *conn_user_data,
                                           void *stream_user_data);
 
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_recv_push_promise` is a callback function which is
+ * invoked when a header field in PUSH_PROMISE is received on a stream
+ * denoted by |stream_id|.  |push_id| identifies a push promise.
+ * |name| contains a field name and |value| contains a field value.
+ * |token| is one of token defined in :type:`nghttp3_qpack_token` or
+ * -1 if no token is defined for |name|.  |flags| is bitwise OR of
+ * zero or more of NGHTTP3_NV_FLAG_*.
+ *
+ * The buffers for |name| and |value| are reference counted. If
+ * application needs to keep them, increment the reference count with
+ * `nghttp3_rcbuf_incref`.  When they are no longer used, call
+ * `nghttp3_rcbuf_decref`.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
 typedef int (*nghttp3_recv_push_promise)(nghttp3_conn *conn, int64_t stream_id,
                                          int64_t push_id, int32_t token,
                                          nghttp3_rcbuf *name,
@@ -1697,6 +1785,17 @@ typedef int (*nghttp3_recv_push_promise)(nghttp3_conn *conn, int64_t stream_id,
                                          void *conn_user_data,
                                          void *stream_user_data);
 
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_end_push_promise` is a callback function which is
+ * invoked when an incoming header block in PUSH_PROMISE has ended.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
 typedef int (*nghttp3_end_push_promise)(nghttp3_conn *conn, int64_t stream_id,
                                         int64_t push_id, void *conn_user_data,
                                         void *stream_user_data);
@@ -1788,49 +1887,177 @@ typedef int (*nghttp3_reset_stream)(nghttp3_conn *conn, int64_t stream_id,
                                     void *conn_user_data,
                                     void *stream_user_data);
 
-typedef struct {
+/**
+ * @struct
+ *
+ * :type:`nghttp3_conn_callbacks` holds a set of callback functions.
+ */
+typedef struct nghttp3_conn_callbacks {
+  /**
+   * :member:`acked_stream_data` is a callback function which is
+   * invoked when data sent on a particular stream have been
+   * acknowledged by a remote endpoint.
+   */
   nghttp3_acked_stream_data acked_stream_data;
+  /**
+   * :member:`stream_close` is a callback function which is invoked
+   * when a particular stream has closed.
+   */
   nghttp3_stream_close stream_close;
+  /**
+   * :member:`recv_data` is a callback function which is invoked when
+   * stream data is received.
+   */
   nghttp3_recv_data recv_data;
+  /**
+   * :member:`deferred_consume` is a callback function which is
+   * invoked when the library consumed data for a particular stream
+   * which had been blocked for synchronization between streams.
+   */
   nghttp3_deferred_consume deferred_consume;
+  /**
+   * :member:`begin_headers` is a callback function which is invoked
+   * when a header block has started on a particular stream.
+   */
   nghttp3_begin_headers begin_headers;
+  /**
+   * :member:`recv_header` is a callback function which is invoked
+   * when a single header field is received on a particular stream.
+   */
   nghttp3_recv_header recv_header;
+  /**
+   * :member:`end_headers` is a callback function which is invoked
+   * when a header block has ended on a particular stream.
+   */
   nghttp3_end_headers end_headers;
+  /**
+   * :member:`begin_trailers` is a callback function which is invoked
+   * when a trailer block has started on a particular stream.
+   */
   nghttp3_begin_headers begin_trailers;
+  /**
+   * :member:`recv_trailer` is a callback function which is invoked
+   * when a single trailer field is received on a particular stream.
+   */
   nghttp3_recv_header recv_trailer;
+  /**
+   * :member:`end_trailers` is a callback function which is invoked
+   * when a trailer block has ended on a particular stream.
+   */
   nghttp3_end_headers end_trailers;
+  /**
+   * :member:`begin_push_promise` is a callback function which is
+   * invoked when a push promise has started on a particular stream.
+   */
   nghttp3_begin_push_promise begin_push_promise;
+  /**
+   * :member:`recv_push_promise` is a callback function which is
+   * invoked when a single header field in a push promise is received
+   * on a particular stream.
+   */
   nghttp3_recv_push_promise recv_push_promise;
+  /**
+   * :member:`end_push_promise` is a callback function which is
+   * invoked when a push promise has ended on a particular stream.
+   */
   nghttp3_end_push_promise end_push_promise;
+  /**
+   * :member:`cancel_push` is a callback function which is invoked
+   * when a push promise has been cancelled by a remote endpoint.
+   */
   nghttp3_cancel_push cancel_push;
+  /**
+   * :member:`send_stop_sending` is a callback function which is
+   * invoked when the library asks application to send STOP_SENDING to
+   * a particular stream.
+   */
   nghttp3_send_stop_sending send_stop_sending;
+  /**
+   * :member:`push_stream` is a callback function which is invoked
+   * when a push stream has opened.
+   */
   nghttp3_push_stream push_stream;
+  /**
+   * :member:`end_stream` is a callback function which is invoked when
+   * a receiving side of stream has been closed.
+   */
   nghttp3_end_stream end_stream;
+  /**
+   * :member:`reset_stream` is a callback function which is invoked
+   * when the library asks application to reset stream (by sending
+   * RESET_STREAM).
+   */
   nghttp3_reset_stream reset_stream;
 } nghttp3_conn_callbacks;
 
+/**
+ * @struct
+ *
+ * :type:`nghttp3_conn_settings` defines HTTP/3 settings.
+ */
 typedef struct {
+  /**
+   * :member:`max_field_section_size` specifies the maximum header
+   * section (block) size.
+   */
   uint64_t max_field_section_size;
+  /**
+   * :member:`max_pushes` specifies the maximum number of concurrent
+   * pushes it accepts from a remote endpoint.
+   */
   uint64_t max_pushes;
+  /**
+   * :member:`qpack_max_table_capacity` is the maximum size of QPACK
+   * dynamic table.
+   */
   size_t qpack_max_table_capacity;
+  /**
+   * :member:`qpack_blocked_streams` is the maximum number of streams
+   * which can be blocked while they are being decoded.
+   */
   size_t qpack_blocked_streams;
 } nghttp3_conn_settings;
 
+/**
+ * @function
+ *
+ * `nghttp3_conn_settings_default` fills |settings| with the default
+ * values.
+ */
 NGHTTP3_EXTERN void
 nghttp3_conn_settings_default(nghttp3_conn_settings *settings);
 
+/**
+ * @function
+ *
+ * `nghttp3_conn_client_new` creates :type:`nghttp3_conn` and
+ * initializes it for client use.  The pointer to the object is stored
+ * in |*pconn|.
+ */
 NGHTTP3_EXTERN int
 nghttp3_conn_client_new(nghttp3_conn **pconn,
                         const nghttp3_conn_callbacks *callbacks,
                         const nghttp3_conn_settings *settings,
                         const nghttp3_mem *mem, void *conn_user_data);
 
+/**
+ * @function
+ *
+ * `nghttp3_conn_server_new` creates :type:`nghttp3_conn` and
+ * initializes it for server use.  The pointer to the object is stored
+ * in |*pconn|.
+ */
 NGHTTP3_EXTERN int
 nghttp3_conn_server_new(nghttp3_conn **pconn,
                         const nghttp3_conn_callbacks *callbacks,
                         const nghttp3_conn_settings *settings,
                         const nghttp3_mem *mem, void *conn_user_data);
 
+/**
+ * @function
+ *
+ * `nghttp3_conn_del` frees resources allocated for |conn|.
+ */
 NGHTTP3_EXTERN void nghttp3_conn_del(nghttp3_conn *conn);
 
 /**
