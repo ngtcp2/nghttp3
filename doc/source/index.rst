@@ -10,6 +10,7 @@ Welcome to nghttp3's documentation!
    :maxdepth: 1
    :caption: Contents:
 
+   qpack-howto
    apiref
 
 Indices and tables
