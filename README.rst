@@ -29,6 +29,11 @@ For older draft implementations:
 - `draft-23 <https://github.com/ngtcp2/nghttp3/tree/draft-23>`_
 - `draft-22 <https://github.com/ngtcp2/nghttp3/tree/draft-22>`_
 
+Documentation
+-------------
+
+`Online documentation <https://nghttp2.org/nghttp3/>`_ is available.
+
 HTTP/3
 ------
 
