@@ -1280,7 +1280,9 @@ nghttp3_qpack_encoder_get_num_blocked(nghttp3_qpack_encoder *encoder);
  * @struct
  *
  * :type:`nghttp3_qpack_stream_context` is a decoder context for an
- * individual stream.
+ * individual stream.  Its state is per header block.  In order to
+ * reuse this object for another header block, call
+ * `nghttp3_qpack_stream_context_reset`.
  */
 typedef struct nghttp3_qpack_stream_context nghttp3_qpack_stream_context;
 
@@ -1320,6 +1322,16 @@ nghttp3_qpack_stream_context_del(nghttp3_qpack_stream_context *sctx);
  */
 NGHTTP3_EXTERN uint64_t
 nghttp3_qpack_stream_context_get_ricnt(nghttp3_qpack_stream_context *sctx);
+
+/**
+ * @function
+ *
+ * `nghttp3_qpack_stream_context_reset` resets the state of |sctx|.
+ * Then it can be reused for an another header block in the same
+ * stream.
+ */
+NGHTTP3_EXTERN
+void nghttp3_qpack_stream_context_reset(nghttp3_qpack_stream_context *sctx);
 
 /**
  * @struct

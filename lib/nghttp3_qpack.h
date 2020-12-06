@@ -877,8 +877,6 @@ void nghttp3_qpack_stream_context_init(nghttp3_qpack_stream_context *sctx,
  */
 void nghttp3_qpack_stream_context_free(nghttp3_qpack_stream_context *sctx);
 
-void nghttp3_qpack_stream_context_reset(nghttp3_qpack_stream_context *sctx);
-
 /*
  * nghttp3_qpack_decoder_reconstruct_ricnt reconstructs Required
  * Insert Count from the encoded form |encricnt| and stores Required
