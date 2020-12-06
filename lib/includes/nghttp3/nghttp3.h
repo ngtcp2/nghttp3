@@ -1124,11 +1124,11 @@ NGHTTP3_EXTERN void nghttp3_qpack_encoder_del(nghttp3_qpack_encoder *encoder);
  *
  * The buffer pointed by |pbuf|, |rbuf|, and |ebuf| can be empty
  * buffer.  It is fine to pass a buffer initialized by
- * nghttp3_buf_init(buf).  This function allocates memory for these
- * buffers as necessary.  In particular, it frees and expands buffer
- * if the current capacity of buffer is not enough.  If
- * :member:`nghttp3_buf.begin` of any buffer is not NULL, it must be
- * allocated by the same memory allocator passed to
+ * `nghttp3_buf_init(buf) <nghttp3_buf_init>`.  This function
+ * allocates memory for these buffers as necessary.  In particular, it
+ * frees and expands buffer if the current capacity of buffer is not
+ * enough.  If :member:`nghttp3_buf.begin` of any buffer is not NULL,
+ * it must be allocated by the same memory allocator passed to
  * `nghttp3_qpack_encoder_new()`.
  *
  * This function returns 0 if it succeeds, or one of the following
