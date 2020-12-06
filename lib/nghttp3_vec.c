@@ -36,29 +36,3 @@ size_t nghttp3_vec_len(const nghttp3_vec *vec, size_t n) {
 
   return res;
 }
-
-int nghttp3_vec_empty(const nghttp3_vec *vec, size_t cnt) {
-  size_t i;
-
-  for (i = 0; i < cnt && vec[i].len == 0; ++i)
-    ;
-
-  return i == cnt;
-}
-
-void nghttp3_vec_consume(nghttp3_vec **pvec, size_t *pcnt, size_t len) {
-  nghttp3_vec *v = *pvec;
-  size_t cnt = *pcnt;
-
-  for (; cnt > 0; --cnt, ++v) {
-    if (v->len > len) {
-      v->len -= len;
-      v->base += len;
-      break;
-    }
-    len -= v->len;
-  }
-
-  *pvec = v;
-  *pcnt = cnt;
-}

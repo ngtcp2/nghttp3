@@ -2328,24 +2328,6 @@ NGHTTP3_EXTERN size_t nghttp3_vec_len(const nghttp3_vec *vec, size_t cnt);
 /**
  * @function
  *
- * `nghttp3_vec_empty` returns nonzero if |vec| of |cnt| elements has
- * 0 length data.
- */
-NGHTTP3_EXTERN int nghttp3_vec_empty(const nghttp3_vec *vec, size_t cnt);
-
-/**
- * @function
- *
- * `nghttp3_vec_consume` removes first |len| bytes from |*pvec| of
- * |*pcnt| elements.  The adjusted vector and number of elements are
- * stored in |*pvec| and |*pcnt| respectively.
- */
-NGHTTP3_EXTERN void nghttp3_vec_consume(nghttp3_vec **pvec, size_t *pcnt,
-                                        size_t len);
-
-/**
- * @function
- *
  * `nghttp3_check_header_name` returns nonzero if HTTP header field
  * name |name| of length |len| is valid according to
  * http://tools.ietf.org/html/rfc7230#section-3.2
