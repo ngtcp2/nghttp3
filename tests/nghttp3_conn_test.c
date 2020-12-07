@@ -315,7 +315,7 @@ static int reset_stream(nghttp3_conn *conn, int64_t stream_id,
 void test_nghttp3_conn_read_control(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   int rv;
   uint8_t rawbuf[2048];
@@ -384,7 +384,7 @@ void test_nghttp3_conn_read_control(void) {
 void test_nghttp3_conn_write_control(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   nghttp3_vec vec[256];
   nghttp3_ssize sveccnt;
@@ -419,7 +419,7 @@ void test_nghttp3_conn_write_control(void) {
 void test_nghttp3_conn_submit_request(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   nghttp3_vec vec[256];
   nghttp3_ssize sveccnt;
@@ -563,7 +563,7 @@ void test_nghttp3_conn_submit_request(void) {
 void test_nghttp3_conn_submit_push_promise(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   const nghttp3_nv nva[] = {
       MAKE_NV(":path", "/"),
@@ -628,7 +628,7 @@ void test_nghttp3_conn_submit_push_promise(void) {
 void test_nghttp3_conn_http_request(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *cl, *sv;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   nghttp3_vec vec[256];
   nghttp3_ssize sveccnt;
@@ -772,7 +772,7 @@ static void check_http_header(const nghttp3_nv *nva, size_t nvlen, int request,
   nghttp3_buf buf;
   nghttp3_frame_headers fr;
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
@@ -1112,7 +1112,7 @@ void test_nghttp3_conn_http_content_length(void) {
   nghttp3_buf buf;
   nghttp3_frame_headers fr;
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
@@ -1187,7 +1187,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   nghttp3_buf buf;
   nghttp3_frame_headers fr;
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
@@ -1313,7 +1313,7 @@ void test_nghttp3_conn_http_non_final_response(void) {
   nghttp3_buf buf;
   nghttp3_frame_headers fr;
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
@@ -1418,7 +1418,7 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_buf buf;
   nghttp3_frame_headers fr;
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
@@ -1730,7 +1730,7 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
   nghttp3_buf buf;
   nghttp3_frame_headers fr;
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
@@ -1844,7 +1844,7 @@ void test_nghttp3_conn_http_record_request_method(void) {
   nghttp3_buf buf;
   nghttp3_frame_headers fr;
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
@@ -1924,7 +1924,7 @@ void test_nghttp3_conn_http_record_request_method(void) {
 void test_nghttp3_conn_qpack_blocked_stream(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   nghttp3_qpack_encoder qenc;
   int rv;
@@ -2076,7 +2076,7 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
 void test_nghttp3_conn_recv_cancel_push(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   nghttp3_stream *stream;
   nghttp3_frame fr;
@@ -2444,7 +2444,7 @@ void test_nghttp3_conn_recv_cancel_push(void) {
 void test_nghttp3_conn_cancel_push(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   nghttp3_stream *stream;
   const nghttp3_nv reqnv[] = {
@@ -2750,7 +2750,7 @@ void test_nghttp3_conn_cancel_push(void) {
 void test_nghttp3_conn_recv_push_promise(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   uint8_t rawbuf[4096];
   nghttp3_buf buf;
@@ -2860,7 +2860,7 @@ void test_nghttp3_conn_recv_push_promise(void) {
 void test_nghttp3_conn_recv_push_stream(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   uint8_t rawbuf[4096];
   nghttp3_buf buf;
@@ -2991,7 +2991,7 @@ void test_nghttp3_conn_recv_push_stream(void) {
 void test_nghttp3_conn_just_fin(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   nghttp3_vec vec[256];
   nghttp3_ssize sveccnt;
@@ -3101,7 +3101,7 @@ void test_nghttp3_conn_just_fin(void) {
 void test_nghttp3_conn_submit_response_read_blocked(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   const nghttp3_nv nva[] = {
       MAKE_NV(":status", "200"),
@@ -3154,7 +3154,7 @@ void test_nghttp3_conn_submit_response_read_blocked(void) {
 void test_nghttp3_conn_recv_uni(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   nghttp3_ssize nread;
   uint8_t buf[256];
@@ -3208,7 +3208,7 @@ void test_nghttp3_conn_recv_uni(void) {
 void test_nghttp3_conn_recv_goaway(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   nghttp3_frame fr;
   uint8_t rawbuf[1024];
@@ -3334,7 +3334,7 @@ void test_nghttp3_conn_recv_goaway(void) {
 void test_nghttp3_conn_shutdown_server(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   nghttp3_frame fr;
   uint8_t rawbuf[1024];
@@ -3415,7 +3415,7 @@ void test_nghttp3_conn_shutdown_server(void) {
 void test_nghttp3_conn_shutdown_client(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   nghttp3_frame fr;
   uint8_t rawbuf[1024];

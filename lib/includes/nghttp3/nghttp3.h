@@ -1890,9 +1890,9 @@ typedef int (*nghttp3_reset_stream)(nghttp3_conn *conn, int64_t stream_id,
 /**
  * @struct
  *
- * :type:`nghttp3_conn_callbacks` holds a set of callback functions.
+ * :type:`nghttp3_callbacks` holds a set of callback functions.
  */
-typedef struct nghttp3_conn_callbacks {
+typedef struct nghttp3_callbacks {
   /**
    * :member:`acked_stream_data` is a callback function which is
    * invoked when data sent on a particular stream have been
@@ -1988,7 +1988,7 @@ typedef struct nghttp3_conn_callbacks {
    * RESET_STREAM).
    */
   nghttp3_reset_stream reset_stream;
-} nghttp3_conn_callbacks;
+} nghttp3_callbacks;
 
 /**
  * @struct
@@ -2033,11 +2033,11 @@ NGHTTP3_EXTERN void nghttp3_settings_default(nghttp3_settings *settings);
  * initializes it for client use.  The pointer to the object is stored
  * in |*pconn|.
  */
-NGHTTP3_EXTERN int
-nghttp3_conn_client_new(nghttp3_conn **pconn,
-                        const nghttp3_conn_callbacks *callbacks,
-                        const nghttp3_settings *settings,
-                        const nghttp3_mem *mem, void *conn_user_data);
+NGHTTP3_EXTERN int nghttp3_conn_client_new(nghttp3_conn **pconn,
+                                           const nghttp3_callbacks *callbacks,
+                                           const nghttp3_settings *settings,
+                                           const nghttp3_mem *mem,
+                                           void *conn_user_data);
 
 /**
  * @function
@@ -2046,11 +2046,11 @@ nghttp3_conn_client_new(nghttp3_conn **pconn,
  * initializes it for server use.  The pointer to the object is stored
  * in |*pconn|.
  */
-NGHTTP3_EXTERN int
-nghttp3_conn_server_new(nghttp3_conn **pconn,
-                        const nghttp3_conn_callbacks *callbacks,
-                        const nghttp3_settings *settings,
-                        const nghttp3_mem *mem, void *conn_user_data);
+NGHTTP3_EXTERN int nghttp3_conn_server_new(nghttp3_conn **pconn,
+                                           const nghttp3_callbacks *callbacks,
+                                           const nghttp3_settings *settings,
+                                           const nghttp3_mem *mem,
+                                           void *conn_user_data);
 
 /**
  * @function

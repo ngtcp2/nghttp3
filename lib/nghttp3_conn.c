@@ -279,7 +279,7 @@ static int cycle_less(const nghttp3_pq_entry *lhsx,
 }
 
 static int conn_new(nghttp3_conn **pconn, int server,
-                    const nghttp3_conn_callbacks *callbacks,
+                    const nghttp3_callbacks *callbacks,
                     const nghttp3_settings *settings, const nghttp3_mem *mem,
                     void *user_data) {
   int rv;
@@ -362,7 +362,7 @@ streams_init_fail:
 }
 
 int nghttp3_conn_client_new(nghttp3_conn **pconn,
-                            const nghttp3_conn_callbacks *callbacks,
+                            const nghttp3_callbacks *callbacks,
                             const nghttp3_settings *settings,
                             const nghttp3_mem *mem, void *user_data) {
   int rv;
@@ -378,7 +378,7 @@ int nghttp3_conn_client_new(nghttp3_conn **pconn,
 }
 
 int nghttp3_conn_server_new(nghttp3_conn **pconn,
-                            const nghttp3_conn_callbacks *callbacks,
+                            const nghttp3_callbacks *callbacks,
                             const nghttp3_settings *settings,
                             const nghttp3_mem *mem, void *user_data) {
   int rv;

@@ -115,7 +115,7 @@ typedef enum {
 } nghttp3_conn_flag;
 
 struct nghttp3_conn {
-  nghttp3_conn_callbacks callbacks;
+  nghttp3_callbacks callbacks;
   nghttp3_map streams;
   nghttp3_map pushes;
   nghttp3_qpack_decoder qdec;
