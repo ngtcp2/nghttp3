@@ -280,8 +280,8 @@ static int cycle_less(const nghttp3_pq_entry *lhsx,
 
 static int conn_new(nghttp3_conn **pconn, int server,
                     const nghttp3_conn_callbacks *callbacks,
-                    const nghttp3_conn_settings *settings,
-                    const nghttp3_mem *mem, void *user_data) {
+                    const nghttp3_settings *settings, const nghttp3_mem *mem,
+                    void *user_data) {
   int rv;
   nghttp3_conn *conn;
   size_t i;
@@ -331,7 +331,7 @@ static int conn_new(nghttp3_conn **pconn, int server,
 
   conn->callbacks = *callbacks;
   conn->local.settings = *settings;
-  nghttp3_conn_settings_default(&conn->remote.settings);
+  nghttp3_settings_default(&conn->remote.settings);
   conn->mem = mem;
   conn->user_data = user_data;
   conn->next_seq = 0;
@@ -363,7 +363,7 @@ streams_init_fail:
 
 int nghttp3_conn_client_new(nghttp3_conn **pconn,
                             const nghttp3_conn_callbacks *callbacks,
-                            const nghttp3_conn_settings *settings,
+                            const nghttp3_settings *settings,
                             const nghttp3_mem *mem, void *user_data) {
   int rv;
 
@@ -379,7 +379,7 @@ int nghttp3_conn_client_new(nghttp3_conn **pconn,
 
 int nghttp3_conn_server_new(nghttp3_conn **pconn,
                             const nghttp3_conn_callbacks *callbacks,
-                            const nghttp3_conn_settings *settings,
+                            const nghttp3_settings *settings,
                             const nghttp3_mem *mem, void *user_data) {
   int rv;
 
@@ -2387,7 +2387,7 @@ nghttp3_ssize nghttp3_conn_on_headers(nghttp3_conn *conn,
 int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
                                             const nghttp3_frame_settings *fr) {
   const nghttp3_settings_entry *ent = &fr->iv[0];
-  nghttp3_conn_settings *dest = &conn->remote.settings;
+  nghttp3_settings *dest = &conn->remote.settings;
   int rv;
   size_t max_table_capacity = SIZE_MAX;
   size_t max_blocked_streams = SIZE_MAX;
@@ -3436,8 +3436,8 @@ int nghttp3_conn_is_remote_qpack_encoder_stream(nghttp3_conn *conn,
   return stream && stream->type == NGHTTP3_STREAM_TYPE_QPACK_ENCODER;
 }
 
-void nghttp3_conn_settings_default(nghttp3_conn_settings *settings) {
-  memset(settings, 0, sizeof(nghttp3_conn_settings));
+void nghttp3_settings_default(nghttp3_settings *settings) {
+  memset(settings, 0, sizeof(nghttp3_settings));
   settings->max_field_section_size = NGHTTP3_VARINT_MAX;
 }
 

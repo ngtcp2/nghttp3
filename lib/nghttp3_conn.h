@@ -131,7 +131,7 @@ struct nghttp3_conn {
   uint64_t next_seq;
 
   struct {
-    nghttp3_conn_settings settings;
+    nghttp3_settings settings;
     struct {
       /* max_pushes is the number of push IDs that local endpoint can
          issue.  This field is used by server only. */
@@ -162,7 +162,7 @@ struct nghttp3_conn {
          endpoint can accept.  This field is used by client only. */
       uint64_t max_pushes;
     } uni;
-    nghttp3_conn_settings settings;
+    nghttp3_settings settings;
   } remote;
 
   struct {

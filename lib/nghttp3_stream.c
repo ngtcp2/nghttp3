@@ -377,7 +377,7 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
     nghttp3_settings_entry iv[15];
   } fr;
   nghttp3_settings_entry *iv;
-  nghttp3_conn_settings *local_settings = frent->aux.settings.local_settings;
+  nghttp3_settings *local_settings = frent->aux.settings.local_settings;
 
   fr.settings.hd.type = NGHTTP3_FRAME_SETTINGS;
   fr.settings.niv = 3;

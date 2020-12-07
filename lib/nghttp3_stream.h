@@ -265,7 +265,7 @@ typedef struct {
   nghttp3_frame fr;
   union {
     struct {
-      nghttp3_conn_settings *local_settings;
+      nghttp3_settings *local_settings;
     } settings;
     struct {
       nghttp3_data_reader dr;

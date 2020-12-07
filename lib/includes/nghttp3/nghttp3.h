@@ -1993,7 +1993,7 @@ typedef struct nghttp3_conn_callbacks {
 /**
  * @struct
  *
- * :type:`nghttp3_conn_settings` defines HTTP/3 settings.
+ * :type:`nghttp3_settings` defines HTTP/3 settings.
  */
 typedef struct {
   /**
@@ -2016,16 +2016,15 @@ typedef struct {
    * which can be blocked while they are being decoded.
    */
   size_t qpack_blocked_streams;
-} nghttp3_conn_settings;
+} nghttp3_settings;
 
 /**
  * @function
  *
- * `nghttp3_conn_settings_default` fills |settings| with the default
+ * `nghttp3_settings_default` fills |settings| with the default
  * values.
  */
-NGHTTP3_EXTERN void
-nghttp3_conn_settings_default(nghttp3_conn_settings *settings);
+NGHTTP3_EXTERN void nghttp3_settings_default(nghttp3_settings *settings);
 
 /**
  * @function
@@ -2037,7 +2036,7 @@ nghttp3_conn_settings_default(nghttp3_conn_settings *settings);
 NGHTTP3_EXTERN int
 nghttp3_conn_client_new(nghttp3_conn **pconn,
                         const nghttp3_conn_callbacks *callbacks,
-                        const nghttp3_conn_settings *settings,
+                        const nghttp3_settings *settings,
                         const nghttp3_mem *mem, void *conn_user_data);
 
 /**
@@ -2050,7 +2049,7 @@ nghttp3_conn_client_new(nghttp3_conn **pconn,
 NGHTTP3_EXTERN int
 nghttp3_conn_server_new(nghttp3_conn **pconn,
                         const nghttp3_conn_callbacks *callbacks,
-                        const nghttp3_conn_settings *settings,
+                        const nghttp3_settings *settings,
                         const nghttp3_mem *mem, void *conn_user_data);
 
 /**
