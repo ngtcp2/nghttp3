@@ -902,8 +902,8 @@ void test_nghttp3_conn_http_resp_header(void) {
                          NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
   check_http_resp_header(badhd_resnv, nghttp3_arraylen(badhd_resnv),
                          NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
-  check_http_resp_header(cl1xx_resnv, nghttp3_arraylen(cl1xx_resnv),
-                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  /* Ignore content-length in 1xx response. */
+  check_http_resp_header(cl1xx_resnv, nghttp3_arraylen(cl1xx_resnv), 0);
   /* This is allowed to work with widely used services. */
   check_http_resp_header(cl204_resnv, nghttp3_arraylen(cl204_resnv), 0);
   check_http_resp_header(clnonzero204_resnv,

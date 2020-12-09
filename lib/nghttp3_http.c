@@ -370,7 +370,7 @@ static int http_response_on_header(nghttp3_http_state *http,
       return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
     }
     if (http->status_code / 100 == 1) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
     }
     /* https://tools.ietf.org/html/rfc7230#section-3.3.3 */
     if (http->status_code / 100 == 2 &&
