@@ -321,10 +321,6 @@ static int http_request_on_header(nghttp3_http_state *http, int64_t frame_type,
     }
   }
 
-  if (nv->name->base[0] != ':') {
-    http->flags |= NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED;
-  }
-
   return 0;
 }
 
@@ -406,10 +402,6 @@ static int http_response_on_header(nghttp3_http_state *http,
     if (nv->name->base[0] == ':') {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-  }
-
-  if (nv->name->base[0] != ':') {
-    http->flags |= NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED;
   }
 
   return 0;
@@ -541,6 +533,8 @@ int nghttp3_http_on_header(nghttp3_http_state *http, int64_t frame_type,
     return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
   }
 
+  assert(nv->name->len > 0);
+
   if (nv->token == NGHTTP3_QPACK_TOKEN__AUTHORITY ||
       nv->token == NGHTTP3_QPACK_TOKEN_HOST) {
     rv = check_authority(nv->value->base, nv->value->len);
@@ -551,7 +545,6 @@ int nghttp3_http_on_header(nghttp3_http_state *http, int64_t frame_type,
   }
 
   if (rv == 0) {
-    assert(nv->name->len > 0);
     if (nv->name->base[0] == ':') {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
@@ -563,11 +556,22 @@ int nghttp3_http_on_header(nghttp3_http_state *http, int64_t frame_type,
   }
 
   if (request) {
-    return http_request_on_header(http, frame_type, nv, trailers,
-                                  /* connect_protocol = */ 0);
+    rv = http_request_on_header(http, frame_type, nv, trailers,
+                                /* connect_protocol = */ 0);
+  } else {
+    rv = http_response_on_header(http, nv, trailers);
   }
 
-  return http_response_on_header(http, nv, trailers);
+  if (nv->name->base[0] != ':') {
+    switch (rv) {
+    case 0:
+    case NGHTTP3_ERR_REMOVE_HTTP_HEADER:
+      http->flags |= NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED;
+      break;
+    }
+  }
+
+  return rv;
 }
 
 int nghttp3_http_on_request_headers(nghttp3_http_state *http) {
