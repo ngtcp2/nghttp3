@@ -39,7 +39,7 @@
 /*
  * nghttp3_gaptr maintains the gap in the range [0, UINT64_MAX).
  */
-typedef struct {
+typedef struct nghttp3_gaptr {
   /* gap maintains the range of offset which is not received
      yet. Initially, its range is [0, UINT64_MAX). */
   nghttp3_ksl gap;

@@ -32,7 +32,7 @@
 
 #include <nghttp3/nghttp3.h>
 
-typedef struct {
+typedef struct nghttp3_qpack_huffman_sym {
   /* The number of bits in this code */
   uint32_t nbits;
   /* Huffman code aligned to LSB */
@@ -46,7 +46,7 @@ size_t nghttp3_qpack_huffman_encode_count(const uint8_t *src, size_t len);
 uint8_t *nghttp3_qpack_huffman_encode(uint8_t *dest, const uint8_t *src,
                                       size_t srclen);
 
-typedef enum {
+typedef enum nghttp3_qpack_huffman_decode_flag {
   /* FSA accepts this state as the end of huffman encoding
      sequence. */
   NGHTTP3_QPACK_HUFFMAN_ACCEPTED = 1 << 14,
@@ -54,7 +54,7 @@ typedef enum {
   NGHTTP3_QPACK_HUFFMAN_SYM = 1 << 15,
 } nghttp3_qpack_huffman_decode_flag;
 
-typedef struct {
+typedef struct nghttp3_qpack_huffman_decode_node {
   /* fstate is the current huffman decoding state, which is actually
      the node ID of internal huffman tree with
      nghttp3_qpack_huffman_decode_flag OR-ed.  We have 257 leaf nodes,
@@ -67,7 +67,7 @@ typedef struct {
   uint8_t sym;
 } nghttp3_qpack_huffman_decode_node;
 
-typedef struct {
+typedef struct nghttp3_qpack_huffman_decode_context {
   /* fstate is the current huffman decoding state. */
   uint16_t fstate;
 } nghttp3_qpack_huffman_decode_context;

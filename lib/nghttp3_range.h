@@ -35,7 +35,7 @@
 /*
  * nghttp3_range represents half-closed range [begin, end).
  */
-typedef struct {
+typedef struct nghttp3_range {
   uint64_t begin;
   uint64_t end;
 } nghttp3_range;

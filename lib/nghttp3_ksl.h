@@ -51,10 +51,8 @@
  */
 typedef void nghttp3_ksl_key;
 
-struct nghttp3_ksl_node;
 typedef struct nghttp3_ksl_node nghttp3_ksl_node;
 
-struct nghttp3_ksl_blk;
 typedef struct nghttp3_ksl_blk nghttp3_ksl_blk;
 
 /*
@@ -108,10 +106,8 @@ struct nghttp3_ksl_blk {
 typedef int (*nghttp3_ksl_compar)(const nghttp3_ksl_key *lhs,
                                   const nghttp3_ksl_key *rhs);
 
-struct nghttp3_ksl;
 typedef struct nghttp3_ksl nghttp3_ksl;
 
-struct nghttp3_ksl_it;
 typedef struct nghttp3_ksl_it nghttp3_ksl_it;
 
 /*

@@ -48,7 +48,7 @@
    blocked streams for QPACK encoder. */
 #define NGHTTP3_QPACK_ENCODER_MAX_BLOCK_STREAMS 100
 
-typedef enum {
+typedef enum nghttp3_push_promise_flag {
   NGHTTP3_PUSH_PROMISE_FLAG_NONE = 0x00,
   /* NGHTTP3_PUSH_PROMISE_FLAG_RECVED is set when PUSH_PROMISE is
      completely received. */
@@ -74,10 +74,7 @@ typedef enum {
   NGHTTP3_PUSH_PROMISE_FLAG_BOUND = 0x10,
 } nghttp3_push_promise_flag;
 
-struct nghttp3_push_promise;
-typedef struct nghttp3_push_promise nghttp3_push_promise;
-
-struct nghttp3_push_promise {
+typedef struct nghttp3_push_promise {
   nghttp3_map_entry me;
   nghttp3_tnode node;
   nghttp3_http_state http;
@@ -95,9 +92,9 @@ struct nghttp3_push_promise {
   /* flags is bitwise OR of zero or more of
      nghttp3_push_promise_flag. */
   uint16_t flags;
-};
+} nghttp3_push_promise;
 
-typedef enum {
+typedef enum nghttp3_conn_flag {
   NGHTTP3_CONN_FLAG_NONE = 0x0000,
   NGHTTP3_CONN_FLAG_SETTINGS_RECVED = 0x0001,
   NGHTTP3_CONN_FLAG_CONTROL_OPENED = 0x0002,

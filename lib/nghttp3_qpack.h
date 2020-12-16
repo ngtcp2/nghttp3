@@ -50,7 +50,7 @@
 #define NGHTTP3_QPACK_MAX_VALUELEN 65536
 
 /* nghttp3_qpack_indexing_mode is a indexing strategy. */
-typedef enum {
+typedef enum nghttp3_qpack_indexing_mode {
   /* NGHTTP3_QPACK_INDEXING_MODE_LITERAL means that header field
      should not be inserted into dynamic table. */
   NGHTTP3_QPACK_INDEXING_MODE_LITERAL,
@@ -63,7 +63,6 @@ typedef enum {
   NGHTTP3_QPACK_INDEXING_MODE_NEVER,
 } nghttp3_qpack_indexing_mode;
 
-struct nghttp3_qpack_entry;
 typedef struct nghttp3_qpack_entry nghttp3_qpack_entry;
 
 struct nghttp3_qpack_entry {
@@ -82,13 +81,13 @@ struct nghttp3_qpack_entry {
 };
 
 /* The entry used for static table. */
-typedef struct {
+typedef struct nghttp3_qpack_static_entry {
   uint64_t absidx;
   int32_t token;
   uint32_t hash;
 } nghttp3_qpack_static_entry;
 
-typedef struct {
+typedef struct nghttp3_qpack_static_header {
   nghttp3_rcbuf name;
   nghttp3_rcbuf value;
   int32_t token;
@@ -99,7 +98,7 @@ typedef struct {
  * and includes the required insert count and the minimum insert count
  * of dynamic table entry it refers to.
  */
-typedef struct {
+typedef struct nghttp3_qpack_header_block_ref {
   nghttp3_pq_entry max_cnts_pe;
   nghttp3_pq_entry min_cnts_pe;
   /* max_cnt is the required insert count. */
@@ -118,7 +117,7 @@ int nghttp3_qpack_header_block_ref_new(nghttp3_qpack_header_block_ref **pref,
 void nghttp3_qpack_header_block_ref_del(nghttp3_qpack_header_block_ref *ref,
                                         const nghttp3_mem *mem);
 
-typedef struct {
+typedef struct nghttp3_qpack_stream {
   nghttp3_map_entry me;
   /* refs is an array of pointer to nghttp3_qpack_header_block_ref in
      the order of the time they are encoded.  HTTP/3 allows multiple
@@ -145,7 +144,7 @@ void nghttp3_qpack_stream_pop_ref(nghttp3_qpack_stream *stream);
 
 #define NGHTTP3_QPACK_ENTRY_OVERHEAD 32
 
-typedef struct {
+typedef struct nghttp3_qpack_context {
   /* dtable is a dynamic table */
   nghttp3_ringbuf dtable;
   /* mem is memory allocator */
@@ -176,7 +175,7 @@ typedef struct {
   uint8_t bad;
 } nghttp3_qpack_context;
 
-typedef struct {
+typedef struct nghttp3_qpack_read_state {
   nghttp3_qpack_huffman_decode_context huffman_ctx;
   nghttp3_buf namebuf;
   nghttp3_buf valuebuf;
@@ -197,20 +196,20 @@ void nghttp3_qpack_read_state_reset(nghttp3_qpack_read_state *rstate);
 
 #define NGHTTP3_QPACK_MAP_SIZE 64
 
-typedef struct {
+typedef struct nghttp3_qpack_map {
   nghttp3_qpack_entry *table[NGHTTP3_QPACK_MAP_SIZE];
 } nghttp3_qpack_map;
 
 /* nghttp3_qpack_decoder_stream_state is a set of states when decoding
    decoder stream. */
-typedef enum {
+typedef enum nghttp3_qpack_decoder_stream_state {
   NGHTTP3_QPACK_DS_STATE_OPCODE,
   NGHTTP3_QPACK_DS_STATE_READ_NUMBER,
 } nghttp3_qpack_decoder_stream_state;
 
 /* nghttp3_qpack_decoder_stream_opcode is opcode used in decoder
    stream. */
-typedef enum {
+typedef enum nghttp3_qpack_decoder_stream_opcode {
   NGHTTP3_QPACK_DS_OPCODE_ICNT_INCREMENT,
   NGHTTP3_QPACK_DS_OPCODE_SECTION_ACK,
   NGHTTP3_QPACK_DS_OPCODE_STREAM_CANCEL,
@@ -218,7 +217,7 @@ typedef enum {
 
 /* nghttp3_qpack_encoder_flag is a set of flags used by
    nghttp3_qpack_encoder. */
-typedef enum {
+typedef enum nghttp3_qpack_encoder_flag {
   NGHTTP3_QPACK_ENCODER_FLAG_NONE = 0x00,
   /* NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP indicates that
      Set Dynamic Table Capacity is required. */
@@ -302,7 +301,7 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
                                     int allow_blocking);
 
 /* nghttp3_qpack_lookup_result stores a result of table lookup. */
-typedef struct {
+typedef struct nghttp3_qpack_lookup_result {
   /* index is an index of matched entry.  -1 if no match is made. */
   nghttp3_ssize index;
   /* name_value_match is nonzero if both name and value are
@@ -678,7 +677,7 @@ uint8_t *nghttp3_qpack_put_varint(uint8_t *buf, uint64_t n, size_t prefix);
 
 /* nghttp3_qpack_encoder_stream_state is a set of states for encoder
    stream decoding. */
-typedef enum {
+typedef enum nghttp3_qpack_encoder_stream_state {
   NGHTTP3_QPACK_ES_STATE_OPCODE,
   NGHTTP3_QPACK_ES_STATE_READ_INDEX,
   NGHTTP3_QPACK_ES_STATE_CHECK_NAME_HUFFMAN,
@@ -693,7 +692,7 @@ typedef enum {
 
 /* nghttp3_qpack_encoder_stream_opcode is a set of opcodes used in
    encoder stream. */
-typedef enum {
+typedef enum nghttp3_qpack_encoder_stream_opcode {
   NGHTTP3_QPACK_ES_OPCODE_INSERT_INDEXED,
   NGHTTP3_QPACK_ES_OPCODE_INSERT,
   NGHTTP3_QPACK_ES_OPCODE_DUPLICATE,
@@ -702,7 +701,7 @@ typedef enum {
 
 /* nghttp3_qpack_request_stream_state is a set of states for request
    stream decoding. */
-typedef enum {
+typedef enum nghttp3_qpack_request_stream_state {
   NGHTTP3_QPACK_RS_STATE_RICNT,
   NGHTTP3_QPACK_RS_STATE_DBASE_SIGN,
   NGHTTP3_QPACK_RS_STATE_DBASE,
@@ -721,7 +720,7 @@ typedef enum {
 
 /* nghttp3_qpack_request_stream_opcode is a set of opcodes used in
    request stream. */
-typedef enum {
+typedef enum nghttp3_qpack_request_stream_opcode {
   NGHTTP3_QPACK_RS_OPCODE_INDEXED,
   NGHTTP3_QPACK_RS_OPCODE_INDEXED_PB,
   NGHTTP3_QPACK_RS_OPCODE_INDEXED_NAME,

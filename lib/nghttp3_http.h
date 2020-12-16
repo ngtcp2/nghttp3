@@ -32,14 +32,12 @@
 
 #include <nghttp3/nghttp3.h>
 
-struct nghttp3_stream;
 typedef struct nghttp3_stream nghttp3_stream;
 
-struct nghttp3_http_state;
 typedef struct nghttp3_http_state nghttp3_http_state;
 
 /* HTTP related flags to enforce HTTP semantics */
-typedef enum {
+typedef enum nghttp3_http_flag {
   NGHTTP3_HTTP_FLAG_NONE = 0,
   /* header field seen so far */
   NGHTTP3_HTTP_FLAG__AUTHORITY = 1,

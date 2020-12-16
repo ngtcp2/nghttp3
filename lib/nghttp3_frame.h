@@ -34,7 +34,7 @@
 
 #include "nghttp3_buf.h"
 
-typedef enum {
+typedef enum nghttp3_frame_type {
   NGHTTP3_FRAME_DATA = 0x00,
   NGHTTP3_FRAME_HEADERS = 0x01,
   NGHTTP3_FRAME_CANCEL_PUSH = 0x03,
@@ -44,29 +44,29 @@ typedef enum {
   NGHTTP3_FRAME_MAX_PUSH_ID = 0x0d,
 } nghttp3_frame_type;
 
-typedef enum {
+typedef enum nghttp3_h2_reserved_type {
   NGHTTP3_H2_FRAME_PRIORITY = 0x02,
   NGHTTP3_H2_FRAME_PING = 0x06,
   NGHTTP3_H2_FRAME_WINDOW_UPDATE = 0x08,
   NGHTTP3_H2_FRAME_CONTINUATION = 0x9,
 } nghttp3_h2_reserved_type;
 
-typedef struct {
+typedef struct nghttp3_frame_hd {
   int64_t type;
   int64_t length;
 } nghttp3_frame_hd;
 
-typedef struct {
+typedef struct nghttp3_frame_data {
   nghttp3_frame_hd hd;
 } nghttp3_frame_data;
 
-typedef struct {
+typedef struct nghttp3_frame_headers {
   nghttp3_frame_hd hd;
   nghttp3_nv *nva;
   size_t nvlen;
 } nghttp3_frame_headers;
 
-typedef struct {
+typedef struct nghttp3_frame_cancel_push {
   nghttp3_frame_hd hd;
   int64_t push_id;
 } nghttp3_frame_cancel_push;
@@ -80,35 +80,35 @@ typedef struct {
 #define NGHTTP3_H2_SETTINGS_ID_INITIAL_WINDOW_SIZE 0x4
 #define NGHTTP3_H2_SETTINGS_ID_MAX_FRAME_SIZE 0x5
 
-typedef struct {
+typedef struct nghttp3_settings_entry {
   uint64_t id;
   uint64_t value;
 } nghttp3_settings_entry;
 
-typedef struct {
+typedef struct nghttp3_frame_settings {
   nghttp3_frame_hd hd;
   size_t niv;
   nghttp3_settings_entry iv[1];
 } nghttp3_frame_settings;
 
-typedef struct {
+typedef struct nghttp3_frame_push_promise {
   nghttp3_frame_hd hd;
   nghttp3_nv *nva;
   size_t nvlen;
   int64_t push_id;
 } nghttp3_frame_push_promise;
 
-typedef struct {
+typedef struct nghttp3_frame_goaway {
   nghttp3_frame_hd hd;
   int64_t id;
 } nghttp3_frame_goaway;
 
-typedef struct {
+typedef struct nghttp3_frame_max_push_id {
   nghttp3_frame_hd hd;
   int64_t push_id;
 } nghttp3_frame_max_push_id;
 
-typedef union {
+typedef union nghttp3_frame {
   nghttp3_frame_hd hd;
   nghttp3_frame_data data;
   nghttp3_frame_headers headers;

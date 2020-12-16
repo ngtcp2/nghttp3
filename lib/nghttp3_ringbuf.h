@@ -34,7 +34,7 @@
 
 #include "nghttp3_mem.h"
 
-typedef struct {
+typedef struct nghttp3_ringbuf {
   /* buf points to the underlying buffer. */
   uint8_t *buf;
   const nghttp3_mem *mem;

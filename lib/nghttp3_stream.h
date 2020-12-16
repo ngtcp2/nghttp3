@@ -49,7 +49,7 @@
 #define NGHTTP3_STREAM_MIN_WRITELEN 800
 
 /* nghttp3_stream_type is unidirectional stream type. */
-typedef enum {
+typedef enum nghttp3_stream_type {
   NGHTTP3_STREAM_TYPE_CONTROL = 0x00,
   NGHTTP3_STREAM_TYPE_PUSH = 0x01,
   NGHTTP3_STREAM_TYPE_QPACK_ENCODER = 0x02,
@@ -57,7 +57,7 @@ typedef enum {
   NGHTTP3_STREAM_TYPE_UNKNOWN = UINT64_MAX,
 } nghttp3_stream_type;
 
-typedef enum {
+typedef enum nghttp3_ctrl_stream_state {
   NGHTTP3_CTRL_STREAM_STATE_FRAME_TYPE,
   NGHTTP3_CTRL_STREAM_STATE_FRAME_LENGTH,
   NGHTTP3_CTRL_STREAM_STATE_CANCEL_PUSH,
@@ -69,7 +69,7 @@ typedef enum {
   NGHTTP3_CTRL_STREAM_STATE_SETTINGS_VALUE,
 } nghttp3_ctrl_stream_state;
 
-typedef enum {
+typedef enum nghttp3_req_stream_state {
   NGHTTP3_REQ_STREAM_STATE_FRAME_TYPE,
   NGHTTP3_REQ_STREAM_STATE_FRAME_LENGTH,
   NGHTTP3_REQ_STREAM_STATE_DATA,
@@ -81,7 +81,7 @@ typedef enum {
   NGHTTP3_REQ_STREAM_STATE_IGN_REST,
 } nghttp3_req_stream_state;
 
-typedef enum {
+typedef enum nghttp3_push_stream_state {
   NGHTTP3_PUSH_STREAM_STATE_FRAME_TYPE,
   NGHTTP3_PUSH_STREAM_STATE_FRAME_LENGTH,
   NGHTTP3_PUSH_STREAM_STATE_DATA,
@@ -91,19 +91,19 @@ typedef enum {
   NGHTTP3_PUSH_STREAM_STATE_IGN_REST,
 } nghttp3_push_stream_state;
 
-typedef struct {
+typedef struct nghttp3_varint_read_state {
   int64_t acc;
   size_t left;
 } nghttp3_varint_read_state;
 
-typedef struct {
+typedef struct nghttp3_stream_read_state {
   nghttp3_varint_read_state rvint;
   nghttp3_frame fr;
   int state;
   int64_t left;
 } nghttp3_stream_read_state;
 
-typedef enum {
+typedef enum nghttp3_stream_flag {
   NGHTTP3_STREAM_FLAG_NONE = 0x0000,
   NGHTTP3_STREAM_FLAG_TYPE_IDENTIFIED = 0x0001,
   /* NGHTTP3_STREAM_FLAG_FC_BLOCKED indicates that stream is
@@ -133,7 +133,7 @@ typedef enum {
   NGHTTP3_STREAM_FLAG_RESET = 0x0200,
 } nghttp3_stream_flag;
 
-typedef enum {
+typedef enum nghttp3_stream_http_state {
   NGHTTP3_HTTP_STATE_NONE,
   NGHTTP3_HTTP_STATE_REQ_INITIAL,
   NGHTTP3_HTTP_STATE_REQ_BEGIN,
@@ -155,7 +155,7 @@ typedef enum {
   NGHTTP3_HTTP_STATE_RESP_END,
 } nghttp3_stream_http_state;
 
-typedef enum {
+typedef enum nghttp3_stream_http_event {
   NGHTTP3_HTTP_EVENT_DATA_BEGIN,
   NGHTTP3_HTTP_EVENT_DATA_END,
   NGHTTP3_HTTP_EVENT_HEADERS_BEGIN,
@@ -165,10 +165,8 @@ typedef enum {
   NGHTTP3_HTTP_EVENT_MSG_END,
 } nghttp3_stream_http_event;
 
-struct nghttp3_stream;
 typedef struct nghttp3_stream nghttp3_stream;
 
-struct nghttp3_push_promise;
 typedef struct nghttp3_push_promise nghttp3_push_promise;
 
 /*
@@ -186,11 +184,11 @@ typedef int (*nghttp3_stream_acked_data)(nghttp3_stream *stream,
                                          int64_t stream_id, size_t datalen,
                                          void *user_data);
 
-typedef struct {
+typedef struct nghttp3_stream_callbacks {
   nghttp3_stream_acked_data acked_data;
 } nghttp3_stream_callbacks;
 
-struct nghttp3_http_state {
+typedef struct nghttp3_http_state {
   /* status_code is HTTP status code received.  This field is used
      if connection is initialized as client. */
   int32_t status_code;
@@ -203,9 +201,7 @@ struct nghttp3_http_state {
   uint16_t flags;
   /* pri is a stream priority produced by nghttp3_pri_to_uint8. */
   uint8_t pri;
-};
-
-typedef struct nghttp3_http_state nghttp3_http_state;
+} nghttp3_http_state;
 
 struct nghttp3_stream {
   const nghttp3_mem *mem;
@@ -261,7 +257,7 @@ struct nghttp3_stream {
   uint16_t flags;
 };
 
-typedef struct {
+typedef struct nghttp3_frame_entry {
   nghttp3_frame fr;
   union {
     struct {

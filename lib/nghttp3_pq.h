@@ -42,7 +42,7 @@
    nghttp3_pq_entry.index can check that the entry is queued or not. */
 #define NGHTTP3_PQ_BAD_INDEX SIZE_MAX
 
-typedef struct {
+typedef struct nghttp3_pq_entry {
   size_t index;
 } nghttp3_pq_entry;
 
@@ -50,7 +50,7 @@ typedef struct {
 typedef int (*nghttp3_less)(const nghttp3_pq_entry *lhs,
                             const nghttp3_pq_entry *rhs);
 
-typedef struct {
+typedef struct nghttp3_pq {
   /* The pointer to the pointer to the item stored */
   nghttp3_pq_entry **q;
   /* Memory allocator */

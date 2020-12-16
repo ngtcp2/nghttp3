@@ -49,7 +49,7 @@ int nghttp3_buf_reserve(nghttp3_buf *buf, size_t size, const nghttp3_mem *mem);
  */
 void nghttp3_buf_swap(nghttp3_buf *a, nghttp3_buf *b);
 
-typedef enum {
+typedef enum nghttp3_buf_type {
   /* NGHTTP3_BUF_TYPE_PRIVATE indicates that memory is allocated for
      this buffer only and should be freed after its use. */
   NGHTTP3_BUF_TYPE_PRIVATE,
@@ -61,7 +61,7 @@ typedef enum {
   NGHTTP3_BUF_TYPE_ALIEN,
 } nghttp3_buf_type;
 
-typedef struct {
+typedef struct nghttp3_typed_buf {
   nghttp3_buf buf;
   nghttp3_buf_type type;
 } nghttp3_typed_buf;

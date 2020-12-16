@@ -883,7 +883,7 @@ static int ref_min_cnt_less(const nghttp3_pq_entry *lhsx,
   return lhs->min_cnt < rhs->min_cnt;
 }
 
-typedef struct {
+typedef struct nghttp3_blocked_streams_key {
   uint64_t max_cnt;
   uint64_t id;
 } nghttp3_blocked_streams_key;

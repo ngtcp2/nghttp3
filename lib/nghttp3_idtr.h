@@ -38,7 +38,7 @@
 /*
  * nghttp3_idtr tracks the usage of stream ID.
  */
-typedef struct {
+typedef struct nghttp3_idtr {
   /* gap maintains the range of ID which is not used yet. Initially,
      its range is [0, UINT64_MAX). */
   nghttp3_gaptr gap;
