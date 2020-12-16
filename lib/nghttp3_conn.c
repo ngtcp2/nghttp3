@@ -1332,9 +1332,10 @@ static void conn_delete_push_promise(nghttp3_conn *conn,
 }
 
 static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
+  int bidi_or_push = nghttp3_stream_bidi_or_push(stream);
   int rv;
 
-  if (nghttp3_stream_bidi_or_push(stream)) {
+  if (bidi_or_push) {
     rv = nghttp3_http_on_remote_end_stream(stream);
     if (rv != 0) {
       return rv;
@@ -1347,7 +1348,7 @@ static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
     return rv;
   }
 
-  if (conn->callbacks.stream_close) {
+  if (bidi_or_push && conn->callbacks.stream_close) {
     rv = conn->callbacks.stream_close(conn, stream->node.nid.id,
                                       stream->error_code, conn->user_data,
                                       stream->user_data);
