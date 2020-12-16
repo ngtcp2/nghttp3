@@ -1300,6 +1300,10 @@ almost_done:
       if (rv != 0) {
         return rv;
       }
+      rv = conn_call_end_stream(conn, stream);
+      if (rv != 0) {
+        return rv;
+      }
       break;
     case NGHTTP3_PUSH_STREAM_STATE_IGN_REST:
       break;
