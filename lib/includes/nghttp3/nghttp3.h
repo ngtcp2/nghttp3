@@ -408,6 +408,13 @@ typedef ptrdiff_t nghttp3_ssize;
 /**
  * @macro
  *
+ * :macro:`NGHTTP3_H3_MESSAGE_ERROR` is HTTP/3 application error code
+ * ``H3_MESSAGE_ERROR``.
+ */
+#define NGHTTP3_H3_MESSAGE_ERROR 0x010e
+/**
+ * @macro
+ *
  * :macro:`NGHTTP3_H3_CONNECT_ERROR` is HTTP/3 application error code
  * ``H3_CONNECT_ERROR``.
  */

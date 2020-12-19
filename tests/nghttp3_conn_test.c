@@ -1524,7 +1524,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR == sconsumed);
+  CU_ASSERT(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING == sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
