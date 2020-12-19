@@ -215,14 +215,13 @@ typedef enum nghttp3_qpack_decoder_stream_opcode {
   NGHTTP3_QPACK_DS_OPCODE_STREAM_CANCEL,
 } nghttp3_qpack_decoder_stream_opcode;
 
-/* nghttp3_qpack_encoder_flag is a set of flags used by
-   nghttp3_qpack_encoder. */
-typedef enum nghttp3_qpack_encoder_flag {
-  NGHTTP3_QPACK_ENCODER_FLAG_NONE = 0x00,
-  /* NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP indicates that
-     Set Dynamic Table Capacity is required. */
-  NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP = 0x01,
-} nghttp3_qpack_encoder_flag;
+/* QPACK encoder flags */
+
+/* NGHTTP3_QPACK_ENCODER_FLAG_NONE indicates that no flag is set. */
+#define NGHTTP3_QPACK_ENCODER_FLAG_NONE 0x00
+/* NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP indicates that
+   Set Dynamic Table Capacity is required. */
+#define NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP 0x01
 
 struct nghttp3_qpack_encoder {
   nghttp3_qpack_context ctx;
@@ -255,7 +254,7 @@ struct nghttp3_qpack_encoder {
      requested. */
   size_t last_max_dtable_update;
   /* flags is bitwise OR of zero or more of
-     nghttp3_qpack_encoder_flag. */
+     NGHTTP3_QPACK_ENCODER_FLAG_*. */
   uint8_t flags;
 };
 

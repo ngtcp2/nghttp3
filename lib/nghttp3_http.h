@@ -37,42 +37,44 @@ typedef struct nghttp3_stream nghttp3_stream;
 typedef struct nghttp3_http_state nghttp3_http_state;
 
 /* HTTP related flags to enforce HTTP semantics */
-typedef enum nghttp3_http_flag {
-  NGHTTP3_HTTP_FLAG_NONE = 0,
-  /* header field seen so far */
-  NGHTTP3_HTTP_FLAG__AUTHORITY = 1,
-  NGHTTP3_HTTP_FLAG__PATH = 1 << 1,
-  NGHTTP3_HTTP_FLAG__METHOD = 1 << 2,
-  NGHTTP3_HTTP_FLAG__SCHEME = 1 << 3,
-  /* host is not pseudo header, but we require either host or
-     :authority */
-  NGHTTP3_HTTP_FLAG_HOST = 1 << 4,
-  NGHTTP3_HTTP_FLAG__STATUS = 1 << 5,
-  /* required header fields for HTTP request except for CONNECT
-     method. */
-  NGHTTP3_HTTP_FLAG_REQ_HEADERS = NGHTTP3_HTTP_FLAG__METHOD |
-                                  NGHTTP3_HTTP_FLAG__PATH |
-                                  NGHTTP3_HTTP_FLAG__SCHEME,
-  NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED = 1 << 6,
-  /* HTTP method flags */
-  NGHTTP3_HTTP_FLAG_METH_CONNECT = 1 << 7,
-  NGHTTP3_HTTP_FLAG_METH_HEAD = 1 << 8,
-  NGHTTP3_HTTP_FLAG_METH_OPTIONS = 1 << 9,
-  NGHTTP3_HTTP_FLAG_METH_ALL = NGHTTP3_HTTP_FLAG_METH_CONNECT |
-                               NGHTTP3_HTTP_FLAG_METH_HEAD |
-                               NGHTTP3_HTTP_FLAG_METH_OPTIONS,
-  /* :path category */
-  /* path starts with "/" */
-  NGHTTP3_HTTP_FLAG_PATH_REGULAR = 1 << 11,
-  /* path "*" */
-  NGHTTP3_HTTP_FLAG_PATH_ASTERISK = 1 << 12,
-  /* scheme */
-  /* "http" or "https" scheme */
-  NGHTTP3_HTTP_FLAG_SCHEME_HTTP = 1 << 13,
-  /* set if final response is expected */
-  NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE = 1 << 14,
-  NGHTTP3_HTTP_FLAG__PROTOCOL = 1 << 15,
-} nghttp3_http_flag;
+
+/* NGHTTP3_HTTP_FLAG_NONE indicates that no flag is set. */
+#define NGHTTP3_HTTP_FLAG_NONE 0x00
+/* header field seen so far */
+#define NGHTTP3_HTTP_FLAG__AUTHORITY 0x01
+#define NGHTTP3_HTTP_FLAG__PATH 0x02
+#define NGHTTP3_HTTP_FLAG__METHOD 0x04
+#define NGHTTP3_HTTP_FLAG__SCHEME 0x08
+/* host is not pseudo header, but we require either host or
+   :authority */
+#define NGHTTP3_HTTP_FLAG_HOST 0x10
+#define NGHTTP3_HTTP_FLAG__STATUS 0x20
+/* required header fields for HTTP request except for CONNECT
+   method. */
+#define NGHTTP3_HTTP_FLAG_REQ_HEADERS                                          \
+  (NGHTTP3_HTTP_FLAG__METHOD | NGHTTP3_HTTP_FLAG__PATH |                       \
+   NGHTTP3_HTTP_FLAG__SCHEME)
+#define NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED 0x40
+/* HTTP method flags */
+#define NGHTTP3_HTTP_FLAG_METH_CONNECT 0x80
+#define NGHTTP3_HTTP_FLAG_METH_HEAD 0x0100
+#define NGHTTP3_HTTP_FLAG_METH_OPTIONS 0x0200
+#define NGHTTP3_HTTP_FLAG_METH_ALL                                             \
+  (NGHTTP3_HTTP_FLAG_METH_CONNECT | NGHTTP3_HTTP_FLAG_METH_HEAD |              \
+   NGHTTP3_HTTP_FLAG_METH_OPTIONS)
+/* :path category */
+/* path starts with "/" */
+#define NGHTTP3_HTTP_FLAG_PATH_REGULAR 0x0400
+/* path "*" */
+#define NGHTTP3_HTTP_FLAG_PATH_ASTERISK 0x0800
+/* scheme */
+/* "http" or "https" scheme */
+#define NGHTTP3_HTTP_FLAG_SCHEME_HTTP 0x1000
+/* set if final response is expected */
+#define NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE 0x2000
+/* NGHTTP3_HTTP_FLAG__PROTOCOL is set when :protocol pseudo header
+   field is seen. */
+#define NGHTTP3_HTTP_FLAG__PROTOCOL 0x4000
 
 /*
  * This function is called when HTTP header field |nv| in a frame of type

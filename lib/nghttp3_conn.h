@@ -48,31 +48,31 @@
    blocked streams for QPACK encoder. */
 #define NGHTTP3_QPACK_ENCODER_MAX_BLOCK_STREAMS 100
 
-typedef enum nghttp3_push_promise_flag {
-  NGHTTP3_PUSH_PROMISE_FLAG_NONE = 0x00,
-  /* NGHTTP3_PUSH_PROMISE_FLAG_RECVED is set when PUSH_PROMISE is
-     completely received. */
-  NGHTTP3_PUSH_PROMISE_FLAG_RECVED = 0x01,
-  /* NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL is set when push is
-     cancelled by server before receiving PUSH_PROMISE completely.
-     This flag should have no effect if push stream has already
-     opened. */
-  NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL = 0x02,
-  /* NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL is set when push is
-     canceled by the local endpoint. */
-  NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL = 0x04,
-  NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED = NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL |
-                                        NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL,
-  /* NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_RECLAIMED indicates that
-     unsent_max_pushes has been updated for this push ID. */
-  NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_RECLAIMED = 0x08,
-  /* NGHTTP3_PUSH_PROMISE_FLAG_BOUND is set if nghttp3_push_promise
-     object is bound to a stream where PUSH_PROMISE frame is received
-     first.  nghttp3_push_promise object might be created before
-     receiving any PUSH_PROMISE when pushed stream is received before
-     it.*/
-  NGHTTP3_PUSH_PROMISE_FLAG_BOUND = 0x10,
-} nghttp3_push_promise_flag;
+/* NGHTTP3_PUSH_PROMISE_FLAG_NONE indicates that no flag is set. */
+#define NGHTTP3_PUSH_PROMISE_FLAG_NONE 0x00
+/* NGHTTP3_PUSH_PROMISE_FLAG_RECVED is set when PUSH_PROMISE is
+   completely received. */
+#define NGHTTP3_PUSH_PROMISE_FLAG_RECVED 0x01
+/* NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL is set when push is
+   cancelled by server before receiving PUSH_PROMISE completely.
+   This flag should have no effect if push stream has already
+   opened. */
+#define NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL 0x02
+/* NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL is set when push is
+   canceled by the local endpoint. */
+#define NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL 0x04
+#define NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED                                    \
+  (NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL |                                     \
+   NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL)
+/* NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_RECLAIMED indicates that
+   unsent_max_pushes has been updated for this push ID. */
+#define NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_RECLAIMED 0x08
+/* NGHTTP3_PUSH_PROMISE_FLAG_BOUND is set if nghttp3_push_promise
+   object is bound to a stream where PUSH_PROMISE frame is received
+   first.  nghttp3_push_promise object might be created before
+   receiving any PUSH_PROMISE when pushed stream is received before
+   it.*/
+#define NGHTTP3_PUSH_PROMISE_FLAG_BOUND 0x10
 
 typedef struct nghttp3_push_promise {
   nghttp3_map_entry me;
@@ -90,26 +90,33 @@ typedef struct nghttp3_push_promise {
      overly complex and there is no good use case after all. */
   int64_t stream_id;
   /* flags is bitwise OR of zero or more of
-     nghttp3_push_promise_flag. */
+     NGHTTP3_PUSH_PROMISE_FLAG_*. */
   uint16_t flags;
 } nghttp3_push_promise;
 
-typedef enum nghttp3_conn_flag {
-  NGHTTP3_CONN_FLAG_NONE = 0x0000,
-  NGHTTP3_CONN_FLAG_SETTINGS_RECVED = 0x0001,
-  NGHTTP3_CONN_FLAG_CONTROL_OPENED = 0x0002,
-  NGHTTP3_CONN_FLAG_QPACK_ENCODER_OPENED = 0x0004,
-  NGHTTP3_CONN_FLAG_QPACK_DECODER_OPENED = 0x0008,
-  /* NGHTTP3_CONN_FLAG_MAX_PUSH_ID_QUEUED indicates that MAX_PUSH_ID
-     has been queued to control stream. */
-  NGHTTP3_CONN_FLAG_MAX_PUSH_ID_QUEUED = 0x0010,
-  /* NGHTTP3_CONN_FLAG_GOAWAY_RECVED indicates that GOAWAY frame has
-     received. */
-  NGHTTP3_CONN_FLAG_GOAWAY_RECVED = 0x0020,
-  /* NGHTTP3_CONN_FLAG_GOAWAY_QUEUED indicates that GOAWAY frame has
-     been submitted for transmission. */
-  NGHTTP3_CONN_FLAG_GOAWAY_QUEUED = 0x0040,
-} nghttp3_conn_flag;
+/* NGHTTP3_CONN_FLAG_NONE indicates that no flag is set. */
+#define NGHTTP3_CONN_FLAG_NONE 0x0000
+/* NGHTTP3_CONN_FLAG_SETTINGS_RECVED is set when SETTINGS frame has
+   been received. */
+#define NGHTTP3_CONN_FLAG_SETTINGS_RECVED 0x0001
+/* NGHTTP3_CONN_FLAG_CONTROL_OPENED is set when a control stream has
+   opened. */
+#define NGHTTP3_CONN_FLAG_CONTROL_OPENED 0x0002
+/* NGHTTP3_CONN_FLAG_QPACK_ENCODER_OPENED is set when a QPACK encoder
+   stream has opened. */
+#define NGHTTP3_CONN_FLAG_QPACK_ENCODER_OPENED 0x0004
+/* NGHTTP3_CONN_FLAG_QPACK_DECODER_OPENED is set when a QPACK decoder
+   stream has opened. */
+#define NGHTTP3_CONN_FLAG_QPACK_DECODER_OPENED 0x0008
+/* NGHTTP3_CONN_FLAG_MAX_PUSH_ID_QUEUED indicates that MAX_PUSH_ID has
+   been queued to control stream. */
+#define NGHTTP3_CONN_FLAG_MAX_PUSH_ID_QUEUED 0x0010
+/* NGHTTP3_CONN_FLAG_GOAWAY_RECVED indicates that GOAWAY frame has
+   received. */
+#define NGHTTP3_CONN_FLAG_GOAWAY_RECVED 0x0020
+/* NGHTTP3_CONN_FLAG_GOAWAY_QUEUED indicates that GOAWAY frame has
+   been submitted for transmission. */
+#define NGHTTP3_CONN_FLAG_GOAWAY_QUEUED 0x0040
 
 struct nghttp3_conn {
   nghttp3_callbacks callbacks;

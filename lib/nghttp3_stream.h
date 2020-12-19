@@ -103,35 +103,36 @@ typedef struct nghttp3_stream_read_state {
   int64_t left;
 } nghttp3_stream_read_state;
 
-typedef enum nghttp3_stream_flag {
-  NGHTTP3_STREAM_FLAG_NONE = 0x0000,
-  NGHTTP3_STREAM_FLAG_TYPE_IDENTIFIED = 0x0001,
-  /* NGHTTP3_STREAM_FLAG_FC_BLOCKED indicates that stream is
-     blocked by QUIC flow control. */
-  NGHTTP3_STREAM_FLAG_FC_BLOCKED = 0x0002,
-  /* NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED indicates that application
-     is temporarily unable to provide data. */
-  NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED = 0x0004,
-  /* NGHTTP3_STREAM_FLAG_WRITE_END_STREAM indicates that application
-     finished to feed outgoing data. */
-  NGHTTP3_STREAM_FLAG_WRITE_END_STREAM = 0x0008,
-  /* NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED indicates that stream is
-     blocked due to QPACK decoding. */
-  NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED = 0x0010,
-  /* NGHTTP3_STREAM_FLAG_READ_EOF indicates that remote endpoint sent
-     fin. */
-  NGHTTP3_STREAM_FLAG_READ_EOF = 0x0020,
-  /* NGHTTP3_STREAM_FLAG_CLOSED indicates that QUIC stream was closed.
-     nghttp3_stream object can still alive because it might be blocked
-     by QPACK decoder. */
-  NGHTTP3_STREAM_FLAG_CLOSED = 0x0040,
-  /* NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED indicates that stream is
-     blocked because the corresponding PUSH_PROMISE has not been
-     received yet. */
-  NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED = 0x0080,
-  /* NGHTTP3_STREAM_FLAG_RESET indicates that stream is reset. */
-  NGHTTP3_STREAM_FLAG_RESET = 0x0200,
-} nghttp3_stream_flag;
+/* NGHTTP3_STREAM_FLAG_NONE indicates that no flag is set. */
+#define NGHTTP3_STREAM_FLAG_NONE 0x0000
+/* NGHTTP3_STREAM_FLAG_TYPE_IDENTIFIED is set when a unidirectional
+   stream type is identified. */
+#define NGHTTP3_STREAM_FLAG_TYPE_IDENTIFIED 0x0001
+/* NGHTTP3_STREAM_FLAG_FC_BLOCKED indicates that stream is blocked by
+   QUIC flow control. */
+#define NGHTTP3_STREAM_FLAG_FC_BLOCKED 0x0002
+/* NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED indicates that application is
+   temporarily unable to provide data. */
+#define NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED 0x0004
+/* NGHTTP3_STREAM_FLAG_WRITE_END_STREAM indicates that application
+   finished to feed outgoing data. */
+#define NGHTTP3_STREAM_FLAG_WRITE_END_STREAM 0x0008
+/* NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED indicates that stream is
+   blocked due to QPACK decoding. */
+#define NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED 0x0010
+/* NGHTTP3_STREAM_FLAG_READ_EOF indicates that remote endpoint sent
+   fin. */
+#define NGHTTP3_STREAM_FLAG_READ_EOF 0x0020
+/* NGHTTP3_STREAM_FLAG_CLOSED indicates that QUIC stream was closed.
+   nghttp3_stream object can still alive because it might be blocked
+   by QPACK decoder. */
+#define NGHTTP3_STREAM_FLAG_CLOSED 0x0040
+/* NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED indicates that stream is
+   blocked because the corresponding PUSH_PROMISE has not been
+   received yet. */
+#define NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED 0x0080
+/* NGHTTP3_STREAM_FLAG_RESET indicates that stream is reset. */
+#define NGHTTP3_STREAM_FLAG_RESET 0x0200
 
 typedef enum nghttp3_stream_http_state {
   NGHTTP3_HTTP_STATE_NONE,
