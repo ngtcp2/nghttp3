@@ -46,3 +46,6 @@ apiref: mkapiref.py \
 
 html-local: apiref
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+clean-local:
+	-rm -rf "$(BUILDDIR)"
