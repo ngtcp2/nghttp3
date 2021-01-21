@@ -2349,7 +2349,7 @@ void nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
 
 int nghttp3_qpack_encoder_add_insert_count(nghttp3_qpack_encoder *encoder,
                                            uint64_t n) {
-  if (encoder->ctx.next_absidx - encoder->krcnt < n) {
+  if (n == 0 || encoder->ctx.next_absidx - encoder->krcnt < n) {
     return NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR;
   }
   encoder->krcnt += n;
