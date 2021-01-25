@@ -2131,7 +2131,12 @@ NGHTTP3_EXTERN nghttp3_ssize nghttp3_conn_read_stream(nghttp3_conn *conn,
  * |conn| of the actual number of bytes that underlying QUIC stack
  * accepted.  |*pfin| will be nonzero if this is the last data to
  * send.  If there is no stream to write data or send fin, this
- * function returns 0, and -1 is assigned to |*pstream_id|.
+ * function returns 0, and -1 is assigned to |*pstream_id|.  This
+ * function may return 0 and |*pstream_id| is not -1 and |*pfin| is
+ * nonzero.  It means 0 length data to |*pstream_id| and it is the
+ * last data to the stream.  They must be passed to QUIC stack, and
+ * they are accepted, the application has to call
+ * `nghttp3_conn_add_write_offset`.
  */
 NGHTTP3_EXTERN nghttp3_ssize nghttp3_conn_writev_stream(nghttp3_conn *conn,
                                                         int64_t *pstream_id,
