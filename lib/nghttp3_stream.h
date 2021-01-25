@@ -131,6 +131,9 @@ typedef struct nghttp3_stream_read_state {
    blocked because the corresponding PUSH_PROMISE has not been
    received yet. */
 #define NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED 0x0080
+/* NGHTTP3_STREAM_FLAG_SHUT_WR indicates that any further write
+   operation to a stream is prohibited. */
+#define NGHTTP3_STREAM_FLAG_SHUT_WR 0x0100
 /* NGHTTP3_STREAM_FLAG_RESET indicates that stream is reset. */
 #define NGHTTP3_STREAM_FLAG_RESET 0x0200
 

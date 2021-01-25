@@ -3253,6 +3253,23 @@ int nghttp3_conn_block_stream(nghttp3_conn *conn, int64_t stream_id) {
   return 0;
 }
 
+int nghttp3_conn_shutdown_stream_write(nghttp3_conn *conn, int64_t stream_id) {
+  nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
+
+  if (stream == NULL) {
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
+  }
+
+  stream->flags |= NGHTTP3_STREAM_FLAG_SHUT_WR;
+  stream->unscheduled_nwrite = 0;
+
+  if (nghttp3_stream_bidi_or_push(stream)) {
+    nghttp3_conn_unschedule_stream(conn, stream);
+  }
+
+  return 0;
+}
+
 int nghttp3_conn_unblock_stream(nghttp3_conn *conn, int64_t stream_id) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 

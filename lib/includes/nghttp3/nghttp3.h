@@ -2188,6 +2188,17 @@ NGHTTP3_EXTERN int nghttp3_conn_unblock_stream(nghttp3_conn *conn,
 /**
  * @function
  *
+ * `nghttp3_conn_shutdown_stream_write` tells the library that any
+ * further write operation to stream identified by |stream_id| is
+ * prohibited.  This works like `nghttp3_conn_block_stream`, but it
+ * cannot be unblocked by `nghttp3_conn_unblock_stream`.
+ */
+NGHTTP3_EXTERN int nghttp3_conn_shutdown_stream_write(nghttp3_conn *conn,
+                                                      int64_t stream_id);
+
+/**
+ * @function
+ *
  * `nghttp3_conn_resume_stream` resumes stream identified by
  * |stream_id| which was previously unable to provide data.
  */

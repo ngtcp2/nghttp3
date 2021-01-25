@@ -846,12 +846,14 @@ nghttp3_buf *nghttp3_stream_get_chunk(nghttp3_stream *stream) {
 
 int nghttp3_stream_is_blocked(nghttp3_stream *stream) {
   return (stream->flags & NGHTTP3_STREAM_FLAG_FC_BLOCKED) ||
+         (stream->flags & NGHTTP3_STREAM_FLAG_SHUT_WR) ||
          (stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED);
 }
 
 int nghttp3_stream_require_schedule(nghttp3_stream *stream) {
   return (!nghttp3_stream_outq_write_done(stream) &&
-          !(stream->flags & NGHTTP3_STREAM_FLAG_FC_BLOCKED)) ||
+          !(stream->flags & NGHTTP3_STREAM_FLAG_FC_BLOCKED) &&
+          !(stream->flags & NGHTTP3_STREAM_FLAG_SHUT_WR)) ||
          (nghttp3_ringbuf_len(&stream->frq) &&
           !(stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED));
 }
