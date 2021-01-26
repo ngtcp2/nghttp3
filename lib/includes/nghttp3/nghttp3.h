@@ -2428,7 +2428,7 @@ NGHTTP3_EXTERN int nghttp3_conn_cancel_push(nghttp3_conn *conn,
  *
  * `nghttp3_conn_submit_shutdown_notice` notifies the other endpoint
  * to stop creating new stream (for server) or push (for client).
- * After a couple of RTT later, call `nghttp3_conn_shutdown` to start
+ * After a couple of RTTs later, call `nghttp3_conn_shutdown` to start
  * graceful shutdown.
  */
 NGHTTP3_EXTERN int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn);
@@ -2438,9 +2438,9 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn);
  *
  * `nghttp3_conn_shutdown` starts graceful shutdown.  It should be
  * called after `nghttp3_conn_submit_shutdown_notice` and a couple of
- * RTT.  After calling this function, the local endpoint starts to
- * reject incoming stream (for server) or push (for client).  The
- * existing streams or pushes are processed normally.
+ * RTT.  After calling this function, the local endpoint starts
+ * rejecting new incoming streams (for server) or pushes (for client).
+ * The existing streams or pushes are processed normally.
  */
 NGHTTP3_EXTERN int nghttp3_conn_shutdown(nghttp3_conn *conn);
 
