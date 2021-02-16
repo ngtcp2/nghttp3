@@ -2179,13 +2179,7 @@ int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
       pp->stream = stream;
       stream->pp = pp;
 
-      if (pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL) {
-        rv = nghttp3_conn_cancel_push_stream(conn, stream);
-        if (rv != 0) {
-          return rv;
-        }
-        return NGHTTP3_ERR_IGNORE_STREAM;
-      }
+      assert(!(pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL));
 
       if ((conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_QUEUED) &&
           conn->tx.goaway_id <= push_id) {
