@@ -2668,7 +2668,14 @@ nghttp3_ssize nghttp3_conn_writev_stream(nghttp3_conn *conn,
   if (conn->tx.ctrl && !nghttp3_stream_is_blocked(conn->tx.ctrl)) {
     if (!(conn->flags & NGHTTP3_CONN_FLAG_MAX_PUSH_ID_QUEUED) &&
         !(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_QUEUED) &&
-        conn->remote.uni.unsent_max_pushes > conn->remote.uni.max_pushes) {
+        conn->remote.uni.unsent_max_pushes > conn->remote.uni.max_pushes &&
+        /* It is a SHOULD requirement for server to use push ID
+           sequentially.  Some servers might skip arbitrary number of
+           push ID sadly, and it would create many gaps which consumes
+           memory.  Because push is pretty much useless, we only
+           increase push ID limit if there is no gap.  That might
+           choke server, but we do not care. */
+        nghttp3_ksl_len(&conn->remote.uni.push_idtr.gap) == 1) {
       rv = nghttp3_conn_submit_max_push_id(conn);
       if (rv != 0) {
         return rv;

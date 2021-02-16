@@ -2878,6 +2878,10 @@ void test_nghttp3_conn_recv_push_stream(void) {
   nghttp3_stream *stream;
   nghttp3_ssize sconsumed;
   nghttp3_push_promise *pp;
+  nghttp3_vec vec[16];
+  nghttp3_ssize sveccnt;
+  int64_t stream_id;
+  int fin;
 
   memset(&callbacks, 0, sizeof(callbacks));
   nghttp3_settings_default(&settings);
@@ -2886,7 +2890,8 @@ void test_nghttp3_conn_recv_push_stream(void) {
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, 0, mem);
   nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
-  conn->remote.uni.max_pushes = 1;
+  conn->remote.uni.unsent_max_pushes = conn->remote.uni.max_pushes = 1;
+  nghttp3_conn_bind_control_stream(conn, 2);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
 
@@ -2929,6 +2934,15 @@ void test_nghttp3_conn_recv_push_stream(void) {
   CU_ASSERT(pp == stream->pp);
   CU_ASSERT(stream == pp->stream);
   CU_ASSERT(NGHTTP3_HTTP_FLAG__STATUS & stream->rx.http.flags);
+  CU_ASSERT(2 == conn->remote.uni.unsent_max_pushes);
+  CU_ASSERT(1 == conn->remote.uni.max_pushes);
+  CU_ASSERT(1 == nghttp3_ksl_len(&conn->remote.uni.push_idtr.gap));
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(1 == sveccnt);
+  CU_ASSERT(2 == conn->remote.uni.max_pushes);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
