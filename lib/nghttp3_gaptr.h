@@ -33,7 +33,6 @@
 #include <nghttp3/nghttp3.h>
 
 #include "nghttp3_mem.h"
-#include "nghttp3_range.h"
 #include "nghttp3_ksl.h"
 
 /*
@@ -94,5 +93,12 @@ nghttp3_ksl_it nghttp3_gaptr_get_first_gap_after(nghttp3_gaptr *gaptr,
  */
 int nghttp3_gaptr_is_pushed(nghttp3_gaptr *gaptr, uint64_t offset,
                             size_t datalen);
+
+/*
+ * nghttp3_gaptr_drop_first_gap deletes the first gap entirely as if
+ * the range is pushed.  This function assumes that at least one gap
+ * exists.
+ */
+void nghttp3_gaptr_drop_first_gap(nghttp3_gaptr *gaptr);
 
 #endif /* NGHTTP3_GAPTR_H */

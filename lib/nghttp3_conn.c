@@ -1999,6 +1999,26 @@ int nghttp3_conn_on_data(nghttp3_conn *conn, nghttp3_stream *stream,
   return 0;
 }
 
+static int push_idtr_push(nghttp3_gaptr *push_idtr, int64_t push_id) {
+  int rv;
+
+  rv = nghttp3_gaptr_push(push_idtr, (uint64_t)push_id, 1);
+  if (rv != 0) {
+    return rv;
+  }
+
+  /* Server SHOULD use push ID sequentially, but even if it does, we
+     might see gaps in push IDs because we might stop reading stream
+     which ignores PUSH_PROMISE.  In order to limit the number of
+     gaps, drop earlier gaps if certain limit is reached.  This makes
+     otherwise valid push ignored.*/
+  if (nghttp3_ksl_len(&push_idtr->gap) > 100) {
+    nghttp3_gaptr_drop_first_gap(push_idtr);
+  }
+
+  return 0;
+}
+
 int nghttp3_conn_on_push_promise_push_id(nghttp3_conn *conn, int64_t push_id,
                                          nghttp3_stream *stream) {
   int rv;
@@ -2033,7 +2053,7 @@ int nghttp3_conn_on_push_promise_push_id(nghttp3_conn *conn, int64_t push_id,
   } else if (nghttp3_gaptr_is_pushed(push_idtr, (uint64_t)push_id, 1)) {
     return NGHTTP3_ERR_IGNORE_PUSH_PROMISE;
   } else {
-    rv = nghttp3_gaptr_push(push_idtr, (uint64_t)push_id, 1);
+    rv = push_idtr_push(push_idtr, push_id);
     if (rv != 0) {
       return rv;
     }
@@ -2077,7 +2097,7 @@ int nghttp3_conn_on_client_cancel_push(nghttp3_conn *conn,
     }
 
     /* We have not received PUSH_PROMISE yet */
-    rv = nghttp3_gaptr_push(push_idtr, (uint64_t)fr->push_id, 1);
+    rv = push_idtr_push(push_idtr, fr->push_id);
     if (rv != 0) {
       return rv;
     }
@@ -2218,7 +2238,7 @@ int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
     return NGHTTP3_ERR_H3_ID_ERROR;
   }
 
-  rv = nghttp3_gaptr_push(&conn->remote.uni.push_idtr, (uint64_t)push_id, 1);
+  rv = push_idtr_push(&conn->remote.uni.push_idtr, push_id);
   if (rv != 0) {
     return rv;
   }

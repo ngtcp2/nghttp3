@@ -24,11 +24,10 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "nghttp3_gaptr.h"
+#include "nghttp3_range.h"
 
 #include <string.h>
 #include <assert.h>
-
-#include "nghttp3_macro.h"
 
 int nghttp3_gaptr_init(nghttp3_gaptr *gaptr, const nghttp3_mem *mem) {
   int rv;
@@ -98,7 +97,8 @@ int nghttp3_gaptr_push(nghttp3_gaptr *gaptr, uint64_t offset, size_t datalen) {
 
 uint64_t nghttp3_gaptr_first_gap_offset(nghttp3_gaptr *gaptr) {
   nghttp3_ksl_it it = nghttp3_ksl_begin(&gaptr->gap);
-  return ((nghttp3_range *)nghttp3_ksl_it_key(&it))->begin;
+  nghttp3_range r = *(nghttp3_range *)nghttp3_ksl_it_key(&it);
+  return r.begin;
 }
 
 nghttp3_ksl_it nghttp3_gaptr_get_first_gap_after(nghttp3_gaptr *gaptr,
@@ -113,7 +113,18 @@ int nghttp3_gaptr_is_pushed(nghttp3_gaptr *gaptr, uint64_t offset,
   nghttp3_range q = {offset, offset + datalen};
   nghttp3_ksl_it it = nghttp3_ksl_lower_bound_compar(
       &gaptr->gap, &q, nghttp3_ksl_range_exclusive_compar);
-  nghttp3_range m =
-      nghttp3_range_intersect(&q, (nghttp3_range *)nghttp3_ksl_it_key(&it));
+  nghttp3_range k = *(nghttp3_range *)nghttp3_ksl_it_key(&it);
+  nghttp3_range m = nghttp3_range_intersect(&q, &k);
   return nghttp3_range_len(&m) == 0;
+}
+
+void nghttp3_gaptr_drop_first_gap(nghttp3_gaptr *gaptr) {
+  nghttp3_ksl_it it = nghttp3_ksl_begin(&gaptr->gap);
+  nghttp3_range r;
+
+  assert(!nghttp3_ksl_it_end(&it));
+
+  r = *(nghttp3_range *)nghttp3_ksl_it_key(&it);
+
+  nghttp3_ksl_remove(&gaptr->gap, NULL, &r);
 }
