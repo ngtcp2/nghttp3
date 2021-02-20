@@ -82,7 +82,7 @@ typedef ptrdiff_t nghttp3_ssize;
  * protocol identifier this library supports.  Notice that the first
  * byte is the length of the following protocol identifier.
  */
-#define NGHTTP3_ALPN_H3 "\x5h3-29"
+#define NGHTTP3_ALPN_H3 "\x2h3"
 
 /**
  * @macrosection
