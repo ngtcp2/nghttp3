@@ -1714,7 +1714,6 @@ int nghttp3_qpack_stream_new(nghttp3_qpack_stream **pstream, int64_t stream_id,
 
   nghttp3_pq_init(&stream->max_cnts, ref_max_cnt_greater, mem);
 
-  stream->me.next = NULL;
   stream->me.key = (uint64_t)stream_id;
 
   *pstream = stream;

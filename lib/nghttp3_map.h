@@ -43,7 +43,6 @@ typedef uint64_t key_type;
 typedef struct nghttp3_map_entry nghttp3_map_entry;
 
 struct nghttp3_map_entry {
-  nghttp3_map_entry *next;
   key_type key;
 };
 

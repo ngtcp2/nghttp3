@@ -131,7 +131,6 @@ int nghttp3_map_each(nghttp3_map *map,
 
 void nghttp3_map_entry_init(nghttp3_map_entry *entry, key_type key) {
   entry->key = key;
-  entry->next = NULL;
 }
 
 /* FNV1a hash */
