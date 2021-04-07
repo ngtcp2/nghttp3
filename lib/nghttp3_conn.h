@@ -75,7 +75,6 @@
 #define NGHTTP3_PUSH_PROMISE_FLAG_BOUND 0x10
 
 typedef struct nghttp3_push_promise {
-  nghttp3_map_entry me;
   nghttp3_tnode node;
   nghttp3_http_state http;
   /* stream is server initiated unidirectional stream which fulfils

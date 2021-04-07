@@ -80,7 +80,6 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
 
   nghttp3_qpack_stream_context_init(&stream->qpack_sctx, stream_id, mem);
 
-  stream->me.key = (key_type)stream_id;
   stream->qpack_blocked_pe.index = NGHTTP3_PQ_BAD_INDEX;
   stream->mem = mem;
   stream->rx.http.status_code = -1;

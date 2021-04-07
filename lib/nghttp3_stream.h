@@ -209,7 +209,6 @@ typedef struct nghttp3_http_state {
 
 struct nghttp3_stream {
   const nghttp3_mem *mem;
-  nghttp3_map_entry me;
   /* node is a node in dependency tree.  For server initiated
      unidirectional stream (push), scheduling is done via
      corresponding nghttp3_push_promise object pointed by pp. */

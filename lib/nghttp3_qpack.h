@@ -118,7 +118,7 @@ void nghttp3_qpack_header_block_ref_del(nghttp3_qpack_header_block_ref *ref,
                                         const nghttp3_mem *mem);
 
 typedef struct nghttp3_qpack_stream {
-  nghttp3_map_entry me;
+  int64_t stream_id;
   /* refs is an array of pointer to nghttp3_qpack_header_block_ref in
      the order of the time they are encoded.  HTTP/3 allows multiple
      header blocks (e.g., non-final response headers, final response

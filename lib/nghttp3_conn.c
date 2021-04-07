@@ -391,8 +391,8 @@ int nghttp3_conn_server_new(nghttp3_conn **pconn,
   return 0;
 }
 
-static int free_push_promise(nghttp3_map_entry *ent, void *ptr) {
-  nghttp3_push_promise *pp = nghttp3_struct_of(ent, nghttp3_push_promise, me);
+static int free_push_promise(void *data, void *ptr) {
+  nghttp3_push_promise *pp = data;
   const nghttp3_mem *mem = ptr;
 
   nghttp3_push_promise_del(pp, mem);
@@ -400,8 +400,8 @@ static int free_push_promise(nghttp3_map_entry *ent, void *ptr) {
   return 0;
 }
 
-static int free_stream(nghttp3_map_entry *ent, void *ptr) {
-  nghttp3_stream *stream = nghttp3_struct_of(ent, nghttp3_stream, me);
+static int free_stream(void *data, void *ptr) {
+  nghttp3_stream *stream = data;
 
   (void)ptr;
 
@@ -1320,7 +1320,7 @@ static void conn_delete_push_promise(nghttp3_conn *conn,
                                      nghttp3_push_promise *pp) {
   int rv;
 
-  rv = nghttp3_map_remove(&conn->pushes, (key_type)pp->node.nid.id);
+  rv = nghttp3_map_remove(&conn->pushes, (nghttp3_map_key_type)pp->node.nid.id);
   assert(0 == rv);
 
   if (!conn->server &&
@@ -1357,7 +1357,8 @@ static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
     }
   }
 
-  rv = nghttp3_map_remove(&conn->streams, (key_type)stream->node.nid.id);
+  rv = nghttp3_map_remove(&conn->streams,
+                          (nghttp3_map_key_type)stream->node.nid.id);
 
   assert(0 == rv);
 
@@ -1499,8 +1500,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
   int busy = 0;
   size_t len;
   nghttp3_push_promise *pp;
-  nghttp3_push_promise fake_pp = {{0}, {{0}, 0, {0}, 0, 0, 0}, {0}, NULL, -1,
-                                  0};
+  nghttp3_push_promise fake_pp = {{{0}, 0, {0}, 0, 0, 0}, {0}, NULL, -1, 0};
   nghttp3_frame_entry frent;
 
   if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
@@ -2488,7 +2488,8 @@ int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
 
   stream->conn = conn;
 
-  rv = nghttp3_map_insert(&conn->streams, &stream->me);
+  rv = nghttp3_map_insert(&conn->streams,
+                          (nghttp3_map_key_type)stream->node.nid.id, stream);
   if (rv != 0) {
     nghttp3_stream_del(stream);
     return rv;
@@ -2513,7 +2514,8 @@ int nghttp3_conn_create_push_promise(nghttp3_conn *conn,
     return rv;
   }
 
-  rv = nghttp3_map_insert(&conn->pushes, &pp->me);
+  rv = nghttp3_map_insert(&conn->pushes, (nghttp3_map_key_type)pp->node.nid.id,
+                          pp);
   if (rv != 0) {
     nghttp3_push_promise_del(pp, conn->mem);
     return rv;
@@ -2527,26 +2529,12 @@ int nghttp3_conn_create_push_promise(nghttp3_conn *conn,
 
 nghttp3_stream *nghttp3_conn_find_stream(nghttp3_conn *conn,
                                          int64_t stream_id) {
-  nghttp3_map_entry *me;
-
-  me = nghttp3_map_find(&conn->streams, (key_type)stream_id);
-  if (me == NULL) {
-    return NULL;
-  }
-
-  return nghttp3_struct_of(me, nghttp3_stream, me);
+  return nghttp3_map_find(&conn->streams, (nghttp3_map_key_type)stream_id);
 }
 
 nghttp3_push_promise *nghttp3_conn_find_push_promise(nghttp3_conn *conn,
                                                      int64_t push_id) {
-  nghttp3_map_entry *me;
-
-  me = nghttp3_map_find(&conn->pushes, (key_type)push_id);
-  if (me == NULL) {
-    return NULL;
-  }
-
-  return nghttp3_struct_of(me, nghttp3_push_promise, me);
+  return nghttp3_map_find(&conn->pushes, (nghttp3_map_key_type)push_id);
 }
 
 int nghttp3_conn_bind_control_stream(nghttp3_conn *conn, int64_t stream_id) {
@@ -3492,7 +3480,6 @@ int nghttp3_push_promise_new(nghttp3_push_promise **ppp, int64_t push_id,
       &pp->node, nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_PUSH, push_id),
       seq, NGHTTP3_DEFAULT_URGENCY);
 
-  pp->me.key = (key_type)push_id;
   pp->node.nid.id = push_id;
   pp->http.status_code = -1;
   pp->http.content_length = -1;
