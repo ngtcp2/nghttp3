@@ -74,7 +74,7 @@ int nghttp3_gaptr_push(nghttp3_gaptr *gaptr, uint64_t offset, size_t datalen) {
     }
 
     if (nghttp3_range_eq(&k, &m)) {
-      nghttp3_ksl_remove(&gaptr->gap, &it, &k);
+      nghttp3_ksl_remove_hint(&gaptr->gap, &it, &it, &k);
       continue;
     }
     nghttp3_range_cut(&l, &r, &k, &m);
@@ -126,5 +126,5 @@ void nghttp3_gaptr_drop_first_gap(nghttp3_gaptr *gaptr) {
 
   r = *(nghttp3_range *)nghttp3_ksl_it_key(&it);
 
-  nghttp3_ksl_remove(&gaptr->gap, NULL, &r);
+  nghttp3_ksl_remove_hint(&gaptr->gap, NULL, &it, &r);
 }

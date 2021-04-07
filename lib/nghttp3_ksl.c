@@ -246,20 +246,15 @@ static void ksl_insert_node(nghttp3_ksl *ksl, nghttp3_ksl_blk *blk, size_t i,
 static size_t ksl_bsearch(nghttp3_ksl *ksl, nghttp3_ksl_blk *blk,
                           const nghttp3_ksl_key *key,
                           nghttp3_ksl_compar compar) {
-  nghttp3_ssize left = -1, right = (nghttp3_ssize)blk->n, mid;
+  size_t i;
   nghttp3_ksl_node *node;
 
-  while (right - left > 1) {
-    mid = (left + right) >> 1;
-    node = nghttp3_ksl_nth_node(ksl, blk, (size_t)mid);
-    if (compar((nghttp3_ksl_key *)node->key, key)) {
-      left = mid;
-    } else {
-      right = mid;
-    }
-  }
+  for (i = 0, node = (nghttp3_ksl_node *)(void *)blk->nodes;
+       i < blk->n && compar((nghttp3_ksl_key *)node->key, key);
+       ++i, node = (nghttp3_ksl_node *)(void *)((uint8_t *)node + ksl->nodelen))
+    ;
 
-  return (size_t)right;
+  return i;
 }
 
 int nghttp3_ksl_insert(nghttp3_ksl *ksl, nghttp3_ksl_it *it,
@@ -475,6 +470,30 @@ static void ksl_shift_right(nghttp3_ksl *ksl, nghttp3_ksl_blk *blk, size_t i) {
 static int key_equal(nghttp3_ksl_compar compar, const nghttp3_ksl_key *lhs,
                      const nghttp3_ksl_key *rhs) {
   return !compar(lhs, rhs) && !compar(rhs, lhs);
+}
+
+int nghttp3_ksl_remove_hint(nghttp3_ksl *ksl, nghttp3_ksl_it *it,
+                            const nghttp3_ksl_it *hint,
+                            const nghttp3_ksl_key *key) {
+  nghttp3_ksl_blk *blk = hint->blk;
+
+  if (blk->n <= NGHTTP3_KSL_MIN_NBLK) {
+    return nghttp3_ksl_remove(ksl, it, key);
+  }
+
+  ksl_remove_node(ksl, blk, hint->i);
+
+  --ksl->n;
+
+  if (it) {
+    if (hint->i == blk->n && blk->next) {
+      nghttp3_ksl_it_init(it, ksl, blk->next, 0);
+    } else {
+      nghttp3_ksl_it_init(it, ksl, blk, hint->i);
+    }
+  }
+
+  return 0;
 }
 
 int nghttp3_ksl_remove(nghttp3_ksl *ksl, nghttp3_ksl_it *it,
@@ -713,11 +732,6 @@ void nghttp3_ksl_it_init(nghttp3_ksl_it *it, const nghttp3_ksl *ksl,
   it->ksl = ksl;
   it->blk = blk;
   it->i = i;
-}
-
-void *nghttp3_ksl_it_get(const nghttp3_ksl_it *it) {
-  assert(it->i < it->blk->n);
-  return nghttp3_ksl_nth_node(it->ksl, it->blk, it->i)->data;
 }
 
 void nghttp3_ksl_it_prev(nghttp3_ksl_it *it) {

@@ -2284,7 +2284,7 @@ void nghttp3_qpack_encoder_unblock_stream(nghttp3_qpack_encoder *encoder,
   assert(!nghttp3_ksl_it_end(&it));
   assert(nghttp3_ksl_it_get(&it) == stream);
 
-  nghttp3_ksl_remove(&encoder->blocked_streams, NULL, &bsk);
+  nghttp3_ksl_remove_hint(&encoder->blocked_streams, NULL, &it, &bsk);
 }
 
 void nghttp3_qpack_encoder_unblock(nghttp3_qpack_encoder *encoder,
@@ -2296,7 +2296,7 @@ void nghttp3_qpack_encoder_unblock(nghttp3_qpack_encoder *encoder,
 
   for (; !nghttp3_ksl_it_end(&it);) {
     bsk = *(nghttp3_blocked_streams_key *)nghttp3_ksl_it_key(&it);
-    nghttp3_ksl_remove(&encoder->blocked_streams, &it, &bsk);
+    nghttp3_ksl_remove_hint(&encoder->blocked_streams, &it, &it, &bsk);
   }
 }
 

@@ -193,6 +193,17 @@ int nghttp3_ksl_remove(nghttp3_ksl *ksl, nghttp3_ksl_it *it,
                        const nghttp3_ksl_key *key);
 
 /*
+ * nghttp3_ksl_remove_hint removes the |key| from |ksl|.  |hint| must
+ * point to the same node denoted by |key|.  |hint| is used to remove
+ * a node efficiently in some cases.  Other than that, it behaves
+ * exactly like nghttp3_ksl_remove.  |it| and |hint| can point to the
+ * same object.
+ */
+int nghttp3_ksl_remove_hint(nghttp3_ksl *ksl, nghttp3_ksl_it *it,
+                            const nghttp3_ksl_it *hint,
+                            const nghttp3_ksl_key *key);
+
+/*
  * nghttp3_ksl_lower_bound returns the iterator which points to the
  * first node which has the key which is equal to |key| or the last
  * node which satisfies !compar(&node->key, key).  If there is no such
@@ -267,7 +278,8 @@ void nghttp3_ksl_it_init(nghttp3_ksl_it *it, const nghttp3_ksl *ksl,
  * |it| points to.  It is undefined to call this function when
  * nghttp3_ksl_it_end(it) returns nonzero.
  */
-void *nghttp3_ksl_it_get(const nghttp3_ksl_it *it);
+#define nghttp3_ksl_it_get(IT)                                                 \
+  nghttp3_ksl_nth_node((IT)->ksl, (IT)->blk, (IT)->i)->data
 
 /*
  * nghttp3_ksl_it_next advances the iterator by one.  It is undefined
