@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-for f in qifs/encoded/qpack-06/nghttp3/*; do
+for f in qifs/encoded/qpack-06/*/*; do
     echo $f
 
     name=`basename "$f"`
