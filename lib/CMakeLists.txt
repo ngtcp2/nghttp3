@@ -59,12 +59,19 @@ set(nghttp3_SOURCES
 )
 
 # Public shared library
-add_library(nghttp3 SHARED ${nghttp3_SOURCES})
-set_target_properties(nghttp3 PROPERTIES
-  COMPILE_FLAGS "${WARNCFLAGS}"
-  VERSION ${LT_VERSION} SOVERSION ${LT_SOVERSION}
-  C_VISIBILITY_PRESET hidden
-)
+if(ENABLE_SHARED_LIB)
+  add_library(nghttp3 SHARED ${nghttp3_SOURCES})
+  set_target_properties(nghttp3 PROPERTIES
+    COMPILE_FLAGS "${WARNCFLAGS}"
+    VERSION ${LT_VERSION} SOVERSION ${LT_SOVERSION}
+    C_VISIBILITY_PRESET hidden
+  )
+
+  install(TARGETS nghttp3
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+endif()
 
 if(HAVE_CUNIT OR ENABLE_STATIC_LIB)
   # Static library (for unittests because of symbol visibility)
@@ -81,8 +88,6 @@ if(HAVE_CUNIT OR ENABLE_STATIC_LIB)
   endif()
 endif()
 
-install(TARGETS nghttp3
-  DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libnghttp3.pc"
   DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
