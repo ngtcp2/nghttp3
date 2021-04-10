@@ -44,6 +44,17 @@ void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr) {
     nghttp3_frame_write_goaway_len(&fr->hd.length, &fr->goaway);
     dest->last = nghttp3_frame_write_goaway(dest->last, &fr->goaway);
     break;
+  case NGHTTP3_FRAME_MAX_PUSH_ID:
+    nghttp3_frame_write_max_push_id_len(&fr->hd.length, &fr->max_push_id);
+    dest->last = nghttp3_frame_write_max_push_id(dest->last, &fr->max_push_id);
+    break;
+  case NGHTTP3_FRAME_PRIORITY_UPDATE:
+  case NGHTTP3_FRAME_PRIORITY_UPDATE_PUSH_ID:
+    nghttp3_frame_write_priority_update_len(&fr->hd.length,
+                                            &fr->priority_update);
+    dest->last =
+        nghttp3_frame_write_priority_update(dest->last, &fr->priority_update);
+    break;
   default:
     assert(0);
   }

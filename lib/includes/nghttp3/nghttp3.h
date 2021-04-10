@@ -198,6 +198,13 @@ typedef ptrdiff_t nghttp3_ssize;
 /**
  * @macro
  *
+ * :macro:`NGHTTP3_ERR_PUSH_PROMISE_NOT_FOUND` indicates that a
+ * PUSH_PROMISE is not found.
+ */
+#define NGHTTP3_ERR_PUSH_PROMISE_NOT_FOUND -117
+/**
+ * @macro
+ *
  * :macro:`NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED` indicates that a
  * QPACK decompression failed.
  */
@@ -2470,7 +2477,7 @@ NGHTTP3_EXTERN int64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
  *
  * :macro:`NGHTTP3_DEFAULT_URGENCY` is the default urgency level.
  */
-#define NGHTTP3_DEFAULT_URGENCY 1
+#define NGHTTP3_DEFAULT_URGENCY 3
 
 /**
  * @macro
@@ -2518,8 +2525,9 @@ typedef struct nghttp3_pri {
  * @function
  *
  * `nghttp3_conn_get_stream_priority` stores stream priority of a
- * stream denoted by |stream_id| into |*dest|.  Only server can use
- * this function.
+ * stream denoted by |stream_id| into |*dest|.  |stream_id| must
+ * identify client initiated bidirectional stream.  Only server can
+ * use this function.
  *
  * This function must not be called if |conn| is initialized as
  * client.
@@ -2537,15 +2545,22 @@ NGHTTP3_EXTERN int nghttp3_conn_get_stream_priority(nghttp3_conn *conn,
 /**
  * @function
  *
- * `nghttp3_conn_set_stream_priority` updates stream priority of a
- * stream denoted by |stream_id| by the value pointed by |pri|.
+ * `nghttp3_conn_set_stream_priority` updates priority of a stream
+ * denoted by |stream_id| with the value pointed by |pri|.
+ * |stream_id| must identify client initiated bidirectional stream.
  *
- * This function must not be called if |conn| is initialized as
- * client.
+ * Both client and server can update stream priority with this
+ * function.
+ *
+ * If server updates stream priority with this function, it completely
+ * overrides stream priority set by client and the attempts to update
+ * priority by client are ignored.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
+ * :macro:`NGHTTP3_ERR_INVALID_ARGUMENT`
+ *     |stream_id| is not a client initiated bidirectional stream ID.
  * :macro:`NGHTTP3_ERR_STREAM_NOT_FOUND`
  *     Stream not found.
  * :macro:`NGHTTP3_ERR_NOMEM`
@@ -2554,6 +2569,30 @@ NGHTTP3_EXTERN int nghttp3_conn_get_stream_priority(nghttp3_conn *conn,
 NGHTTP3_EXTERN int nghttp3_conn_set_stream_priority(nghttp3_conn *conn,
                                                     int64_t stream_id,
                                                     const nghttp3_pri *pri);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_set_push_priority` updates priority of a push denoted
+ * by |push_id| with the value pointed by |pri|.
+ *
+ * Both client and server can update push priority with this function.
+ *
+ * If server updates push priority with this function, it completely
+ * overrides push priority set by client and the attempts to update
+ * priority by client are ignored.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :macro:`NGHTTP3_ERR_PUSH_PROMISE_NOT_FOUND`
+ *     PUSH_PROMISE not found.
+ * :macro:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
+ */
+NGHTTP3_EXTERN int nghttp3_conn_set_push_priority(nghttp3_conn *conn,
+                                                  int64_t push_id,
+                                                  const nghttp3_pri *pri);
 
 /**
  * @function

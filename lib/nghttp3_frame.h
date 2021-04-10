@@ -42,6 +42,10 @@ typedef enum nghttp3_frame_type {
   NGHTTP3_FRAME_PUSH_PROMISE = 0x05,
   NGHTTP3_FRAME_GOAWAY = 0x07,
   NGHTTP3_FRAME_MAX_PUSH_ID = 0x0d,
+  /* PRIORITY_UPDATE:
+     https://tools.ietf.org/html/draft-ietf-httpbis-priority-03 */
+  NGHTTP3_FRAME_PRIORITY_UPDATE = 0x0f0700,
+  NGHTTP3_FRAME_PRIORITY_UPDATE_PUSH_ID = 0x0f0701,
 } nghttp3_frame_type;
 
 typedef enum nghttp3_h2_reserved_type {
@@ -108,6 +112,16 @@ typedef struct nghttp3_frame_max_push_id {
   int64_t push_id;
 } nghttp3_frame_max_push_id;
 
+typedef struct nghttp3_frame_priority_update {
+  nghttp3_frame_hd hd;
+  /* pri_elem_id is stream ID if hd.type ==
+     NGHTTP3_FRAME_PRIORITY_UPDATE.  It is push ID if hd.type ==
+     NGHTTP3_FRAME_PRIORITY_UPDATE_PUSH_ID.  It is undefined
+     otherwise. */
+  int64_t pri_elem_id;
+  nghttp3_pri pri;
+} nghttp3_frame_priority_update;
+
 typedef union nghttp3_frame {
   nghttp3_frame_hd hd;
   nghttp3_frame_data data;
@@ -117,6 +131,7 @@ typedef union nghttp3_frame {
   nghttp3_frame_push_promise push_promise;
   nghttp3_frame_goaway goaway;
   nghttp3_frame_max_push_id max_push_id;
+  nghttp3_frame_priority_update priority_update;
 } nghttp3_frame;
 
 /*
@@ -202,6 +217,25 @@ uint8_t *nghttp3_frame_write_goaway(uint8_t *dest,
  */
 size_t nghttp3_frame_write_goaway_len(int64_t *ppayloadlen,
                                       const nghttp3_frame_goaway *fr);
+
+/*
+ * nghttp3_frame_write_priority_update writes PRIORITY_UPDATE frame
+ * |fr| to |dest|.  This function assumes that |dest| has enough space
+ * to write |fr|.
+ *
+ * This function returns |dest| plus the number of bytes written;
+ */
+uint8_t *
+nghttp3_frame_write_priority_update(uint8_t *dest,
+                                    const nghttp3_frame_priority_update *fr);
+
+/*
+ * nghttp3_frame_write_priority_update_len returns the number of bytes
+ * required to write |fr|.  fr->hd.length is ignored.  This function
+ * stores payload length in |*ppayloadlen|.
+ */
+size_t nghttp3_frame_write_priority_update_len(
+    int64_t *ppayloadlen, const nghttp3_frame_priority_update *fr);
 
 /*
  * nghttp3_nva_copy copies name/value pairs from |nva|, which contains

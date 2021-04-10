@@ -67,6 +67,8 @@ typedef enum nghttp3_ctrl_stream_state {
   NGHTTP3_CTRL_STREAM_STATE_IGN_FRAME,
   NGHTTP3_CTRL_STREAM_STATE_SETTINGS_ID,
   NGHTTP3_CTRL_STREAM_STATE_SETTINGS_VALUE,
+  NGHTTP3_CTRL_STREAM_STATE_PRIORITY_UPDATE_PRI_ELEM_ID,
+  NGHTTP3_CTRL_STREAM_STATE_PRIORITY_UPDATE,
 } nghttp3_ctrl_stream_state;
 
 typedef enum nghttp3_req_stream_state {
@@ -328,6 +330,9 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
 
 int nghttp3_stream_write_goaway(nghttp3_stream *stream,
                                 nghttp3_frame_entry *frent);
+
+int nghttp3_stream_write_priority_update(nghttp3_stream *stream,
+                                         nghttp3_frame_entry *frent);
 
 int nghttp3_stream_write_cancel_push(nghttp3_stream *stream,
                                      nghttp3_frame_entry *frent);

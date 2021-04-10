@@ -73,6 +73,9 @@
    receiving any PUSH_PROMISE when pushed stream is received before
    it.*/
 #define NGHTTP3_PUSH_PROMISE_FLAG_BOUND 0x10
+/* NGHTTP3_PUSH_PROMISE_FLAG_SERVER_PRIORITY_SET indicates that server
+   overrides push priority. */
+#define NGHTTP3_PUSH_PROMISE_FLAG_SERVER_PRIORITY_SET 0x20
 
 typedef struct nghttp3_push_promise {
   nghttp3_tnode node;
@@ -174,6 +177,13 @@ struct nghttp3_conn {
 
     int64_t max_stream_id_bidi;
     int64_t max_push_id;
+
+    /* pri_fieldbuf is a buffer to store incoming Priority Field Value
+       in PRIORITY_UPDATE frame. */
+    uint8_t pri_fieldbuf[8];
+    /* pri_fieldlen is the number of bytes written into
+       pri_fieldbuf. */
+    size_t pri_fieldbuflen;
   } rx;
 
   struct {
@@ -239,6 +249,9 @@ int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
 
 int nghttp3_conn_on_data(nghttp3_conn *conn, nghttp3_stream *stream,
                          const uint8_t *data, size_t datalen);
+
+int nghttp3_conn_on_priority_update(nghttp3_conn *conn,
+                                    const nghttp3_frame_priority_update *fr);
 
 nghttp3_ssize nghttp3_conn_on_headers(nghttp3_conn *conn,
                                       nghttp3_stream *stream,

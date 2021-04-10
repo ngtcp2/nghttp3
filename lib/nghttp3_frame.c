@@ -26,6 +26,7 @@
 #include "nghttp3_frame.h"
 
 #include <string.h>
+#include <assert.h>
 
 #include "nghttp3_conv.h"
 #include "nghttp3_str.h"
@@ -123,6 +124,38 @@ size_t nghttp3_frame_write_goaway_len(int64_t *ppayloadlen,
   *ppayloadlen = (int64_t)payloadlen;
 
   return nghttp3_put_varint_len(NGHTTP3_FRAME_GOAWAY) +
+         nghttp3_put_varint_len((int64_t)payloadlen) + payloadlen;
+}
+
+uint8_t *
+nghttp3_frame_write_priority_update(uint8_t *p,
+                                    const nghttp3_frame_priority_update *fr) {
+  p = nghttp3_frame_write_hd(p, &fr->hd);
+  p = nghttp3_put_varint(p, fr->pri_elem_id);
+
+  assert(fr->pri.urgency <= NGHTTP3_URGENCY_LOW);
+
+  *p++ = 'u';
+  *p++ = '=';
+  *p++ = (uint8_t)('0' + fr->pri.urgency);
+
+  if (fr->pri.inc) {
+#define NGHTTP3_PRIORITY_INCREMENTAL ", i"
+    p = nghttp3_cpymem(p, (const uint8_t *)NGHTTP3_PRIORITY_INCREMENTAL,
+                       sizeof(NGHTTP3_PRIORITY_INCREMENTAL) - 1);
+  }
+
+  return p;
+}
+
+size_t nghttp3_frame_write_priority_update_len(
+    int64_t *ppayloadlen, const nghttp3_frame_priority_update *fr) {
+  size_t payloadlen = nghttp3_put_varint_len(fr->pri_elem_id) + sizeof("u=U") -
+                      1 + (fr->pri.inc ? sizeof(", i") - 1 : 0);
+
+  *ppayloadlen = (int64_t)payloadlen;
+
+  return nghttp3_put_varint_len(fr->hd.type) +
          nghttp3_put_varint_len((int64_t)payloadlen) + payloadlen;
 }
 
