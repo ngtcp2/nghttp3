@@ -1901,7 +1901,8 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
         /* Only server utilizes priority information to schedule
            streams. */
-        if (conn->server) {
+        if (conn->server &&
+            !(stream->flags & NGHTTP3_STREAM_FLAG_SERVER_PRIORITY_SET)) {
           rv = conn_update_stream_priority(conn, stream, stream->rx.http.pri);
           if (rv != 0) {
             return rv;
@@ -3443,6 +3444,7 @@ int nghttp3_conn_set_stream_priority(nghttp3_conn *conn, int64_t stream_id,
     return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
+  stream->flags |= NGHTTP3_STREAM_FLAG_SERVER_PRIORITY_SET;
   stream->rx.http.pri = nghttp3_pri_to_uint8(pri);
 
   return conn_update_stream_priority(conn, stream, stream->rx.http.pri);

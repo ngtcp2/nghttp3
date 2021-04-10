@@ -136,6 +136,9 @@ typedef struct nghttp3_stream_read_state {
 #define NGHTTP3_STREAM_FLAG_SHUT_WR 0x0100
 /* NGHTTP3_STREAM_FLAG_RESET indicates that stream is reset. */
 #define NGHTTP3_STREAM_FLAG_RESET 0x0200
+/* NGHTTP3_STREAM_FLAG_SERVER_PRIORITY_SET indicates that server
+   overrides stream priority. */
+#define NGHTTP3_STREAM_FLAG_SERVER_PRIORITY_SET 0x0400
 
 typedef enum nghttp3_stream_http_state {
   NGHTTP3_HTTP_STATE_NONE,
