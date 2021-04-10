@@ -326,6 +326,9 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
 int nghttp3_stream_write_settings(nghttp3_stream *stream,
                                   nghttp3_frame_entry *frent);
 
+int nghttp3_stream_write_goaway(nghttp3_stream *stream,
+                                nghttp3_frame_entry *frent);
+
 int nghttp3_stream_write_cancel_push(nghttp3_stream *stream,
                                      nghttp3_frame_entry *frent);
 

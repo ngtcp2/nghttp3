@@ -300,6 +300,12 @@ int nghttp3_stream_fill_outq(nghttp3_stream *stream) {
         return rv;
       }
       break;
+    case NGHTTP3_FRAME_GOAWAY:
+      rv = nghttp3_stream_write_goaway(stream, frent);
+      if (rv != 0) {
+        return rv;
+      }
+      break;
     default:
       /* TODO Not implemented */
       break;
@@ -400,6 +406,31 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
   typed_buf_shared_init(&tbuf, chunk);
 
   chunk->last = nghttp3_frame_write_settings(chunk->last, &fr.settings);
+
+  tbuf.buf.last = chunk->last;
+
+  return nghttp3_stream_outq_add(stream, &tbuf);
+}
+
+int nghttp3_stream_write_goaway(nghttp3_stream *stream,
+                                nghttp3_frame_entry *frent) {
+  nghttp3_frame_goaway *fr = &frent->fr.goaway;
+  size_t len;
+  int rv;
+  nghttp3_buf *chunk;
+  nghttp3_typed_buf tbuf;
+
+  len = nghttp3_frame_write_goaway_len(&fr->hd.length, fr);
+
+  rv = nghttp3_stream_ensure_chunk(stream, len);
+  if (rv != 0) {
+    return rv;
+  }
+
+  chunk = nghttp3_stream_get_chunk(stream);
+  typed_buf_shared_init(&tbuf, chunk);
+
+  chunk->last = nghttp3_frame_write_goaway(chunk->last, fr);
 
   tbuf.buf.last = chunk->last;
 

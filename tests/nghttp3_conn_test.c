@@ -3350,6 +3350,10 @@ void test_nghttp3_conn_shutdown_server(void) {
   };
   int rv;
   userdata ud;
+  nghttp3_ssize sveccnt;
+  nghttp3_vec vec[256];
+  int64_t stream_id;
+  int fin;
 
   memset(&callbacks, 0, sizeof(callbacks));
   callbacks.send_stop_sending = send_stop_sending;
@@ -3381,6 +3385,12 @@ void test_nghttp3_conn_shutdown_server(void) {
   CU_ASSERT(0 == rv);
   CU_ASSERT(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_QUEUED);
   CU_ASSERT(8 == conn->tx.goaway_id);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(sveccnt > 0);
+  CU_ASSERT(3 == stream_id);
 
   nghttp3_buf_reset(&buf);
 
@@ -3433,6 +3443,10 @@ void test_nghttp3_conn_shutdown_client(void) {
   int rv;
   userdata ud;
   nghttp3_stream *stream;
+  nghttp3_ssize sveccnt;
+  nghttp3_vec vec[256];
+  int64_t stream_id;
+  int fin;
 
   memset(&callbacks, 0, sizeof(callbacks));
   callbacks.send_stop_sending = send_stop_sending;
@@ -3470,6 +3484,12 @@ void test_nghttp3_conn_shutdown_client(void) {
 
   CU_ASSERT(0 == rv);
   CU_ASSERT(2 == conn->tx.goaway_id);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(sveccnt > 0);
+  CU_ASSERT(2 == stream_id);
 
   nghttp3_buf_reset(&buf);
 
@@ -3550,6 +3570,12 @@ void test_nghttp3_conn_shutdown_client(void) {
 
   CU_ASSERT(0 == rv);
   CU_ASSERT(2 == conn->tx.goaway_id);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(sveccnt > 0);
+  CU_ASSERT(2 == stream_id);
 
   nghttp3_buf_reset(&buf);
 
