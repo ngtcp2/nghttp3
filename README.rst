@@ -44,7 +44,8 @@ specification at the moment.
 It also partially implements `Extensible Prioritization Scheme for
 HTTP
 <https://httpwg.org/http-extensions/draft-ietf-httpbis-priority.html>`_.
-HTTP/3 PRIORITY_UPDATE frame is not implemented yet.
+Both Priority HTTP header field and HTTP/3 PRIORITY_UPDATE frame are
+implemented.
 
 QPACK
 -----
