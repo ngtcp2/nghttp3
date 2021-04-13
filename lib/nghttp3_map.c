@@ -143,7 +143,7 @@ void nghttp3_map_print_distance(nghttp3_map *map) {
       continue;
     }
 
-    idx = bkt->hash & (map->tablelen - 1);
+    idx = h2idx(bkt->hash, map->tablelenbits);
     fprintf(stderr, "@%u hash=%08x key=%" PRIu64 " base=%zu distance=%zu\n", i,
             bkt->hash, bkt->key, idx,
             distance(map->tablelen, map->tablelenbits, bkt, idx));
