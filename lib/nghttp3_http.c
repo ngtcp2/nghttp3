@@ -420,9 +420,9 @@ static nghttp3_ssize sf_parse_params(const uint8_t *begin, const uint8_t *end) {
 
     if (p == end || *p != '=') {
       /* Boolean true */
+    } else if (++p == end) {
+      return -1;
     } else {
-      ++p;
-
       slen = sf_parse_bare_item(NULL, p, end);
       if (slen < 0) {
         return -1;
@@ -573,8 +573,9 @@ int nghttp3_http_parse_priority(nghttp3_pri *dest, const uint8_t *value,
       if (slen < 0) {
         return NGHTTP3_ERR_INVALID_ARGUMENT;
       }
+    } else if (++p == end) {
+      return NGHTTP3_ERR_INVALID_ARGUMENT;
     } else {
-      ++p;
       slen = sf_parse_item_or_inner_list(&val, p, end);
       if (slen < 0) {
         return NGHTTP3_ERR_INVALID_ARGUMENT;

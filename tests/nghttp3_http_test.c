@@ -193,6 +193,15 @@ void test_nghttp3_http_parse_priority(void) {
     CU_ASSERT((uint32_t)2 == pri.urgency);
     CU_ASSERT(1 == pri.inc);
   }
+
+  {
+    nghttp3_pri pri = {(uint32_t)-1, -1};
+    const uint8_t v[] = {'u', '='};
+
+    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v));
+
+    CU_ASSERT(NGHTTP3_ERR_INVALID_ARGUMENT == rv);
+  }
 }
 
 void test_nghttp3_sf_parse_item(void) {
@@ -224,6 +233,12 @@ void test_nghttp3_sf_parse_item(void) {
     CU_ASSERT(10 == nghttp3_sf_parse_item(&val, s, s + sizeof(s) - 1));
     CU_ASSERT(NGHTTP3_SF_VALUE_TYPE_BOOLEAN == val.type);
     CU_ASSERT(1 == val.b);
+  }
+
+  {
+    const uint8_t s[] = {'?', '1', ';', 'f', 'o', 'o', '='};
+
+    CU_ASSERT(-1 == nghttp3_sf_parse_item(NULL, s, s + sizeof(s)));
   }
 
   {
