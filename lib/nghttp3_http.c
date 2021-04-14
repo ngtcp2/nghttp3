@@ -113,85 +113,508 @@ static int check_path(nghttp3_http_state *http) {
            (http->flags & NGHTTP3_HTTP_FLAG_PATH_ASTERISK)));
 }
 
-int nghttp3_http_parse_priority(nghttp3_pri *dest, const uint8_t *value,
-                                size_t len) {
-  nghttp3_pri pri = *dest;
-  const uint8_t *p = value, *end = value + len;
+static nghttp3_ssize sf_parse_key(const uint8_t *begin, const uint8_t *end) {
+  const uint8_t *p = begin;
 
-  for (;;) {
-    for (; p != end && (*p == ' ' || *p == '\t'); ++p)
-      ;
+  if ((*p < 'a' || 'z' < *p) && *p != '*') {
+    return -1;
+  }
 
-    if (p == end) {
-      break;
+  for (; p != end && (('a' <= *p && *p <= 'z') || ('0' <= *p && *p <= '9') ||
+                      *p == '_' || *p == '-' || *p == '.' || *p == '*');
+       ++p)
+    ;
+
+  return p - begin;
+}
+
+static nghttp3_ssize sf_parse_integer_or_decimal(nghttp3_sf_value *dest,
+                                                 const uint8_t *begin,
+                                                 const uint8_t *end) {
+  const uint8_t *p = begin;
+  int sign = 1;
+  int64_t value = 0;
+  int type = NGHTTP3_SF_VALUE_TYPE_INTEGER;
+  size_t len = 0;
+  size_t fpos = 0;
+  size_t i;
+
+  if (*p == '-') {
+    if (++p == end) {
+      return -1;
     }
 
+    sign = -1;
+  }
+
+  if (*p < '0' || '9' < *p) {
+    return -1;
+  }
+
+  for (; p != end; ++p) {
+    if ('0' <= *p && *p <= '9') {
+      value *= 10;
+      value += *p - '0';
+
+      if (++len > 15) {
+        return -1;
+      }
+    } else if (*p == '.' && type == NGHTTP3_SF_VALUE_TYPE_INTEGER) {
+      if (len > 12) {
+        return -1;
+      }
+      fpos = len;
+      type = NGHTTP3_SF_VALUE_TYPE_DECIMAL;
+    } else {
+      break;
+    }
+  }
+
+  switch (type) {
+  case NGHTTP3_SF_VALUE_TYPE_INTEGER:
+    if (dest) {
+      dest->type = (uint8_t)type;
+      dest->i = value * sign;
+    }
+
+    return p - begin;
+  case NGHTTP3_SF_VALUE_TYPE_DECIMAL:
+    if (fpos == len || len - fpos > 3) {
+      return -1;
+    }
+
+    if (dest) {
+      dest->type = (uint8_t)type;
+      dest->d = (double)value;
+      for (i = len - fpos; i > 0; --i) {
+        dest->d /= (double)10;
+      }
+      dest->d *= sign;
+    }
+
+    return p - begin;
+  default:
+    assert(0);
+  }
+}
+
+static nghttp3_ssize sf_parse_string(nghttp3_sf_value *dest,
+                                     const uint8_t *begin, const uint8_t *end) {
+  const uint8_t *p = begin;
+
+  if (*p++ != '"') {
+    return -1;
+  }
+
+  for (; p != end; ++p) {
     switch (*p) {
-    case 'u':
-      ++p;
-
-      if (p + 2 > end || *p++ != '=') {
-        return NGHTTP3_ERR_INVALID_ARGUMENT;
+    case '\\':
+      if (++p == end) {
+        return -1;
       }
 
-      if (!('0' <= *p && *p <= '7')) {
-        return NGHTTP3_ERR_INVALID_ARGUMENT;
-      }
-
-      pri.urgency = (uint32_t)(*p++ - '0');
-
-      if (p == end) {
-        goto fin;
-      }
-
-      if (*p++ != ',') {
-        return NGHTTP3_ERR_INVALID_ARGUMENT;
+      switch (*p) {
+      case '"':
+      case '\\':
+        break;
+      default:
+        return -1;
       }
 
       break;
-    case 'i':
+    case '"':
+      if (dest) {
+        dest->type = NGHTTP3_SF_VALUE_TYPE_STRING;
+        dest->s.base = begin + 1;
+        dest->s.len = (size_t)(p - dest->s.base);
+      }
+
       ++p;
 
-      if (p == end) {
-        pri.inc = 1;
-        goto fin;
+      return p - begin;
+    default:
+      if (*p <= 0x1f || 0x7f <= *p) {
+        return -1;
       }
+    }
+  }
 
-      if (*p == ',') {
-        pri.inc = 1;
-        ++p;
-        break;
-      }
+  return -1;
+}
 
-      if (p + 3 > end || *p != '=' || *(p + 1) != '?' ||
-          (*(p + 2) != '0' && *(p + 2) != '1')) {
-        return NGHTTP3_ERR_INVALID_ARGUMENT;
-      }
+static nghttp3_ssize sf_parse_token(nghttp3_sf_value *dest,
+                                    const uint8_t *begin, const uint8_t *end) {
+  const uint8_t *p = begin;
 
-      pri.inc = *(p + 2) == '1';
+  if ((*p < 'A' || 'Z' < *p) && (*p < 'a' || 'z' < *p) && *p != '*') {
+    return -1;
+  }
 
-      p += 3;
-
-      if (p == end) {
-        goto fin;
-      }
-
-      if (*p++ != ',') {
-        return NGHTTP3_ERR_INVALID_ARGUMENT;
-      }
-
+  for (; p != end; ++p) {
+    switch (*p) {
+    case '!':
+    case '#':
+    case '$':
+    case '%':
+    case '&':
+    case '\'':
+    case '*':
+    case '+':
+    case '-':
+    case '.':
+    case '^':
+    case '_':
+    case '`':
+    case '|':
+    case '~':
+    case ':':
+    case '/':
       break;
     default:
-      return NGHTTP3_ERR_INVALID_ARGUMENT;
-    }
-
-    if (p == end) {
-      return NGHTTP3_ERR_INVALID_ARGUMENT;
+      if (('0' <= *p && *p <= '9') || ('A' <= *p && *p <= 'Z') ||
+          ('a' <= *p && *p <= 'z')) {
+        break;
+      }
+      goto fin;
     }
   }
 
 fin:
+  if (dest) {
+    dest->type = NGHTTP3_SF_VALUE_TYPE_TOKEN;
+    dest->s.base = begin;
+    dest->s.len = (size_t)(p - begin);
+  }
 
+  return p - begin;
+}
+
+static nghttp3_ssize sf_parse_byteseq(nghttp3_sf_value *dest,
+                                      const uint8_t *begin,
+                                      const uint8_t *end) {
+  const uint8_t *p = begin;
+
+  if (*p++ != ':') {
+    return -1;
+  }
+
+  for (; p != end; ++p) {
+    switch (*p) {
+    case ':':
+      if (dest) {
+        dest->type = NGHTTP3_SF_VALUE_TYPE_BYTESEQ;
+        dest->s.base = begin + 1;
+        dest->s.len = (size_t)(p - dest->s.base);
+      }
+
+      ++p;
+
+      return p - begin;
+    case '+':
+    case '/':
+    case '=':
+      break;
+    default:
+      if (('A' <= *p && *p <= 'Z') || ('a' <= *p && *p <= 'z') ||
+          ('0' <= *p && *p <= '9')) {
+        break;
+      }
+
+      return -1;
+    }
+  }
+
+  return -1;
+}
+
+static nghttp3_ssize sf_parse_boolean(nghttp3_sf_value *dest,
+                                      const uint8_t *begin,
+                                      const uint8_t *end) {
+  const uint8_t *p = begin;
+  int b;
+
+  if (*p++ != '?') {
+    return -1;
+  }
+
+  if (p == end) {
+    return -1;
+  }
+
+  switch (*p++) {
+  case '0':
+    b = 0;
+    break;
+  case '1':
+    b = 1;
+    break;
+  default:
+    return -1;
+  }
+
+  if (dest) {
+    dest->type = NGHTTP3_SF_VALUE_TYPE_BOOLEAN;
+    dest->b = b;
+  }
+
+  return p - begin;
+}
+
+static nghttp3_ssize sf_parse_bare_item(nghttp3_sf_value *dest,
+                                        const uint8_t *begin,
+                                        const uint8_t *end) {
+  switch (*begin) {
+  case '-':
+  case '0':
+  case '1':
+  case '2':
+  case '3':
+  case '4':
+  case '5':
+  case '6':
+  case '7':
+  case '8':
+  case '9':
+    return sf_parse_integer_or_decimal(dest, begin, end);
+  case '"':
+    return sf_parse_string(dest, begin, end);
+  case '*':
+    return sf_parse_token(dest, begin, end);
+  case ':':
+    return sf_parse_byteseq(dest, begin, end);
+  case '?':
+    return sf_parse_boolean(dest, begin, end);
+  default:
+    if (('A' <= *begin && *begin <= 'Z') || ('a' <= *begin && *begin <= 'z')) {
+      return sf_parse_token(dest, begin, end);
+    }
+    return -1;
+  }
+}
+
+#define sf_discard_sp_end_err(BEGIN, END, ERR)                                 \
+  for (;; ++(BEGIN)) {                                                         \
+    if ((BEGIN) == (END)) {                                                    \
+      return (ERR);                                                            \
+    }                                                                          \
+    if (*(BEGIN) != ' ') {                                                     \
+      break;                                                                   \
+    }                                                                          \
+  }
+
+static nghttp3_ssize sf_parse_params(const uint8_t *begin, const uint8_t *end) {
+  const uint8_t *p = begin;
+  nghttp3_ssize slen;
+
+  for (; p != end && *p == ';';) {
+    ++p;
+
+    sf_discard_sp_end_err(p, end, -1);
+
+    slen = sf_parse_key(p, end);
+    if (slen < 0) {
+      return -1;
+    }
+
+    p += slen;
+
+    if (p == end || *p != '=') {
+      /* Boolean true */
+    } else {
+      ++p;
+
+      slen = sf_parse_bare_item(NULL, p, end);
+      if (slen < 0) {
+        return -1;
+      }
+
+      p += slen;
+    }
+  }
+
+  return p - begin;
+}
+
+static nghttp3_ssize sf_parse_item(nghttp3_sf_value *dest, const uint8_t *begin,
+                                   const uint8_t *end) {
+  const uint8_t *p = begin;
+  nghttp3_ssize slen;
+
+  slen = sf_parse_bare_item(dest, p, end);
+  if (slen < 0) {
+    return -1;
+  }
+
+  p += slen;
+
+  slen = sf_parse_params(p, end);
+  if (slen < 0) {
+    return -1;
+  }
+
+  p += slen;
+
+  return p - begin;
+}
+
+nghttp3_ssize nghttp3_sf_parse_item(nghttp3_sf_value *dest,
+                                    const uint8_t *begin, const uint8_t *end) {
+  return sf_parse_item(dest, begin, end);
+}
+
+static nghttp3_ssize sf_parse_inner_list(nghttp3_sf_value *dest,
+                                         const uint8_t *begin,
+                                         const uint8_t *end) {
+  const uint8_t *p = begin;
+  nghttp3_ssize slen;
+
+  if (*p++ != '(') {
+    return -1;
+  }
+
+  for (;;) {
+    sf_discard_sp_end_err(p, end, -1);
+
+    if (*p == ')') {
+      ++p;
+
+      slen = sf_parse_params(p, end);
+      if (slen < 0) {
+        return -1;
+      }
+
+      p += slen;
+
+      if (dest) {
+        dest->type = NGHTTP3_SF_VALUE_TYPE_INNER_LIST;
+      }
+
+      return p - begin;
+    }
+
+    slen = sf_parse_item(NULL, p, end);
+    if (slen < 0) {
+      return -1;
+    }
+
+    p += slen;
+
+    if (p == end || (*p != ' ' && *p != ')')) {
+      return -1;
+    }
+  }
+}
+
+nghttp3_ssize nghttp3_sf_parse_inner_list(nghttp3_sf_value *dest,
+                                          const uint8_t *begin,
+                                          const uint8_t *end) {
+  return sf_parse_inner_list(dest, begin, end);
+}
+
+static nghttp3_ssize sf_parse_item_or_inner_list(nghttp3_sf_value *dest,
+                                                 const uint8_t *begin,
+                                                 const uint8_t *end) {
+  if (*begin == '(') {
+    return sf_parse_inner_list(dest, begin, end);
+  }
+
+  return sf_parse_item(dest, begin, end);
+}
+
+#define sf_discard_ows(BEGIN, END)                                             \
+  for (;; ++(BEGIN)) {                                                         \
+    if ((BEGIN) == (END)) {                                                    \
+      goto fin;                                                                \
+    }                                                                          \
+    if (*(BEGIN) != ' ' && *(BEGIN) != '\t') {                                 \
+      break;                                                                   \
+    }                                                                          \
+  }
+
+#define sf_discard_ows_end_err(BEGIN, END, ERR)                                \
+  for (;; ++(BEGIN)) {                                                         \
+    if ((BEGIN) == (END)) {                                                    \
+      return (ERR);                                                            \
+    }                                                                          \
+    if (*(BEGIN) != ' ' && *(BEGIN) != '\t') {                                 \
+      break;                                                                   \
+    }                                                                          \
+  }
+
+int nghttp3_http_parse_priority(nghttp3_pri *dest, const uint8_t *value,
+                                size_t valuelen) {
+  const uint8_t *p = value, *end = value + valuelen;
+  nghttp3_ssize slen;
+  nghttp3_sf_value val;
+  nghttp3_pri pri = *dest;
+  const uint8_t *key;
+  size_t keylen;
+
+  for (; p != end && *p == ' '; ++p)
+    ;
+
+  for (; p != end;) {
+    slen = sf_parse_key(p, end);
+    if (slen < 0) {
+      return NGHTTP3_ERR_INVALID_ARGUMENT;
+    }
+
+    key = p;
+    keylen = (size_t)slen;
+
+    p += slen;
+
+    if (p == end || *p != '=') {
+      /* Boolean true */
+      val.type = NGHTTP3_SF_VALUE_TYPE_BOOLEAN;
+      val.b = 1;
+
+      slen = sf_parse_params(p, end);
+      if (slen < 0) {
+        return NGHTTP3_ERR_INVALID_ARGUMENT;
+      }
+    } else {
+      ++p;
+      slen = sf_parse_item_or_inner_list(&val, p, end);
+      if (slen < 0) {
+        return NGHTTP3_ERR_INVALID_ARGUMENT;
+      }
+    }
+
+    p += slen;
+
+    if (keylen == 1) {
+      switch (key[0]) {
+      case 'i':
+        if (val.type != NGHTTP3_SF_VALUE_TYPE_BOOLEAN) {
+          return NGHTTP3_ERR_INVALID_ARGUMENT;
+        }
+
+        pri.inc = val.b;
+
+        break;
+      case 'u':
+        if (val.type != NGHTTP3_SF_VALUE_TYPE_INTEGER ||
+            val.i < NGHTTP3_URGENCY_HIGH || NGHTTP3_URGENCY_LOW < val.i) {
+          return NGHTTP3_ERR_INVALID_ARGUMENT;
+        }
+
+        pri.urgency = (uint32_t)val.i;
+
+        break;
+      }
+    }
+
+    sf_discard_ows(p, end);
+
+    if (*p++ != ',') {
+      return NGHTTP3_ERR_INVALID_ARGUMENT;
+    }
+
+    sf_discard_ows_end_err(p, end, NGHTTP3_ERR_INVALID_ARGUMENT);
+  }
+
+fin:
   *dest = pri;
 
   return 0;
