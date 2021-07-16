@@ -79,6 +79,8 @@ int main() {
                    test_nghttp3_conn_write_control) ||
       !CU_add_test(pSuite, "conn_submit_request",
                    test_nghttp3_conn_submit_request) ||
+      !CU_add_test(pSuite, "conn_submit_request_and_reset",
+                   test_nghttp3_conn_submit_request_and_reset) ||
       !CU_add_test(pSuite, "conn_submit_push_promise",
                    test_nghttp3_conn_submit_push_promise) ||
       !CU_add_test(pSuite, "conn_http_request",
@@ -119,6 +121,8 @@ int main() {
                    test_nghttp3_conn_shutdown_client) ||
       !CU_add_test(pSuite, "conn_priority_update",
                    test_nghttp3_conn_priority_update) ||
+      !CU_add_test(pSuite, "conn_submit_reset_instead_of_response",
+                   test_nghttp3_conn_submit_reset_instead_of_response) ||
       !CU_add_test(pSuite, "conn_set_stream_priority",
                    test_nghttp3_conn_set_stream_priority) ||
       !CU_add_test(pSuite, "conn_set_push_priority",

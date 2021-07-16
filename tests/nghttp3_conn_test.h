@@ -32,6 +32,7 @@
 void test_nghttp3_conn_read_control(void);
 void test_nghttp3_conn_write_control(void);
 void test_nghttp3_conn_submit_request(void);
+void test_nghttp3_conn_submit_request_and_reset(void);
 void test_nghttp3_conn_submit_push_promise(void);
 void test_nghttp3_conn_http_request(void);
 void test_nghttp3_conn_http_resp_header(void);
@@ -40,6 +41,7 @@ void test_nghttp3_conn_http_content_length(void);
 void test_nghttp3_conn_http_content_length_mismatch(void);
 void test_nghttp3_conn_http_non_final_response(void);
 void test_nghttp3_conn_http_trailers(void);
+void test_nghttp3_conn_submit_reset_instead_of_response(void);
 void test_nghttp3_conn_http_ignore_content_length(void);
 void test_nghttp3_conn_http_record_request_method(void);
 void test_nghttp3_conn_qpack_blocked_stream(void);

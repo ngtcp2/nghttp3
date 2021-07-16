@@ -2408,6 +2408,11 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_trailers(nghttp3_conn *conn,
                                                 const nghttp3_nv *nva,
                                                 size_t nvlen);
 
+
+NGHTTP3_EXTERN int nghttp3_conn_submit_reset_stream(nghttp3_conn *conn,
+                                                    int64_t stream_id,
+                                                    uint64_t error_code);
+
 /**
  * @function
  *

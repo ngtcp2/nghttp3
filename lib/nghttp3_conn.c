@@ -3194,6 +3194,51 @@ int nghttp3_conn_submit_trailers(nghttp3_conn *conn, int64_t stream_id,
   return conn_submit_headers_data(conn, stream, nva, nvlen, NULL);
 }
 
+int nghttp3_conn_submit_reset_stream(nghttp3_conn *conn, int64_t stream_id,
+                                     uint64_t app_error_code) {
+  nghttp3_stream *stream;
+
+  /* TODO should there be any checks here? */
+
+  stream = nghttp3_conn_find_stream(conn, stream_id);
+  if (stream == NULL) {
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
+  }
+
+  int rv;
+  rv = nghttp3_qpack_decoder_cancel_stream(&conn->qdec, stream->node.nid.id);
+  if (rv != 0) {
+    return rv;
+  }
+
+  rv = conn_call_send_stop_sending(conn, stream, app_error_code);
+  if (rv != 0) {
+    return rv;
+  }
+
+  rv = conn_call_reset_stream(conn, stream, app_error_code);
+  if (rv != 0) {
+    return rv;
+  }
+
+  nghttp3_conn_unschedule_stream(conn, stream);
+
+  rv = nghttp3_map_remove(&conn->streams,
+                          (nghttp3_map_key_type)stream->node.nid.id);
+
+  assert(0 == rv);
+
+  if (stream->pp) {
+    assert(stream->type == NGHTTP3_STREAM_TYPE_PUSH);
+
+    conn_delete_push_promise(conn, stream->pp);
+  }
+
+  nghttp3_stream_del(stream);
+
+  return 0;
+}
+
 int nghttp3_conn_submit_push_promise(nghttp3_conn *conn, int64_t *ppush_id,
                                      int64_t stream_id, const nghttp3_nv *nva,
                                      size_t nvlen) {

@@ -560,6 +560,116 @@ void test_nghttp3_conn_submit_request(void) {
   nghttp3_conn_del(conn);
 }
 
+
+void test_nghttp3_conn_submit_request_and_reset(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  nghttp3_callbacks callbacks;
+  nghttp3_settings settings;
+  nghttp3_vec vec[256];
+  nghttp3_ssize sveccnt;
+  int rv;
+  int64_t stream_id;
+  const nghttp3_nv nva[] = {
+      MAKE_NV(":path", "/"),
+      MAKE_NV(":authority", "example.com"),
+      MAKE_NV(":scheme", "https"),
+      MAKE_NV(":method", "GET"),
+  };
+  size_t len;
+  size_t i;
+  nghttp3_stream *stream;
+  userdata ud;
+  nghttp3_data_reader dr;
+  int fin;
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  memset(&ud, 0, sizeof(ud));
+  nghttp3_settings_default(&settings);
+
+  callbacks.acked_stream_data = acked_stream_data;
+
+  ud.data.left = 2000;
+  ud.data.step = 1200;
+
+  rv = nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
+
+  CU_ASSERT(0 == rv);
+
+  rv = nghttp3_conn_bind_qpack_streams(conn, 6, 10);
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(NULL != conn->tx.qenc);
+  CU_ASSERT(NGHTTP3_STREAM_TYPE_QPACK_ENCODER == conn->tx.qenc->type);
+  CU_ASSERT(NULL != conn->tx.qdec);
+  CU_ASSERT(NGHTTP3_STREAM_TYPE_QPACK_DECODER == conn->tx.qdec->type);
+
+  dr.read_data = step_read_data;
+  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr,
+                                   NULL);
+
+  CU_ASSERT(0 == rv);
+
+  rv = nghttp3_conn_submit_reset_stream(conn, 0, NGHTTP3_H3_GENERAL_PROTOCOL_ERROR);
+
+  CU_ASSERT(0 == rv);
+
+  //FIXME: what more should be done here to ensure the connection is in sane state?
+
+  /* This will write QPACK decoder stream; just stream type */
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(10 == stream_id);
+  CU_ASSERT(1 == sveccnt);
+  CU_ASSERT(1 == nghttp3_ringbuf_len(&conn->tx.qdec->outq));
+  CU_ASSERT(0 == conn->tx.qdec->outq_idx);
+  CU_ASSERT(0 == conn->tx.qdec->outq_offset);
+
+  /* Calling twice will return the same result */
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(10 == stream_id);
+  CU_ASSERT(1 == sveccnt);
+
+  rv = nghttp3_conn_add_write_offset(conn, 10, vec[0].len);
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(1 == nghttp3_ringbuf_len(&conn->tx.qdec->outq));
+  CU_ASSERT(1 == conn->tx.qdec->outq_idx);
+  CU_ASSERT(0 == conn->tx.qdec->outq_offset);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 10, vec[0].len);
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(0 == nghttp3_ringbuf_len(&conn->tx.qdec->outq));
+  CU_ASSERT(0 == conn->tx.qdec->outq_idx);
+  CU_ASSERT(0 == conn->tx.qdec->outq_offset);
+  CU_ASSERT(0 == conn->tx.qdec->ack_offset);
+
+  /* This will write QPACK encoder stream; just stream type */
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(6 == stream_id);
+  CU_ASSERT(1 == sveccnt);
+
+  rv = nghttp3_conn_add_write_offset(conn, 6, vec[0].len);
+
+  CU_ASSERT(0 == rv);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 6, vec[0].len);
+
+  CU_ASSERT(0 == rv);
+
+  /* This will write request stream */
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  nghttp3_conn_del(conn);
+}
+
 void test_nghttp3_conn_submit_push_promise(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
@@ -3132,6 +3242,58 @@ void test_nghttp3_conn_submit_response_read_blocked(void) {
   rv = nghttp3_conn_submit_response(conn, 0, nva, nghttp3_arraylen(nva), &dr);
 
   CU_ASSERT(0 == rv);
+
+  for (;;) {
+    sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                         nghttp3_arraylen(vec));
+
+    CU_ASSERT(sveccnt >= 0);
+
+    if (sveccnt <= 0) {
+      break;
+    }
+
+    rv = nghttp3_conn_add_write_offset(conn, stream_id, 1);
+
+    CU_ASSERT(0 == rv);
+  }
+
+  nghttp3_conn_del(conn);
+}
+
+
+void test_nghttp3_conn_submit_reset_instead_of_response(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  nghttp3_callbacks callbacks;
+  nghttp3_settings settings;
+  const nghttp3_nv nva[] = {
+      MAKE_NV(":status", "200"),
+  };
+  nghttp3_stream *stream;
+  int rv;
+  nghttp3_vec vec[256];
+  int fin;
+  int64_t stream_id;
+  nghttp3_ssize sveccnt;
+  nghttp3_data_reader dr = {step_then_block_read_data};
+  userdata ud;
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  nghttp3_settings_default(&settings);
+
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn->remote.bidi.max_client_streams = 1;
+  nghttp3_conn_bind_qpack_streams(conn, 7, 11);
+
+  nghttp3_conn_create_stream(conn, &stream, 0);
+
+  rv = nghttp3_conn_submit_reset_stream(conn, 0, NGHTTP3_H3_GENERAL_PROTOCOL_ERROR);
+
+
+  rv = nghttp3_conn_submit_response(conn, 0, nva, nghttp3_arraylen(nva), &dr);
+
+  CU_ASSERT(0 != rv);
 
   for (;;) {
     sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
