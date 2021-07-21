@@ -965,7 +965,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
         return (nghttp3_ssize)nconsumed;
       }
 
-      if (conn->server && !nghttp3_client_stream_bidi(rvint->acc)) {
+      if (!conn->server && !nghttp3_client_stream_bidi(rvint->acc)) {
         return NGHTTP3_ERR_H3_ID_ERROR;
       }
       if (conn->rx.goaway_id < rvint->acc) {

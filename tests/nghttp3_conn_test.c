@@ -3309,7 +3309,7 @@ void test_nghttp3_conn_recv_goaway(void) {
   nghttp3_write_frame(&buf, &fr);
 
   fr.hd.type = NGHTTP3_FRAME_GOAWAY;
-  fr.goaway.id = 100;
+  fr.goaway.id = 101;
 
   nghttp3_write_frame(&buf, &fr);
 
@@ -3318,7 +3318,7 @@ void test_nghttp3_conn_recv_goaway(void) {
 
   CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
   CU_ASSERT(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED);
-  CU_ASSERT(100 == conn->rx.goaway_id);
+  CU_ASSERT(101 == conn->rx.goaway_id);
 
   nghttp3_conn_create_stream(conn, &stream, 0);
 
