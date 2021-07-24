@@ -3710,6 +3710,8 @@ int nghttp3_conn_set_push_priority(nghttp3_conn *conn, int64_t push_id,
 }
 
 void nghttp3_conn_extend_max_pushes(nghttp3_conn *conn, size_t n) {
+  assert(!conn->server);
+
   conn->remote.uni.unsent_max_pushes += n;
 }
 
