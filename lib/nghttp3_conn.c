@@ -974,6 +974,13 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
       conn->rx.goaway_id = rvint->acc;
       nghttp3_varint_read_state_reset(rvint);
 
+      if (conn->callbacks.shutdown) {
+        rv = conn->callbacks.shutdown(conn, conn->rx.goaway_id, conn->user_data);
+        if (rv != 0) {
+          return NGHTTP3_ERR_CALLBACK_FAILURE;
+        }
+      }
+
       nghttp3_stream_read_state_reset(rstate);
       break;
     case NGHTTP3_CTRL_STREAM_STATE_MAX_PUSH_ID:
@@ -998,6 +1005,13 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
 
       conn->local.uni.max_pushes = (uint64_t)rvint->acc + 1;
       nghttp3_varint_read_state_reset(rvint);
+
+      if (conn->callbacks.extend_max_pushes) {
+        rv = conn->callbacks.extend_max_pushes(conn, rvint->acc, conn->user_data);
+        if (rv != 0) {
+          return NGHTTP3_ERR_CALLBACK_FAILURE;
+        }
+      }
 
       nghttp3_stream_read_state_reset(rstate);
       break;
