@@ -3397,7 +3397,7 @@ int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn) {
   assert(conn->tx.ctrl);
 
   frent.fr.hd.type = NGHTTP3_FRAME_GOAWAY;
-  frent.fr.goaway.id = conn->server ? (1ull << 62) - 4 : (1ull << 62) - 1;
+  frent.fr.goaway.id = conn->server ? NGHTTP3_SHUTDOWN_NOTICE_STREAM_ID : NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID;
 
   assert(frent.fr.goaway.id <= conn->tx.goaway_id);
 
