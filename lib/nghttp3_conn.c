@@ -996,7 +996,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
         return NGHTTP3_ERR_H3_FRAME_ERROR;
       }
 
-      conn->local.uni.max_pushes = (uint64_t)rvint->acc;
+      conn->local.uni.max_pushes = (uint64_t)rvint->acc + 1;
       nghttp3_varint_read_state_reset(rvint);
 
       nghttp3_stream_read_state_reset(rstate);
