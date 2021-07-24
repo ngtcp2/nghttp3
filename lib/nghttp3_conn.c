@@ -2513,6 +2513,9 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
             rv = conn->callbacks.recv_push_promise(
                 conn, stream->node.nid.id, pp->node.nid.id, nv.token, nv.name,
                 nv.value, nv.flags, conn->user_data, stream->user_data);
+            if (rv != 0) {
+              rv = NGHTTP3_ERR_CALLBACK_FAILURE;
+            }
           }
           break;
         }
@@ -2520,6 +2523,9 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
           rv = recv_header(conn, stream->node.nid.id, nv.token, nv.name,
                            nv.value, nv.flags, conn->user_data,
                            stream->user_data);
+          if (rv != 0) {
+            rv = NGHTTP3_ERR_CALLBACK_FAILURE;
+          }
         }
         break;
       default:
