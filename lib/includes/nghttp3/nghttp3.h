@@ -1875,6 +1875,11 @@ typedef int (*nghttp3_send_stop_sending)(nghttp3_conn *conn, int64_t stream_id,
  * when a push stream identified by |stream_id| is opened with
  * |push_id|.
  *
+ * Application is responsible to increase the number of push ID by
+ * calling `nghttp3_conn_extend_max_pushes` if it wishes after this
+ * callback is called (it is still true even if this callback is not
+ * set).
+ *
  * The implementation of this callback must return 0 if it succeeds.
  * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
  * caller immediately.  Any values other than 0 is treated as
@@ -2015,11 +2020,6 @@ typedef struct {
    * section (block) size.
    */
   uint64_t max_field_section_size;
-  /**
-   * :member:`max_pushes` specifies the maximum number of concurrent
-   * pushes it accepts from a remote endpoint.
-   */
-  uint64_t max_pushes;
   /**
    * :member:`qpack_max_table_capacity` is the maximum size of QPACK
    * dynamic table.
@@ -2604,6 +2604,18 @@ NGHTTP3_EXTERN int nghttp3_conn_set_push_priority(nghttp3_conn *conn,
 NGHTTP3_EXTERN int
 nghttp3_conn_is_remote_qpack_encoder_stream(nghttp3_conn *conn,
                                             int64_t stream_id);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_extend_max_pushes` extends the number of push IDs
+ * that a remote endpoint can open by |n|.  This function must not be
+ * called by server.  Application is responsible to increase the
+ * number of push ID after :type:`nghttp3_push_stream` callback is
+ * called.
+ */
+NGHTTP3_EXTERN void nghttp3_conn_extend_max_pushes(nghttp3_conn *conn,
+                                                   size_t n);
 
 /**
  * @function

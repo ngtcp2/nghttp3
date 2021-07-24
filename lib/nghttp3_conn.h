@@ -64,9 +64,10 @@
 #define NGHTTP3_PUSH_PROMISE_FLAG_CANCELLED                                    \
   (NGHTTP3_PUSH_PROMISE_FLAG_RECV_CANCEL |                                     \
    NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL)
-/* NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_RECLAIMED indicates that
-   unsent_max_pushes has been updated for this push ID. */
-#define NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_RECLAIMED 0x08
+/* NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_HANDED_OVER indicates that
+   unsent_max_pushes has already been incremented, or application is
+   responsible to increase unsent_max_pushes. */
+#define NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_HANDED_OVER 0x08
 /* NGHTTP3_PUSH_PROMISE_FLAG_BOUND is set if nghttp3_push_promise
    object is bound to a stream where PUSH_PROMISE frame is received
    first.  nghttp3_push_promise object might be created before

@@ -372,8 +372,6 @@ int nghttp3_conn_client_new(nghttp3_conn **pconn,
     return rv;
   }
 
-  (*pconn)->remote.uni.unsent_max_pushes = settings->max_pushes;
-
   return 0;
 }
 
@@ -1439,7 +1437,7 @@ static void conn_delete_push_promise(nghttp3_conn *conn,
   assert(0 == rv);
 
   if (!conn->server &&
-      !(pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_RECLAIMED)) {
+      !(pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_HANDED_OVER)) {
     ++conn->remote.uni.unsent_max_pushes;
   }
 
@@ -1921,10 +1919,11 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       }
 
       if (pp->stream) {
-        ++conn->remote.uni.unsent_max_pushes;
-        pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_RECLAIMED;
+        pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_HANDED_OVER;
 
-        if (!(pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL)) {
+        if (pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_SENT_CANCEL) {
+          ++conn->remote.uni.unsent_max_pushes;
+        } else {
           assert(pp->stream->flags & NGHTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED);
 
           rv = conn_call_push_stream(conn, pp->node.nid.id, pp->stream);
@@ -2361,8 +2360,7 @@ int nghttp3_conn_on_stream_push_id(nghttp3_conn *conn, nghttp3_stream *stream,
       }
 
       if (pp->flags & NGHTTP3_PUSH_PROMISE_FLAG_RECVED) {
-        ++conn->remote.uni.unsent_max_pushes;
-        pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_RECLAIMED;
+        pp->flags |= NGHTTP3_PUSH_PROMISE_FLAG_PUSH_ID_HANDED_OVER;
 
         return conn_call_push_stream(conn, push_id, stream);
       }
@@ -3709,6 +3707,10 @@ int nghttp3_conn_set_push_priority(nghttp3_conn *conn, int64_t push_id,
   frent.fr.priority_update.pri = *pri;
 
   return nghttp3_stream_frq_add(conn->tx.ctrl, &frent);
+}
+
+void nghttp3_conn_extend_max_pushes(nghttp3_conn *conn, size_t n) {
+  conn->remote.uni.unsent_max_pushes += n;
 }
 
 int nghttp3_conn_is_remote_qpack_encoder_stream(nghttp3_conn *conn,
