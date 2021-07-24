@@ -76,6 +76,14 @@ typedef struct {
     int64_t stream_id;
     uint64_t app_error_code;
   } reset_stream_cb;
+  struct {
+    size_t ncalled;
+    int64_t max_push_id;
+  } extend_max_pushes_cb;
+  struct {
+    size_t ncalled;
+    int64_t id;
+  } shutdown_cb;
 } userdata;
 
 static int acked_stream_data(nghttp3_conn *conn, int64_t stream_id,
@@ -308,6 +316,29 @@ static int reset_stream(nghttp3_conn *conn, int64_t stream_id,
   ++ud->reset_stream_cb.ncalled;
   ud->reset_stream_cb.stream_id = stream_id;
   ud->reset_stream_cb.app_error_code = app_error_code;
+
+  return 0;
+}
+
+static int extend_max_pushes(nghttp3_conn *conn, int64_t max_push_id,
+                             void *user_data) {
+  userdata *ud = user_data;
+
+  (void)conn;
+
+  ++ud->extend_max_pushes_cb.ncalled;
+  ud->extend_max_pushes_cb.max_push_id = max_push_id;
+
+  return 0;
+}
+
+static int conn_shutdown(nghttp3_conn *conn, int64_t id, void *user_data) {
+  userdata *ud = user_data;
+
+  (void)conn;
+
+  ++ud->shutdown_cb.ncalled;
+  ud->shutdown_cb.id = id;
 
   return 0;
 }
@@ -3298,13 +3329,16 @@ void test_nghttp3_conn_recv_goaway(void) {
   int rv;
   nghttp3_stream *stream;
   int64_t push_id;
+  userdata ud;
 
   memset(&callbacks, 0, sizeof(callbacks));
+  callbacks.shutdown = conn_shutdown;
+  memset(&ud, 0, sizeof(ud));
   nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   /* Client receives GOAWAY */
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
   nghttp3_conn_bind_control_stream(conn, 2);
   nghttp3_conn_bind_qpack_streams(conn, 6, 10);
 
@@ -3320,12 +3354,16 @@ void test_nghttp3_conn_recv_goaway(void) {
 
   nghttp3_write_frame(&buf, &fr);
 
+  ud.shutdown_cb.ncalled = 0;
+  ud.shutdown_cb.id = 0;
   nconsumed = nghttp3_conn_read_stream(conn, 3, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
   CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
   CU_ASSERT(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED);
   CU_ASSERT(12 == conn->rx.goaway_id);
+  CU_ASSERT(1 == ud.shutdown_cb.ncalled);
+  CU_ASSERT(12 == ud.shutdown_cb.id);
 
   /* Cannot submit request anymore */
   rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), NULL,
@@ -3338,7 +3376,7 @@ void test_nghttp3_conn_recv_goaway(void) {
   nghttp3_buf_reset(&buf);
 
   /* Receiving GOAWAY with increased ID is treated as error */
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
   nghttp3_conn_bind_control_stream(conn, 2);
   nghttp3_conn_bind_qpack_streams(conn, 6, 10);
 
@@ -3359,19 +3397,23 @@ void test_nghttp3_conn_recv_goaway(void) {
 
   nghttp3_write_frame(&buf, &fr);
 
+  ud.shutdown_cb.ncalled = 0;
+  ud.shutdown_cb.id = 0;
   nconsumed = nghttp3_conn_read_stream(conn, 3, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
   CU_ASSERT(NGHTTP3_ERR_H3_ID_ERROR == nconsumed);
   CU_ASSERT(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED);
   CU_ASSERT(12 == conn->rx.goaway_id);
+  CU_ASSERT(1 == ud.shutdown_cb.ncalled);
+  CU_ASSERT(12 == ud.shutdown_cb.id);
 
   nghttp3_conn_del(conn);
 
   nghttp3_buf_reset(&buf);
 
   /* Server receives GOAWAY */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
   nghttp3_conn_bind_control_stream(conn, 3);
   nghttp3_conn_bind_qpack_streams(conn, 7, 11);
   conn->local.uni.max_pushes = 1;
@@ -3388,12 +3430,16 @@ void test_nghttp3_conn_recv_goaway(void) {
 
   nghttp3_write_frame(&buf, &fr);
 
+  ud.shutdown_cb.ncalled = 0;
+  ud.shutdown_cb.id = 0;
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
   CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
   CU_ASSERT(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED);
   CU_ASSERT(101 == conn->rx.goaway_id);
+  CU_ASSERT(1 == ud.shutdown_cb.ncalled);
+  CU_ASSERT(101 == ud.shutdown_cb.id);
 
   nghttp3_conn_create_stream(conn, &stream, 0);
 
@@ -3692,8 +3738,11 @@ void test_nghttp3_conn_priority_update(void) {
   nghttp3_stream *stream;
   nghttp3_push_promise *pp;
   int rv;
+  userdata ud;
 
   memset(&callbacks, 0, sizeof(callbacks));
+  callbacks.extend_max_pushes = extend_max_pushes;
+  memset(&ud, 0, sizeof(ud));
   nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
@@ -3764,7 +3813,7 @@ void test_nghttp3_conn_priority_update(void) {
   nghttp3_buf_reset(&buf);
 
   /* Receive PRIORITY_UPDATE against non-existent push_promise */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
   nghttp3_conn_bind_control_stream(conn, 3);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
@@ -3787,16 +3836,20 @@ void test_nghttp3_conn_priority_update(void) {
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
+  ud.extend_max_pushes_cb.ncalled = 0;
+  ud.extend_max_pushes_cb.max_push_id = INT64_MAX;
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
   CU_ASSERT(NGHTTP3_ERR_H3_ID_ERROR == nconsumed);
+  CU_ASSERT(1 == ud.extend_max_pushes_cb.ncalled);
+  CU_ASSERT(0 == ud.extend_max_pushes_cb.max_push_id);
 
   nghttp3_conn_del(conn);
   nghttp3_buf_reset(&buf);
 
   /* Receive PRIORITY_UPDATE and push_promise exists. */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
   nghttp3_conn_bind_control_stream(conn, 3);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
@@ -3848,7 +3901,7 @@ void test_nghttp3_conn_priority_update(void) {
 
   /* Receive PRIORITY_UPDATE and push_promise and its push stream
      exist. */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
   nghttp3_conn_bind_control_stream(conn, 3);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
@@ -3912,7 +3965,7 @@ void test_nghttp3_conn_priority_update(void) {
 
   /* Receive PRIORITY_UPDATE and its Priority Field Value is larger
      than buffer */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
   nghttp3_conn_bind_control_stream(conn, 3);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
