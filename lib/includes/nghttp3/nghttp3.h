@@ -1611,6 +1611,32 @@ typedef void (*nghttp3_debug_vprintf_callback)(const char *format,
 NGHTTP3_EXTERN void nghttp3_set_debug_vprintf_callback(
     nghttp3_debug_vprintf_callback debug_vprintf_callback);
 
+
+/**
+ * @macrosection
+ *
+ * Shutdown related constants
+ */
+
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_SHUTDOWN_NOTICE_STREAM_ID` specifies stream id sent
+ * by a server when it initiates graceful shutdown of the connection
+ * via `nghttp3_conn_submit_shutdown_notice`.
+ */
+#define NGHTTP3_SHUTDOWN_NOTICE_STREAM_ID ((1ull << 62) - 4)
+
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID` specifies push id sent
+ * by a client when it initiates graceful shutdown of the connection
+ * via `nghttp3_conn_submit_shutdown_notice`.
+ */
+#define NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID ((1ull << 62) - 1)
+
+
 /**
  * @struct
  *
@@ -1906,6 +1932,55 @@ typedef int (*nghttp3_reset_stream)(nghttp3_conn *conn, int64_t stream_id,
                                     void *conn_user_data,
                                     void *stream_user_data);
 
+
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_shutdown` is a callback function which is invoked
+ * when a shutdown is initiated by the remote endpoint. For client,
+ * |id| contains a stream id of a client initiated stream, for server,
+ * it contains a push id. All client streams with stream id or pushes
+ * with push id equal to or larger than |id| are guaranteed to not be
+ * processed by the remote endpoint.
+ *
+ * Parameter |id| for client can contain a special value
+ * :macro:`NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID` and for server it can
+ * contain special value
+ * :macro:`NGHTTP3_SHUTDOWN_NOTICE_STREAM_ID`. These values signal
+ * request for graceful shutdown of the connection, triggered by
+ * remote endpoint's invocation of
+ * `nghttp3_conn_submit_shutdown_notice`.
+ *
+ * It is possible that this callback is invoked multiple times on a
+ * single connection, however the |id| can only stay the same or
+ * decrease, never increase.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
+typedef int (*nghttp3_shutdown)(nghttp3_conn *conn,
+                                int64_t id,
+                                void *conn_user_data);
+
+/**
+ * @functypedef
+ *
+ * :type:`ngtcp2_extend_max_pushes` is a callback function which is
+ * invoked every time the remote endpoint increases the available pool
+ * of push ids. The provided |max_push_id| is the largest currently
+ * allowed push id.
+ *
+ * The callback function must return 0 if it succeeds.  Returning
+ * :macro:`NGTCP2_ERR_CALLBACK_FAILURE` makes the library call return
+ * immediately.
+ */
+typedef int (*ngtcp2_extend_max_pushes)(nghttp3_conn *conn,
+                                        int64_t max_push_id,
+                                        void *conn_user_data);
+
+
 /**
  * @struct
  *
@@ -2007,6 +2082,16 @@ typedef struct nghttp3_callbacks {
    * RESET_STREAM).
    */
   nghttp3_reset_stream reset_stream;
+  /**
+   * :member:`shutdown` is a callback function which is invoked when
+   * the remote endpoint has signalled initiation of connection shutdown.
+   */
+  nghttp3_shutdown shutdown;
+  /**
+   * :member:`extend_max_pushes` is a callback function which is invoked
+   * when remote endpoint increases the available push id pool.
+   */
+  ngtcp2_extend_max_pushes extend_max_pushes;
 } nghttp3_callbacks;
 
 /**

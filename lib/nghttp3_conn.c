@@ -974,6 +974,14 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
       conn->rx.goaway_id = rvint->acc;
       nghttp3_varint_read_state_reset(rvint);
 
+      if (conn->callbacks.shutdown) {
+        rv =
+            conn->callbacks.shutdown(conn, conn->rx.goaway_id, conn->user_data);
+        if (rv != 0) {
+          return NGHTTP3_ERR_CALLBACK_FAILURE;
+        }
+      }
+
       nghttp3_stream_read_state_reset(rstate);
       break;
     case NGHTTP3_CTRL_STREAM_STATE_MAX_PUSH_ID:
@@ -998,6 +1006,14 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
 
       conn->local.uni.max_pushes = (uint64_t)rvint->acc + 1;
       nghttp3_varint_read_state_reset(rvint);
+
+      if (conn->callbacks.extend_max_pushes) {
+        rv = conn->callbacks.extend_max_pushes(conn, rvint->acc,
+                                               conn->user_data);
+        if (rv != 0) {
+          return NGHTTP3_ERR_CALLBACK_FAILURE;
+        }
+      }
 
       nghttp3_stream_read_state_reset(rstate);
       break;
@@ -2513,6 +2529,9 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
             rv = conn->callbacks.recv_push_promise(
                 conn, stream->node.nid.id, pp->node.nid.id, nv.token, nv.name,
                 nv.value, nv.flags, conn->user_data, stream->user_data);
+            if (rv != 0) {
+              rv = NGHTTP3_ERR_CALLBACK_FAILURE;
+            }
           }
           break;
         }
@@ -2520,6 +2539,9 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
           rv = recv_header(conn, stream->node.nid.id, nv.token, nv.name,
                            nv.value, nv.flags, conn->user_data,
                            stream->user_data);
+          if (rv != 0) {
+            rv = NGHTTP3_ERR_CALLBACK_FAILURE;
+          }
         }
         break;
       default:
@@ -3377,7 +3399,8 @@ int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn) {
   assert(conn->tx.ctrl);
 
   frent.fr.hd.type = NGHTTP3_FRAME_GOAWAY;
-  frent.fr.goaway.id = conn->server ? (1ull << 62) - 4 : (1ull << 62) - 1;
+  frent.fr.goaway.id = conn->server ? NGHTTP3_SHUTDOWN_NOTICE_STREAM_ID
+                                    : NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID;
 
   assert(frent.fr.goaway.id <= conn->tx.goaway_id);
 
