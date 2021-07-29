@@ -1000,7 +1000,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
         return (nghttp3_ssize)nconsumed;
       }
 
-      if (conn->local.uni.max_pushes > (uint64_t)rvint->acc) {
+      if (conn->local.uni.max_pushes > (uint64_t)rvint->acc + 1) {
         return NGHTTP3_ERR_H3_FRAME_ERROR;
       }
 
