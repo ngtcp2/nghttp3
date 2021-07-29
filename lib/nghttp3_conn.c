@@ -3445,11 +3445,6 @@ int nghttp3_conn_shutdown(nghttp3_conn *conn) {
 int nghttp3_conn_reject_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
   int rv;
 
-  rv = nghttp3_qpack_decoder_cancel_stream(&conn->qdec, stream->node.nid.id);
-  if (rv != 0) {
-    return rv;
-  }
-
   rv = conn_call_send_stop_sending(conn, stream, NGHTTP3_H3_REQUEST_REJECTED);
   if (rv != 0) {
     return rv;
@@ -3460,15 +3455,6 @@ int nghttp3_conn_reject_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
 
 static int conn_reject_push_stream(nghttp3_conn *conn, nghttp3_stream *stream,
                                    uint64_t app_error_code) {
-  int rv;
-
-  /* TODO Send Stream Cancellation if we have not processed all
-     incoming stream data up to fin */
-  rv = nghttp3_qpack_decoder_cancel_stream(&conn->qdec, stream->node.nid.id);
-  if (rv != 0) {
-    return rv;
-  }
-
   return conn_call_send_stop_sending(conn, stream, app_error_code);
 }
 
@@ -3585,6 +3571,10 @@ int nghttp3_conn_reset_stream(nghttp3_conn *conn, int64_t stream_id) {
   if (stream) {
     stream->flags |= NGHTTP3_STREAM_FLAG_RESET;
   }
+  return nghttp3_qpack_decoder_cancel_stream(&conn->qdec, stream_id);
+}
+
+int nghttp3_conn_stop_sending(nghttp3_conn *conn, int64_t stream_id) {
   return nghttp3_qpack_decoder_cancel_stream(&conn->qdec, stream_id);
 }
 
