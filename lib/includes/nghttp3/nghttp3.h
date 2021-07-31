@@ -1611,7 +1611,6 @@ typedef void (*nghttp3_debug_vprintf_callback)(const char *format,
 NGHTTP3_EXTERN void nghttp3_set_debug_vprintf_callback(
     nghttp3_debug_vprintf_callback debug_vprintf_callback);
 
-
 /**
  * @macrosection
  *
@@ -1635,7 +1634,6 @@ NGHTTP3_EXTERN void nghttp3_set_debug_vprintf_callback(
  * via `nghttp3_conn_submit_shutdown_notice`.
  */
 #define NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID ((1ull << 62) - 1)
-
 
 /**
  * @struct
@@ -1932,7 +1930,6 @@ typedef int (*nghttp3_reset_stream)(nghttp3_conn *conn, int64_t stream_id,
                                     void *conn_user_data,
                                     void *stream_user_data);
 
-
 /**
  * @functypedef
  *
@@ -1960,8 +1957,7 @@ typedef int (*nghttp3_reset_stream)(nghttp3_conn *conn, int64_t stream_id,
  * caller immediately.  Any values other than 0 is treated as
  * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
-typedef int (*nghttp3_shutdown)(nghttp3_conn *conn,
-                                int64_t id,
+typedef int (*nghttp3_shutdown)(nghttp3_conn *conn, int64_t id,
                                 void *conn_user_data);
 
 /**
@@ -1976,10 +1972,8 @@ typedef int (*nghttp3_shutdown)(nghttp3_conn *conn,
  * :macro:`NGTCP2_ERR_CALLBACK_FAILURE` makes the library call return
  * immediately.
  */
-typedef int (*ngtcp2_extend_max_pushes)(nghttp3_conn *conn,
-                                        int64_t max_push_id,
+typedef int (*ngtcp2_extend_max_pushes)(nghttp3_conn *conn, int64_t max_push_id,
                                         void *conn_user_data);
-
 
 /**
  * @struct
