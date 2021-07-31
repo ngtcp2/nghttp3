@@ -338,8 +338,8 @@ static int conn_new(nghttp3_conn **pconn, int server,
   conn->server = server;
   conn->rx.goaway_id = NGHTTP3_VARINT_MAX + 1;
   conn->tx.goaway_id = NGHTTP3_VARINT_MAX + 1;
-  conn->rx.max_stream_id_bidi = 0;
-  conn->rx.max_push_id = 0;
+  conn->rx.max_stream_id_bidi = -4;
+  conn->rx.max_push_id = -1;
 
   *pconn = conn;
 
