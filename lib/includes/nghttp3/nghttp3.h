@@ -128,13 +128,6 @@ typedef ptrdiff_t nghttp3_ssize;
 /**
  * @macro
  *
- * :macro:`NGHTTP3_ERR_PUSH_ID_BLOCKED` indicates that there are no
- * spare push ID available.
- */
-#define NGHTTP3_ERR_PUSH_ID_BLOCKED -106
-/**
- * @macro
- *
  * :macro:`NGHTTP3_ERR_MALFORMED_HTTP_HEADER` indicates that an HTTP
  * header field is malformed.
  */
@@ -184,24 +177,10 @@ typedef ptrdiff_t nghttp3_ssize;
 /**
  * @macro
  *
- * :macro:`NGHTTP3_ERR_IGNORE_PUSH_PROMISE` indicates that a push
- * promise should be ignored.
- */
-#define NGHTTP3_ERR_IGNORE_PUSH_PROMISE -115
-/**
- * @macro
- *
  * :macro:`NGHTTP3_ERR_CONN_CLOSING` indicates that a connection is
  * closing state.
  */
 #define NGHTTP3_ERR_CONN_CLOSING -116
-/**
- * @macro
- *
- * :macro:`NGHTTP3_ERR_PUSH_PROMISE_NOT_FOUND` indicates that a
- * PUSH_PROMISE is not found.
- */
-#define NGHTTP3_ERR_PUSH_PROMISE_NOT_FOUND -117
 /**
  * @macro
  *
@@ -1778,69 +1757,6 @@ typedef int (*nghttp3_end_headers)(nghttp3_conn *conn, int64_t stream_id,
 /**
  * @functypedef
  *
- * :type:`nghttp3_begin_push_promise` is a callback function which is
- * invoked when an incoming header block section in PUSH_PROMISE is
- * started on a stream denoted by |stream_id|.  |push_id| identifies a
- * push promise.  Each header field is passed to application by
- * :type:`nghttp3_recv_push_promise` callback.  And then
- * :type:`nghttp3_end_push_promise` is called when a whole header
- * block is processed.
- *
- * The implementation of this callback must return 0 if it succeeds.
- * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
- * caller immediately.  Any values other than 0 is treated as
- * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
- */
-typedef int (*nghttp3_begin_push_promise)(nghttp3_conn *conn, int64_t stream_id,
-                                          int64_t push_id, void *conn_user_data,
-                                          void *stream_user_data);
-
-/**
- * @functypedef
- *
- * :type:`nghttp3_recv_push_promise` is a callback function which is
- * invoked when a header field in PUSH_PROMISE is received on a stream
- * denoted by |stream_id|.  |push_id| identifies a push promise.
- * |name| contains a field name and |value| contains a field value.
- * |token| is one of token defined in :type:`nghttp3_qpack_token` or
- * -1 if no token is defined for |name|.  |flags| is bitwise OR of
- * zero or more of NGHTTP3_NV_FLAG_*.
- *
- * The buffers for |name| and |value| are reference counted. If
- * application needs to keep them, increment the reference count with
- * `nghttp3_rcbuf_incref`.  When they are no longer used, call
- * `nghttp3_rcbuf_decref`.
- *
- * The implementation of this callback must return 0 if it succeeds.
- * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
- * caller immediately.  Any values other than 0 is treated as
- * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
- */
-typedef int (*nghttp3_recv_push_promise)(nghttp3_conn *conn, int64_t stream_id,
-                                         int64_t push_id, int32_t token,
-                                         nghttp3_rcbuf *name,
-                                         nghttp3_rcbuf *value, uint8_t flags,
-                                         void *conn_user_data,
-                                         void *stream_user_data);
-
-/**
- * @functypedef
- *
- * :type:`nghttp3_end_push_promise` is a callback function which is
- * invoked when an incoming header block in PUSH_PROMISE has ended.
- *
- * The implementation of this callback must return 0 if it succeeds.
- * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
- * caller immediately.  Any values other than 0 is treated as
- * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
- */
-typedef int (*nghttp3_end_push_promise)(nghttp3_conn *conn, int64_t stream_id,
-                                        int64_t push_id, void *conn_user_data,
-                                        void *stream_user_data);
-
-/**
- * @functypedef
- *
  * :type:`nghttp3_end_stream` is a callback function which is invoked
  * when the receiving side of stream is closed.  For server, this
  * callback function is invoked when HTTP request is received
@@ -1854,25 +1770,6 @@ typedef int (*nghttp3_end_push_promise)(nghttp3_conn *conn, int64_t stream_id,
  */
 typedef int (*nghttp3_end_stream)(nghttp3_conn *conn, int64_t stream_id,
                                   void *conn_user_data, void *stream_user_data);
-
-/**
- * @functypedef
- *
- * :type:`nghttp3_cancel_push` is a callback function which is invoked
- * when the push identified by |push_id| is cancelled by remote
- * endpoint.  If a stream has been bound to the push ID, |stream_id|
- * contains the stream ID and |stream_user_data| points to the stream
- * user data.  Otherwise, |stream_id| is -1 and |stream_user_data| is
- * NULL.
- *
- * The implementation of this callback must return 0 if it succeeds.
- * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
- * caller immediately.  Any values other than 0 is treated as
- * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
- */
-typedef int (*nghttp3_cancel_push)(nghttp3_conn *conn, int64_t push_id,
-                                   int64_t stream_id, void *conn_user_data,
-                                   void *stream_user_data);
 
 /**
  * @functypedef
@@ -1891,26 +1788,6 @@ typedef int (*nghttp3_send_stop_sending)(nghttp3_conn *conn, int64_t stream_id,
                                          uint64_t app_error_code,
                                          void *conn_user_data,
                                          void *stream_user_data);
-
-/**
- * @functypedef
- *
- * :type:`nghttp3_push_stream` is a callback function which is invoked
- * when a push stream identified by |stream_id| is opened with
- * |push_id|.
- *
- * Application is responsible to increase the number of push ID by
- * calling `nghttp3_conn_extend_max_pushes` if it wishes after this
- * callback is called (it is still true even if this callback is not
- * set).
- *
- * The implementation of this callback must return 0 if it succeeds.
- * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
- * caller immediately.  Any values other than 0 is treated as
- * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
- */
-typedef int (*nghttp3_push_stream)(nghttp3_conn *conn, int64_t push_id,
-                                   int64_t stream_id, void *conn_user_data);
 
 /**
  * @functypedef
@@ -1941,9 +1818,9 @@ typedef int (*nghttp3_reset_stream)(nghttp3_conn *conn, int64_t stream_id,
  * processed by the remote endpoint.
  *
  * Parameter |id| for client can contain a special value
- * :macro:`NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID` and for server it can
+ * :macro:`NGHTTP3_SHUTDOWN_NOTICE_STREAM_ID` and for server it can
  * contain special value
- * :macro:`NGHTTP3_SHUTDOWN_NOTICE_STREAM_ID`. These values signal
+ * :macro:`NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID`. These values signal
  * request for graceful shutdown of the connection, triggered by
  * remote endpoint's invocation of
  * `nghttp3_conn_submit_shutdown_notice`.
@@ -1959,21 +1836,6 @@ typedef int (*nghttp3_reset_stream)(nghttp3_conn *conn, int64_t stream_id,
  */
 typedef int (*nghttp3_shutdown)(nghttp3_conn *conn, int64_t id,
                                 void *conn_user_data);
-
-/**
- * @functypedef
- *
- * :type:`ngtcp2_extend_max_pushes` is a callback function which is
- * invoked every time the remote endpoint increases the available pool
- * of push ids. The provided |max_push_id| is the largest currently
- * allowed push id.
- *
- * The callback function must return 0 if it succeeds.  Returning
- * :macro:`NGTCP2_ERR_CALLBACK_FAILURE` makes the library call return
- * immediately.
- */
-typedef int (*ngtcp2_extend_max_pushes)(nghttp3_conn *conn, int64_t max_push_id,
-                                        void *conn_user_data);
 
 /**
  * @struct
@@ -2034,37 +1896,11 @@ typedef struct nghttp3_callbacks {
    */
   nghttp3_end_headers end_trailers;
   /**
-   * :member:`begin_push_promise` is a callback function which is
-   * invoked when a push promise has started on a particular stream.
-   */
-  nghttp3_begin_push_promise begin_push_promise;
-  /**
-   * :member:`recv_push_promise` is a callback function which is
-   * invoked when a single header field in a push promise is received
-   * on a particular stream.
-   */
-  nghttp3_recv_push_promise recv_push_promise;
-  /**
-   * :member:`end_push_promise` is a callback function which is
-   * invoked when a push promise has ended on a particular stream.
-   */
-  nghttp3_end_push_promise end_push_promise;
-  /**
-   * :member:`cancel_push` is a callback function which is invoked
-   * when a push promise has been cancelled by a remote endpoint.
-   */
-  nghttp3_cancel_push cancel_push;
-  /**
    * :member:`send_stop_sending` is a callback function which is
    * invoked when the library asks application to send STOP_SENDING to
    * a particular stream.
    */
   nghttp3_send_stop_sending send_stop_sending;
-  /**
-   * :member:`push_stream` is a callback function which is invoked
-   * when a push stream has opened.
-   */
-  nghttp3_push_stream push_stream;
   /**
    * :member:`end_stream` is a callback function which is invoked when
    * a receiving side of stream has been closed.
@@ -2081,11 +1917,6 @@ typedef struct nghttp3_callbacks {
    * the remote endpoint has signalled initiation of connection shutdown.
    */
   nghttp3_shutdown shutdown;
-  /**
-   * :member:`extend_max_pushes` is a callback function which is invoked
-   * when remote endpoint increases the available push id pool.
-   */
-  ngtcp2_extend_max_pushes extend_max_pushes;
 } nghttp3_callbacks;
 
 /**
@@ -2443,24 +2274,6 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_request(
 /**
  * @function
  *
- * `nghttp3_conn_submit_push_promise` submits push promise on the
- * stream identified by |stream_id|.  |stream_id| must be a client
- * initiated bidirectional stream.  Only server can submit push
- * promise.  On success, a push ID is assigned to |*ppush_id|.  |nva|
- * of length |nvlen| specifies HTTP request header fields.  In order
- * to submit HTTP response, first call
- * `nghttp3_conn_bind_push_stream()` and then
- * `nghttp3_conn_submit_response()`.
- */
-NGHTTP3_EXTERN int nghttp3_conn_submit_push_promise(nghttp3_conn *conn,
-                                                    int64_t *ppush_id,
-                                                    int64_t stream_id,
-                                                    const nghttp3_nv *nva,
-                                                    size_t nvlen);
-
-/**
- * @function
- *
  * `nghttp3_conn_submit_info` submits HTTP non-final response header
  * fields on the stream identified by |stream_id|.  |nva| of length
  * |nvlen| specifies HTTP response header fields.
@@ -2501,32 +2314,9 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_trailers(nghttp3_conn *conn,
 /**
  * @function
  *
- * `nghttp3_conn_bind_push_stream` binds the stream identified by
- * |stream_id| to the push identified by |push_id|.  |stream_id| must
- * be a server initiated unidirectional stream.  |push_id| must be
- * obtained from `nghttp3_conn_submit_push_promise()`.  To send
- * response to this push, call `nghttp3_conn_submit_response()`.
- */
-NGHTTP3_EXTERN int nghttp3_conn_bind_push_stream(nghttp3_conn *conn,
-                                                 int64_t push_id,
-                                                 int64_t stream_id);
-
-/**
- * @function
- *
- * `nghttp3_conn_cancel_push` cancels the push identified by
- * |push_id|.
- */
-NGHTTP3_EXTERN int nghttp3_conn_cancel_push(nghttp3_conn *conn,
-                                            int64_t push_id);
-
-/**
- * @function
- *
  * `nghttp3_conn_submit_shutdown_notice` notifies the other endpoint
- * to stop creating new stream (for server) or push (for client).
- * After a couple of RTTs later, call `nghttp3_conn_shutdown` to start
- * graceful shutdown.
+ * to stop creating new stream.  After a couple of RTTs later, call
+ * `nghttp3_conn_shutdown` to start graceful shutdown.
  */
 NGHTTP3_EXTERN int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn);
 
@@ -2536,8 +2326,8 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn);
  * `nghttp3_conn_shutdown` starts graceful shutdown.  It should be
  * called after `nghttp3_conn_submit_shutdown_notice` and a couple of
  * RTT.  After calling this function, the local endpoint starts
- * rejecting new incoming streams (for server) or pushes (for client).
- * The existing streams or pushes are processed normally.
+ * rejecting new incoming streams.  The existing streams are processed
+ * normally.
  */
 NGHTTP3_EXTERN int nghttp3_conn_shutdown(nghttp3_conn *conn);
 
@@ -2663,30 +2453,6 @@ NGHTTP3_EXTERN int nghttp3_conn_set_stream_priority(nghttp3_conn *conn,
 /**
  * @function
  *
- * `nghttp3_conn_set_push_priority` updates priority of a push denoted
- * by |push_id| with the value pointed by |pri|.
- *
- * Both client and server can update push priority with this function.
- *
- * If server updates push priority with this function, it completely
- * overrides push priority set by client and the attempts to update
- * priority by client are ignored.
- *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * :macro:`NGHTTP3_ERR_PUSH_PROMISE_NOT_FOUND`
- *     PUSH_PROMISE not found.
- * :macro:`NGHTTP3_ERR_NOMEM`
- *     Out of memory.
- */
-NGHTTP3_EXTERN int nghttp3_conn_set_push_priority(nghttp3_conn *conn,
-                                                  int64_t push_id,
-                                                  const nghttp3_pri *pri);
-
-/**
- * @function
- *
  * `nghttp3_conn_is_remote_qpack_encoder_stream` returns nonzero if a
  * stream denoted by |stream_id| is QPACK encoder stream of a remote
  * endpoint.
@@ -2694,18 +2460,6 @@ NGHTTP3_EXTERN int nghttp3_conn_set_push_priority(nghttp3_conn *conn,
 NGHTTP3_EXTERN int
 nghttp3_conn_is_remote_qpack_encoder_stream(nghttp3_conn *conn,
                                             int64_t stream_id);
-
-/**
- * @function
- *
- * `nghttp3_conn_extend_max_pushes` extends the number of push IDs
- * that a remote endpoint can open by |n|.  This function must not be
- * called by server.  Application is responsible to increase the
- * number of push ID after :type:`nghttp3_push_stream` callback is
- * called.
- */
-NGHTTP3_EXTERN void nghttp3_conn_extend_max_pushes(nghttp3_conn *conn,
-                                                   size_t n);
 
 /**
  * @function

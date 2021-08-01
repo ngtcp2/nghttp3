@@ -36,17 +36,9 @@ void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr) {
     nghttp3_frame_write_settings_len(&fr->hd.length, &fr->settings);
     dest->last = nghttp3_frame_write_settings(dest->last, &fr->settings);
     break;
-  case NGHTTP3_FRAME_CANCEL_PUSH:
-    nghttp3_frame_write_cancel_push_len(&fr->hd.length, &fr->cancel_push);
-    dest->last = nghttp3_frame_write_cancel_push(dest->last, &fr->cancel_push);
-    break;
   case NGHTTP3_FRAME_GOAWAY:
     nghttp3_frame_write_goaway_len(&fr->hd.length, &fr->goaway);
     dest->last = nghttp3_frame_write_goaway(dest->last, &fr->goaway);
-    break;
-  case NGHTTP3_FRAME_MAX_PUSH_ID:
-    nghttp3_frame_write_max_push_id_len(&fr->hd.length, &fr->max_push_id);
-    dest->last = nghttp3_frame_write_max_push_id(dest->last, &fr->max_push_id);
     break;
   case NGHTTP3_FRAME_PRIORITY_UPDATE:
   case NGHTTP3_FRAME_PRIORITY_UPDATE_PUSH_ID:
@@ -73,10 +65,6 @@ void nghttp3_write_frame_qpack(nghttp3_buf *dest, nghttp3_qpack_encoder *qenc,
     nva = fr->headers.nva;
     nvlen = fr->headers.nvlen;
     break;
-  case NGHTTP3_FRAME_PUSH_PROMISE:
-    nva = fr->push_promise.nva;
-    nvlen = fr->push_promise.nvlen;
-    break;
   default:
     assert(0);
   }
@@ -91,14 +79,8 @@ void nghttp3_write_frame_qpack(nghttp3_buf *dest, nghttp3_qpack_encoder *qenc,
   assert(0 == nghttp3_buf_len(&ebuf));
 
   fr->hd.length = (int64_t)(nghttp3_buf_len(&pbuf) + nghttp3_buf_len(&rbuf));
-  if (fr->hd.type == NGHTTP3_FRAME_PUSH_PROMISE) {
-    fr->hd.length += (int64_t)nghttp3_put_varint_len(fr->push_promise.push_id);
-  }
 
   dest->last = nghttp3_frame_write_hd(dest->last, &fr->hd);
-  if (fr->hd.type == NGHTTP3_FRAME_PUSH_PROMISE) {
-    dest->last = nghttp3_put_varint(dest->last, fr->push_promise.push_id);
-  }
   dest->last = nghttp3_cpymem(dest->last, pbuf.pos, nghttp3_buf_len(&pbuf));
   dest->last = nghttp3_cpymem(dest->last, rbuf.pos, nghttp3_buf_len(&rbuf));
 

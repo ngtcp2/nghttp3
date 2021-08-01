@@ -828,7 +828,7 @@ fin:
   return 0;
 }
 
-static int http_request_on_header(nghttp3_http_state *http, int64_t frame_type,
+static int http_request_on_header(nghttp3_http_state *http,
                                   nghttp3_qpack_nv *nv, int trailers,
                                   int connect_protocol) {
   nghttp3_pri pri;
@@ -860,10 +860,6 @@ static int http_request_on_header(nghttp3_http_state *http, int64_t frame_type,
       switch (nv->value->base[6]) {
       case 'T':
         if (lstreq("CONNECT", nv->value->base, nv->value->len)) {
-          if (frame_type == NGHTTP3_FRAME_PUSH_PROMISE) {
-            /* we won't allow CONNECT for push */
-            return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-          }
           http->flags |= NGHTTP3_HTTP_FLAG_METH_CONNECT;
         }
         break;
@@ -1140,8 +1136,8 @@ static int check_scheme(const uint8_t *value, size_t len) {
   return 1;
 }
 
-int nghttp3_http_on_header(nghttp3_http_state *http, int64_t frame_type,
-                           nghttp3_qpack_nv *nv, int request, int trailers) {
+int nghttp3_http_on_header(nghttp3_http_state *http, nghttp3_qpack_nv *nv,
+                           int request, int trailers) {
   int rv;
   size_t i;
   uint8_t c;
@@ -1187,7 +1183,7 @@ int nghttp3_http_on_header(nghttp3_http_state *http, int64_t frame_type,
   }
 
   if (request) {
-    rv = http_request_on_header(http, frame_type, nv, trailers,
+    rv = http_request_on_header(http, nv, trailers,
                                 /* connect_protocol = */ 0);
   } else {
     rv = http_response_on_header(http, nv, trailers);

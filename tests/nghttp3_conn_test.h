@@ -32,7 +32,6 @@
 void test_nghttp3_conn_read_control(void);
 void test_nghttp3_conn_write_control(void);
 void test_nghttp3_conn_submit_request(void);
-void test_nghttp3_conn_submit_push_promise(void);
 void test_nghttp3_conn_http_request(void);
 void test_nghttp3_conn_http_resp_header(void);
 void test_nghttp3_conn_http_req_header(void);
@@ -43,10 +42,6 @@ void test_nghttp3_conn_http_trailers(void);
 void test_nghttp3_conn_http_ignore_content_length(void);
 void test_nghttp3_conn_http_record_request_method(void);
 void test_nghttp3_conn_qpack_blocked_stream(void);
-void test_nghttp3_conn_recv_cancel_push(void);
-void test_nghttp3_conn_cancel_push(void);
-void test_nghttp3_conn_recv_push_promise(void);
-void test_nghttp3_conn_recv_push_stream(void);
 void test_nghttp3_conn_just_fin(void);
 void test_nghttp3_conn_submit_response_read_blocked(void);
 void test_nghttp3_conn_recv_uni(void);
@@ -55,6 +50,5 @@ void test_nghttp3_conn_shutdown_server(void);
 void test_nghttp3_conn_shutdown_client(void);
 void test_nghttp3_conn_priority_update(void);
 void test_nghttp3_conn_set_stream_priority(void);
-void test_nghttp3_conn_set_push_priority(void);
 
 #endif /* NGTCP2_CONN_TEST_H */

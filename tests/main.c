@@ -79,8 +79,6 @@ int main() {
                    test_nghttp3_conn_write_control) ||
       !CU_add_test(pSuite, "conn_submit_request",
                    test_nghttp3_conn_submit_request) ||
-      !CU_add_test(pSuite, "conn_submit_push_promise",
-                   test_nghttp3_conn_submit_push_promise) ||
       !CU_add_test(pSuite, "conn_http_request",
                    test_nghttp3_conn_http_request) ||
       !CU_add_test(pSuite, "conn_http_resp_header",
@@ -101,13 +99,6 @@ int main() {
                    test_nghttp3_conn_http_record_request_method) ||
       !CU_add_test(pSuite, "conn_qpack_blocked_stream",
                    test_nghttp3_conn_qpack_blocked_stream) ||
-      !CU_add_test(pSuite, "conn_recv_cancel_push",
-                   test_nghttp3_conn_recv_cancel_push) ||
-      !CU_add_test(pSuite, "conn_cancel_push", test_nghttp3_conn_cancel_push) ||
-      !CU_add_test(pSuite, "conn_recv_push_promise",
-                   test_nghttp3_conn_recv_push_promise) ||
-      !CU_add_test(pSuite, "conn_recv_push_stream",
-                   test_nghttp3_conn_recv_push_stream) ||
       !CU_add_test(pSuite, "conn_submit_response_read_blocked",
                    test_nghttp3_conn_submit_response_read_blocked) ||
       !CU_add_test(pSuite, "conn_just_fin", test_nghttp3_conn_just_fin) ||
@@ -121,8 +112,6 @@ int main() {
                    test_nghttp3_conn_priority_update) ||
       !CU_add_test(pSuite, "conn_set_stream_priority",
                    test_nghttp3_conn_set_stream_priority) ||
-      !CU_add_test(pSuite, "conn_set_push_priority",
-                   test_nghttp3_conn_set_push_priority) ||
       !CU_add_test(pSuite, "tnode_schedule", test_nghttp3_tnode_schedule) ||
       !CU_add_test(pSuite, "http_parse_priority",
                    test_nghttp3_http_parse_priority) ||

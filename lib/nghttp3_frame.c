@@ -71,44 +71,6 @@ size_t nghttp3_frame_write_settings_len(int64_t *ppayloadlen,
          nghttp3_put_varint_len((int64_t)payloadlen) + payloadlen;
 }
 
-uint8_t *nghttp3_frame_write_cancel_push(uint8_t *p,
-                                         const nghttp3_frame_cancel_push *fr) {
-  p = nghttp3_frame_write_hd(p, &fr->hd);
-  p = nghttp3_put_varint(p, fr->push_id);
-
-  return p;
-}
-
-size_t
-nghttp3_frame_write_cancel_push_len(int64_t *ppayloadlen,
-                                    const nghttp3_frame_cancel_push *fr) {
-  size_t payloadlen = nghttp3_put_varint_len(fr->push_id);
-
-  *ppayloadlen = (int64_t)payloadlen;
-
-  return nghttp3_put_varint_len(NGHTTP3_FRAME_CANCEL_PUSH) +
-         nghttp3_put_varint_len((int64_t)payloadlen) + payloadlen;
-}
-
-uint8_t *nghttp3_frame_write_max_push_id(uint8_t *p,
-                                         const nghttp3_frame_max_push_id *fr) {
-  p = nghttp3_frame_write_hd(p, &fr->hd);
-  p = nghttp3_put_varint(p, fr->push_id);
-
-  return p;
-}
-
-size_t
-nghttp3_frame_write_max_push_id_len(int64_t *ppayloadlen,
-                                    const nghttp3_frame_max_push_id *fr) {
-  size_t payloadlen = nghttp3_put_varint_len(fr->push_id);
-
-  *ppayloadlen = (int64_t)payloadlen;
-
-  return nghttp3_put_varint_len(NGHTTP3_FRAME_MAX_PUSH_ID) +
-         nghttp3_put_varint_len((int64_t)payloadlen) + payloadlen;
-}
-
 uint8_t *nghttp3_frame_write_goaway(uint8_t *p,
                                     const nghttp3_frame_goaway *fr) {
   p = nghttp3_frame_write_hd(p, &fr->hd);
@@ -234,15 +196,6 @@ void nghttp3_nva_del(nghttp3_nv *nva, const nghttp3_mem *mem) {
 
 void nghttp3_frame_headers_free(nghttp3_frame_headers *fr,
                                 const nghttp3_mem *mem) {
-  if (fr == NULL) {
-    return;
-  }
-
-  nghttp3_nva_del(fr->nva, mem);
-}
-
-void nghttp3_frame_push_promise_free(nghttp3_frame_push_promise *fr,
-                                     const nghttp3_mem *mem) {
   if (fr == NULL) {
     return;
   }

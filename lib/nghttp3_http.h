@@ -77,10 +77,10 @@ typedef struct nghttp3_http_state nghttp3_http_state;
 #define NGHTTP3_HTTP_FLAG__PROTOCOL 0x4000
 
 /*
- * This function is called when HTTP header field |nv| in a frame of type
- * |frame_type| is received for |http|.  This function will validate |nv|
- * against the current state of stream.  Pass nonzero if this is request
- * headers. Pass nonzero to |trailers| if |nv| is included in trailers.
+ * This function is called when HTTP header field |nv| received for
+ * |http|.  This function will validate |nv| against the current state
+ * of stream.  Pass nonzero if this is request headers. Pass nonzero
+ * to |trailers| if |nv| is included in trailers.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -91,8 +91,8 @@ typedef struct nghttp3_http_state nghttp3_http_state;
  *     Invalid HTTP header field was received but it can be treated as
  *     if it was not received because of compatibility reasons.
  */
-int nghttp3_http_on_header(nghttp3_http_state *http, int64_t frame_type,
-                           nghttp3_qpack_nv *nv, int request, int trailers);
+int nghttp3_http_on_header(nghttp3_http_state *http, nghttp3_qpack_nv *nv,
+                           int request, int trailers);
 
 /*
  * This function is called when request header is received.  This
