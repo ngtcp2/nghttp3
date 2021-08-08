@@ -7,10 +7,10 @@ pitfalls which programmers might encounter.
 Assumptions
 -----------
 
-nghttp3 is a thin layer of HTTP/3.  It relies on an underlying QUIC
-stack for flow control and connection management.  Although nghttp3 is
-QUIC stack agnostic, it expects some particular interfaces from QUIC
-stack.  We will describe them below.
+nghttp3 is a thin HTTP/3 layer over an underlying QUIC stack.  It
+relies on an underlying QUIC stack for flow control and connection
+management.  Although nghttp3 is QUIC stack agnostic, it expects some
+particular interfaces from QUIC stack.  We will describe them below.
 
 QPACK operations are done behind the scenes.  Application can use
 :type:`nghttp3_settings` to change the behaviour of QPACK
@@ -189,8 +189,12 @@ Handling QUIC stream events
 
 If underlying QUIC stream is closed, call `nghttp3_conn_close_stream`.
 
-If underlying QUIC stream is reset by a remote endpoint, call
-`nghttp3_conn_reset_stream`.
+If underlying QUIC stream is reset by a remote endpoint (that is when
+RESET_STREAM is received), call `nghttp3_conn_reset_stream`.
+
+If underlying QUIC stream is no longer read by a local endpoint (that
+is when STOP_SENDING is sent), call `nghttp3_conn_stop_sending`.
+
 
 Closing HTTP/3 connection gracefully
 ------------------------------------
