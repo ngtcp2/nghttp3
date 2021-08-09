@@ -2576,6 +2576,16 @@ typedef struct {
  */
 NGHTTP3_EXTERN nghttp3_info *nghttp3_version(int least_version);
 
+/**
+ * @function
+ *
+ * `nghttp3_err_is_fatal` returns nonzero if |liberr| is a fatal
+ * error.  |liberr| must be one of nghttp3 library error codes (which
+ * is defined as NGHTTP3_ERR_* macro, such as
+ * :macro:`NGHTTP3_ERR_NOMEM`).
+ */
+NGHTTP3_EXTERN int nghttp3_err_is_fatal(int liberr);
+
 #ifdef __cplusplus
 }
 #endif

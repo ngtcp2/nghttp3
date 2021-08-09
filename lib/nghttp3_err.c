@@ -120,3 +120,5 @@ uint64_t nghttp3_err_infer_quic_app_error_code(int liberr) {
     return NGHTTP3_H3_GENERAL_PROTOCOL_ERROR;
   }
 }
+
+int nghttp3_err_is_fatal(int liberr) { return liberr < NGHTTP3_ERR_FATAL; }

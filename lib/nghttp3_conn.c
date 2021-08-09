@@ -339,6 +339,21 @@ void nghttp3_conn_del(nghttp3_conn *conn) {
   nghttp3_mem_free(conn->mem, conn);
 }
 
+static int conn_bidi_idtr_open(nghttp3_conn *conn, int64_t stream_id) {
+  int rv;
+
+  rv = nghttp3_idtr_open(&conn->remote.bidi.idtr, stream_id);
+  if (rv != 0) {
+    return rv;
+  }
+
+  if (nghttp3_ksl_len(&conn->remote.bidi.idtr.gap.gap) > 32) {
+    nghttp3_gaptr_drop_first_gap(&conn->remote.bidi.idtr.gap);
+  }
+
+  return 0;
+}
+
 nghttp3_ssize nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
                                        const uint8_t *src, size_t srclen,
                                        int fin) {
@@ -352,8 +367,18 @@ nghttp3_ssize nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
     /* QUIC transport ensures that this is new stream. */
     if (conn->server) {
       if (nghttp3_client_stream_bidi(stream_id)) {
-        rv = nghttp3_idtr_open(&conn->remote.bidi.idtr, stream_id);
-        assert(rv == 0);
+        rv = conn_bidi_idtr_open(conn, stream_id);
+        if (rv != 0) {
+          if (nghttp3_err_is_fatal(rv)) {
+            return rv;
+          }
+
+          /* Ignore return value.  We might drop the first gap if there
+             are many gaps if QUIC stack allows too many holes in stream
+             ID space.  idtr is used to decide whether PRIORITY_UPDATE
+             frame should be ignored or not and the frame is optional.
+             Ignoring them causes no harm. */
+        }
 
         conn->rx.max_stream_id_bidi =
             nghttp3_max(conn->rx.max_stream_id_bidi, stream_id);
@@ -1653,13 +1678,16 @@ conn_on_priority_update_stream(nghttp3_conn *conn,
       return 0;
     }
 
-    rv = nghttp3_idtr_open(&conn->remote.bidi.idtr, stream_id);
+    rv = conn_bidi_idtr_open(conn, stream_id);
     if (rv != 0) {
-      if (rv == NGHTTP3_ERR_STREAM_IN_USE) {
-        /* The stream is gone.  Just ignore. */
-        return 0;
+      if (nghttp3_err_is_fatal(rv)) {
+        return rv;
       }
-      return rv;
+
+      assert(rv == NGHTTP3_ERR_STREAM_IN_USE);
+
+      /* The stream is gone.  Just ignore. */
+      return 0;
     }
 
     conn->rx.max_stream_id_bidi =
