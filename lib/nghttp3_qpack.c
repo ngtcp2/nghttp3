@@ -2300,17 +2300,15 @@ void nghttp3_qpack_encoder_unblock(nghttp3_qpack_encoder *encoder,
   }
 }
 
-void nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
-                                      int64_t stream_id) {
+int nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
+                                     int64_t stream_id) {
   nghttp3_qpack_stream *stream =
       nghttp3_qpack_encoder_find_stream(encoder, stream_id);
   const nghttp3_mem *mem = encoder->ctx.mem;
   nghttp3_qpack_header_block_ref *ref;
 
   if (stream == NULL) {
-    /* This might be NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR, but we
-       don't create stream which does not use dynamic table. */
-    return;
+    return NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR;
   }
 
   assert(nghttp3_ringbuf_len(&stream->refs));
@@ -2337,12 +2335,14 @@ void nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
   nghttp3_qpack_header_block_ref_del(ref, mem);
 
   if (nghttp3_ringbuf_len(&stream->refs)) {
-    return;
+    return 0;
   }
 
   qpack_encoder_remove_stream(encoder, stream);
 
   nghttp3_qpack_stream_del(stream, mem);
+
+  return 0;
 }
 
 int nghttp3_qpack_encoder_add_insert_count(nghttp3_qpack_encoder *encoder,
@@ -2570,8 +2570,11 @@ nghttp3_ssize nghttp3_qpack_encoder_read_decoder(nghttp3_qpack_encoder *encoder,
         }
         break;
       case NGHTTP3_QPACK_DS_OPCODE_SECTION_ACK:
-        nghttp3_qpack_encoder_ack_header(encoder,
-                                         (int64_t)encoder->rstate.left);
+        rv = nghttp3_qpack_encoder_ack_header(encoder,
+                                              (int64_t)encoder->rstate.left);
+        if (rv != 0) {
+          goto fail;
+        }
         break;
       case NGHTTP3_QPACK_DS_OPCODE_STREAM_CANCEL:
         nghttp3_qpack_encoder_cancel_stream(encoder,

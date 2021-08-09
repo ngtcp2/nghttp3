@@ -1211,8 +1211,15 @@ nghttp3_qpack_encoder_set_max_blocked(nghttp3_qpack_encoder *encoder,
  * decoder.  This function is provided for debugging purpose only.  In
  * HTTP/3, |encoder| knows acknowledgement of header block by reading
  * decoder stream with `nghttp3_qpack_encoder_read_decoder()`.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :macro:`NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR`
+ *     Section Acknowledgement for a stream denoted by |stream_id| is
+ *     unexpected.
  */
-NGHTTP3_EXTERN void
+NGHTTP3_EXTERN int
 nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
                                  int64_t stream_id);
 
