@@ -61,6 +61,9 @@ typedef struct {
     size_t ncalled;
     int64_t id;
   } shutdown_cb;
+  struct {
+    uint64_t consumed_total;
+  } deferred_consume_cb;
 } userdata;
 
 static int acked_stream_data(nghttp3_conn *conn, int64_t stream_id,
@@ -211,6 +214,20 @@ static int conn_shutdown(nghttp3_conn *conn, int64_t id, void *user_data) {
 
   ++ud->shutdown_cb.ncalled;
   ud->shutdown_cb.id = id;
+
+  return 0;
+}
+
+static int deferred_consume(nghttp3_conn *conn, int64_t stream_id,
+                            size_t consumed, void *user_data,
+                            void *stream_user_data) {
+  userdata *ud = user_data;
+
+  (void)conn;
+  (void)stream_user_data;
+  (void)stream_id;
+
+  ud->deferred_consume_cb.consumed_total += consumed;
 
   return 0;
 }
@@ -2648,4 +2665,113 @@ void test_nghttp3_conn_set_stream_priority(void) {
   CU_ASSERT(nghttp3_pri_to_uint8(&pri) == stream->node.pri);
 
   nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_shutdown_stream_read(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  nghttp3_callbacks callbacks;
+  nghttp3_settings settings;
+  nghttp3_qpack_encoder qenc;
+  int rv;
+  nghttp3_buf ebuf;
+  uint8_t rawbuf[4096];
+  nghttp3_buf buf;
+  const nghttp3_nv reqnv[] = {
+      MAKE_NV(":authority", "localhost"),
+      MAKE_NV(":method", "GET"),
+      MAKE_NV(":path", "/"),
+      MAKE_NV(":scheme", "https"),
+  };
+  const nghttp3_nv resnv[] = {
+      MAKE_NV(":status", "200"),
+      MAKE_NV("server", "nghttp3"),
+  };
+  nghttp3_frame fr;
+  nghttp3_ssize sconsumed;
+  size_t consumed_total;
+  userdata ud;
+  size_t indatalen;
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  callbacks.deferred_consume = deferred_consume;
+  nghttp3_settings_default(&settings);
+  settings.qpack_max_table_capacity = 4096;
+  settings.qpack_blocked_streams = 100;
+
+  /* Shutting down read-side stream when a stream is blocked by QPACK
+     dependency. */
+  nghttp3_buf_init(&ebuf);
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_table_capacity,
+                             settings.qpack_blocked_streams, mem);
+  nghttp3_qpack_encoder_set_max_dtable_size(&qenc,
+                                            settings.qpack_max_table_capacity);
+
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
+  nghttp3_conn_bind_qpack_streams(conn, 2, 6);
+
+  rv = nghttp3_conn_submit_request(conn, 0, reqnv, nghttp3_arraylen(reqnv),
+                                   NULL, NULL);
+
+  CU_ASSERT(0 == rv);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.headers.nva = (nghttp3_nv *)resnv;
+  fr.headers.nvlen = nghttp3_arraylen(resnv);
+
+  nghttp3_write_frame_qpack_dyn(&buf, &ebuf, &qenc, 0, &fr);
+
+  indatalen = nghttp3_buf_len(&buf);
+
+  ud.deferred_consume_cb.consumed_total = 0;
+  consumed_total = 0;
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT(sconsumed > 0);
+  CU_ASSERT(sconsumed != (nghttp3_ssize)nghttp3_buf_len(&buf));
+
+  consumed_total += (size_t)sconsumed;
+
+  rv = nghttp3_conn_shutdown_stream_read(conn, 0);
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(1 == nghttp3_buf_len(&conn->qdec.dbuf));
+
+  /* Reading further stream data is discarded. */
+  nghttp3_buf_reset(&buf);
+  *buf.pos = 0;
+  ++buf.last;
+
+  ++indatalen;
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 1);
+
+  CU_ASSERT(1 == sconsumed);
+
+  consumed_total += (size_t)sconsumed;
+
+  nghttp3_buf_reset(&buf);
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_QPACK_ENCODER);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 7, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT(sconsumed == (nghttp3_ssize)nghttp3_buf_len(&buf));
+
+  sconsumed = nghttp3_conn_read_stream(conn, 7, ebuf.pos,
+                                       nghttp3_buf_len(&ebuf), /* fin = */ 0);
+
+  CU_ASSERT(sconsumed == (nghttp3_ssize)nghttp3_buf_len(&ebuf));
+  /* Make sure that Section Acknowledgement is not written. */
+  CU_ASSERT(1 == nghttp3_buf_len(&conn->qdec.dbuf));
+  CU_ASSERT(indatalen ==
+            consumed_total + ud.deferred_consume_cb.consumed_total);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_buf_free(&ebuf, mem);
 }

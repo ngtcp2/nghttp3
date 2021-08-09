@@ -190,11 +190,9 @@ Handling QUIC stream events
 If underlying QUIC stream is closed, call `nghttp3_conn_close_stream`.
 
 If underlying QUIC stream is reset by a remote endpoint (that is when
-RESET_STREAM is received), call `nghttp3_conn_reset_stream`.
-
-If underlying QUIC stream is no longer read by a local endpoint (that
-is when STOP_SENDING is sent), call `nghttp3_conn_stop_sending`.
-
+RESET_STREAM is received) or no longer read by a local endpoint (that
+is when STOP_SENDING is sent), call
+`nghttp3_conn_shutdown_stream_read`.
 
 Closing HTTP/3 connection gracefully
 ------------------------------------
