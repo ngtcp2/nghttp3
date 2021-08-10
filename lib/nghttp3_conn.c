@@ -2357,14 +2357,6 @@ int nghttp3_conn_shutdown_stream_read(nghttp3_conn *conn, int64_t stream_id) {
   return nghttp3_qpack_decoder_cancel_stream(&conn->qdec, stream_id);
 }
 
-int nghttp3_conn_reset_stream(nghttp3_conn *conn, int64_t stream_id) {
-  return nghttp3_conn_shutdown_stream_read(conn, stream_id);
-}
-
-int nghttp3_conn_stop_sending(nghttp3_conn *conn, int64_t stream_id) {
-  return nghttp3_conn_shutdown_stream_read(conn, stream_id);
-}
-
 int nghttp3_conn_qpack_blocked_streams_push(nghttp3_conn *conn,
                                             nghttp3_stream *stream) {
   assert(stream->qpack_blocked_pe.index == NGHTTP3_PQ_BAD_INDEX);

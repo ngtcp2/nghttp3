@@ -2156,31 +2156,6 @@ NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
                                              uint64_t app_error_code);
 
 /**
- * @function
- *
- * `nghttp3_conn_reset_stream` must be called if stream identified by
- * |stream_id| is reset by a remote endpoint.  This is required in
- * order to cancel QPACK stream.
- *
- * Deprecated: Use `nghttp3_conn_shutdown_stream_read` instead.
- */
-NGHTTP3_EXTERN int nghttp3_conn_reset_stream(nghttp3_conn *conn,
-                                             int64_t stream_id);
-
-/**
- * @function
- *
- * `nghttp3_conn_stop_sending` must be called if stream identified by
- * |stream_id| is no longer read by a local endpoint (e.g., when QUIC
- * stack sends STOP_SENDING frame).  This is required in order to
- * cancel QPACK stream.
- *
- * Deprecated: Use `nghttp3_conn_shutdown_stream_read` instead.
- */
-NGHTTP3_EXTERN int nghttp3_conn_stop_sending(nghttp3_conn *conn,
-                                             int64_t stream_id);
-
-/**
  * @macrosection
  *
  * Data flags
