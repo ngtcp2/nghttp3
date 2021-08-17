@@ -2162,11 +2162,15 @@ NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
  */
 
 /**
+ * @macro
+ *
  * :macro:`NGHTTP3_DATA_FLAG_NONE` indicates no flag set.
  */
 #define NGHTTP3_DATA_FLAG_NONE 0x00
 
 /**
+ * @macro
+ *
  * :macro:`NGHTTP3_DATA_FLAG_EOF` indicates that all request or
  * response body has been provided to the library.  It also indicates
  * that sending side of stream is closed unless
@@ -2175,6 +2179,8 @@ NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
 #define NGHTTP3_DATA_FLAG_EOF 0x01
 
 /**
+ * @macro
+ *
  * :macro:`NGHTTP3_DATA_FLAG_NO_END_STREAM` indicates that sending
  * side of stream is not closed even if :macro:`NGHTTP3_DATA_FLAG_EOF`
  * is set.  Usually this flag is used to send trailer fields with
@@ -2350,6 +2356,12 @@ NGHTTP3_EXTERN int64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
                                                            int64_t stream_id);
 
 /**
+ * @macrosection
+ *
+ * HTTP stream priority flags
+ */
+
+/**
  * @macro
  *
  * :macro:`NGHTTP3_DEFAULT_URGENCY` is the default urgency level.
@@ -2505,6 +2517,12 @@ NGHTTP3_EXTERN int nghttp3_check_header_value(const uint8_t *value, size_t len);
 NGHTTP3_EXTERN int nghttp3_http_parse_priority(nghttp3_pri *dest,
                                                const uint8_t *value,
                                                size_t len);
+
+/**
+ * @macrosection
+ *
+ * nghttp3_info flags
+ */
 
 /**
  * @macro
