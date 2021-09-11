@@ -636,6 +636,7 @@ static void check_http_header(const nghttp3_nv *nva, size_t nvlen, int request,
 
   memset(&callbacks, 0, sizeof(callbacks));
   nghttp3_settings_default(&settings);
+  settings.enable_connect_protocol = 1;
 
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, 0, mem);
@@ -879,7 +880,6 @@ void test_nghttp3_conn_http_req_header(void) {
      endpoint. */
   /* :protocol is allowed if SETTINGS_CONNECT_PROTOCOL is enabled by
      the local endpoint. */
-  /* SETTINGS_CONNECT_PROTOCOL has not been implemented yet. */
   const nghttp3_nv connectproto_reqnv[] = {
       MAKE_NV(":scheme", "https"),       MAKE_NV(":path", "/"),
       MAKE_NV(":method", "CONNECT"),     MAKE_NV(":authority", "localhost"),
@@ -947,8 +947,7 @@ void test_nghttp3_conn_http_req_header(void) {
   check_http_req_header(invalidvalue_reqnv,
                         nghttp3_arraylen(invalidvalue_reqnv), 0);
   check_http_req_header(connectproto_reqnv,
-                        nghttp3_arraylen(connectproto_reqnv),
-                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+                        nghttp3_arraylen(connectproto_reqnv), 0);
   check_http_req_header(connectprotoget_reqnv,
                         nghttp3_arraylen(connectprotoget_reqnv),
                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);

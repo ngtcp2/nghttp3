@@ -348,6 +348,12 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
   iv[2].id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS;
   iv[2].value = local_settings->qpack_blocked_streams;
 
+  if (local_settings->enable_connect_protocol) {
+    ++fr.settings.niv;
+    iv[3].id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL;
+    iv[3].value = 1;
+  }
+
   len = nghttp3_frame_write_settings_len(&fr.settings.hd.length, &fr.settings);
 
   rv = nghttp3_stream_ensure_chunk(stream, len);

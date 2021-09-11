@@ -80,7 +80,8 @@ typedef struct nghttp3_http_state nghttp3_http_state;
  * This function is called when HTTP header field |nv| received for
  * |http|.  This function will validate |nv| against the current state
  * of stream.  Pass nonzero if this is request headers. Pass nonzero
- * to |trailers| if |nv| is included in trailers.
+ * to |trailers| if |nv| is included in trailers.  |connect_protocol|
+ * is nonzero if Extended CONNECT Method is enabled.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -92,7 +93,7 @@ typedef struct nghttp3_http_state nghttp3_http_state;
  *     if it was not received because of compatibility reasons.
  */
 int nghttp3_http_on_header(nghttp3_http_state *http, nghttp3_qpack_nv *nv,
-                           int request, int trailers);
+                           int request, int trailers, int connect_protocol);
 
 /*
  * This function is called when request header is received.  This

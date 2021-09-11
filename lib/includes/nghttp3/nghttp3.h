@@ -1947,6 +1947,13 @@ typedef struct {
    * which can be blocked while they are being decoded.
    */
   size_t qpack_blocked_streams;
+  /**
+   * :member:`enable_connect_protocol`, if set to nonzero, enables
+   * Extended CONNECT Method (see
+   * https://www.ietf.org/archive/id/draft-ietf-httpbis-h3-websockets-00.html).
+   * Client ignores this field.
+   */
+  int enable_connect_protocol;
 } nghttp3_settings;
 
 /**

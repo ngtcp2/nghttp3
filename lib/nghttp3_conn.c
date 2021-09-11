@@ -249,6 +249,9 @@ static int conn_new(nghttp3_conn **pconn, int server,
 
   conn->callbacks = *callbacks;
   conn->local.settings = *settings;
+  if (!server) {
+    conn->local.settings.enable_connect_protocol = 0;
+  }
   nghttp3_settings_default(&conn->remote.settings);
   conn->mem = mem;
   conn->user_data = user_data;
@@ -1562,7 +1565,9 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
     }
 
     if (flags & NGHTTP3_QPACK_DECODE_FLAG_EMIT) {
-      rv = nghttp3_http_on_header(http, &nv, request, trailers);
+      rv = nghttp3_http_on_header(
+          http, &nv, request, trailers,
+          conn->server && conn->local.settings.enable_connect_protocol);
       switch (rv) {
       case NGHTTP3_ERR_MALFORMED_HTTP_HEADER:
         break;
@@ -1644,6 +1649,18 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
     if (rv != 0) {
       return rv;
     }
+    break;
+  case NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL:
+    if (!conn->server) {
+      break;
+    }
+    if (ent->value != 0 && ent->value != 1) {
+      return NGHTTP3_ERR_H3_SETTINGS_ERROR;
+    }
+    if (ent->value == 0 && dest->enable_connect_protocol) {
+      return NGHTTP3_ERR_H3_SETTINGS_ERROR;
+    }
+    dest->enable_connect_protocol = (int)ent->value;
     break;
   case NGHTTP3_H2_SETTINGS_ID_ENABLE_PUSH:
   case NGHTTP3_H2_SETTINGS_ID_MAX_CONCURRENT_STREAMS:

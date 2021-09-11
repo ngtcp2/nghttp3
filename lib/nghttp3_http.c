@@ -1137,7 +1137,7 @@ static int check_scheme(const uint8_t *value, size_t len) {
 }
 
 int nghttp3_http_on_header(nghttp3_http_state *http, nghttp3_qpack_nv *nv,
-                           int request, int trailers) {
+                           int request, int trailers, int connect_protocol) {
   int rv;
   size_t i;
   uint8_t c;
@@ -1183,8 +1183,7 @@ int nghttp3_http_on_header(nghttp3_http_state *http, nghttp3_qpack_nv *nv,
   }
 
   if (request) {
-    rv = http_request_on_header(http, nv, trailers,
-                                /* connect_protocol = */ 0);
+    rv = http_request_on_header(http, nv, trailers, connect_protocol);
   } else {
     rv = http_response_on_header(http, nv, trailers);
   }
