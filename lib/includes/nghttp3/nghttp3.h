@@ -1844,6 +1844,9 @@ typedef int (*nghttp3_reset_stream)(nghttp3_conn *conn, int64_t stream_id,
 typedef int (*nghttp3_shutdown)(nghttp3_conn *conn, int64_t id,
                                 void *conn_user_data);
 
+#define NGHTTP3_CALLBACKS_VERSION_V1 1
+#define NGHTTP3_CALLBACKS_VERSION NGHTTP3_CALLBACKS_VERSION_V1
+
 /**
  * @struct
  *
@@ -1926,12 +1929,15 @@ typedef struct nghttp3_callbacks {
   nghttp3_shutdown shutdown;
 } nghttp3_callbacks;
 
+#define NGHTTP3_SETTINGS_VERSION_V1 1
+#define NGHTTP3_SETTINGS_VERSION NGHTTP3_SETTINGS_VERSION_V1
+
 /**
  * @struct
  *
  * :type:`nghttp3_settings` defines HTTP/3 settings.
  */
-typedef struct {
+typedef struct nghttp3_settings {
   /**
    * :member:`max_field_section_size` specifies the maximum header
    * section (block) size.
@@ -1962,7 +1968,9 @@ typedef struct {
  * `nghttp3_settings_default` fills |settings| with the default
  * values.
  */
-NGHTTP3_EXTERN void nghttp3_settings_default(nghttp3_settings *settings);
+NGHTTP3_EXTERN void
+nghttp3_settings_default_versioned(int settings_version,
+                                   nghttp3_settings *settings);
 
 /**
  * @function
@@ -1971,11 +1979,12 @@ NGHTTP3_EXTERN void nghttp3_settings_default(nghttp3_settings *settings);
  * initializes it for client use.  The pointer to the object is stored
  * in |*pconn|.
  */
-NGHTTP3_EXTERN int nghttp3_conn_client_new(nghttp3_conn **pconn,
-                                           const nghttp3_callbacks *callbacks,
-                                           const nghttp3_settings *settings,
-                                           const nghttp3_mem *mem,
-                                           void *conn_user_data);
+NGHTTP3_EXTERN int
+nghttp3_conn_client_new_versioned(nghttp3_conn **pconn, int callbacks_version,
+                                  const nghttp3_callbacks *callbacks,
+                                  int settings_version,
+                                  const nghttp3_settings *settings,
+                                  const nghttp3_mem *mem, void *conn_user_data);
 
 /**
  * @function
@@ -1984,11 +1993,12 @@ NGHTTP3_EXTERN int nghttp3_conn_client_new(nghttp3_conn **pconn,
  * initializes it for server use.  The pointer to the object is stored
  * in |*pconn|.
  */
-NGHTTP3_EXTERN int nghttp3_conn_server_new(nghttp3_conn **pconn,
-                                           const nghttp3_callbacks *callbacks,
-                                           const nghttp3_settings *settings,
-                                           const nghttp3_mem *mem,
-                                           void *conn_user_data);
+NGHTTP3_EXTERN int
+nghttp3_conn_server_new_versioned(nghttp3_conn **pconn, int callbacks_version,
+                                  const nghttp3_callbacks *callbacks,
+                                  int settings_version,
+                                  const nghttp3_settings *settings,
+                                  const nghttp3_mem *mem, void *conn_user_data);
 
 /**
  * @function
@@ -2585,6 +2595,38 @@ NGHTTP3_EXTERN nghttp3_info *nghttp3_version(int least_version);
  * :macro:`NGHTTP3_ERR_NOMEM`).
  */
 NGHTTP3_EXTERN int nghttp3_err_is_fatal(int liberr);
+
+/*
+ * Versioned function wrappers
+ */
+
+/*
+ * `nghttp3_settings_default` is a wrapper around
+ * `nghttp3_settings_default_versioned` to set the correct struct
+ * version.
+ */
+#define nghttp3_settings_default(SETTINGS)                                     \
+  nghttp3_settings_default_versioned(NGHTTP3_SETTINGS_VERSION, (SETTINGS))
+
+/*
+ * `nghttp3_conn_client_new` is a wrapper around
+ * `nghttp3_conn_client_new_versioned` to set the correct struct
+ * version.
+ */
+#define nghttp3_conn_client_new(PCONN, CALLBACKS, SETTINGS, MEM, USER_DATA)    \
+  nghttp3_conn_client_new_versioned((PCONN), NGHTTP3_CALLBACKS_VERSION,        \
+                                    (CALLBACKS), NGHTTP3_SETTINGS_VERSION,     \
+                                    (SETTINGS), (MEM), (USER_DATA))
+
+/*
+ * `nghttp3_conn_server_new` is a wrapper around
+ * `nghttp3_conn_server_new_versioned` to set the correct struct
+ * version.
+ */
+#define nghttp3_conn_server_new(PCONN, CALLBACKS, SETTINGS, MEM, USER_DATA)    \
+  nghttp3_conn_server_new_versioned((PCONN), NGHTTP3_CALLBACKS_VERSION,        \
+                                    (CALLBACKS), NGHTTP3_SETTINGS_VERSION,     \
+                                    (SETTINGS), (MEM), (USER_DATA))
 
 #ifdef __cplusplus
 }

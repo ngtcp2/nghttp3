@@ -206,13 +206,15 @@ static int cycle_less(const nghttp3_pq_entry *lhsx,
   return rhs->cycle - lhs->cycle <= NGHTTP3_TNODE_MAX_CYCLE_GAP;
 }
 
-static int conn_new(nghttp3_conn **pconn, int server,
-                    const nghttp3_callbacks *callbacks,
+static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
+                    const nghttp3_callbacks *callbacks, int settings_version,
                     const nghttp3_settings *settings, const nghttp3_mem *mem,
                     void *user_data) {
   int rv;
   nghttp3_conn *conn;
   size_t i;
+  (void)callbacks_version;
+  (void)settings_version;
 
   conn = nghttp3_mem_calloc(mem, 1, sizeof(nghttp3_conn));
   if (conn == NULL) {
@@ -277,13 +279,16 @@ streams_init_fail:
   return rv;
 }
 
-int nghttp3_conn_client_new(nghttp3_conn **pconn,
-                            const nghttp3_callbacks *callbacks,
-                            const nghttp3_settings *settings,
-                            const nghttp3_mem *mem, void *user_data) {
+int nghttp3_conn_client_new_versioned(nghttp3_conn **pconn,
+                                      int callbacks_version,
+                                      const nghttp3_callbacks *callbacks,
+                                      int settings_version,
+                                      const nghttp3_settings *settings,
+                                      const nghttp3_mem *mem, void *user_data) {
   int rv;
 
-  rv = conn_new(pconn, /* server = */ 0, callbacks, settings, mem, user_data);
+  rv = conn_new(pconn, /* server = */ 0, callbacks_version, callbacks,
+                settings_version, settings, mem, user_data);
   if (rv != 0) {
     return rv;
   }
@@ -291,13 +296,16 @@ int nghttp3_conn_client_new(nghttp3_conn **pconn,
   return 0;
 }
 
-int nghttp3_conn_server_new(nghttp3_conn **pconn,
-                            const nghttp3_callbacks *callbacks,
-                            const nghttp3_settings *settings,
-                            const nghttp3_mem *mem, void *user_data) {
+int nghttp3_conn_server_new_versioned(nghttp3_conn **pconn,
+                                      int callbacks_version,
+                                      const nghttp3_callbacks *callbacks,
+                                      int settings_version,
+                                      const nghttp3_settings *settings,
+                                      const nghttp3_mem *mem, void *user_data) {
   int rv;
 
-  rv = conn_new(pconn, /* server = */ 1, callbacks, settings, mem, user_data);
+  rv = conn_new(pconn, /* server = */ 1, callbacks_version, callbacks,
+                settings_version, settings, mem, user_data);
   if (rv != 0) {
     return rv;
   }
@@ -2488,7 +2496,10 @@ int nghttp3_conn_is_remote_qpack_encoder_stream(nghttp3_conn *conn,
   return stream && stream->type == NGHTTP3_STREAM_TYPE_QPACK_ENCODER;
 }
 
-void nghttp3_settings_default(nghttp3_settings *settings) {
+void nghttp3_settings_default_versioned(int settings_version,
+                                        nghttp3_settings *settings) {
+  (void)settings_version;
+
   memset(settings, 0, sizeof(nghttp3_settings));
   settings->max_field_section_size = NGHTTP3_VARINT_MAX;
 }
