@@ -797,7 +797,7 @@ nghttp3_ssize nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
   nghttp3_ringbuf *outq = &stream->outq;
   size_t len = nghttp3_ringbuf_len(outq);
   size_t i;
-  size_t offset = stream->outq_offset;
+  uint64_t offset = stream->outq_offset;
   size_t buflen;
   nghttp3_vec *vbegin = vec, *vend = vec + veccnt;
   nghttp3_typed_buf *tbuf;
@@ -837,7 +837,7 @@ int nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n) {
   nghttp3_ringbuf *outq = &stream->outq;
   size_t i;
   size_t len = nghttp3_ringbuf_len(outq);
-  size_t offset = stream->outq_offset + n;
+  uint64_t offset = stream->outq_offset + n;
   size_t buflen;
   nghttp3_typed_buf *tbuf;
 
@@ -903,7 +903,7 @@ int nghttp3_stream_add_ack_offset(nghttp3_stream *stream, uint64_t n) {
   uint64_t offset = stream->ack_offset + n;
   size_t buflen;
   size_t npopped = 0;
-  size_t nack;
+  uint64_t nack;
   nghttp3_typed_buf *tbuf;
   int rv;
 
@@ -912,7 +912,7 @@ int nghttp3_stream_add_ack_offset(nghttp3_stream *stream, uint64_t n) {
     buflen = nghttp3_buf_len(&tbuf->buf);
 
     if (tbuf->type == NGHTTP3_BUF_TYPE_ALIEN) {
-      nack = (size_t)nghttp3_min(offset, (uint64_t)buflen) - stream->ack_done;
+      nack = nghttp3_min(offset, (uint64_t)buflen) - stream->ack_done;
       if (stream->callbacks.acked_data) {
         rv = stream->callbacks.acked_data(stream, stream->node.nid.id, nack,
                                           stream->user_data);

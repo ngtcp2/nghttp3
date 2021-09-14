@@ -209,20 +209,20 @@ struct nghttp3_stream {
   nghttp3_conn *conn;
   void *user_data;
   /* unsent_bytes is the number of bytes in outq not written yet */
-  size_t unsent_bytes;
+  uint64_t unsent_bytes;
   /* outq_idx is an index into outq where next write is made. */
   size_t outq_idx;
   /* outq_offset is write offset relative to the element at outq_idx
      in outq. */
-  size_t outq_offset;
+  uint64_t outq_offset;
   /* ack_offset is offset acknowledged by peer relative to the first
      element in outq. */
   uint64_t ack_offset;
   /* ack_done is the number of bytes notified to an application that
      they are acknowledged inside the first outq element if it is of
      type NGHTTP3_BUF_TYPE_ALIEN. */
-  size_t ack_done;
-  size_t unscheduled_nwrite;
+  uint64_t ack_done;
+  uint64_t unscheduled_nwrite;
   nghttp3_stream_type type;
   nghttp3_stream_read_state rstate;
   /* error_code indicates the reason of closure of this stream. */
