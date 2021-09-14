@@ -51,5 +51,6 @@ void test_nghttp3_conn_shutdown_client(void);
 void test_nghttp3_conn_priority_update(void);
 void test_nghttp3_conn_set_stream_priority(void);
 void test_nghttp3_conn_shutdown_stream_read(void);
+void test_nghttp3_conn_stream_data_overflow(void);
 
 #endif /* NGTCP2_CONN_TEST_H */

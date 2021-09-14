@@ -184,6 +184,13 @@ typedef ptrdiff_t nghttp3_ssize;
 /**
  * @macro
  *
+ * :macro:`NGHTTP3_ERR_STREAM_DATA_OVERFLOW` indicates that the length
+ * of stream data is too long and causes overflow.
+ */
+#define NGHTTP3_ERR_STREAM_DATA_OVERFLOW -117
+/**
+ * @macro
+ *
  * :macro:`NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED` indicates that a
  * QPACK decompression failed.
  */
@@ -2493,7 +2500,7 @@ nghttp3_conn_is_remote_qpack_encoder_stream(nghttp3_conn *conn,
  * `nghttp3_vec_len` returns the sum of length in |vec| of |cnt|
  * elements.
  */
-NGHTTP3_EXTERN size_t nghttp3_vec_len(const nghttp3_vec *vec, size_t cnt);
+NGHTTP3_EXTERN uint64_t nghttp3_vec_len(const nghttp3_vec *vec, size_t cnt);
 
 /**
  * @function

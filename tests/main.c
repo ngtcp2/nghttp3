@@ -114,6 +114,8 @@ int main() {
                    test_nghttp3_conn_set_stream_priority) ||
       !CU_add_test(pSuite, "conn_shutdown_stream_read",
                    test_nghttp3_conn_shutdown_stream_read) ||
+      !CU_add_test(pSuite, "conn_stream_data_overflow",
+                   test_nghttp3_conn_stream_data_overflow) ||
       !CU_add_test(pSuite, "tnode_schedule", test_nghttp3_tnode_schedule) ||
       !CU_add_test(pSuite, "http_parse_priority",
                    test_nghttp3_http_parse_priority) ||

@@ -177,6 +177,40 @@ step_then_block_read_data(nghttp3_conn *conn, int64_t stream_id,
   return rv;
 }
 
+#if SIZE_MAX > UINT32_MAX
+static nghttp3_ssize stream_data_overflow_read_data(
+    nghttp3_conn *conn, int64_t stream_id, nghttp3_vec *vec, size_t veccnt,
+    uint32_t *pflags, void *user_data, void *stream_user_data) {
+  (void)conn;
+  (void)stream_id;
+  (void)veccnt;
+  (void)pflags;
+  (void)user_data;
+  (void)stream_user_data;
+
+  vec[0].base = nulldata;
+  vec[0].len = NGHTTP3_MAX_VARINT + 1;
+
+  return 1;
+}
+
+static nghttp3_ssize stream_data_almost_overflow_read_data(
+    nghttp3_conn *conn, int64_t stream_id, nghttp3_vec *vec, size_t veccnt,
+    uint32_t *pflags, void *user_data, void *stream_user_data) {
+  (void)conn;
+  (void)stream_id;
+  (void)veccnt;
+  (void)pflags;
+  (void)user_data;
+  (void)stream_user_data;
+
+  vec[0].base = nulldata;
+  vec[0].len = NGHTTP3_MAX_VARINT;
+
+  return 1;
+}
+#endif /* SIZE_MAX > UINT32_MAX */
+
 static int send_stop_sending(nghttp3_conn *conn, int64_t stream_id,
                              uint64_t app_error_code, void *user_data,
                              void *stream_user_data) {
@@ -2773,4 +2807,103 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
   nghttp3_buf_free(&ebuf, mem);
+}
+
+void test_nghttp3_conn_stream_data_overflow(void) {
+#if SIZE_MAX > UINT32_MAX
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  nghttp3_callbacks callbacks;
+  nghttp3_settings settings;
+  const nghttp3_nv nva[] = {
+      MAKE_NV(":path", "/"),
+      MAKE_NV(":authority", "example.com"),
+      MAKE_NV(":scheme", "https"),
+      MAKE_NV(":method", "GET"),
+  };
+  nghttp3_vec vec[256];
+  nghttp3_ssize sveccnt;
+  int rv;
+  int64_t stream_id;
+  nghttp3_data_reader dr;
+  int fin;
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  nghttp3_settings_default(&settings);
+
+  /* Specify NGHTTP3_MAX_VARINT + 1 bytes data in
+     nghttp3_read_data_callback. */
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_bind_qpack_streams(conn, 6, 10);
+
+  dr.read_data = stream_data_overflow_read_data;
+
+  /* QPACK decoder stream */
+  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr,
+                                   NULL);
+
+  CU_ASSERT(0 == rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(10 == stream_id);
+  CU_ASSERT(1 == sveccnt);
+
+  nghttp3_conn_add_write_offset(conn, 10, vec[0].len);
+
+  /* QPACK encoder stream */
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(6 == stream_id);
+  CU_ASSERT(1 == sveccnt);
+
+  nghttp3_conn_add_write_offset(conn, 6, vec[0].len);
+
+  /* Write request stream */
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(NGHTTP3_ERR_STREAM_DATA_OVERFLOW == sveccnt);
+
+  nghttp3_conn_del(conn);
+
+  /* nghttp3_stream_outq_add detects stream data overflow */
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_bind_qpack_streams(conn, 6, 10);
+
+  dr.read_data = stream_data_almost_overflow_read_data;
+
+  /* QPACK decoder stream */
+  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr,
+                                   NULL);
+
+  CU_ASSERT(0 == rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(10 == stream_id);
+  CU_ASSERT(1 == sveccnt);
+
+  nghttp3_conn_add_write_offset(conn, 10, vec[0].len);
+
+  /* QPACK encoder stream */
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(6 == stream_id);
+  CU_ASSERT(1 == sveccnt);
+
+  nghttp3_conn_add_write_offset(conn, 6, vec[0].len);
+
+  /* Write request stream */
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  CU_ASSERT(NGHTTP3_ERR_STREAM_DATA_OVERFLOW == sveccnt);
+
+  nghttp3_conn_del(conn);
+#endif /* SIZE_MAX > UINT32_MAX */
 }

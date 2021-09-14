@@ -34,6 +34,7 @@
 #include "nghttp3_conn.h"
 #include "nghttp3_str.h"
 #include "nghttp3_http.h"
+#include "nghttp3_vec.h"
 
 /* NGHTTP3_STREAM_MAX_COPY_THRES is the maximum size of buffer which
    makes a copy to outq. */
@@ -82,6 +83,7 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
 
   stream->qpack_blocked_pe.index = NGHTTP3_PQ_BAD_INDEX;
   stream->mem = mem;
+  stream->tx.offset = 0;
   stream->rx.http.status_code = -1;
   stream->rx.http.content_length = -1;
   stream->rx.http.pri = NGHTTP3_DEFAULT_URGENCY;
@@ -557,7 +559,7 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
   nghttp3_buf *chunk;
   nghttp3_read_data_callback read_data = frent->aux.data.dr.read_data;
   nghttp3_conn *conn = stream->conn;
-  size_t datalen;
+  int64_t datalen;
   uint32_t flags = 0;
   nghttp3_frame_hd hd;
   nghttp3_vec vec[8];
@@ -581,7 +583,10 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
     return NGHTTP3_ERR_CALLBACK_FAILURE;
   }
 
-  datalen = nghttp3_vec_len(vec, (size_t)sveccnt);
+  datalen = nghttp3_vec_len_varint(vec, (size_t)sveccnt);
+  if (datalen == -1) {
+    return NGHTTP3_ERR_STREAM_DATA_OVERFLOW;
+  }
 
   assert(datalen || flags & NGHTTP3_DATA_FLAG_EOF);
 
@@ -611,7 +616,7 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
   }
 
   hd.type = NGHTTP3_FRAME_DATA;
-  hd.length = (int64_t)datalen;
+  hd.length = datalen;
 
   len = nghttp3_frame_write_hd_len(&hd);
 
@@ -696,8 +701,14 @@ int nghttp3_stream_outq_add(nghttp3_stream *stream,
   int rv;
   nghttp3_typed_buf *dest;
   size_t len = nghttp3_ringbuf_len(outq);
+  size_t buflen = nghttp3_buf_len(&tbuf->buf);
 
-  stream->unsent_bytes += nghttp3_buf_len(&tbuf->buf);
+  if (buflen > NGHTTP3_MAX_VARINT - stream->tx.offset) {
+    return NGHTTP3_ERR_STREAM_DATA_OVERFLOW;
+  }
+
+  stream->tx.offset += buflen;
+  stream->unsent_bytes += buflen;
 
   if (len) {
     dest = nghttp3_ringbuf_get(outq, len - 1);

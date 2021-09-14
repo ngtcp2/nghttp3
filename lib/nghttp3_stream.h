@@ -229,6 +229,7 @@ struct nghttp3_stream {
   uint64_t error_code;
 
   struct {
+    uint64_t offset;
     nghttp3_stream_http_state hstate;
   } tx;
 
