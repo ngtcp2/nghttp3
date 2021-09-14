@@ -45,7 +45,7 @@ typedef struct {
     size_t step;
   } data;
   struct {
-    size_t acc;
+    uint64_t acc;
   } ack;
   struct {
     size_t ncalled;
@@ -67,7 +67,7 @@ typedef struct {
 } userdata;
 
 static int acked_stream_data(nghttp3_conn *conn, int64_t stream_id,
-                             size_t datalen, void *user_data,
+                             uint64_t datalen, void *user_data,
                              void *stream_user_data) {
   userdata *ud = user_data;
 

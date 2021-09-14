@@ -1744,7 +1744,7 @@ int nghttp3_conn_on_priority_update(nghttp3_conn *conn,
 }
 
 static int conn_stream_acked_data(nghttp3_stream *stream, int64_t stream_id,
-                                  size_t datalen, void *user_data) {
+                                  uint64_t datalen, void *user_data) {
   nghttp3_conn *conn = stream->conn;
   int rv;
 

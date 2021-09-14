@@ -170,7 +170,7 @@ typedef struct nghttp3_stream nghttp3_stream;
  * NGHTTP3_ERR_CALLBACK_FAILURE.
  */
 typedef int (*nghttp3_stream_acked_data)(nghttp3_stream *stream,
-                                         int64_t stream_id, size_t datalen,
+                                         int64_t stream_id, uint64_t datalen,
                                          void *user_data);
 
 typedef struct nghttp3_stream_callbacks {

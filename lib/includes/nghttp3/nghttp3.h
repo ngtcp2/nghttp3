@@ -1642,7 +1642,7 @@ typedef struct nghttp3_conn nghttp3_conn;
  * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_acked_stream_data)(nghttp3_conn *conn, int64_t stream_id,
-                                         size_t datalen, void *conn_user_data,
+                                         uint64_t datalen, void *conn_user_data,
                                          void *stream_user_data);
 
 /**
