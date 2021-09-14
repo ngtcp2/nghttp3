@@ -813,7 +813,7 @@ nghttp3_ssize nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
     }
 
     vec->base = tbuf->buf.pos + offset;
-    vec->len = buflen - offset;
+    vec->len = (size_t)(buflen - offset);
     ++vec;
     ++i;
     break;
