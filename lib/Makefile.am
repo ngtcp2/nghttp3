@@ -79,7 +79,8 @@ HFILES = \
 	nghttp3_gaptr.h \
 	nghttp3_idtr.h \
 	nghttp3_range.h \
-	nghttp3_http.h
+	nghttp3_http.h \
+	nghttp3_macro.h
 
 libnghttp3_la_SOURCES = $(HFILES) $(OBJECTS)
 libnghttp3_la_LDFLAGS = -no-undefined \
