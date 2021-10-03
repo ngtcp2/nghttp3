@@ -3331,7 +3331,7 @@ nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
       }
 
       if (sctx->dbase_sign) {
-        if (sctx->ricnt < sctx->rstate.left) {
+        if (sctx->ricnt <= sctx->rstate.left) {
           rv = NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
           goto fail;
         }
