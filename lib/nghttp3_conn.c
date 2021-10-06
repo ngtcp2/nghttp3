@@ -1383,6 +1383,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       default:
         /* Unreachable */
         assert(0);
+        abort();
       }
 
       if (rv != 0) {

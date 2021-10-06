@@ -1199,6 +1199,7 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
     return NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING;
   default:
     assert(0);
+    abort();
   }
 }
 

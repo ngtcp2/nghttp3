@@ -190,6 +190,7 @@ static int map_resize(nghttp3_map *map, uint32_t new_tablelen,
   nghttp3_map_bucket *new_table;
   nghttp3_map_bucket *bkt;
   int rv;
+  (void)rv;
 
   new_table =
       nghttp3_mem_calloc(map->mem, new_tablelen, sizeof(nghttp3_map_bucket));

@@ -268,6 +268,7 @@ fin:
     return p - begin;
   default:
     assert(0);
+    abort();
   }
 }
 

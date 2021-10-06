@@ -3039,6 +3039,7 @@ nghttp3_ssize nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
       default:
         /* Unreachable */
         assert(0);
+        abort();
       }
       if (rv != 0) {
         goto fail;
@@ -3073,6 +3074,7 @@ nghttp3_ssize nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
       default:
         /* Unreachable */
         assert(0);
+        abort();
       }
       if (rv != 0) {
         goto fail;
@@ -3736,6 +3738,7 @@ void nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
   uint8_t *p;
   uint64_t n = 0;
   size_t len = 0;
+  (void)len;
 
   if (decoder->written_icnt < decoder->ctx.next_absidx) {
     n = decoder->ctx.next_absidx - decoder->written_icnt;

@@ -59,6 +59,7 @@ void nghttp3_write_frame_qpack(nghttp3_buf *dest, nghttp3_qpack_encoder *qenc,
   size_t nvlen;
   nghttp3_buf pbuf, rbuf, ebuf;
   const nghttp3_mem *mem = nghttp3_mem_default();
+  (void)rv;
 
   switch (fr->hd.type) {
   case NGHTTP3_FRAME_HEADERS:
@@ -67,6 +68,7 @@ void nghttp3_write_frame_qpack(nghttp3_buf *dest, nghttp3_qpack_encoder *qenc,
     break;
   default:
     assert(0);
+    abort();
   }
 
   nghttp3_buf_init(&pbuf);
@@ -96,6 +98,7 @@ void nghttp3_write_frame_qpack_dyn(nghttp3_buf *dest, nghttp3_buf *ebuf,
   size_t nvlen;
   nghttp3_buf pbuf, rbuf;
   const nghttp3_mem *mem = nghttp3_mem_default();
+  (void)rv;
 
   switch (fr->hd.type) {
   case NGHTTP3_FRAME_HEADERS:
@@ -104,6 +107,7 @@ void nghttp3_write_frame_qpack_dyn(nghttp3_buf *dest, nghttp3_buf *ebuf,
     break;
   default:
     assert(0);
+    abort();
   }
 
   nghttp3_buf_init(&pbuf);
