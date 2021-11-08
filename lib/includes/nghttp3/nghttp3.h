@@ -1079,10 +1079,12 @@ typedef struct nghttp3_qpack_encoder nghttp3_qpack_encoder;
  *
  * `nghttp3_qpack_encoder_new` initializes QPACK encoder.  |pencoder|
  * must be non-NULL pointer.  |max_dtable_size| is the maximum dynamic
- * table size.  |max_blocked| is the maximum number of streams which
- * can be blocked.  |mem| is a memory allocator.  This function
- * allocates memory for :type:`nghttp3_qpack_encoder` itself and
- * assigns its pointer to |*pencoder| if it succeeds.
+ * table size.  If |max_dtable_size| is zero, calling
+ * `nghttp3_qpack_encoder_set_hard_max_dtable_size` can set a table
+ * size.  |max_blocked| is the maximum number of streams which can be
+ * blocked.  |mem| is a memory allocator.  This function allocates
+ * memory for :type:`nghttp3_qpack_encoder` itself and assigns its
+ * pointer to |*pencoder| if it succeeds.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
