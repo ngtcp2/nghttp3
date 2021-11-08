@@ -154,15 +154,16 @@ typedef struct nghttp3_qpack_context {
      NGHTTP3_QPACK_ENTRY_OVERHEAD bytes overhead per each entry. */
   size_t dtable_size;
   size_t dtable_sum;
-  /* hard_max_dtable_size is the maximum size of dynamic table.  In
-     HTTP/3, it is notified by decoder as
+  /* hard_max_dtable_capacity is the maximum size of dynamic table.
+     In HTTP/3, it is notified by decoder as
      SETTINGS_QPACK_MAX_TABLE_CAPACITY.  Any value lower than or equal
      to SETTINGS_QPACK_MAX_TABLE_CAPACITY is OK because encoder has
      the authority to decide how many entries are inserted into
      dynamic table. */
-  size_t hard_max_dtable_size;
-  /* max_dtable_size is the effective maximum size of dynamic table. */
-  size_t max_dtable_size;
+  size_t hard_max_dtable_capacity;
+  /* max_dtable_capacity is the effective maximum size of dynamic
+     table. */
+  size_t max_dtable_capacity;
   /* max_blocked is the maximum number of stream which can be
      blocked. */
   size_t max_blocked;
@@ -746,7 +747,7 @@ struct nghttp3_qpack_decoder {
 
 /*
  * nghttp3_qpack_decoder_init initializes |decoder|.
- * |max_dtable_size| is the maximum size of dynamic table.
+ * |max_dtable_capacity| is the maximum size of dynamic table.
  * |max_blocked| is the maximum number of stream which can be blocked.
  * |mem| is a memory allocator.
  *
@@ -757,7 +758,7 @@ struct nghttp3_qpack_decoder {
  *     Out of memory.
  */
 int nghttp3_qpack_decoder_init(nghttp3_qpack_decoder *decoder,
-                               size_t max_dtable_size, size_t max_blocked,
+                               size_t max_dtable_capacity, size_t max_blocked,
                                const nghttp3_mem *mem);
 
 /*

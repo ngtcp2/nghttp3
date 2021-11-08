@@ -355,7 +355,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   CU_ASSERT(1 == dec.ctx.next_absidx);
   CU_ASSERT(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             dec.ctx.dtable_size);
-  CU_ASSERT(4096 == dec.ctx.max_dtable_size);
+  CU_ASSERT(4096 == dec.ctx.max_dtable_capacity);
 
   decode_header_block(&dec, &pbuf, &rbuf, 0, mem);
   nghttp3_buf_reset(&pbuf);
@@ -382,7 +382,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
                 strlen("vary") + strlen("bar2") +
                 NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             dec.ctx.dtable_size);
-  CU_ASSERT(4096 == dec.ctx.max_dtable_size);
+  CU_ASSERT(4096 == dec.ctx.max_dtable_capacity);
 
   decode_header_block(&dec, &pbuf, &rbuf, 4, mem);
   nghttp3_buf_reset(&pbuf);
@@ -392,15 +392,16 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   rv = nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 0);
 
   CU_ASSERT(0 == rv);
-  CU_ASSERT(0 == enc.ctx.max_dtable_size);
+  CU_ASSERT(0 == enc.ctx.max_dtable_capacity);
   CU_ASSERT(2 == nghttp3_qpack_encoder_get_num_blocked(&enc));
 
-  /* Cannot index more headers because we set max_dtable_size to 0. */
+  /* Cannot index more headers because we set max_dtable_capacity to
+     0. */
   rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 8, nva2,
                                     nghttp3_arraylen(nva2));
 
   CU_ASSERT(0 == rv);
-  CU_ASSERT(0 == enc.ctx.max_dtable_size);
+  CU_ASSERT(0 == enc.ctx.max_dtable_capacity);
   CU_ASSERT(2 == enc.ctx.next_absidx);
   CU_ASSERT(2 == nghttp3_qpack_encoder_get_num_blocked(&enc));
 
@@ -413,7 +414,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
                 strlen("vary") + strlen("bar2") +
                 NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             dec.ctx.dtable_size);
-  CU_ASSERT(4096 == dec.ctx.max_dtable_size);
+  CU_ASSERT(4096 == dec.ctx.max_dtable_capacity);
 
   decode_header_block(&dec, &pbuf, &rbuf, 8, mem);
   nghttp3_buf_reset(&pbuf);
@@ -429,7 +430,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   CU_ASSERT(0 == rv);
   CU_ASSERT(strlen("vary") + strlen("bar2") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             enc.ctx.dtable_size);
-  CU_ASSERT(0 == enc.ctx.max_dtable_size);
+  CU_ASSERT(0 == enc.ctx.max_dtable_capacity);
   CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked(&enc));
 
   nread = nghttp3_qpack_decoder_read_encoder(&dec, ebuf.pos,
@@ -443,7 +444,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
                 strlen("vary") + strlen("bar2") +
                 NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             dec.ctx.dtable_size);
-  CU_ASSERT(4096 == dec.ctx.max_dtable_size);
+  CU_ASSERT(4096 == dec.ctx.max_dtable_capacity);
 
   decode_header_block(&dec, &pbuf, &rbuf, 12, mem);
   nghttp3_buf_reset(&pbuf);
@@ -458,7 +459,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
 
   CU_ASSERT(0 == rv);
   CU_ASSERT(0 == enc.ctx.dtable_size);
-  CU_ASSERT(0 == enc.ctx.max_dtable_size);
+  CU_ASSERT(0 == enc.ctx.max_dtable_capacity);
   CU_ASSERT(0 == enc.last_max_dtable_update);
   CU_ASSERT(SIZE_MAX == enc.min_dtable_update);
   CU_ASSERT(0 == nghttp3_qpack_encoder_get_num_blocked(&enc));
@@ -469,7 +470,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   CU_ASSERT(nread == (nghttp3_ssize)nghttp3_buf_len(&ebuf));
   CU_ASSERT(2 == dec.ctx.next_absidx);
   CU_ASSERT(0 == dec.ctx.dtable_size);
-  CU_ASSERT(0 == dec.ctx.max_dtable_size);
+  CU_ASSERT(0 == dec.ctx.max_dtable_capacity);
 
   decode_header_block(&dec, &pbuf, &rbuf, 16, mem);
   nghttp3_buf_reset(&pbuf);
@@ -501,7 +502,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   CU_ASSERT(1 == dec.ctx.next_absidx);
   CU_ASSERT(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             dec.ctx.dtable_size);
-  CU_ASSERT(4096 == dec.ctx.max_dtable_size);
+  CU_ASSERT(4096 == dec.ctx.max_dtable_capacity);
 
   decode_header_block(&dec, &pbuf, &rbuf, 0, mem);
   nghttp3_buf_reset(&pbuf);
@@ -529,7 +530,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
             enc.ctx.dtable_size);
   CU_ASSERT(SIZE_MAX == enc.min_dtable_update);
   CU_ASSERT(1024 == enc.last_max_dtable_update);
-  CU_ASSERT(1024 == enc.ctx.max_dtable_size);
+  CU_ASSERT(1024 == enc.ctx.max_dtable_capacity);
 
   nread = nghttp3_qpack_decoder_read_encoder(&dec, ebuf.pos,
                                              nghttp3_buf_len(&ebuf));
@@ -538,7 +539,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   CU_ASSERT(2 == dec.ctx.next_absidx);
   CU_ASSERT(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             dec.ctx.dtable_size);
-  CU_ASSERT(1024 == dec.ctx.max_dtable_size);
+  CU_ASSERT(1024 == dec.ctx.max_dtable_capacity);
 
   decode_header_block(&dec, &pbuf, &rbuf, 4, mem);
   nghttp3_buf_reset(&pbuf);

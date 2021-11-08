@@ -313,8 +313,8 @@ void test_nghttp3_conn_read_control(void) {
   CU_ASSERT(65536 == conn->remote.settings.max_field_section_size);
   CU_ASSERT(4096 == conn->remote.settings.qpack_max_table_capacity);
   CU_ASSERT(99 == conn->remote.settings.qpack_blocked_streams);
-  CU_ASSERT(4096 == conn->qenc.ctx.hard_max_dtable_size);
-  CU_ASSERT(4096 == conn->qenc.ctx.max_dtable_size);
+  CU_ASSERT(4096 == conn->qenc.ctx.hard_max_dtable_capacity);
+  CU_ASSERT(4096 == conn->qenc.ctx.max_dtable_capacity);
   CU_ASSERT(99 == conn->qenc.ctx.max_blocked);
 
   nghttp3_conn_del(conn);
@@ -363,8 +363,8 @@ void test_nghttp3_conn_read_control(void) {
   CU_ASSERT(nconsumed == (nghttp3_ssize)nghttp3_buf_len(&buf));
   CU_ASSERT(4097 == conn->remote.settings.qpack_max_table_capacity);
   CU_ASSERT(101 == conn->remote.settings.qpack_blocked_streams);
-  CU_ASSERT(4096 == conn->qenc.ctx.hard_max_dtable_size);
-  CU_ASSERT(4096 == conn->qenc.ctx.max_dtable_size);
+  CU_ASSERT(4096 == conn->qenc.ctx.hard_max_dtable_capacity);
+  CU_ASSERT(4096 == conn->qenc.ctx.max_dtable_capacity);
   CU_ASSERT(100 == conn->qenc.ctx.max_blocked);
 
   nghttp3_conn_del(conn);
