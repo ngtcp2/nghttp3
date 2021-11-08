@@ -954,8 +954,8 @@ void nghttp3_qpack_encoder_free(nghttp3_qpack_encoder *encoder) {
   qpack_context_free(&encoder->ctx);
 }
 
-int nghttp3_qpack_encoder_set_max_dtable_size(nghttp3_qpack_encoder *encoder,
-                                              size_t max_dtable_size) {
+int nghttp3_qpack_encoder_set_max_dtable_capacity(
+    nghttp3_qpack_encoder *encoder, size_t max_dtable_size) {
   if (encoder->ctx.hard_max_dtable_size < max_dtable_size) {
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
