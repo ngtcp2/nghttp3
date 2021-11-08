@@ -975,7 +975,7 @@ int nghttp3_qpack_encoder_set_max_dtable_capacity(
   return 0;
 }
 
-int nghttp3_qpack_encoder_set_hard_max_dtable_size(
+int nghttp3_qpack_encoder_set_hard_max_dtable_capacity(
     nghttp3_qpack_encoder *encoder, size_t hard_max_dtable_size) {
   /* TODO This is not ideal. */
   if (encoder->ctx.hard_max_dtable_size) {

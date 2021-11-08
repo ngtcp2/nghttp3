@@ -1638,8 +1638,8 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
     dest->qpack_max_table_capacity = (size_t)ent->value;
     max_table_capacity =
         nghttp3_min(max_table_capacity, dest->qpack_max_table_capacity);
-    rv = nghttp3_qpack_encoder_set_hard_max_dtable_size(&conn->qenc,
-                                                        max_table_capacity);
+    rv = nghttp3_qpack_encoder_set_hard_max_dtable_capacity(&conn->qenc,
+                                                            max_table_capacity);
     if (rv != 0) {
       return rv;
     }
