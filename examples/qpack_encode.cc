@@ -72,7 +72,7 @@ int Encoder::init() {
     return -1;
   }
 
-  nghttp3_qpack_encoder_set_max_blocked(enc_, max_blocked_);
+  nghttp3_qpack_encoder_set_max_blocked_streams(enc_, max_blocked_);
 
   return 0;
 }

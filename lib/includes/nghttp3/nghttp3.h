@@ -1184,12 +1184,12 @@ NGHTTP3_EXTERN void nghttp3_qpack_encoder_set_hard_max_dtable_capacity(
 /**
  * @function
  *
- * `nghttp3_qpack_encoder_set_max_blocked` sets the number of streams
- * which can be blocked to |max_blocked|.
+ * `nghttp3_qpack_encoder_set_max_blocked_streams` sets the number of
+ * streams which can be blocked to |max_blocked|.
  */
 NGHTTP3_EXTERN void
-nghttp3_qpack_encoder_set_max_blocked(nghttp3_qpack_encoder *encoder,
-                                      size_t max_blocked);
+nghttp3_qpack_encoder_set_max_blocked_streams(nghttp3_qpack_encoder *encoder,
+                                              size_t max_blocked);
 
 /**
  * @function

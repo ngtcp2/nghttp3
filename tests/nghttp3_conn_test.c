@@ -1937,7 +1937,8 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   nghttp3_qpack_encoder_init(&qenc, mem);
   nghttp3_qpack_encoder_set_hard_max_dtable_capacity(
       &qenc, settings.qpack_max_table_capacity);
-  nghttp3_qpack_encoder_set_max_blocked(&qenc, settings.qpack_blocked_streams);
+  nghttp3_qpack_encoder_set_max_blocked_streams(&qenc,
+                                                settings.qpack_blocked_streams);
   nghttp3_qpack_encoder_set_max_dtable_capacity(
       &qenc, settings.qpack_max_table_capacity);
 
@@ -1996,7 +1997,8 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   nghttp3_qpack_encoder_init(&qenc, mem);
   nghttp3_qpack_encoder_set_hard_max_dtable_capacity(
       &qenc, settings.qpack_max_table_capacity);
-  nghttp3_qpack_encoder_set_max_blocked(&qenc, settings.qpack_blocked_streams);
+  nghttp3_qpack_encoder_set_max_blocked_streams(&qenc,
+                                                settings.qpack_blocked_streams);
   nghttp3_qpack_encoder_set_max_dtable_capacity(
       &qenc, settings.qpack_max_table_capacity);
 
@@ -2835,7 +2837,8 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   nghttp3_qpack_encoder_init(&qenc, mem);
   nghttp3_qpack_encoder_set_hard_max_dtable_capacity(
       &qenc, settings.qpack_max_table_capacity);
-  nghttp3_qpack_encoder_set_max_blocked(&qenc, settings.qpack_blocked_streams);
+  nghttp3_qpack_encoder_set_max_blocked_streams(&qenc,
+                                                settings.qpack_blocked_streams);
   nghttp3_qpack_encoder_set_max_dtable_capacity(
       &qenc, settings.qpack_max_table_capacity);
 

@@ -979,8 +979,8 @@ void nghttp3_qpack_encoder_set_hard_max_dtable_capacity(
   encoder->ctx.hard_max_dtable_size = hard_max_dtable_size;
 }
 
-void nghttp3_qpack_encoder_set_max_blocked(nghttp3_qpack_encoder *encoder,
-                                           size_t max_blocked) {
+void nghttp3_qpack_encoder_set_max_blocked_streams(
+    nghttp3_qpack_encoder *encoder, size_t max_blocked) {
   encoder->ctx.max_blocked = max_blocked;
 }
 
