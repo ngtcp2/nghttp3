@@ -2852,8 +2852,8 @@ nghttp3_ssize nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
         }
         DEBUGF("qpack::decode: Set dtable capacity to %" PRIu64 "\n",
                decoder->rstate.left);
-        nghttp3_qpack_decoder_set_dtable_cap(decoder,
-                                             (size_t)decoder->rstate.left);
+        nghttp3_qpack_decoder_set_max_dtable_capacity(
+            decoder, (size_t)decoder->rstate.left);
 
         decoder->state = NGHTTP3_QPACK_ES_STATE_OPCODE;
         nghttp3_qpack_read_state_reset(&decoder->rstate);
@@ -3093,8 +3093,8 @@ fail:
   return rv;
 }
 
-void nghttp3_qpack_decoder_set_dtable_cap(nghttp3_qpack_decoder *decoder,
-                                          size_t cap) {
+void nghttp3_qpack_decoder_set_max_dtable_capacity(
+    nghttp3_qpack_decoder *decoder, size_t cap) {
   nghttp3_qpack_entry *ent;
   size_t i;
   nghttp3_qpack_context *ctx = &decoder->ctx;

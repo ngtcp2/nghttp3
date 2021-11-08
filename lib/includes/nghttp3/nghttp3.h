@@ -1522,14 +1522,14 @@ nghttp3_qpack_decoder_cancel_stream(nghttp3_qpack_decoder *decoder,
 /**
  * @function
  *
- * `nghttp3_qpack_decoder_set_dtable_cap` sets |cap| as maximum
- * dynamic table size.  Normally, the maximum capacity is communicated
- * in encoder stream.  This function is provided for debugging and
- * testing purpose.
+ * `nghttp3_qpack_decoder_set_max_dtable_capacity` sets |cap| as
+ * maximum dynamic table size.  Normally, the maximum capacity is
+ * communicated in encoder stream.  This function is provided for
+ * debugging and testing purpose.
  */
 NGHTTP3_EXTERN void
-nghttp3_qpack_decoder_set_dtable_cap(nghttp3_qpack_decoder *decoder,
-                                     size_t cap);
+nghttp3_qpack_decoder_set_max_dtable_capacity(nghttp3_qpack_decoder *decoder,
+                                              size_t cap);
 
 /**
  * @function
