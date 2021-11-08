@@ -163,13 +163,6 @@ typedef ptrdiff_t nghttp3_ssize;
 /**
  * @macro
  *
- * :macro:`NGHTTP3_ERR_IGNORE_STREAM` indicates that a stream should
- * be ignored.
- */
-#define NGHTTP3_ERR_IGNORE_STREAM -113
-/**
- * @macro
- *
  * :macro:`NGHTTP3_ERR_STREAM_NOT_FOUND` indicates that a stream is
  * not found.
  */

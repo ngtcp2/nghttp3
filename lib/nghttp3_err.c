@@ -46,8 +46,6 @@ const char *nghttp3_strerror(int liberr) {
     return "ERR_QPACK_FATAL";
   case NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE:
     return "ERR_QPACK_HEADER_TOO_LARGE";
-  case NGHTTP3_ERR_IGNORE_STREAM:
-    return "ERR_IGNORE_STREAM";
   case NGHTTP3_ERR_STREAM_NOT_FOUND:
     return "ERR_STREAM_NOT_FOUND";
   case NGHTTP3_ERR_CONN_CLOSING:
