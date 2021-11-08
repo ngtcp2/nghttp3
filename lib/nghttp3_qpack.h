@@ -259,10 +259,8 @@ struct nghttp3_qpack_encoder {
 };
 
 /*
- * nghttp3_qpack_encoder_init initializes |encoder|.
- * |max_dtable_size| is the maximum size of dynamic table.
- * |max_blocked| is the maximum number of stream which can be blocked.
- * |mem| is a memory allocator.
+ * nghttp3_qpack_encoder_init initializes |encoder|.  |mem| is a
+ * memory allocator.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -271,7 +269,6 @@ struct nghttp3_qpack_encoder {
  *     Out of memory.
  */
 int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
-                               size_t max_dtable_size, size_t max_blocked,
                                const nghttp3_mem *mem);
 
 /*

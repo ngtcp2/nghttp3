@@ -1078,13 +1078,9 @@ typedef struct nghttp3_qpack_encoder nghttp3_qpack_encoder;
  * @function
  *
  * `nghttp3_qpack_encoder_new` initializes QPACK encoder.  |pencoder|
- * must be non-NULL pointer.  |max_dtable_size| is the maximum dynamic
- * table size.  If |max_dtable_size| is zero, calling
- * `nghttp3_qpack_encoder_set_hard_max_dtable_capacity` can set a
- * table size.  |max_blocked| is the maximum number of streams which
- * can be blocked.  |mem| is a memory allocator.  This function
- * allocates memory for :type:`nghttp3_qpack_encoder` itself and
- * assigns its pointer to |*pencoder| if it succeeds.
+ * must be non-NULL pointer.  |mem| is a memory allocator.  This
+ * function allocates memory for :type:`nghttp3_qpack_encoder` itself
+ * and assigns its pointer to |*pencoder| if it succeeds.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -1093,8 +1089,6 @@ typedef struct nghttp3_qpack_encoder nghttp3_qpack_encoder;
  *     Out of memory.
  */
 NGHTTP3_EXTERN int nghttp3_qpack_encoder_new(nghttp3_qpack_encoder **pencoder,
-                                             size_t max_dtable_size,
-                                             size_t max_blocked,
                                              const nghttp3_mem *mem);
 
 /**
@@ -1165,7 +1159,7 @@ NGHTTP3_EXTERN nghttp3_ssize nghttp3_qpack_encoder_read_decoder(
  * `nghttp3_qpack_encoder_set_max_dtable_capacity` sets max dynamic
  * table size to |max_dtable_size|.
  *
- * This function returns the number of bytes read, or one of the
+ * This function returns 0 if it succeeds, or one of the
  * following negative error codes:
  *
  * :macro:`NGHTTP3_ERR_INVALID_ARGUMENT`
@@ -1179,14 +1173,12 @@ nghttp3_qpack_encoder_set_max_dtable_capacity(nghttp3_qpack_encoder *encoder,
  * @function
  *
  * `nghttp3_qpack_encoder_set_hard_max_dtable_capacity` sets hard
- * maximum dynamic table size to |hard_max_dtable_size|.
- *
- * This function returns the number of bytes read, or one of the
- * following negative error codes:
- *
- * TBD
+ * maximum dynamic table size to |hard_max_dtable_size|.  This is the
+ * real maximum capacity of dynamic table that encoder enforces.  This
+ * value is used to validate the passed value by
+ * `nghttp3_qpack_encoder_set_max_dtable_capacity`.
  */
-NGHTTP3_EXTERN int nghttp3_qpack_encoder_set_hard_max_dtable_capacity(
+NGHTTP3_EXTERN void nghttp3_qpack_encoder_set_hard_max_dtable_capacity(
     nghttp3_qpack_encoder *encoder, size_t hard_max_dtable_size);
 
 /**
@@ -1194,13 +1186,8 @@ NGHTTP3_EXTERN int nghttp3_qpack_encoder_set_hard_max_dtable_capacity(
  *
  * `nghttp3_qpack_encoder_set_max_blocked` sets the number of streams
  * which can be blocked to |max_blocked|.
- *
- * This function returns the number of bytes read, or one of the
- * following negative error codes:
- *
- * TBD
  */
-NGHTTP3_EXTERN int
+NGHTTP3_EXTERN void
 nghttp3_qpack_encoder_set_max_blocked(nghttp3_qpack_encoder *encoder,
                                       size_t max_blocked);
 

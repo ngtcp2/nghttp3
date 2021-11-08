@@ -896,11 +896,10 @@ static int max_cnt_greater(const nghttp3_ksl_key *lhs,
 }
 
 int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
-                               size_t max_dtable_size, size_t max_blocked,
                                const nghttp3_mem *mem) {
   int rv;
 
-  rv = qpack_context_init(&encoder->ctx, max_dtable_size, max_blocked, mem);
+  rv = qpack_context_init(&encoder->ctx, 0, 0, mem);
   if (rv != 0) {
     return rv;
   }
@@ -975,28 +974,14 @@ int nghttp3_qpack_encoder_set_max_dtable_capacity(
   return 0;
 }
 
-int nghttp3_qpack_encoder_set_hard_max_dtable_capacity(
+void nghttp3_qpack_encoder_set_hard_max_dtable_capacity(
     nghttp3_qpack_encoder *encoder, size_t hard_max_dtable_size) {
-  /* TODO This is not ideal. */
-  if (encoder->ctx.hard_max_dtable_size) {
-    return NGHTTP3_ERR_INVALID_STATE;
-  }
-
   encoder->ctx.hard_max_dtable_size = hard_max_dtable_size;
-
-  return 0;
 }
 
-int nghttp3_qpack_encoder_set_max_blocked(nghttp3_qpack_encoder *encoder,
-                                          size_t max_blocked) {
-  /* TODO This is not ideal. */
-  if (encoder->ctx.max_blocked) {
-    return NGHTTP3_ERR_INVALID_STATE;
-  }
-
+void nghttp3_qpack_encoder_set_max_blocked(nghttp3_qpack_encoder *encoder,
+                                           size_t max_blocked) {
   encoder->ctx.max_blocked = max_blocked;
-
-  return 0;
 }
 
 uint64_t nghttp3_qpack_encoder_get_min_cnt(nghttp3_qpack_encoder *encoder) {
@@ -3999,7 +3984,6 @@ void nghttp3_qpack_decoder_emit_literal(nghttp3_qpack_decoder *decoder,
 }
 
 int nghttp3_qpack_encoder_new(nghttp3_qpack_encoder **pencoder,
-                              size_t max_dtable_size, size_t max_blocked,
                               const nghttp3_mem *mem) {
   int rv;
   nghttp3_qpack_encoder *p;
@@ -4009,7 +3993,7 @@ int nghttp3_qpack_encoder_new(nghttp3_qpack_encoder **pencoder,
     return NGHTTP3_ERR_NOMEM;
   }
 
-  rv = nghttp3_qpack_encoder_init(p, max_dtable_size, max_blocked, mem);
+  rv = nghttp3_qpack_encoder_init(p, mem);
   if (rv != 0) {
     return rv;
   }

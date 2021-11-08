@@ -56,12 +56,14 @@ Encoder::~Encoder() { nghttp3_qpack_encoder_del(enc_); }
 int Encoder::init() {
   int rv;
 
-  rv = nghttp3_qpack_encoder_new(&enc_, max_dtable_size_, max_blocked_, mem_);
+  rv = nghttp3_qpack_encoder_new(&enc_, mem_);
   if (rv != 0) {
     std::cerr << "nghttp3_qpack_encoder_new: " << nghttp3_strerror(rv)
               << std::endl;
     return -1;
   }
+
+  nghttp3_qpack_encoder_set_hard_max_dtable_capacity(enc_, max_dtable_size_);
 
   rv = nghttp3_qpack_encoder_set_max_dtable_capacity(enc_, max_dtable_size_);
   if (rv != 0) {
@@ -69,6 +71,8 @@ int Encoder::init() {
               << nghttp3_strerror(rv) << std::endl;
     return -1;
   }
+
+  nghttp3_qpack_encoder_set_max_blocked(enc_, max_blocked_);
 
   return 0;
 }
