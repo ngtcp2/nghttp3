@@ -1186,11 +1186,11 @@ NGHTTP3_EXTERN void nghttp3_qpack_encoder_set_hard_max_dtable_capacity(
  * @function
  *
  * `nghttp3_qpack_encoder_set_max_blocked_streams` sets the number of
- * streams which can be blocked to |max_blocked|.
+ * streams which can be blocked to |max_blocked_streams|.
  */
 NGHTTP3_EXTERN void
 nghttp3_qpack_encoder_set_max_blocked_streams(nghttp3_qpack_encoder *encoder,
-                                              size_t max_blocked);
+                                              size_t max_blocked_streams);
 
 /**
  * @function
@@ -1334,10 +1334,10 @@ typedef struct nghttp3_qpack_decoder nghttp3_qpack_decoder;
  *
  * `nghttp3_qpack_decoder_new` initializes QPACK decoder.  |pdecoder|
  * must be non-NULL pointer.  |max_dtable_capacity| is the maximum
- * dynamic table size.  |max_blocked| is the maximum number of streams
- * which can be blocked.  |mem| is a memory allocator.  This function
- * allocates memory for :type:`nghttp3_qpack_decoder` itself and
- * assigns its pointer to |*pdecoder| if it succeeds.
+ * dynamic table size.  |max_blocked_streams| is the maximum number of
+ * streams which can be blocked.  |mem| is a memory allocator.  This
+ * function allocates memory for :type:`nghttp3_qpack_decoder` itself
+ * and assigns its pointer to |*pdecoder| if it succeeds.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -1347,7 +1347,7 @@ typedef struct nghttp3_qpack_decoder nghttp3_qpack_decoder;
  */
 NGHTTP3_EXTERN int nghttp3_qpack_decoder_new(nghttp3_qpack_decoder **pdecoder,
                                              size_t max_dtable_capacity,
-                                             size_t max_blocked,
+                                             size_t max_blocked_streams,
                                              const nghttp3_mem *mem);
 
 /**
