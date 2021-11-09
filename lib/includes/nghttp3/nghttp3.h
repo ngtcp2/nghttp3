@@ -2535,7 +2535,7 @@ typedef struct {
  * met, this function will return a ``NULL``.  Pass in 0 to skip the
  * version checking.
  */
-NGHTTP3_EXTERN nghttp3_info *nghttp3_version(int least_version);
+NGHTTP3_EXTERN const nghttp3_info *nghttp3_version(int least_version);
 
 /**
  * @function
