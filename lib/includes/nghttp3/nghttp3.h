@@ -1523,7 +1523,7 @@ NGHTTP3_EXTERN uint64_t nghttp3_err_infer_quic_app_error_code(int liberr);
  * called with arguments suitable for :manpage:`vfprintf(3)`.
  *
  * The debug output is only enabled if the library is built with
- * ``DEBUGBUILD`` macro defined.
+ * :macro:`DEBUGBUILD` macro defined.
  */
 typedef void (*nghttp3_debug_vprintf_callback)(const char *format,
                                                va_list args);
@@ -1532,23 +1532,23 @@ typedef void (*nghttp3_debug_vprintf_callback)(const char *format,
  * @function
  *
  * `nghttp3_set_debug_vprintf_callback` sets a debug output callback
- * called by the library when built with ``DEBUGBUILD`` macro defined.
- * If this option is not used, debug log is written into standard
- * error output.
+ * called by the library when built with :macro:`DEBUGBUILD` macro
+ * defined.  If this option is not used, debug log is written into
+ * standard error output.
  *
- * For builds without ``DEBUGBUILD`` macro defined, this function is
- * noop.
+ * For builds without :macro:`DEBUGBUILD` macro defined, this function
+ * is noop.
  *
- * Note that building with ``DEBUGBUILD`` may cause significant
+ * Note that building with :macro:`DEBUGBUILD` may cause significant
  * performance penalty to libnghttp3 because of extra processing.  It
  * should be used for debugging purpose only.
  *
  * .. Warning::
  *
- *   Building with ``DEBUGBUILD`` may cause significant performance
- *   penalty to libnghttp3 because of extra processing.  It should be
- *   used for debugging purpose only.  We write this two times because
- *   this is important.
+ *   Building with :macro:`DEBUGBUILD` may cause significant
+ *   performance penalty to libnghttp3 because of extra processing.
+ *   It should be used for debugging purpose only.  We write this two
+ *   times because this is important.
  */
 NGHTTP3_EXTERN void nghttp3_set_debug_vprintf_callback(
     nghttp3_debug_vprintf_callback debug_vprintf_callback);
