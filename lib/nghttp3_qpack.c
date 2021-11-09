@@ -2331,8 +2331,7 @@ int nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
   return 0;
 }
 
-int nghttp3_qpack_encoder_add_insert_count(nghttp3_qpack_encoder *encoder,
-                                           uint64_t n) {
+int nghttp3_qpack_encoder_add_icnt(nghttp3_qpack_encoder *encoder, uint64_t n) {
   if (n == 0 || encoder->ctx.next_absidx - encoder->krcnt < n) {
     return NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR;
   }
@@ -2550,8 +2549,7 @@ nghttp3_ssize nghttp3_qpack_encoder_read_decoder(nghttp3_qpack_encoder *encoder,
 
       switch (encoder->opcode) {
       case NGHTTP3_QPACK_DS_OPCODE_ICNT_INCREMENT:
-        rv = nghttp3_qpack_encoder_add_insert_count(encoder,
-                                                    encoder->rstate.left);
+        rv = nghttp3_qpack_encoder_add_icnt(encoder, encoder->rstate.left);
         if (rv != 0) {
           goto fail;
         }

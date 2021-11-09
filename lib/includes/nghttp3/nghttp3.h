@@ -1225,11 +1225,10 @@ nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
 /**
  * @function
  *
- * `nghttp3_qpack_encoder_add_insert_count` increments known received
- * count of |encoder| by |n|.  This function is provided for debugging
- * purpose only.  In HTTP/3, |encoder| increments known received count
- * by reading decoder stream with
- * `nghttp3_qpack_encoder_read_decoder()`.
+ * `nghttp3_qpack_encoder_add_icnt` increments known received count of
+ * |encoder| by |n|.  This function is provided for debugging purpose
+ * only.  In HTTP/3, |encoder| increments known received count by
+ * reading decoder stream with `nghttp3_qpack_encoder_read_decoder()`.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -1240,8 +1239,7 @@ nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
  *     |n| is too large.
  */
 NGHTTP3_EXTERN int
-nghttp3_qpack_encoder_add_insert_count(nghttp3_qpack_encoder *encoder,
-                                       uint64_t n);
+nghttp3_qpack_encoder_add_icnt(nghttp3_qpack_encoder *encoder, uint64_t n);
 
 /**
  * @function
