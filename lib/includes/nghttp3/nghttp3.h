@@ -1205,45 +1205,6 @@ nghttp3_qpack_encoder_set_max_blocked_streams(nghttp3_qpack_encoder *encoder,
 /**
  * @function
  *
- * `nghttp3_qpack_encoder_ack_header` tells |encoder| that header
- * block for a stream denoted by |stream_id| was acknowledged by
- * decoder.  This function is provided for debugging purpose only.  In
- * HTTP/3, |encoder| knows acknowledgement of header block by reading
- * decoder stream with `nghttp3_qpack_encoder_read_decoder()`.
- *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * :macro:`NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR`
- *     Section Acknowledgement for a stream denoted by |stream_id| is
- *     unexpected.
- */
-NGHTTP3_EXTERN int
-nghttp3_qpack_encoder_ack_header(nghttp3_qpack_encoder *encoder,
-                                 int64_t stream_id);
-
-/**
- * @function
- *
- * `nghttp3_qpack_encoder_add_icnt` increments known received count of
- * |encoder| by |n|.  This function is provided for debugging purpose
- * only.  In HTTP/3, |encoder| increments known received count by
- * reading decoder stream with `nghttp3_qpack_encoder_read_decoder()`.
- *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * :macro:`NGHTTP3_ERR_NOMEM`
- *     Out of memory.
- * :macro:`NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR`
- *     |n| is too large.
- */
-NGHTTP3_EXTERN int
-nghttp3_qpack_encoder_add_icnt(nghttp3_qpack_encoder *encoder, uint64_t n);
-
-/**
- * @function
- *
  * `nghttp3_qpack_encoder_ack_everything` tells |encoder| that all
  * encoded header blocks are acknowledged.  This function is provided
  * for debugging purpose only.  In HTTP/3, |encoder| knows this by
@@ -1251,18 +1212,6 @@ nghttp3_qpack_encoder_add_icnt(nghttp3_qpack_encoder *encoder, uint64_t n);
  */
 NGHTTP3_EXTERN void
 nghttp3_qpack_encoder_ack_everything(nghttp3_qpack_encoder *encoder);
-
-/**
- * @function
- *
- * `nghttp3_qpack_encoder_cancel_stream` tells |encoder| that stream
- * denoted by |stream_id| is cancelled.  This function is provided for
- * debugging purpose only.  In HTTP/3, |encoder| knows this by reading
- * decoder stream with `nghttp3_qpack_encoder_read_decoder()`.
- */
-NGHTTP3_EXTERN void
-nghttp3_qpack_encoder_cancel_stream(nghttp3_qpack_encoder *encoder,
-                                    int64_t stream_id);
 
 /**
  * @function
