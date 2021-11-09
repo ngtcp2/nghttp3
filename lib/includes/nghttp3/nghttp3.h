@@ -643,8 +643,8 @@ NGHTTP3_EXTERN void nghttp3_buf_init(nghttp3_buf *buf);
  * @function
  *
  * `nghttp3_buf_free` frees resources allocated for |buf| using |mem|
- * as memory allocator.  buf->begin must be a heap buffer allocated by
- * |mem|.
+ * as memory allocator.  :member:`buf->begin <nghttp3_buf.begin>` must
+ * be a heap buffer allocated by |mem|.
  */
 NGHTTP3_EXTERN void nghttp3_buf_free(nghttp3_buf *buf, const nghttp3_mem *mem);
 
@@ -653,7 +653,8 @@ NGHTTP3_EXTERN void nghttp3_buf_free(nghttp3_buf *buf, const nghttp3_mem *mem);
  *
  * `nghttp3_buf_left` returns the number of additional bytes which can
  * be written to the underlying buffer.  In other words, it returns
- * buf->end - buf->last.
+ * :member:`buf->end <nghttp3_buf.end>` - :member:`buf->last
+ * <nghttp3_buf.last>`.
  */
 NGHTTP3_EXTERN size_t nghttp3_buf_left(const nghttp3_buf *buf);
 
@@ -661,14 +662,17 @@ NGHTTP3_EXTERN size_t nghttp3_buf_left(const nghttp3_buf *buf);
  * @function
  *
  * `nghttp3_buf_len` returns the number of bytes left to read.  In
- * other words, it returns buf->last - buf->pos.
+ * other words, it returns :member:`buf->last <nghttp3_buf.last>` -
+ * :member:`buf->pos <nghttp3_buf.pos>`.
  */
 NGHTTP3_EXTERN size_t nghttp3_buf_len(const nghttp3_buf *buf);
 
 /**
  * @function
  *
- * `nghttp3_buf_reset` sets buf->pos and buf->last to buf->begin.
+ * `nghttp3_buf_reset` sets :member:`buf->pos <nghttp3_buf.pos>` and
+ * :member:`buf->last <nghttp3_buf.last>` to :member:`buf->begin
+ * <nghttp3_buf.begin>`.
  */
 NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
 
@@ -1403,7 +1407,8 @@ nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
  * due to required insert count.
  *
  * When a header field is decoded, an application receives it in |nv|.
- * nv->name and nv->value are reference counted buffer, and their
+ * :member:`nv->name <nghttp3_qpack_nv.name>` and :member:`nv->value
+ * <nghttp3_qpack_nv.value>` are reference counted buffer, and their
  * reference counts are already incremented for application use.
  * Therefore, when application finishes processing the header field,
  * it must call `nghttp3_rcbuf_decref(nv->name)
