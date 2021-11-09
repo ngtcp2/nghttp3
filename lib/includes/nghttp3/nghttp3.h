@@ -1157,7 +1157,9 @@ NGHTTP3_EXTERN nghttp3_ssize nghttp3_qpack_encoder_read_decoder(
  * @function
  *
  * `nghttp3_qpack_encoder_set_max_dtable_capacity` sets max dynamic
- * table size to |max_dtable_capacity|.
+ * table size to |max_dtable_capacity|.  |max_dtable_capacity| must be
+ * equal to or smaller than the value passed to
+ * `nghttp3_qpack_encoder_set_max_dtable_capacity`.
  *
  * This function returns 0 if it succeeds, or one of the
  * following negative error codes:
@@ -1178,6 +1180,14 @@ nghttp3_qpack_encoder_set_max_dtable_capacity(nghttp3_qpack_encoder *encoder,
  * the real maximum capacity of dynamic table that encoder enforces.
  * This value is used to validate the passed value by
  * `nghttp3_qpack_encoder_set_max_dtable_capacity`.
+ *
+ * In HTTP/3, QPACK decoder side of the connection tells the maximum
+ * size in SETTINGS_QPACK_MAX_TABLE_CAPACITY.  It is dangerous to pass
+ * the value as is to this function because the decoder can set the
+ * large table size which may increase the memory consumption of
+ * encoder.  Therefore, it should be the minimum of the value of
+ * SETTINGS_QPACK_MAX_TABLE_CAPACITY and the amount of memory that
+ * encoder can afford.
  */
 NGHTTP3_EXTERN void nghttp3_qpack_encoder_set_hard_max_dtable_capacity(
     nghttp3_qpack_encoder *encoder, size_t hard_max_dtable_capacity);
