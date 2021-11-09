@@ -437,32 +437,36 @@ typedef ptrdiff_t nghttp3_ssize;
 /**
  * @functypedef
  *
- * Custom memory allocator to replace malloc().  The |mem_user_data|
- * is the mem_user_data member of :type:`nghttp3_mem` structure.
+ * Custom memory allocator to replace :manpage:`malloc(3)`.  The
+ * |mem_user_data| is the mem_user_data member of :type:`nghttp3_mem`
+ * structure.
  */
 typedef void *(*nghttp3_malloc)(size_t size, void *mem_user_data);
 
 /**
  * @functypedef
  *
- * Custom memory allocator to replace free().  The |mem_user_data| is
- * the mem_user_data member of :type:`nghttp3_mem` structure.
+ * Custom memory allocator to replace :manpage:`free(3)`.  The
+ * |mem_user_data| is the mem_user_data member of :type:`nghttp3_mem`
+ * structure.
  */
 typedef void (*nghttp3_free)(void *ptr, void *mem_user_data);
 
 /**
  * @functypedef
  *
- * Custom memory allocator to replace calloc().  The |mem_user_data|
- * is the mem_user_data member of :type:`nghttp3_mem` structure.
+ * Custom memory allocator to replace :manpage:`calloc(3)`.  The
+ * |mem_user_data| is the mem_user_data member of :type:`nghttp3_mem`
+ * structure.
  */
 typedef void *(*nghttp3_calloc)(size_t nmemb, size_t size, void *mem_user_data);
 
 /**
  * @functypedef
  *
- * Custom memory allocator to replace realloc().  The |mem_user_data|
- * is the mem_user_data member of :type:`nghttp3_mem` structure.
+ * Custom memory allocator to replace :manpage:`realloc(3)`.  The
+ * |mem_user_data| is the mem_user_data member of :type:`nghttp3_mem`
+ * structure.
  */
 typedef void *(*nghttp3_realloc)(void *ptr, size_t size, void *mem_user_data);
 
@@ -476,8 +480,8 @@ typedef void *(*nghttp3_realloc)(void *ptr, size_t size, void *mem_user_data);
  *
  * In the following example code, ``my_malloc``, ``my_free``,
  * ``my_calloc`` and ``my_realloc`` are the replacement of the
- * standard allocators ``malloc``, ``free``, ``calloc`` and
- * ``realloc`` respectively::
+ * standard allocators :manpage:`malloc(3)`, :manpage:`free(3)`,
+ * :manpage:`calloc(3)` and :manpage:`realloc(3)` respectively::
  *
  *     void *my_malloc_cb(size_t size, void *mem_user_data) {
  *       return my_malloc(size);
@@ -508,21 +512,22 @@ typedef struct nghttp3_mem {
   void *mem_user_data;
   /**
    * :member:`malloc` is a custom allocator function to replace
-   * malloc().
+   * :manpage:`malloc(3)`.
    */
   nghttp3_malloc malloc;
   /**
-   * :member:`free` is a custom allocator function to replace free().
+   * :member:`free` is a custom allocator function to replace
+   * :manpage:`free(3)`.
    */
   nghttp3_free free;
   /**
    * :member:`calloc` is a custom allocator function to replace
-   * calloc().
+   * :manpage:`calloc(3)`.
    */
   nghttp3_calloc calloc;
   /**
    * :member:`realloc` is a custom allocator function to replace
-   * realloc().
+   * :manpage:`realloc(3)`.
    */
   nghttp3_realloc realloc;
 } nghttp3_mem;
@@ -1510,7 +1515,7 @@ NGHTTP3_EXTERN uint64_t nghttp3_err_infer_quic_app_error_code(int liberr);
  *
  * :type:`nghttp3_debug_vprintf_callback` is a callback function
  * invoked when the library outputs debug logging.  The function is
- * called with arguments suitable for ``vfprintf(3)``
+ * called with arguments suitable for :manpage:`vfprintf(3)`.
  *
  * The debug output is only enabled if the library is built with
  * ``DEBUGBUILD`` macro defined.
