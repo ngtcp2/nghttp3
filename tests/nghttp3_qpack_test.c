@@ -185,7 +185,7 @@ void test_nghttp3_qpack_encoder_encode(void) {
 
   CU_ASSERT(NULL != stream);
   CU_ASSERT(nghttp3_qpack_encoder_stream_is_blocked(&enc, stream));
-  CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
 
   ref =
       *(nghttp3_qpack_header_block_ref **)nghttp3_ringbuf_get(&stream->refs, 0);
@@ -219,7 +219,7 @@ void test_nghttp3_qpack_encoder_encode(void) {
                                     nghttp3_arraylen(nva));
 
   CU_ASSERT(0 == rv);
-  CU_ASSERT(0 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(0 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
 
   check_decode_header(&dec, &pbuf, &rbuf, &ebuf, 8, nva, nghttp3_arraylen(nva),
                       mem);
@@ -263,13 +263,13 @@ void test_nghttp3_qpack_encoder_still_blocked(void) {
                                     nghttp3_arraylen(nva1));
 
   CU_ASSERT(0 == rv);
-  CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
 
   rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 0, nva2,
                                     nghttp3_arraylen(nva2));
 
   CU_ASSERT(0 == rv);
-  CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
 
   stream = nghttp3_qpack_encoder_find_stream(&enc, 0);
 
@@ -286,7 +286,7 @@ void test_nghttp3_qpack_encoder_still_blocked(void) {
 
   nghttp3_qpack_encoder_ack_header(&enc, 0);
 
-  CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
 
   stream = nghttp3_qpack_encoder_find_stream(&enc, 0);
 
@@ -298,7 +298,7 @@ void test_nghttp3_qpack_encoder_still_blocked(void) {
 
   nghttp3_qpack_encoder_ack_header(&enc, 0);
 
-  CU_ASSERT(0 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(0 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
   CU_ASSERT(NULL == nghttp3_qpack_encoder_find_stream(&enc, 0));
 
   nghttp3_qpack_encoder_free(&enc);
@@ -371,7 +371,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
                 NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             enc.ctx.dtable_size);
   CU_ASSERT(2 == enc.ctx.next_absidx);
-  CU_ASSERT(2 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(2 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
 
   nread = nghttp3_qpack_decoder_read_encoder(&dec, ebuf.pos,
                                              nghttp3_buf_len(&ebuf));
@@ -393,7 +393,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
 
   CU_ASSERT(0 == rv);
   CU_ASSERT(0 == enc.ctx.max_dtable_capacity);
-  CU_ASSERT(2 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(2 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
 
   /* Cannot index more headers because we set max_dtable_capacity to
      0. */
@@ -403,7 +403,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   CU_ASSERT(0 == rv);
   CU_ASSERT(0 == enc.ctx.max_dtable_capacity);
   CU_ASSERT(2 == enc.ctx.next_absidx);
-  CU_ASSERT(2 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(2 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
 
   nread = nghttp3_qpack_decoder_read_encoder(&dec, ebuf.pos,
                                              nghttp3_buf_len(&ebuf));
@@ -431,7 +431,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   CU_ASSERT(strlen("vary") + strlen("bar2") + NGHTTP3_QPACK_ENTRY_OVERHEAD ==
             enc.ctx.dtable_size);
   CU_ASSERT(0 == enc.ctx.max_dtable_capacity);
-  CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
 
   nread = nghttp3_qpack_decoder_read_encoder(&dec, ebuf.pos,
                                              nghttp3_buf_len(&ebuf));
@@ -462,7 +462,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   CU_ASSERT(0 == enc.ctx.max_dtable_capacity);
   CU_ASSERT(0 == enc.last_max_dtable_update);
   CU_ASSERT(SIZE_MAX == enc.min_dtable_update);
-  CU_ASSERT(0 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(0 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
 
   nread = nghttp3_qpack_decoder_read_encoder(&dec, ebuf.pos,
                                              nghttp3_buf_len(&ebuf));
@@ -601,13 +601,13 @@ void test_nghttp3_qpack_decoder_feedback(void) {
                                     nghttp3_arraylen(nva1));
 
   CU_ASSERT(0 == rv);
-  CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
 
   rv = nghttp3_qpack_encoder_encode(&enc, &pbuf2, &rbuf2, &ebuf, 4, nva2,
                                     nghttp3_arraylen(nva2));
 
   CU_ASSERT(0 == rv);
-  CU_ASSERT(2 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(2 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
 
   nread = nghttp3_qpack_decoder_read_encoder(&dec, ebuf.pos,
                                              nghttp3_buf_len(&ebuf));
@@ -627,7 +627,7 @@ void test_nghttp3_qpack_decoder_feedback(void) {
   CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&dbuf) == nread);
   /* This will unblock all streams because higher insert count is
      acknowledged. */
-  CU_ASSERT(0 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(0 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
   CU_ASSERT(1 == nghttp3_map_size(&enc.streams));
   CU_ASSERT(1 == nghttp3_pq_size(&enc.min_cnts));
   CU_ASSERT(0 == nghttp3_ksl_len(&enc.blocked_streams));
@@ -653,7 +653,7 @@ void test_nghttp3_qpack_decoder_feedback(void) {
                                     nghttp3_arraylen(nva3));
 
   CU_ASSERT(0 == rv);
-  CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(1 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
 
   nread = nghttp3_qpack_decoder_read_encoder(&dec, ebuf.pos,
                                              nghttp3_buf_len(&ebuf));
@@ -670,7 +670,7 @@ void test_nghttp3_qpack_decoder_feedback(void) {
                                              nghttp3_buf_len(&dbuf));
 
   CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&dbuf) == nread);
-  CU_ASSERT(0 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(0 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
   CU_ASSERT(1 == nghttp3_map_size(&enc.streams));
   CU_ASSERT(3 == enc.krcnt);
 
@@ -688,7 +688,7 @@ void test_nghttp3_qpack_decoder_feedback(void) {
                                              nghttp3_buf_len(&dbuf));
 
   CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&dbuf) == nread);
-  CU_ASSERT(0 == nghttp3_qpack_encoder_get_num_blocked(&enc));
+  CU_ASSERT(0 == nghttp3_qpack_encoder_get_num_blocked_streams(&enc));
   CU_ASSERT(0 == nghttp3_ksl_len(&enc.blocked_streams));
   CU_ASSERT(0 == nghttp3_pq_size(&enc.min_cnts));
   CU_ASSERT(0 == nghttp3_map_size(&enc.streams));

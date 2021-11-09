@@ -2372,7 +2372,8 @@ void nghttp3_qpack_encoder_cancel_stream(nghttp3_qpack_encoder *encoder,
   nghttp3_qpack_stream_del(stream, mem);
 }
 
-size_t nghttp3_qpack_encoder_get_num_blocked(nghttp3_qpack_encoder *encoder) {
+size_t
+nghttp3_qpack_encoder_get_num_blocked_streams(nghttp3_qpack_encoder *encoder) {
   return nghttp3_ksl_len(&encoder->blocked_streams);
 }
 

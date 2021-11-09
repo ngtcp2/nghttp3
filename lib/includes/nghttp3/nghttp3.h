@@ -1269,11 +1269,11 @@ nghttp3_qpack_encoder_cancel_stream(nghttp3_qpack_encoder *encoder,
 /**
  * @function
  *
- * `nghttp3_qpack_encoder_get_num_blocked` returns the number of
- * streams which are potentially blocked at decoder side.
+ * `nghttp3_qpack_encoder_get_num_blocked_streams` returns the number
+ * of streams which are potentially blocked at decoder side.
  */
 NGHTTP3_EXTERN size_t
-nghttp3_qpack_encoder_get_num_blocked(nghttp3_qpack_encoder *encoder);
+nghttp3_qpack_encoder_get_num_blocked_streams(nghttp3_qpack_encoder *encoder);
 
 /**
  * @struct
