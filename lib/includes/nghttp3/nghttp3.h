@@ -1737,7 +1737,7 @@ typedef int (*nghttp3_end_stream)(nghttp3_conn *conn, int64_t stream_id,
 /**
  * @functypedef
  *
- * :type:`nghttp3_send_stop_sending` is a callback function which is
+ * :type:`nghttp3_stop_sending` is a callback function which is
  * invoked when the library asks application to send STOP_SENDING to
  * the stream identified by |stream_id|.  |app_error_code| indicates
  * the reason for this action.
@@ -1747,10 +1747,10 @@ typedef int (*nghttp3_end_stream)(nghttp3_conn *conn, int64_t stream_id,
  * caller immediately.  Any values other than 0 is treated as
  * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
-typedef int (*nghttp3_send_stop_sending)(nghttp3_conn *conn, int64_t stream_id,
-                                         uint64_t app_error_code,
-                                         void *conn_user_data,
-                                         void *stream_user_data);
+typedef int (*nghttp3_stop_sending)(nghttp3_conn *conn, int64_t stream_id,
+                                    uint64_t app_error_code,
+                                    void *conn_user_data,
+                                    void *stream_user_data);
 
 /**
  * @functypedef
@@ -1862,11 +1862,11 @@ typedef struct nghttp3_callbacks {
    */
   nghttp3_end_headers end_trailers;
   /**
-   * :member:`send_stop_sending` is a callback function which is
-   * invoked when the library asks application to send STOP_SENDING to
-   * a particular stream.
+   * :member:`stop_sending` is a callback function which is invoked
+   * when the library asks application to send STOP_SENDING to a
+   * particular stream.
    */
-  nghttp3_send_stop_sending send_stop_sending;
+  nghttp3_stop_sending stop_sending;
   /**
    * :member:`end_stream` is a callback function which is invoked when
    * a receiving side of stream has been closed.

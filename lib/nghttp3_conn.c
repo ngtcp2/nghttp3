@@ -130,18 +130,16 @@ static int conn_call_end_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
   return 0;
 }
 
-static int conn_call_send_stop_sending(nghttp3_conn *conn,
-                                       nghttp3_stream *stream,
-                                       uint64_t app_error_code) {
+static int conn_call_stop_sending(nghttp3_conn *conn, nghttp3_stream *stream,
+                                  uint64_t app_error_code) {
   int rv;
 
-  if (!conn->callbacks.send_stop_sending) {
+  if (!conn->callbacks.stop_sending) {
     return 0;
   }
 
-  rv = conn->callbacks.send_stop_sending(conn, stream->node.nid.id,
-                                         app_error_code, conn->user_data,
-                                         stream->user_data);
+  rv = conn->callbacks.stop_sending(conn, stream->node.nid.id, app_error_code,
+                                    conn->user_data, stream->user_data);
   if (rv != 0) {
     return NGHTTP3_ERR_CALLBACK_FAILURE;
   }
@@ -588,8 +586,7 @@ nghttp3_ssize nghttp3_conn_read_uni(nghttp3_conn *conn, nghttp3_stream *stream,
   case NGHTTP3_STREAM_TYPE_UNKNOWN:
     nconsumed = (nghttp3_ssize)srclen;
 
-    rv = conn_call_send_stop_sending(conn, stream,
-                                     NGHTTP3_H3_STREAM_CREATION_ERROR);
+    rv = conn_call_stop_sending(conn, stream, NGHTTP3_H3_STREAM_CREATION_ERROR);
     if (rv != 0) {
       return rv;
     }
@@ -2272,7 +2269,7 @@ int nghttp3_conn_shutdown(nghttp3_conn *conn) {
 int nghttp3_conn_reject_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
   int rv;
 
-  rv = conn_call_send_stop_sending(conn, stream, NGHTTP3_H3_REQUEST_REJECTED);
+  rv = conn_call_stop_sending(conn, stream, NGHTTP3_H3_REQUEST_REJECTED);
   if (rv != 0) {
     return rv;
   }

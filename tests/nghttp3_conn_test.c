@@ -51,7 +51,7 @@ typedef struct {
     size_t ncalled;
     int64_t stream_id;
     uint64_t app_error_code;
-  } send_stop_sending_cb;
+  } stop_sending_cb;
   struct {
     size_t ncalled;
     int64_t stream_id;
@@ -211,17 +211,17 @@ static nghttp3_ssize stream_data_almost_overflow_read_data(
 }
 #endif /* SIZE_MAX > UINT32_MAX */
 
-static int send_stop_sending(nghttp3_conn *conn, int64_t stream_id,
-                             uint64_t app_error_code, void *user_data,
-                             void *stream_user_data) {
+static int stop_sending(nghttp3_conn *conn, int64_t stream_id,
+                        uint64_t app_error_code, void *user_data,
+                        void *stream_user_data) {
   userdata *ud = user_data;
 
   (void)conn;
   (void)stream_user_data;
 
-  ++ud->send_stop_sending_cb.ncalled;
-  ud->send_stop_sending_cb.stream_id = stream_id;
-  ud->send_stop_sending_cb.app_error_code = app_error_code;
+  ++ud->stop_sending_cb.ncalled;
+  ud->stop_sending_cb.stream_id = stream_id;
+  ud->stop_sending_cb.app_error_code = app_error_code;
 
   return 0;
 }
@@ -2430,7 +2430,7 @@ void test_nghttp3_conn_shutdown_server(void) {
   int fin;
 
   memset(&callbacks, 0, sizeof(callbacks));
-  callbacks.send_stop_sending = send_stop_sending;
+  callbacks.stop_sending = stop_sending;
   callbacks.reset_stream = reset_stream;
   nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
@@ -2480,10 +2480,10 @@ void test_nghttp3_conn_shutdown_server(void) {
 
   CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
   CU_ASSERT(8 == conn->rx.max_stream_id_bidi);
-  CU_ASSERT(1 == ud.send_stop_sending_cb.ncalled);
-  CU_ASSERT(8 == ud.send_stop_sending_cb.stream_id);
+  CU_ASSERT(1 == ud.stop_sending_cb.ncalled);
+  CU_ASSERT(8 == ud.stop_sending_cb.stream_id);
   CU_ASSERT(NGHTTP3_H3_REQUEST_REJECTED ==
-            ud.send_stop_sending_cb.app_error_code);
+            ud.stop_sending_cb.app_error_code);
   CU_ASSERT(1 == ud.reset_stream_cb.ncalled);
   CU_ASSERT(8 == ud.reset_stream_cb.stream_id);
   CU_ASSERT(NGHTTP3_H3_REQUEST_REJECTED == ud.reset_stream_cb.app_error_code);
@@ -2517,7 +2517,7 @@ void test_nghttp3_conn_shutdown_client(void) {
   int fin;
 
   memset(&callbacks, 0, sizeof(callbacks));
-  callbacks.send_stop_sending = send_stop_sending;
+  callbacks.stop_sending = stop_sending;
   callbacks.reset_stream = reset_stream;
   nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
