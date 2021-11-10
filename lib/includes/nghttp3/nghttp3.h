@@ -1052,7 +1052,7 @@ typedef enum nghttp3_qpack_token {
  * :type:`nghttp3_nv` and has reference counted buffers and tokens
  * which might be useful for applications.
  */
-typedef struct {
+typedef struct nghttp3_qpack_nv {
   /**
    * :member:`name` is the buffer containing header field name.
    * NULL-termination is guaranteed.
@@ -2224,7 +2224,7 @@ typedef nghttp3_ssize (*nghttp3_read_data_callback)(
  * :type:`nghttp3_data_reader` specifies the way how to generate
  * request or response body.
  */
-typedef struct {
+typedef struct nghttp3_data_reader {
   /**
    * :member:`read_data` is a callback function to generate body.
    */
@@ -2510,7 +2510,7 @@ NGHTTP3_EXTERN int nghttp3_http_parse_priority(nghttp3_pri *dest,
  * :type:`nghttp3_info` is what `nghttp3_version()` returns.  It holds
  * information about the particular nghttp3 version.
  */
-typedef struct {
+typedef struct nghttp3_info {
   /**
    * :member:`age` is the age of this struct.  This instance of
    * nghttp3 sets it to :macro:`NGHTTP3_VERSION_AGE` but a future
