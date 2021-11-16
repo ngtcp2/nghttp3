@@ -214,6 +214,10 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
   (void)callbacks_version;
   (void)settings_version;
 
+  if (mem == NULL) {
+    mem = nghttp3_mem_default();
+  }
+
   conn = nghttp3_mem_calloc(mem, 1, sizeof(nghttp3_conn));
   if (conn == NULL) {
     return NGHTTP3_ERR_NOMEM;

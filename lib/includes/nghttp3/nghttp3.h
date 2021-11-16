@@ -1933,7 +1933,8 @@ nghttp3_settings_default_versioned(int settings_version,
  *
  * `nghttp3_conn_client_new` creates :type:`nghttp3_conn` and
  * initializes it for client use.  The pointer to the object is stored
- * in |*pconn|.
+ * in |*pconn|.  If |mem| is ``NULL``, the memory allocator returned
+ * by `nghttp3_mem_default` is used.
  */
 NGHTTP3_EXTERN int
 nghttp3_conn_client_new_versioned(nghttp3_conn **pconn, int callbacks_version,
@@ -1947,7 +1948,8 @@ nghttp3_conn_client_new_versioned(nghttp3_conn **pconn, int callbacks_version,
  *
  * `nghttp3_conn_server_new` creates :type:`nghttp3_conn` and
  * initializes it for server use.  The pointer to the object is stored
- * in |*pconn|.
+ * in |*pconn|.  If |mem| is ``NULL``, the memory allocator returned
+ * by `nghttp3_mem_default` is used.
  */
 NGHTTP3_EXTERN int
 nghttp3_conn_server_new_versioned(nghttp3_conn **pconn, int callbacks_version,
