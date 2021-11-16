@@ -2482,8 +2482,7 @@ void test_nghttp3_conn_shutdown_server(void) {
   CU_ASSERT(8 == conn->rx.max_stream_id_bidi);
   CU_ASSERT(1 == ud.stop_sending_cb.ncalled);
   CU_ASSERT(8 == ud.stop_sending_cb.stream_id);
-  CU_ASSERT(NGHTTP3_H3_REQUEST_REJECTED ==
-            ud.stop_sending_cb.app_error_code);
+  CU_ASSERT(NGHTTP3_H3_REQUEST_REJECTED == ud.stop_sending_cb.app_error_code);
   CU_ASSERT(1 == ud.reset_stream_cb.ncalled);
   CU_ASSERT(8 == ud.reset_stream_cb.stream_id);
   CU_ASSERT(NGHTTP3_H3_REQUEST_REJECTED == ud.reset_stream_cb.app_error_code);
