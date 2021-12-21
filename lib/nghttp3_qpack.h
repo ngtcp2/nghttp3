@@ -972,9 +972,9 @@ void nghttp3_qpack_decoder_emit_indexed(nghttp3_qpack_decoder *decoder,
                                         nghttp3_qpack_stream_context *sctx,
                                         nghttp3_qpack_nv *nv);
 
-void nghttp3_qpack_decoder_emit_indexed_name(nghttp3_qpack_decoder *decoder,
-                                             nghttp3_qpack_stream_context *sctx,
-                                             nghttp3_qpack_nv *nv);
+int nghttp3_qpack_decoder_emit_indexed_name(nghttp3_qpack_decoder *decoder,
+                                            nghttp3_qpack_stream_context *sctx,
+                                            nghttp3_qpack_nv *nv);
 
 void nghttp3_qpack_decoder_emit_literal(nghttp3_qpack_decoder *decoder,
                                         nghttp3_qpack_stream_context *sctx,

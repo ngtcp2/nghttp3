@@ -3587,7 +3587,11 @@ nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
       switch (sctx->opcode) {
       case NGHTTP3_QPACK_RS_OPCODE_INDEXED_NAME:
       case NGHTTP3_QPACK_RS_OPCODE_INDEXED_NAME_PB:
-        nghttp3_qpack_decoder_emit_indexed_name(decoder, sctx, nv);
+        rv = nghttp3_qpack_decoder_emit_indexed_name(decoder, sctx, nv);
+        if (rv != 0) {
+          goto fail;
+        }
+
         break;
       case NGHTTP3_QPACK_RS_OPCODE_LITERAL:
         nghttp3_qpack_decoder_emit_literal(decoder, sctx, nv);
@@ -3621,7 +3625,11 @@ nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
       switch (sctx->opcode) {
       case NGHTTP3_QPACK_RS_OPCODE_INDEXED_NAME:
       case NGHTTP3_QPACK_RS_OPCODE_INDEXED_NAME_PB:
-        nghttp3_qpack_decoder_emit_indexed_name(decoder, sctx, nv);
+        rv = nghttp3_qpack_decoder_emit_indexed_name(decoder, sctx, nv);
+        if (rv != 0) {
+          goto fail;
+        }
+
         break;
       case NGHTTP3_QPACK_RS_OPCODE_LITERAL:
         nghttp3_qpack_decoder_emit_literal(decoder, sctx, nv);
@@ -3932,13 +3940,19 @@ qpack_decoder_emit_static_indexed_name(nghttp3_qpack_decoder *decoder,
   sctx->rstate.value = NULL;
 }
 
-static void
+static int
 qpack_decoder_emit_dynamic_indexed_name(nghttp3_qpack_decoder *decoder,
                                         nghttp3_qpack_stream_context *sctx,
                                         nghttp3_qpack_nv *nv) {
-  nghttp3_qpack_entry *ent =
-      nghttp3_qpack_context_dtable_get(&decoder->ctx, sctx->rstate.absidx);
-  (void)decoder;
+  nghttp3_qpack_entry *ent;
+
+  /* A broken encoder might change dtable capacity while processing
+     request stream instruction.  Check the absidx again. */
+  if (qpack_decoder_validate_index(decoder, &sctx->rstate) != 0) {
+    return NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+  }
+
+  ent = nghttp3_qpack_context_dtable_get(&decoder->ctx, sctx->rstate.absidx);
 
   nv->name = ent->nv.name;
   nv->value = sctx->rstate.value;
@@ -3949,11 +3963,13 @@ qpack_decoder_emit_dynamic_indexed_name(nghttp3_qpack_decoder *decoder,
   nghttp3_rcbuf_incref(nv->name);
 
   sctx->rstate.value = NULL;
+
+  return 0;
 }
 
-void nghttp3_qpack_decoder_emit_indexed_name(nghttp3_qpack_decoder *decoder,
-                                             nghttp3_qpack_stream_context *sctx,
-                                             nghttp3_qpack_nv *nv) {
+int nghttp3_qpack_decoder_emit_indexed_name(nghttp3_qpack_decoder *decoder,
+                                            nghttp3_qpack_stream_context *sctx,
+                                            nghttp3_qpack_nv *nv) {
   (void)decoder;
 
   DEBUGF("qpack::decode: Indexed name (%s) absidx=%" PRIu64 " value=%*s\n",
@@ -3961,10 +3977,12 @@ void nghttp3_qpack_decoder_emit_indexed_name(nghttp3_qpack_decoder *decoder,
          (int)sctx->rstate.value->len, sctx->rstate.value->base);
 
   if (sctx->rstate.dynamic) {
-    qpack_decoder_emit_dynamic_indexed_name(decoder, sctx, nv);
-  } else {
-    qpack_decoder_emit_static_indexed_name(decoder, sctx, nv);
+    return qpack_decoder_emit_dynamic_indexed_name(decoder, sctx, nv);
   }
+
+  qpack_decoder_emit_static_indexed_name(decoder, sctx, nv);
+
+  return 0;
 }
 
 void nghttp3_qpack_decoder_emit_literal(nghttp3_qpack_decoder *decoder,
