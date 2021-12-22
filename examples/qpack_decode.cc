@@ -254,12 +254,16 @@ int decode(const std::string_view &outfile, const std::string_view &infile) {
         return rv;
       }
 
-      auto [stream_id, headers, rv] = dec.process_blocked();
-      if (rv != 0) {
-        return rv;
-      }
+      for (;;) {
+        auto [stream_id, headers, rv] = dec.process_blocked();
+        if (rv != 0) {
+          return rv;
+        }
 
-      if (stream_id != -1) {
+        if (stream_id == -1) {
+          break;
+        }
+
         write_header(out, headers);
       }
 
