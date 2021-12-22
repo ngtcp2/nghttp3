@@ -64,7 +64,7 @@ by `nghttp3_qpack_decoder_read_encoder`.
 `nghttp3_qpack_decoder_read_request` returns the number of bytes read.
 When a header field is emitted, it might read data partially.
 Applciation has to call the function repeatedly by adjusting the
-poitner to data and its length until the function consumes all data or
+pointer to data and its length until the function consumes all data or
 :macro:`NGHTTP3_QPACK_DECODE_FLAG_BLOCKED` is set in *\*pflags*.
 
 If *nv* is assigned, its :member:`nv->name <nghttp3_qpack_nv.name>`
