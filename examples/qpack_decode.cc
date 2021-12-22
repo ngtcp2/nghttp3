@@ -96,16 +96,16 @@ std::tuple<Headers, int> Decoder::read_request(nghttp3_buf *buf,
 
   auto [headers, rv] = read_request(*req);
   if (rv == -1) {
-    return {(Headers){}, -1};
+    return {Headers{}, -1};
   }
   if (rv == 1) {
     if (blocked_reqs_.size() >= max_blocked_) {
       std::cerr << "Too many blocked streams: max_blocked=" << max_blocked_
                 << std::endl;
-      return {(Headers){}, -1};
+      return {Headers{}, -1};
     }
     blocked_reqs_.emplace(std::move(req));
-    return {(Headers){}, 1};
+    return {Headers{}, 1};
   }
   return {headers, 0};
 }
@@ -121,7 +121,7 @@ std::tuple<Headers, int> Decoder::read_request(Request &req) {
     if (nread < 0) {
       std::cerr << "nghttp3_qpack_decoder_read_request: "
                 << nghttp3_strerror(nread) << std::endl;
-      return {(Headers){}, -1};
+      return {Headers{}, -1};
     }
 
     req.buf.pos += nread;
@@ -130,7 +130,7 @@ std::tuple<Headers, int> Decoder::read_request(Request &req) {
       break;
     }
     if (flags & NGHTTP3_QPACK_DECODE_FLAG_BLOCKED) {
-      return {(Headers){}, 1};
+      return {Headers{}, 1};
     }
     if (flags & NGHTTP3_QPACK_DECODE_FLAG_EMIT) {
       auto name = nghttp3_rcbuf_get_buf(nv.name);
