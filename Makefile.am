@@ -25,6 +25,16 @@ SUBDIRS = lib tests doc examples
 
 ACLOCAL_AMFLAGS = -I m4
 
+dist_doc_DATA = README.rst
+
+EXTRA_DIST = \
+	cmakeconfig.h.in \
+	CMakeLists.txt \
+	CMakeOptions.txt \
+	cmake/ExtractValidFlags.cmake \
+	cmake/FindCUnit.cmake \
+	cmake/Version.cmake
+
 # Format source files using clang-format.  Don't format source files
 # under third-party directory since we are not responsible for thier
 # coding style.
