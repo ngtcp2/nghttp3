@@ -4,7 +4,7 @@ option(ENABLE_WERROR     "Make compiler warnings fatal" OFF)
 option(ENABLE_DEBUG      "Turn on debug output")
 option(ENABLE_ASAN       "Enable AddressSanitizer (ASAN)" OFF)
 option(ENABLE_LIB_ONLY   "Build libnghttp3 only" OFF)
-option(ENABLE_STATIC_LIB "Build libnghttp3 in static mode also")
+option(ENABLE_STATIC_LIB "Build libnghttp3 as a static library" ON)
 option(ENABLE_SHARED_LIB "Build libnghttp3 as a shared library" ON)
 option(ENABLE_STATIC_CRT "Build libnghttp3 against the MS LIBCMT[d]")
 

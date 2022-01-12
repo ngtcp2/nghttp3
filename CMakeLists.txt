@@ -269,6 +269,9 @@ message(STATUS "summary of build options:
       CXXFLAGS:       ${CMAKE_CXX_FLAGS_${_build_type}} ${CMAKE_CXX_FLAGS}
       WARNCFLAGS:     ${WARNCFLAGS}
       WARNCXXFLAGS:   ${WARNCXXFLAGS}
+    Library:
+      Shared:         ${ENABLE_SHARED_LIB}
+      Static:         ${ENABLE_STATIC_LIB}
     Test:
       CUnit:          ${HAVE_CUNIT} (LIBS='${CUNIT_LIBRARIES}')
     Library only:     ${ENABLE_LIB_ONLY}
