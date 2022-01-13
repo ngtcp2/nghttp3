@@ -2731,7 +2731,7 @@ static nghttp3_ssize qpack_read_string(nghttp3_qpack_read_state *rstate,
 /*
  * qpack_decoder_validate_index checks rstate->absidx is acceptable.
  *
- * It returns 0 if it suceeds, or one of the following negative error
+ * It returns 0 if it succeeds, or one of the following negative error
  * codes:
  *
  * NGHTTP3_ERR_QPACK_FATAL
