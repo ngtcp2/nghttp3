@@ -2562,6 +2562,12 @@ void test_nghttp3_conn_priority_update(void) {
   nghttp3_stream *stream;
   int rv;
   userdata ud;
+  nghttp3_qpack_encoder qenc;
+  const nghttp3_nv nva[] = {
+      MAKE_NV(":path", "/"),         MAKE_NV(":authority", "example.com"),
+      MAKE_NV(":scheme", "https"),   MAKE_NV(":method", "GET"),
+      MAKE_NV("priority", "u=5, i"),
+  };
 
   memset(&callbacks, 0, sizeof(callbacks));
   memset(&ud, 0, sizeof(ud));
@@ -2571,7 +2577,9 @@ void test_nghttp3_conn_priority_update(void) {
   /* Receive PRIORITY_UPDATE and stream has not been created yet */
   nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
   nghttp3_conn_bind_control_stream(conn, 3);
+  nghttp3_conn_bind_qpack_streams(conn, 7, 11);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
+  nghttp3_qpack_encoder_init(&qenc, mem);
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
@@ -2595,9 +2603,29 @@ void test_nghttp3_conn_priority_update(void) {
   stream = nghttp3_conn_find_stream(conn, 0);
 
   CU_ASSERT(NULL != stream);
+  CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_PRIORITY_UPDATE_RECVED);
   CU_ASSERT(2 == nghttp3_pri_uint8_urgency(stream->node.pri));
   CU_ASSERT(1 == nghttp3_pri_uint8_inc(stream->node.pri));
 
+  nghttp3_buf_reset(&buf);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.headers.nva = (nghttp3_nv *)nva;
+  fr.headers.nvlen = nghttp3_arraylen(nva);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  nconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 1);
+
+  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
+
+  /* priority header field should not override the value set by
+     PRIORITY_UPDATE frame. */
+  CU_ASSERT(2 == nghttp3_pri_uint8_urgency(stream->node.pri));
+  CU_ASSERT(1 == nghttp3_pri_uint8_inc(stream->node.pri));
+
+  nghttp3_qpack_encoder_free(&qenc);
   nghttp3_conn_del(conn);
   nghttp3_buf_reset(&buf);
 
@@ -2628,6 +2656,7 @@ void test_nghttp3_conn_priority_update(void) {
                                        /* fin = */ 0);
 
   CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
+  CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_PRIORITY_UPDATE_RECVED);
   CU_ASSERT(6 == nghttp3_pri_uint8_urgency(stream->node.pri));
   CU_ASSERT(0 == nghttp3_pri_uint8_inc(stream->node.pri));
 
