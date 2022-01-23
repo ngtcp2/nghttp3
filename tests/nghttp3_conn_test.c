@@ -103,10 +103,11 @@ static int recv_header(nghttp3_conn *conn, int64_t stream_id, int32_t token,
   return 0;
 }
 
-static int end_headers(nghttp3_conn *conn, int64_t stream_id, void *user_data,
-                       void *stream_user_data) {
+static int end_headers(nghttp3_conn *conn, int64_t stream_id, int fin,
+                       void *user_data, void *stream_user_data) {
   (void)conn;
   (void)stream_id;
+  (void)fin;
   (void)stream_user_data;
   (void)user_data;
   return 0;
