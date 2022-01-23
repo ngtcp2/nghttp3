@@ -62,15 +62,16 @@ static int conn_call_begin_headers(nghttp3_conn *conn, nghttp3_stream *stream) {
   return 0;
 }
 
-static int conn_call_end_headers(nghttp3_conn *conn, nghttp3_stream *stream) {
+static int conn_call_end_headers(nghttp3_conn *conn, nghttp3_stream *stream,
+                                 int fin) {
   int rv;
 
   if (!conn->callbacks.end_headers) {
     return 0;
   }
 
-  rv = conn->callbacks.end_headers(conn, stream->node.nid.id, conn->user_data,
-                                   stream->user_data);
+  rv = conn->callbacks.end_headers(conn, stream->node.nid.id, fin,
+                                   conn->user_data, stream->user_data);
   if (rv != 0) {
     /* TODO Allow ignore headers */
     return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -97,15 +98,16 @@ static int conn_call_begin_trailers(nghttp3_conn *conn,
   return 0;
 }
 
-static int conn_call_end_trailers(nghttp3_conn *conn, nghttp3_stream *stream) {
+static int conn_call_end_trailers(nghttp3_conn *conn, nghttp3_stream *stream,
+                                  int fin) {
   int rv;
 
   if (!conn->callbacks.end_trailers) {
     return 0;
   }
 
-  rv = conn->callbacks.end_trailers(conn, stream->node.nid.id, conn->user_data,
-                                    stream->user_data);
+  rv = conn->callbacks.end_trailers(conn, stream->node.nid.id, fin,
+                                    conn->user_data, stream->user_data);
   if (rv != 0) {
     /* TODO Allow ignore headers */
     return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -1405,11 +1407,11 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
         }
         /* fall through */
       case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
-        rv = conn_call_end_headers(conn, stream);
+        rv = conn_call_end_headers(conn, stream, p == end && fin);
         break;
       case NGHTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN:
       case NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:
-        rv = conn_call_end_trailers(conn, stream);
+        rv = conn_call_end_trailers(conn, stream, p == end && fin);
         break;
       default:
         /* Unreachable */

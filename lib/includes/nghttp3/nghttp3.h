@@ -1708,13 +1708,15 @@ typedef int (*nghttp3_recv_header)(nghttp3_conn *conn, int64_t stream_id,
  * :type:`nghttp3_end_headers` is a callback function which is invoked
  * when an incoming header block has ended.
  *
+ * If the stream ends with this header block, |fin| is set to nonzero.
+ *
  * The implementation of this callback must return 0 if it succeeds.
  * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
  * caller immediately.  Any values other than 0 is treated as
  * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
 typedef int (*nghttp3_end_headers)(nghttp3_conn *conn, int64_t stream_id,
-                                   void *conn_user_data,
+                                   int fin, void *conn_user_data,
                                    void *stream_user_data);
 
 /**
