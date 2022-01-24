@@ -1189,7 +1189,29 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   memset(&callbacks, 0, sizeof(callbacks));
   nghttp3_settings_default(&settings);
 
-  /* content-length is 20, but no DATA is present */
+  /* content-length is 20, but no DATA is present and see fin */
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_qpack_encoder_init(&qenc, mem);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.nva = (nghttp3_nv *)reqnv;
+  fr.nvlen = nghttp3_arraylen(reqnv);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+
+  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 1);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 1);
+
+  CU_ASSERT(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING == sconsumed);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* content-length is 20, but no DATA is present and stream is
+     reset */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, mem);
 
@@ -1207,9 +1229,13 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
 
   CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
 
+  rv = nghttp3_conn_shutdown_stream_read(conn, 0);
+
+  CU_ASSERT(0 == rv);
+
   rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
-  CU_ASSERT(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING == rv);
+  CU_ASSERT(0 == rv);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1238,7 +1264,30 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
 
   /* Check client side as well */
 
-  /* content-length is 20, but no DATA is present */
+  /* content-length is 20, but no DATA is present and see fin */
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_qpack_encoder_init(&qenc, mem);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.nva = (nghttp3_nv *)resnv;
+  fr.nvlen = nghttp3_arraylen(resnv);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+
+  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  nghttp3_conn_create_stream(conn, &stream, 0);
+  stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 1);
+
+  CU_ASSERT(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING == sconsumed);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* content-length is 20, but no DATA is present and stream is
+     reset */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, mem);
 
@@ -1257,9 +1306,13 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
 
   CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
 
+  rv = nghttp3_conn_shutdown_stream_read(conn, 0);
+
+  CU_ASSERT(0 == rv);
+
   rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
-  CU_ASSERT(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING == rv);
+  CU_ASSERT(0 == rv);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
