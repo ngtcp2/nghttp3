@@ -1029,13 +1029,6 @@ static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
   int bidi = nghttp3_client_stream_bidi(stream->node.nid.id);
   int rv;
 
-  if (bidi && !(stream->flags & NGHTTP3_STREAM_FLAG_SHUT_RD)) {
-    rv = nghttp3_http_on_remote_end_stream(stream);
-    if (rv != 0) {
-      return rv;
-    }
-  }
-
   rv = conn_call_deferred_consume(conn, stream,
                                   nghttp3_stream_get_buffered_datalen(stream));
   if (rv != 0) {
