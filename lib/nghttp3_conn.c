@@ -34,6 +34,10 @@
 #include "nghttp3_conv.h"
 #include "nghttp3_http.h"
 
+/* NGHTTP3_QPACK_ENCODER_MAX_DTABLE_CAPACITY is the upper bound of the
+   dynamic table capacity that QPACK encoder is willing to use. */
+#define NGHTTP3_QPACK_ENCODER_MAX_DTABLE_CAPACITY 4096
+
 /*
  * conn_remote_stream_uni returns nonzero if |stream_id| is remote
  * unidirectional stream ID.
@@ -237,7 +241,8 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
     goto qdec_init_fail;
   }
 
-  rv = nghttp3_qpack_encoder_init(&conn->qenc, 4096, mem);
+  rv = nghttp3_qpack_encoder_init(
+      &conn->qenc, settings->qpack_encoder_max_dtable_capacity, mem);
   if (rv != 0) {
     goto qenc_init_fail;
   }
@@ -2503,4 +2508,6 @@ void nghttp3_settings_default_versioned(int settings_version,
 
   memset(settings, 0, sizeof(nghttp3_settings));
   settings->max_field_section_size = NGHTTP3_VARINT_MAX;
+  settings->qpack_encoder_max_dtable_capacity =
+      NGHTTP3_QPACK_ENCODER_MAX_DTABLE_CAPACITY;
 }
