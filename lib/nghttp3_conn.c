@@ -231,7 +231,7 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
   }
 
   rv = nghttp3_qpack_decoder_init(&conn->qdec,
-                                  settings->qpack_max_table_capacity,
+                                  settings->qpack_max_dtable_capacity,
                                   settings->qpack_blocked_streams, mem);
   if (rv != 0) {
     goto qdec_init_fail;
@@ -1629,7 +1629,7 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
     dest->max_field_section_size = ent->value;
     break;
   case NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY:
-    if (dest->qpack_max_table_capacity != 0) {
+    if (dest->qpack_max_dtable_capacity != 0) {
       return NGHTTP3_ERR_H3_SETTINGS_ERROR;
     }
 
@@ -1637,7 +1637,7 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
       break;
     }
 
-    dest->qpack_max_table_capacity = (size_t)ent->value;
+    dest->qpack_max_dtable_capacity = (size_t)ent->value;
 
     nghttp3_qpack_encoder_set_max_dtable_capacity(&conn->qenc,
                                                   (size_t)ent->value);
