@@ -71,7 +71,13 @@ int Decoder::init() {
     return -1;
   }
 
-  nghttp3_qpack_decoder_set_max_dtable_capacity(dec_, max_dtable_size_);
+  if (auto rv =
+          nghttp3_qpack_decoder_set_max_dtable_capacity(dec_, max_dtable_size_);
+      rv != 0) {
+    std::cerr << "nghttp3_qpack_decoder_set_max_dtable_capacity: "
+              << nghttp3_strerror(rv) << std::endl;
+    return -1;
+  }
 
   return 0;
 }

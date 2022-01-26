@@ -5,8 +5,9 @@ Using QPACK encoder
 -------------------
 
 Firstly, create QPACK encoder by calling `nghttp3_qpack_encoder_new`.
-Optionally, call `nghttp3_qpack_encoder_set_hard_max_dtable_capacity`
-and `nghttp3_qpack_encoder_set_max_dtable_capacity` to set the maximum
+It requires *hard_max_dtable_size* parameter.  When in doubt, pass
+4096 for this tutorial.  Optionally, call
+`nghttp3_qpack_encoder_set_max_dtable_capacity` to set the maximum
 size of dynamic table.  You can also call
 `nghttp3_qpack_encoder_set_max_blocked_streams` to set the maximum
 number of streams that can be blocked.
@@ -29,7 +30,7 @@ Using QPACK decoder
 -------------------
 
 `nghttp3_qpack_decoder_new` will create new QPACK decoder.  It
-requires *max_dtable_size* and *max_blocked* parameters.  When in
+requires *hard_max_dtable_size* and *max_blocked* parameters.  When in
 doubt, pass 4096 and 0 respectively for this tutorial.
 
 In order to read encoder stream, call
