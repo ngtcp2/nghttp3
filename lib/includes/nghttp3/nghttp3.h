@@ -1901,6 +1901,15 @@ typedef struct nghttp3_settings {
    */
   size_t qpack_max_dtable_capacity;
   /**
+   * :member:`qpack_encoder_max_dtable_capacity` is the upper bound of
+   * QPACK dynamic table capacity that the QPACK encoder is willing to
+   * use.  The effective maximum dynamic table capacity is the minimum
+   * of this field and the value of the received
+   * SETTINGS_QPACK_MAX_TABLE_CAPACITY.  If this field is set to 0,
+   * the encoder does not use the dynamic table.
+   */
+  size_t qpack_encoder_max_dtable_capacity;
+  /**
    * :member:`qpack_blocked_streams` is the maximum number of streams
    * which can be blocked while they are being decoded.
    */
@@ -1919,6 +1928,17 @@ typedef struct nghttp3_settings {
  *
  * `nghttp3_settings_default` fills |settings| with the default
  * values.
+ *
+ * - :member:`max_field_section_size
+ *   <nghttp3_settings.max_field_section_size>` = ((1ull << 62) - 1)
+ * - :member:`qpack_max_dtable_capacity
+ *   <nghttp3_settings.qpack_max_dtable_capacity>` = 0
+ * - :member:`qpack_encoder_max_dtable_capacity
+ *   <nghttp3_settings.qpack_encoder_max_dtable_capacity>` = 4096
+ * - :member:`qpack_blocked_streams
+ *   <nghttp3_settings.qpack_blocked_streams>` = 0
+ * - :member:`enable_connect_protocol
+ *   <nghttp3_settings.enable_connect_protocol>` = 0
  */
 NGHTTP3_EXTERN void
 nghttp3_settings_default_versioned(int settings_version,
