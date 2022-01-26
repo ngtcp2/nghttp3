@@ -346,7 +346,7 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
   iv[0].id = NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE;
   iv[0].value = local_settings->max_field_section_size;
   iv[1].id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY;
-  iv[1].value = local_settings->qpack_max_table_capacity;
+  iv[1].value = local_settings->qpack_max_dtable_capacity;
   iv[2].id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS;
   iv[2].value = local_settings->qpack_blocked_streams;
 

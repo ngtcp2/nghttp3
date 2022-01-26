@@ -1896,10 +1896,10 @@ typedef struct nghttp3_settings {
    */
   uint64_t max_field_section_size;
   /**
-   * :member:`qpack_max_table_capacity` is the maximum size of QPACK
+   * :member:`qpack_max_dtable_capacity` is the maximum size of QPACK
    * dynamic table.
    */
-  size_t qpack_max_table_capacity;
+  size_t qpack_max_dtable_capacity;
   /**
    * :member:`qpack_blocked_streams` is the maximum number of streams
    * which can be blocked while they are being decoded.
