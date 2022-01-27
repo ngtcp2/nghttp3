@@ -944,12 +944,8 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
 
       /* Fall through */
     case NGHTTP3_CTRL_STREAM_STATE_PRIORITY_UPDATE:
-      /* TODO we need to buffer Priority Field Value because it might
-         be fragmented.  Since our priority header field parser only
-         supports u and i, and does not handle any other structured
-         field items, including parameters, we just buffer minimum
-         length (sizeof("u=D, i") - 1).  If field is longer than that,
-         ignore the frame. */
+      /* We need to buffer Priority Field Value because it might be
+         fragmented. */
       len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
       assert(len > 0);
       if (conn->rx.pri_fieldbuflen == 0 && rstate->left == (int64_t)len) {
@@ -991,18 +987,13 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
 
       if (nghttp3_http_parse_priority(&rstate->fr.priority_update.pri,
                                       pri_field_value,
-                                      pri_field_valuelen) == 0) {
-        /* TODO Draft requires that failing to parse Priority Field
-           Value must be treated as connection error.  Our priority
-           header field parser is quite primitive and does not handle
-           full brown Structured Field Values (we just need to parsing
-           5 bytes here).  In order not to drop connection with an
-           optional data, we ignore PRIORITY_UPDATE if we fail to
-           parse the frame. */
-        rv = nghttp3_conn_on_priority_update(conn, &rstate->fr.priority_update);
-        if (rv != 0) {
-          return rv;
-        }
+                                      pri_field_valuelen) != 0) {
+        return NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR;
+      }
+
+      rv = nghttp3_conn_on_priority_update(conn, &rstate->fr.priority_update);
+      if (rv != 0) {
+        return rv;
       }
 
       conn->rx.pri_fieldbuflen = 0;
