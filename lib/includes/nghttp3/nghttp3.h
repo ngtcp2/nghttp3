@@ -1285,10 +1285,6 @@ typedef struct nghttp3_qpack_decoder nghttp3_qpack_decoder;
  * :type:`nghttp3_qpack_decoder` itself and assigns its pointer to
  * |*pdecoder| if it succeeds.
  *
- * The maximum dynamic table capacity is still 0.  In order to change
- * the the maximum dynamic table capacity, call
- * `nghttp3_qpack_decoder_set_max_dtable_capacity`.
- *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
