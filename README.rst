@@ -37,15 +37,15 @@ Documentation
 HTTP/3
 ------
 
-This library implements HTTP/3 draft-33.  It can exchange basic HTTP
-request, and response, but does not fully implement the specification
-at the moment.  It does not support server push.
+This library implements HTTP/3 draft-33.  It does not support server
+push.
 
-It also partially implements `Extensible Prioritization Scheme for
-HTTP
-<https://httpwg.org/http-extensions/draft-ietf-httpbis-priority.html>`_.
-Both Priority HTTP header field and HTTP/3 PRIORITY_UPDATE frame are
-implemented.
+The following extensions have been implemented:
+
+- `Extensible Prioritization Scheme for HTTP
+  <https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-priority>`_
+- `Bootstrapping WebSockets with HTTP/3
+  <https://www.ietf.org/archive/id/draft-ietf-httpbis-h3-websockets-02.html>`_
 
 QPACK
 -----
