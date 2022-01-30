@@ -1926,7 +1926,7 @@ typedef struct nghttp3_settings {
  * values.
  *
  * - :member:`max_field_section_size
- *   <nghttp3_settings.max_field_section_size>` = ((1ull << 62) - 1)
+ *   <nghttp3_settings.max_field_section_size>` = :expr:`((1ull << 62) - 1)`
  * - :member:`qpack_max_dtable_capacity
  *   <nghttp3_settings.qpack_max_dtable_capacity>` = 0
  * - :member:`qpack_encoder_max_dtable_capacity
@@ -2470,7 +2470,7 @@ NGHTTP3_EXTERN uint64_t nghttp3_vec_len(const nghttp3_vec *vec, size_t cnt);
  *
  * `nghttp3_check_header_name` returns nonzero if HTTP header field
  * name |name| of length |len| is valid according to
- * http://tools.ietf.org/html/rfc7230#section-3.2
+ * :rfc:`7230#section-3.2`.
  *
  * Because this is a header field name in HTTP/3, the upper cased
  * alphabet is treated as error.
@@ -2482,7 +2482,7 @@ NGHTTP3_EXTERN int nghttp3_check_header_name(const uint8_t *name, size_t len);
  *
  * `nghttp3_check_header_value` returns nonzero if HTTP header field
  * value |value| of length |len| is valid according to
- * http://tools.ietf.org/html/rfc7230#section-3.2
+ * :rfc:`7230#section-3.2`.
  */
 NGHTTP3_EXTERN int nghttp3_check_header_value(const uint8_t *value, size_t len);
 
