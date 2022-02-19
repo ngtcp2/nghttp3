@@ -57,10 +57,22 @@ jobs:
     - name: Configure cmake
       if: matrix.buildtool == 'cmake'
       run: |
-        cmake $CMAKE_OPTS .
+        autoreconf -i && ./configure
+        make dist
+
+        VERSION=$(grep PACKAGE_VERSION config.h | cut -d' ' -f3 | tr -d '"')
+        tar xf nghttp3-$VERSION.tar.gz
+        cd nghttp3-$VERSION
+        mkdir build
+        cd build
+
+        echo 'NGHTTP3_BUILD_DIR='"$PWD" >> $GITHUB_ENV
+
+        cmake $CMAKE_OPTS ..
     - name: Build nghttp3
       if: matrix.buildtool != 'distcheck'
       run: |
+        [ -n "$NGHTTP3_BUILD_DIR" ] && cd "$NGHTTP3_BUILD_DIR"
         make
         make check
     - name: Build nghttp3 with distcheck
