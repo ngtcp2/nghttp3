@@ -197,54 +197,63 @@ typedef struct nghttp3_http_state {
 } nghttp3_http_state;
 
 struct nghttp3_stream {
-  const nghttp3_mem *mem;
-  nghttp3_objalloc *out_chunk_objalloc;
-  nghttp3_tnode node;
-  nghttp3_pq_entry qpack_blocked_pe;
-  nghttp3_stream_callbacks callbacks;
-  nghttp3_ringbuf frq;
-  nghttp3_ringbuf chunks;
-  nghttp3_ringbuf outq;
-  /* inq stores the stream raw data which cannot be read because
-     stream is blocked by QPACK decoder. */
-  nghttp3_ringbuf inq;
-  nghttp3_qpack_stream_context qpack_sctx;
-  /* conn is a reference to underlying connection.  It could be NULL
-     if stream is not a request stream. */
-  nghttp3_conn *conn;
-  void *user_data;
-  /* unsent_bytes is the number of bytes in outq not written yet */
-  uint64_t unsent_bytes;
-  /* outq_idx is an index into outq where next write is made. */
-  size_t outq_idx;
-  /* outq_offset is write offset relative to the element at outq_idx
-     in outq. */
-  uint64_t outq_offset;
-  /* ack_offset is offset acknowledged by peer relative to the first
-     element in outq. */
-  uint64_t ack_offset;
-  /* ack_done is the number of bytes notified to an application that
-     they are acknowledged inside the first outq element if it is of
-     type NGHTTP3_BUF_TYPE_ALIEN. */
-  uint64_t ack_done;
-  uint64_t unscheduled_nwrite;
-  nghttp3_stream_type type;
-  nghttp3_stream_read_state rstate;
-  /* error_code indicates the reason of closure of this stream. */
-  uint64_t error_code;
+  union {
+    struct {
+      const nghttp3_mem *mem;
+      nghttp3_objalloc *out_chunk_objalloc;
+      nghttp3_objalloc *stream_objalloc;
+      nghttp3_tnode node;
+      nghttp3_pq_entry qpack_blocked_pe;
+      nghttp3_stream_callbacks callbacks;
+      nghttp3_ringbuf frq;
+      nghttp3_ringbuf chunks;
+      nghttp3_ringbuf outq;
+      /* inq stores the stream raw data which cannot be read because
+         stream is blocked by QPACK decoder. */
+      nghttp3_ringbuf inq;
+      nghttp3_qpack_stream_context qpack_sctx;
+      /* conn is a reference to underlying connection.  It could be NULL
+         if stream is not a request stream. */
+      nghttp3_conn *conn;
+      void *user_data;
+      /* unsent_bytes is the number of bytes in outq not written yet */
+      uint64_t unsent_bytes;
+      /* outq_idx is an index into outq where next write is made. */
+      size_t outq_idx;
+      /* outq_offset is write offset relative to the element at outq_idx
+         in outq. */
+      uint64_t outq_offset;
+      /* ack_offset is offset acknowledged by peer relative to the first
+         element in outq. */
+      uint64_t ack_offset;
+      /* ack_done is the number of bytes notified to an application that
+         they are acknowledged inside the first outq element if it is of
+         type NGHTTP3_BUF_TYPE_ALIEN. */
+      uint64_t ack_done;
+      uint64_t unscheduled_nwrite;
+      nghttp3_stream_type type;
+      nghttp3_stream_read_state rstate;
+      /* error_code indicates the reason of closure of this stream. */
+      uint64_t error_code;
 
-  struct {
-    uint64_t offset;
-    nghttp3_stream_http_state hstate;
-  } tx;
+      struct {
+        uint64_t offset;
+        nghttp3_stream_http_state hstate;
+      } tx;
 
-  struct {
-    nghttp3_stream_http_state hstate;
-    nghttp3_http_state http;
-  } rx;
+      struct {
+        nghttp3_stream_http_state hstate;
+        nghttp3_http_state http;
+      } rx;
 
-  uint16_t flags;
+      uint16_t flags;
+    };
+
+    nghttp3_opl_entry oplent;
+  };
 };
+
+nghttp3_objalloc_def(stream, nghttp3_stream, oplent);
 
 typedef struct nghttp3_frame_entry {
   nghttp3_frame fr;
@@ -261,6 +270,7 @@ typedef struct nghttp3_frame_entry {
 int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
                        uint64_t seq, const nghttp3_stream_callbacks *callbacks,
                        nghttp3_objalloc *out_chunk_objalloc,
+                       nghttp3_objalloc *stream_objalloc,
                        const nghttp3_mem *mem);
 
 void nghttp3_stream_del(nghttp3_stream *stream);

@@ -46,16 +46,20 @@
 int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
                        uint64_t seq, const nghttp3_stream_callbacks *callbacks,
                        nghttp3_objalloc *out_chunk_objalloc,
+                       nghttp3_objalloc *stream_objalloc,
                        const nghttp3_mem *mem) {
   int rv;
-  nghttp3_stream *stream = nghttp3_mem_calloc(mem, 1, sizeof(nghttp3_stream));
+  nghttp3_stream *stream = nghttp3_objalloc_stream_get(stream_objalloc);
   nghttp3_node_id nid;
 
   if (stream == NULL) {
     return NGHTTP3_ERR_NOMEM;
   }
 
+  memset(stream, 0, sizeof(*stream));
+
   stream->out_chunk_objalloc = out_chunk_objalloc;
+  stream->stream_objalloc = stream_objalloc;
 
   nghttp3_tnode_init(
       &stream->node,
@@ -107,7 +111,7 @@ outq_init_fail:
 chunks_init_fail:
   nghttp3_ringbuf_free(&stream->frq);
 frq_init_fail:
-  nghttp3_mem_free(mem, stream);
+  nghttp3_objalloc_stream_release(stream_objalloc, stream);
 
   return rv;
 }
@@ -189,7 +193,7 @@ void nghttp3_stream_del(nghttp3_stream *stream) {
   delete_frq(&stream->frq, stream->mem);
   nghttp3_tnode_free(&stream->node);
 
-  nghttp3_mem_free(stream->mem, stream);
+  nghttp3_objalloc_stream_release(stream->stream_objalloc, stream);
 }
 
 void nghttp3_varint_read_state_reset(nghttp3_varint_read_state *rvint) {

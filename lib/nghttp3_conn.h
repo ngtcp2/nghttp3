@@ -77,6 +77,7 @@ nghttp3_objalloc_def(chunk, nghttp3_chunk, oplent);
 
 struct nghttp3_conn {
   nghttp3_objalloc out_chunk_objalloc;
+  nghttp3_objalloc stream_objalloc;
   nghttp3_callbacks callbacks;
   nghttp3_map streams;
   nghttp3_qpack_decoder qdec;
