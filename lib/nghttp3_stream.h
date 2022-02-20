@@ -37,6 +37,7 @@
 #include "nghttp3_buf.h"
 #include "nghttp3_frame.h"
 #include "nghttp3_qpack.h"
+#include "nghttp3_objalloc.h"
 
 #define NGHTTP3_STREAM_MIN_CHUNK_SIZE 256
 
@@ -197,6 +198,7 @@ typedef struct nghttp3_http_state {
 
 struct nghttp3_stream {
   const nghttp3_mem *mem;
+  nghttp3_objalloc *out_chunk_objalloc;
   nghttp3_tnode node;
   nghttp3_pq_entry qpack_blocked_pe;
   nghttp3_stream_callbacks callbacks;
@@ -258,6 +260,7 @@ typedef struct nghttp3_frame_entry {
 
 int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
                        uint64_t seq, const nghttp3_stream_callbacks *callbacks,
+                       nghttp3_objalloc *out_chunk_objalloc,
                        const nghttp3_mem *mem);
 
 void nghttp3_stream_del(nghttp3_stream *stream);

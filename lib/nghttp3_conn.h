@@ -69,7 +69,14 @@
    been submitted for transmission. */
 #define NGHTTP3_CONN_FLAG_GOAWAY_QUEUED 0x0040
 
+typedef struct nghttp3_chunk {
+  nghttp3_opl_entry oplent;
+} nghttp3_chunk;
+
+nghttp3_objalloc_def(chunk, nghttp3_chunk, oplent);
+
 struct nghttp3_conn {
+  nghttp3_objalloc out_chunk_objalloc;
   nghttp3_callbacks callbacks;
   nghttp3_map streams;
   nghttp3_qpack_decoder qdec;

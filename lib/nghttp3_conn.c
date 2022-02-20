@@ -229,6 +229,9 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
     return NGHTTP3_ERR_NOMEM;
   }
 
+  nghttp3_objalloc_init(&conn->out_chunk_objalloc,
+                        NGHTTP3_STREAM_MIN_CHUNK_SIZE * 16, mem);
+
   nghttp3_map_init(&conn->streams, mem);
 
   rv = nghttp3_qpack_decoder_init(&conn->qdec,
@@ -274,6 +277,7 @@ qenc_init_fail:
   nghttp3_qpack_decoder_free(&conn->qdec);
 qdec_init_fail:
   nghttp3_map_free(&conn->streams);
+  nghttp3_objalloc_free(&conn->out_chunk_objalloc);
   nghttp3_mem_free(mem, conn);
 
   return rv;
@@ -346,6 +350,8 @@ void nghttp3_conn_del(nghttp3_conn *conn) {
 
   nghttp3_map_each_free(&conn->streams, free_stream, NULL);
   nghttp3_map_free(&conn->streams);
+
+  nghttp3_objalloc_free(&conn->out_chunk_objalloc);
 
   nghttp3_mem_free(conn->mem, conn);
 }
@@ -1758,7 +1764,7 @@ int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
   };
 
   rv = nghttp3_stream_new(&stream, stream_id, conn->next_seq, &callbacks,
-                          conn->mem);
+                          &conn->out_chunk_objalloc, conn->mem);
   if (rv != 0) {
     return rv;
   }

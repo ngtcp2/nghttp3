@@ -45,6 +45,7 @@
 
 int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
                        uint64_t seq, const nghttp3_stream_callbacks *callbacks,
+                       nghttp3_objalloc *out_chunk_objalloc,
                        const nghttp3_mem *mem) {
   int rv;
   nghttp3_stream *stream = nghttp3_mem_calloc(mem, 1, sizeof(nghttp3_stream));
@@ -53,6 +54,8 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
   if (stream == NULL) {
     return NGHTTP3_ERR_NOMEM;
   }
+
+  stream->out_chunk_objalloc = out_chunk_objalloc;
 
   nghttp3_tnode_init(
       &stream->node,
@@ -135,6 +138,27 @@ static void delete_chunks(nghttp3_ringbuf *chunks, const nghttp3_mem *mem) {
   nghttp3_ringbuf_free(chunks);
 }
 
+static void delete_out_chunks(nghttp3_ringbuf *chunks,
+                              nghttp3_objalloc *out_chunk_objalloc,
+                              const nghttp3_mem *mem) {
+  nghttp3_buf *buf;
+  size_t i, len = nghttp3_ringbuf_len(chunks);
+
+  for (i = 0; i < len; ++i) {
+    buf = nghttp3_ringbuf_get(chunks, i);
+
+    if (nghttp3_buf_cap(buf) == NGHTTP3_STREAM_MIN_CHUNK_SIZE) {
+      nghttp3_objalloc_chunk_release(out_chunk_objalloc,
+                                     (nghttp3_chunk *)(void *)buf->begin);
+      continue;
+    }
+
+    nghttp3_buf_free(buf, mem);
+  }
+
+  nghttp3_ringbuf_free(chunks);
+}
+
 static void delete_frq(nghttp3_ringbuf *frq, const nghttp3_mem *mem) {
   nghttp3_frame_entry *frent;
   size_t i, len = nghttp3_ringbuf_len(frq);
@@ -161,7 +185,7 @@ void nghttp3_stream_del(nghttp3_stream *stream) {
   nghttp3_qpack_stream_context_free(&stream->qpack_sctx);
   delete_chunks(&stream->inq, stream->mem);
   delete_outq(&stream->outq, stream->mem);
-  delete_chunks(&stream->chunks, stream->mem);
+  delete_out_chunks(&stream->chunks, stream->out_chunk_objalloc, stream->mem);
   delete_frq(&stream->frq, stream->mem);
   nghttp3_tnode_free(&stream->node);
 
@@ -761,7 +785,12 @@ int nghttp3_stream_ensure_chunk(nghttp3_stream *stream, size_t need) {
   for (; n < need; n *= 2)
     ;
 
-  p = nghttp3_mem_malloc(stream->mem, n);
+  if (n == NGHTTP3_STREAM_MIN_CHUNK_SIZE) {
+    p = (uint8_t *)nghttp3_objalloc_chunk_len_get(stream->out_chunk_objalloc,
+                                                  n);
+  } else {
+    p = nghttp3_mem_malloc(stream->mem, n);
+  }
   if (p == NULL) {
     return NGHTTP3_ERR_NOMEM;
   }
@@ -890,7 +919,7 @@ static int stream_pop_outq_entry(nghttp3_stream *stream,
     break;
   case NGHTTP3_BUF_TYPE_ALIEN:
     break;
-  default:
+  case NGHTTP3_BUF_TYPE_SHARED:
     assert(nghttp3_ringbuf_len(chunks));
 
     chunk = nghttp3_ringbuf_get(chunks, 0);
@@ -899,9 +928,18 @@ static int stream_pop_outq_entry(nghttp3_stream *stream,
     assert(chunk->end == tbuf->buf.end);
 
     if (chunk->last == tbuf->buf.last) {
-      nghttp3_buf_free(chunk, stream->mem);
+      if (nghttp3_buf_cap(chunk) == NGHTTP3_STREAM_MIN_CHUNK_SIZE) {
+        nghttp3_objalloc_chunk_release(stream->out_chunk_objalloc,
+                                       (nghttp3_chunk *)(void *)chunk->begin);
+      } else {
+        nghttp3_buf_free(chunk, stream->mem);
+      }
       nghttp3_ringbuf_pop_front(chunks);
     }
+    break;
+  default:
+    assert(0);
+    abort();
   };
 
   nghttp3_ringbuf_pop_front(&stream->outq);
