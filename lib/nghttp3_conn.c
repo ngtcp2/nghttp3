@@ -229,10 +229,7 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
     return NGHTTP3_ERR_NOMEM;
   }
 
-  rv = nghttp3_map_init(&conn->streams, mem);
-  if (rv != 0) {
-    goto streams_init_fail;
-  }
+  nghttp3_map_init(&conn->streams, mem);
 
   rv = nghttp3_qpack_decoder_init(&conn->qdec,
                                   settings->qpack_max_dtable_capacity,
@@ -282,7 +279,6 @@ qenc_init_fail:
   nghttp3_qpack_decoder_free(&conn->qdec);
 qdec_init_fail:
   nghttp3_map_free(&conn->streams);
-streams_init_fail:
   nghttp3_mem_free(mem, conn);
 
   return rv;

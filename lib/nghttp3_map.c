@@ -32,21 +32,14 @@
 
 #include "nghttp3_conv.h"
 
-#define NGHTTP3_INITIAL_TABLE_LENBITS 8
+#define NGHTTP3_INITIAL_TABLE_LENBITS 4
 
-int nghttp3_map_init(nghttp3_map *map, const nghttp3_mem *mem) {
+void nghttp3_map_init(nghttp3_map *map, const nghttp3_mem *mem) {
   map->mem = mem;
-  map->tablelen = 1 << NGHTTP3_INITIAL_TABLE_LENBITS;
-  map->tablelenbits = NGHTTP3_INITIAL_TABLE_LENBITS;
-  map->table =
-      nghttp3_mem_calloc(mem, map->tablelen, sizeof(nghttp3_map_bucket));
-  if (map->table == NULL) {
-    return NGHTTP3_ERR_NOMEM;
-  }
-
+  map->tablelen = 0;
+  map->tablelenbits = 0;
+  map->table = NULL;
   map->size = 0;
-
-  return 0;
 }
 
 void nghttp3_map_free(nghttp3_map *map) {
@@ -78,6 +71,10 @@ int nghttp3_map_each(nghttp3_map *map, int (*func)(void *data, void *ptr),
   int rv;
   uint32_t i;
   nghttp3_map_bucket *bkt;
+
+  if (map->size == 0) {
+    return 0;
+  }
 
   for (i = 0; i < map->tablelen; ++i) {
     bkt = &map->table[i];
@@ -224,9 +221,19 @@ int nghttp3_map_insert(nghttp3_map *map, nghttp3_map_key_type key, void *data) {
 
   /* Load factor is 0.75 */
   if ((map->size + 1) * 4 > map->tablelen * 3) {
-    rv = map_resize(map, map->tablelen * 2, map->tablelenbits + 1);
-    if (rv != 0) {
-      return rv;
+    if (map->tablelen) {
+      rv = map_resize(map, map->tablelen * 2, map->tablelenbits + 1);
+      if (rv != 0) {
+        return rv;
+      }
+    } else {
+      map->tablelen = 1 << NGHTTP3_INITIAL_TABLE_LENBITS;
+      map->tablelenbits = NGHTTP3_INITIAL_TABLE_LENBITS;
+      map->table = nghttp3_mem_calloc(map->mem, map->tablelen,
+                                      sizeof(nghttp3_map_bucket));
+      if (map->table == NULL) {
+        return NGHTTP3_ERR_NOMEM;
+      }
     }
   }
 
@@ -240,10 +247,17 @@ int nghttp3_map_insert(nghttp3_map *map, nghttp3_map_key_type key, void *data) {
 }
 
 void *nghttp3_map_find(nghttp3_map *map, nghttp3_map_key_type key) {
-  uint32_t h = hash(key);
-  size_t idx = h2idx(h, map->tablelenbits);
+  uint32_t h;
+  size_t idx;
   nghttp3_map_bucket *bkt;
   size_t d = 0;
+
+  if (map->size == 0) {
+    return NULL;
+  }
+
+  h = hash(key);
+  idx = h2idx(h, map->tablelenbits);
 
   for (;;) {
     bkt = &map->table[idx];
@@ -263,10 +277,17 @@ void *nghttp3_map_find(nghttp3_map *map, nghttp3_map_key_type key) {
 }
 
 int nghttp3_map_remove(nghttp3_map *map, nghttp3_map_key_type key) {
-  uint32_t h = hash(key);
-  size_t idx = h2idx(h, map->tablelenbits), didx;
+  uint32_t h;
+  size_t idx, didx;
   nghttp3_map_bucket *bkt;
   size_t d = 0;
+
+  if (map->size == 0) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  h = hash(key);
+  idx = h2idx(h, map->tablelenbits);
 
   for (;;) {
     bkt = &map->table[idx];
@@ -307,6 +328,10 @@ int nghttp3_map_remove(nghttp3_map *map, nghttp3_map_key_type key) {
 }
 
 void nghttp3_map_clear(nghttp3_map *map) {
+  if (map->tablelen == 0) {
+    return;
+  }
+
   memset(map->table, 0, sizeof(*map->table) * map->tablelen);
   map->size = 0;
 }

@@ -55,14 +55,8 @@ typedef struct nghttp3_map {
 
 /*
  * Initializes the map |map|.
- *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * NGHTTP3_ERR_NOMEM
- *   Out of memory
  */
-int nghttp3_map_init(nghttp3_map *map, const nghttp3_mem *mem);
+void nghttp3_map_init(nghttp3_map *map, const nghttp3_mem *mem);
 
 /*
  * Deallocates any resources allocated for |map|. The stored entries
