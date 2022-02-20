@@ -250,10 +250,7 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
     nghttp3_pq_init(&conn->sched[i].spq, cycle_less, mem);
   }
 
-  rv = nghttp3_idtr_init(&conn->remote.bidi.idtr, server, mem);
-  if (rv != 0) {
-    goto remote_bidi_idtr_init_fail;
-  }
+  nghttp3_idtr_init(&conn->remote.bidi.idtr, server, mem);
 
   conn->callbacks = *callbacks;
   conn->local.settings = *settings;
@@ -273,8 +270,6 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
 
   return 0;
 
-remote_bidi_idtr_init_fail:
-  nghttp3_qpack_encoder_free(&conn->qenc);
 qenc_init_fail:
   nghttp3_qpack_decoder_free(&conn->qdec);
 qdec_init_fail:

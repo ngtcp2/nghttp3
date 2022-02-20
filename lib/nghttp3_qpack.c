@@ -914,11 +914,8 @@ int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
 
   nghttp3_map_init(&encoder->streams, mem);
 
-  rv = nghttp3_ksl_init(&encoder->blocked_streams, max_cnt_greater,
-                        sizeof(nghttp3_blocked_streams_key), mem);
-  if (rv != 0) {
-    goto blocked_streams_init_fail;
-  }
+  nghttp3_ksl_init(&encoder->blocked_streams, max_cnt_greater,
+                   sizeof(nghttp3_blocked_streams_key), mem);
 
   qpack_map_init(&encoder->dtable_map);
   nghttp3_pq_init(&encoder->min_cnts, ref_min_cnt_less, mem);
@@ -933,12 +930,6 @@ int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
   nghttp3_qpack_read_state_reset(&encoder->rstate);
 
   return 0;
-
-blocked_streams_init_fail:
-  nghttp3_map_free(&encoder->streams);
-  qpack_context_free(&encoder->ctx);
-
-  return rv;
 }
 
 static int map_stream_free(void *data, void *ptr) {

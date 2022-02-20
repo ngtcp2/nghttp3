@@ -56,6 +56,9 @@ set(nghttp3_SOURCES
   nghttp3_range.c
   nghttp3_http.c
   nghttp3_version.c
+  nghttp3_balloc.c
+  nghttp3_opl.c
+  nghttp3_objalloc.c
 )
 
 # Public shared library

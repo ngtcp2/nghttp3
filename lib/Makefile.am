@@ -58,7 +58,10 @@ OBJECTS = \
 	nghttp3_idtr.c \
 	nghttp3_range.c \
 	nghttp3_http.c \
-	nghttp3_version.c
+	nghttp3_version.c \
+	nghttp3_balloc.c \
+	nghttp3_opl.c \
+	nghttp3_objalloc.c
 HFILES = \
 	nghttp3_rcbuf.h \
 	nghttp3_mem.h \
@@ -82,6 +85,9 @@ HFILES = \
 	nghttp3_idtr.h \
 	nghttp3_range.h \
 	nghttp3_http.h \
+	nghttp3_balloc.h \
+	nghttp3_opl.h \
+	nghttp3_objalloc.h \
 	nghttp3_macro.h
 
 libnghttp3_la_SOURCES = $(HFILES) $(OBJECTS)
