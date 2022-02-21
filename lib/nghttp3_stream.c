@@ -48,7 +48,6 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
                        nghttp3_objalloc *out_chunk_objalloc,
                        nghttp3_objalloc *stream_objalloc,
                        const nghttp3_mem *mem) {
-  int rv;
   nghttp3_stream *stream = nghttp3_objalloc_stream_get(stream_objalloc);
   nghttp3_node_id nid;
 
@@ -66,25 +65,10 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
       nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_STREAM, stream_id), seq,
       NGHTTP3_DEFAULT_URGENCY);
 
-  rv = nghttp3_ringbuf_init(&stream->frq, 0, sizeof(nghttp3_frame_entry), mem);
-  if (rv != 0) {
-    goto frq_init_fail;
-  }
-
-  rv = nghttp3_ringbuf_init(&stream->chunks, 0, sizeof(nghttp3_buf), mem);
-  if (rv != 0) {
-    goto chunks_init_fail;
-  }
-
-  rv = nghttp3_ringbuf_init(&stream->outq, 0, sizeof(nghttp3_typed_buf), mem);
-  if (rv != 0) {
-    goto outq_init_fail;
-  }
-
-  rv = nghttp3_ringbuf_init(&stream->inq, 0, sizeof(nghttp3_buf), mem);
-  if (rv != 0) {
-    goto inq_init_fail;
-  }
+  nghttp3_ringbuf_init(&stream->frq, 0, sizeof(nghttp3_frame_entry), mem);
+  nghttp3_ringbuf_init(&stream->chunks, 0, sizeof(nghttp3_buf), mem);
+  nghttp3_ringbuf_init(&stream->outq, 0, sizeof(nghttp3_typed_buf), mem);
+  nghttp3_ringbuf_init(&stream->inq, 0, sizeof(nghttp3_buf), mem);
 
   nghttp3_qpack_stream_context_init(&stream->qpack_sctx, stream_id, mem);
 
@@ -103,17 +87,6 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
   *pstream = stream;
 
   return 0;
-
-inq_init_fail:
-  nghttp3_ringbuf_free(&stream->outq);
-outq_init_fail:
-  nghttp3_ringbuf_free(&stream->chunks);
-chunks_init_fail:
-  nghttp3_ringbuf_free(&stream->frq);
-frq_init_fail:
-  nghttp3_objalloc_stream_release(stream_objalloc, stream);
-
-  return rv;
 }
 
 static void delete_outq(nghttp3_ringbuf *outq, const nghttp3_mem *mem) {
