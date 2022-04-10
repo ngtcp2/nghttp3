@@ -2318,6 +2318,19 @@ int nghttp3_conn_unblock_stream(nghttp3_conn *conn, int64_t stream_id) {
   return 0;
 }
 
+int nghttp3_conn_is_stream_writable(nghttp3_conn *conn, int64_t stream_id) {
+  nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
+
+  if (stream == NULL) {
+    return 0;
+  }
+
+  return (stream->flags &
+          (NGHTTP3_STREAM_FLAG_FC_BLOCKED |
+           NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED | NGHTTP3_STREAM_FLAG_SHUT_WR |
+           NGHTTP3_STREAM_FLAG_CLOSED)) == 0;
+}
+
 int nghttp3_conn_resume_stream(nghttp3_conn *conn, int64_t stream_id) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
