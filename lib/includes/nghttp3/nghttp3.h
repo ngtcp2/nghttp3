@@ -2104,6 +2104,26 @@ NGHTTP3_EXTERN int nghttp3_conn_unblock_stream(nghttp3_conn *conn,
 /**
  * @function
  *
+ * `nghttp3_conn_is_stream_writable` returns nonzero if a stream
+ * identified by |stream_id| is writable.  It is not writable if:
+ *
+ * - the stream does not exist; or,
+ * - the stream is closed (e.g., `nghttp3_conn_close_stream` is
+ *   called); or,
+ * - the stream is QUIC flow control blocked (e.g.,
+ *   `nghttp3_conn_block_stream` is called); or,
+ * - the stream is input data blocked (e.g.,
+ *   :macro:`NGHTTP3_ERR_WOULDBLOCK` is returned from
+ *   :type:`nghttp3_read_data_callback`); or,
+ * - the stream is half-closed local (e.g.,
+ *   `nghttp3_conn_shutdown_stream_write` is called).
+ */
+NGHTTP3_EXTERN int nghttp3_conn_is_stream_writable(nghttp3_conn *conn,
+                                                   int64_t stream_id);
+
+/**
+ * @function
+ *
  * `nghttp3_conn_shutdown_stream_write` tells the library that any
  * further write operation to stream identified by |stream_id| is
  * prohibited.  This works like `nghttp3_conn_block_stream`, but it
