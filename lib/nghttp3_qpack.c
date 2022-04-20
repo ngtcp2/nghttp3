@@ -168,8 +168,8 @@ static nghttp3_qpack_static_entry token_stable[] = {
 /* Make scalar initialization form of nghttp3_qpack_static_entry */
 #define MAKE_STATIC_HD(N, V, T)                                                \
   {                                                                            \
-    {NULL, NULL, (uint8_t *)(N), sizeof((N)) - 1, -1},                         \
-        {NULL, NULL, (uint8_t *)(V), sizeof((V)) - 1, -1}, T                   \
+    {NULL, (uint8_t *)(N), sizeof((N)) - 1, -1},                               \
+        {NULL, (uint8_t *)(V), sizeof((V)) - 1, -1}, T                         \
   }
 
 static nghttp3_qpack_static_header stable[] = {
