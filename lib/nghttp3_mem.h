@@ -39,7 +39,7 @@
 void *nghttp3_mem_malloc(const nghttp3_mem *mem, size_t size);
 void nghttp3_mem_free(const nghttp3_mem *mem, void *ptr);
 void nghttp3_mem_free2(const nghttp3_free free_func, void *ptr,
-                       void *mem_user_data);
+                       void *user_data);
 void *nghttp3_mem_calloc(const nghttp3_mem *mem, size_t nmemb, size_t size);
 void *nghttp3_mem_realloc(const nghttp3_mem *mem, void *ptr, size_t size);
 #else /* MEMDEBUG */
@@ -55,12 +55,11 @@ void nghttp3_mem_free_debug(const nghttp3_mem *mem, void *ptr, const char *func,
 #  define nghttp3_mem_free(MEM, PTR)                                           \
     nghttp3_mem_free_debug((MEM), (PTR), __func__, __FILE__, __LINE__)
 
-void nghttp3_mem_free2_debug(nghttp3_free free_func, void *ptr,
-                             void *mem_user_data, const char *func,
-                             const char *file, size_t line);
+void nghttp3_mem_free2_debug(nghttp3_free free_func, void *ptr, void *user_data,
+                             const char *func, const char *file, size_t line);
 
-#  define nghttp3_mem_free2(FREE_FUNC, PTR, MEM_USER_DATA)                     \
-    nghttp3_mem_free2_debug((FREE_FUNC), (PTR), (MEM_USER_DATA), __func__,     \
+#  define nghttp3_mem_free2(FREE_FUNC, PTR, USER_DATA)                         \
+    nghttp3_mem_free2_debug((FREE_FUNC), (PTR), (USER_DATA), __func__,         \
                             __FILE__, __LINE__)
 
 void *nghttp3_mem_calloc_debug(const nghttp3_mem *mem, size_t nmemb,
