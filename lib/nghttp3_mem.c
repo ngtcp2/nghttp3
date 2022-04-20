@@ -66,11 +66,6 @@ void nghttp3_mem_free(const nghttp3_mem *mem, void *ptr) {
   mem->free(ptr, mem->user_data);
 }
 
-void nghttp3_mem_free2(const nghttp3_free free_func, void *ptr,
-                       void *user_data) {
-  free_func(ptr, user_data);
-}
-
 void *nghttp3_mem_calloc(const nghttp3_mem *mem, size_t nmemb, size_t size) {
   return mem->calloc(nmemb, size, mem->user_data);
 }
