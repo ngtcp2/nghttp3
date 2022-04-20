@@ -41,7 +41,7 @@ int nghttp3_rcbuf_new(nghttp3_rcbuf **rcbuf_ptr, size_t size,
 
   *rcbuf_ptr = (void *)p;
 
-  (*rcbuf_ptr)->mem_user_data = mem->mem_user_data;
+  (*rcbuf_ptr)->mem_user_data = mem->user_data;
   (*rcbuf_ptr)->free = mem->free;
   (*rcbuf_ptr)->base = p + sizeof(nghttp3_rcbuf);
   (*rcbuf_ptr)->len = size;

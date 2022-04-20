@@ -438,43 +438,39 @@ typedef ptrdiff_t nghttp3_ssize;
  * @functypedef
  *
  * Custom memory allocator to replace :manpage:`malloc(3)`.  The
- * |mem_user_data| is the mem_user_data member of :type:`nghttp3_mem`
- * structure.
+ * |user_data| is the :member:`nghttp3_mem.user_data`.
  */
-typedef void *(*nghttp3_malloc)(size_t size, void *mem_user_data);
+typedef void *(*nghttp3_malloc)(size_t size, void *user_data);
 
 /**
  * @functypedef
  *
  * Custom memory allocator to replace :manpage:`free(3)`.  The
- * |mem_user_data| is the mem_user_data member of :type:`nghttp3_mem`
- * structure.
+ * |user_data| is the :member:`nghttp3_mem.user_data`.
  */
-typedef void (*nghttp3_free)(void *ptr, void *mem_user_data);
+typedef void (*nghttp3_free)(void *ptr, void *user_data);
 
 /**
  * @functypedef
  *
  * Custom memory allocator to replace :manpage:`calloc(3)`.  The
- * |mem_user_data| is the mem_user_data member of :type:`nghttp3_mem`
- * structure.
+ * |user_data| is the :member:`nghttp3_mem.user_data`.
  */
-typedef void *(*nghttp3_calloc)(size_t nmemb, size_t size, void *mem_user_data);
+typedef void *(*nghttp3_calloc)(size_t nmemb, size_t size, void *user_data);
 
 /**
  * @functypedef
  *
  * Custom memory allocator to replace :manpage:`realloc(3)`.  The
- * |mem_user_data| is the mem_user_data member of :type:`nghttp3_mem`
- * structure.
+ * |user_data| is the :member:`nghttp3_mem.user_data`.
  */
-typedef void *(*nghttp3_realloc)(void *ptr, size_t size, void *mem_user_data);
+typedef void *(*nghttp3_realloc)(void *ptr, size_t size, void *user_data);
 
 /**
  * @struct
  *
  * :type:`nghttp3_mem` is a custom memory allocator functions and user
- * defined pointer.  The |mem_user_data| member is passed to each
+ * defined pointer.  The :member:`user_data` field is passed to each
  * allocator function.  This can be used, for example, to achieve
  * per-session memory pool.
  *
@@ -483,17 +479,23 @@ typedef void *(*nghttp3_realloc)(void *ptr, size_t size, void *mem_user_data);
  * standard allocators :manpage:`malloc(3)`, :manpage:`free(3)`,
  * :manpage:`calloc(3)` and :manpage:`realloc(3)` respectively::
  *
- *     void *my_malloc_cb(size_t size, void *mem_user_data) {
+ *     void *my_malloc_cb(size_t size, void *user_data) {
+ *       (void)user_data;
  *       return my_malloc(size);
  *     }
  *
- *     void my_free_cb(void *ptr, void *mem_user_data) { my_free(ptr); }
+ *     void my_free_cb(void *ptr, void *user_data) {
+ *       (void)user_data;
+ *       my_free(ptr);
+ *     }
  *
- *     void *my_calloc_cb(size_t nmemb, size_t size, void *mem_user_data) {
+ *     void *my_calloc_cb(size_t nmemb, size_t size, void *user_data) {
+ *       (void)user_data;
  *       return my_calloc(nmemb, size);
  *     }
  *
- *     void *my_realloc_cb(void *ptr, size_t size, void *mem_user_data) {
+ *     void *my_realloc_cb(void *ptr, size_t size, void *user_data) {
+ *       (void)user_data;
  *       return my_realloc(ptr, size);
  *     }
  *
@@ -506,10 +508,10 @@ typedef void *(*nghttp3_realloc)(void *ptr, size_t size, void *mem_user_data);
  */
 typedef struct nghttp3_mem {
   /**
-   * :member:`mem_user_data` is an arbitrary user supplied data.  This
+   * :member:`user_data` is an arbitrary user supplied data.  This
    * is passed to each allocator function.
    */
-  void *mem_user_data;
+  void *user_data;
   /**
    * :member:`malloc` is a custom allocator function to replace
    * :manpage:`malloc(3)`.
