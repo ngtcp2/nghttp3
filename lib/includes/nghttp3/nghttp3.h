@@ -437,32 +437,36 @@ typedef ptrdiff_t nghttp3_ssize;
 /**
  * @functypedef
  *
- * Custom memory allocator to replace :manpage:`malloc(3)`.  The
- * |user_data| is the :member:`nghttp3_mem.user_data`.
+ * :type:`nghttp3_malloc` is a custom memory allocator to replace
+ * :manpage:`malloc(3)`.  The |user_data| is the
+ * :member:`nghttp3_mem.user_data`.
  */
 typedef void *(*nghttp3_malloc)(size_t size, void *user_data);
 
 /**
  * @functypedef
  *
- * Custom memory allocator to replace :manpage:`free(3)`.  The
- * |user_data| is the :member:`nghttp3_mem.user_data`.
+ * :type:`nghttp3_free` is a custom memory allocator to replace
+ * :manpage:`free(3)`.  The |user_data| is the
+ * :member:`nghttp3_mem.user_data`.
  */
 typedef void (*nghttp3_free)(void *ptr, void *user_data);
 
 /**
  * @functypedef
  *
- * Custom memory allocator to replace :manpage:`calloc(3)`.  The
- * |user_data| is the :member:`nghttp3_mem.user_data`.
+ * :type:`nghttp3_calloc` is a custom memory allocator to replace
+ * :manpage:`calloc(3)`.  The |user_data| is the
+ * :member:`nghttp3_mem.user_data`.
  */
 typedef void *(*nghttp3_calloc)(size_t nmemb, size_t size, void *user_data);
 
 /**
  * @functypedef
  *
- * Custom memory allocator to replace :manpage:`realloc(3)`.  The
- * |user_data| is the :member:`nghttp3_mem.user_data`.
+ * :type:`nghttp3_realloc` is a custom memory allocator to replace
+ * :manpage:`realloc(3)`.  The |user_data| is the
+ * :member:`nghttp3_mem.user_data`.
  */
 typedef void *(*nghttp3_realloc)(void *ptr, size_t size, void *user_data);
 
@@ -1395,7 +1399,13 @@ nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
  * Therefore, when application finishes processing the header field,
  * it must call `nghttp3_rcbuf_decref(nv->name)
  * <nghttp3_rcbuf_decref>` and `nghttp3_rcbuf_decref(nv->value)
- * <nghttp3_rcbuf_decref>` or memory leak might occur.
+ * <nghttp3_rcbuf_decref>` or memory leak might occur.  These
+ * :type:`nghttp3_rcbuf` objects hold the pointer to
+ * :type:`nghttp3_mem` that is passed to `nghttp3_qpack_decoder_new`
+ * (or either `nghttp3_conn_client_new` or `nghttp3_conn_server_new`
+ * if it is used indirectly).  As long as these objects are alive, the
+ * pointed :type:`nghttp3_mem` object must be available.  Otherwise,
+ * `nghttp3_rcbuf_decref` will cause undefined behavior.
  *
  * This function returns the number of bytes read, or one of the
  * following negative error codes:
