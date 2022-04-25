@@ -749,7 +749,7 @@ typedef struct nghttp3_nv {
   size_t valuelen;
   /**
    * :member:`flags` is bitwise OR of one or more of
-   * NGHTTP3_NV_FLAG_*.
+   * :macro:`NGHTTP3_NV_FLAG_* <NGHTTP3_NV_FLAG_NONE>`.
    */
   uint8_t flags;
 } nghttp3_nv;
@@ -1077,7 +1077,7 @@ typedef struct nghttp3_qpack_nv {
   int32_t token;
   /**
    * :member:`flags` is a bitwise OR of one or more of
-   * NGHTTP3_NV_FLAG_*.  See :macro:`NGHTTP3_NV_FLAG_NONE`.
+   * :macro:`NGHTTP3_NV_FLAG_* <NGHTTP3_NV_FLAG_NONE>`.
    */
   uint8_t flags;
 } nghttp3_qpack_nv;
@@ -1686,7 +1686,7 @@ typedef int (*nghttp3_begin_headers)(nghttp3_conn *conn, int64_t stream_id,
  * |name| contains a field name and |value| contains a field value.
  * |token| is one of token defined in :type:`nghttp3_qpack_token` or
  * -1 if no token is defined for |name|.  |flags| is bitwise OR of
- * zero or more of NGHTTP3_NV_FLAG_*.
+ * zero or more of :macro:`NGHTTP3_NV_FLAG_* <NGHTTP3_NV_FLAG_NONE>`.
  *
  * The buffers for |name| and |value| are reference counted. If
  * application needs to keep them, increment the reference count with
