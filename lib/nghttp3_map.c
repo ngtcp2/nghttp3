@@ -227,12 +227,10 @@ int nghttp3_map_insert(nghttp3_map *map, nghttp3_map_key_type key, void *data) {
         return rv;
       }
     } else {
-      map->tablelen = 1 << NGHTTP3_INITIAL_TABLE_LENBITS;
-      map->tablelenbits = NGHTTP3_INITIAL_TABLE_LENBITS;
-      map->table = nghttp3_mem_calloc(map->mem, map->tablelen,
-                                      sizeof(nghttp3_map_bucket));
-      if (map->table == NULL) {
-        return NGHTTP3_ERR_NOMEM;
+      rv = map_resize(map, 1 << NGHTTP3_INITIAL_TABLE_LENBITS,
+                      NGHTTP3_INITIAL_TABLE_LENBITS);
+      if (rv != 0) {
+        return rv;
       }
     }
   }
