@@ -79,3 +79,17 @@ jobs:
       if: matrix.buildtool == 'distcheck'
       run: |
         make distcheck
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Configure cmake
+      run: |
+        mkdir build
+        cd build
+        cmake -DENABLE_LIB_ONLY=ON ..
+    - name: Build nghttp3
+      run: |
+        cmake --build build
