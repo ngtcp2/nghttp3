@@ -892,8 +892,10 @@ static int http_request_on_header(nghttp3_http_state *http,
     if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__SCHEME)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    if ((nv->value->len == 4 && memieq("http", nv->value->base, 4)) ||
-        (nv->value->len == 5 && memieq("https", nv->value->base, 5))) {
+    /* scheme is case-insensitive:
+       https://datatracker.ietf.org/doc/html/rfc3986#section-3.1 */
+    if (lstrieq("http", nv->value->base, nv->value->len) ||
+        lstrieq("https", nv->value->base, nv->value->len)) {
       http->flags |= NGHTTP3_HTTP_FLAG_SCHEME_HTTP;
     }
     break;
