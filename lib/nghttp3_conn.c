@@ -1649,8 +1649,8 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
 
     dest->qpack_blocked_streams = (size_t)ent->value;
 
-    nghttp3_qpack_encoder_set_max_blocked_streams(&conn->qenc,
-                                                  nghttp3_min(100, ent->value));
+    nghttp3_qpack_encoder_set_max_blocked_streams(
+        &conn->qenc, (size_t)nghttp3_min(100, ent->value));
     break;
   case NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL:
     if (!conn->server) {
