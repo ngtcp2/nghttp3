@@ -37,8 +37,8 @@
 static nghttp3_ksl_blk null_blk = {{{NULL, NULL, 0, 0, {0}}}};
 
 static size_t ksl_nodelen(size_t keylen) {
-  return (sizeof(nghttp3_ksl_node) + keylen - sizeof(uint64_t) + 0xfllu) &
-         (size_t)~0xfllu;
+  return (sizeof(nghttp3_ksl_node) + keylen - sizeof(uint64_t) + 0xfu) &
+         ~(uintptr_t)0xfu;
 }
 
 static size_t ksl_blklen(size_t nodelen) {
@@ -59,7 +59,8 @@ void nghttp3_ksl_init(nghttp3_ksl *ksl, nghttp3_ksl_compar compar,
   size_t nodelen = ksl_nodelen(keylen);
 
   nghttp3_objalloc_init(&ksl->blkalloc,
-                        ((ksl_blklen(nodelen) + 0xfllu) & ~0xfllu) * 8, mem);
+                        ((ksl_blklen(nodelen) + 0xfu) & ~(uintptr_t)0xfu) * 8,
+                        mem);
 
   ksl->head = NULL;
   ksl->front = ksl->back = NULL;
