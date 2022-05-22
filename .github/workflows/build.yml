@@ -4,8 +4,6 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
         os: [ubuntu-22.04, macos-11]
@@ -16,6 +14,8 @@ jobs:
           buildtool: distcheck
         - compiler: gcc
           buildtool: distcheck
+
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v3
