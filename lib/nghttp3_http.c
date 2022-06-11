@@ -1338,7 +1338,13 @@ int nghttp3_http_on_header(nghttp3_http_state *http, nghttp3_qpack_nv *nv,
     break;
   case NGHTTP3_QPACK_TOKEN__AUTHORITY:
   case NGHTTP3_QPACK_TOKEN_HOST:
-    rv = check_authority(nv->value->base, nv->value->len);
+    if (request) {
+      rv = check_authority(nv->value->base, nv->value->len);
+    } else {
+      /* The use of host field in response field section is
+         undefined. */
+      rv = nghttp3_check_header_value(nv->value->base, nv->value->len);
+    }
     break;
   case NGHTTP3_QPACK_TOKEN__PATH:
     rv = check_path(nv->value->base, nv->value->len);
