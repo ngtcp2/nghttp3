@@ -943,11 +943,13 @@ static int http_request_on_header(nghttp3_http_state *http,
     }
     break;
   case NGHTTP3_QPACK_TOKEN_PRIORITY:
-    pri.urgency = nghttp3_pri_uint8_urgency(http->pri);
-    pri.inc = nghttp3_pri_uint8_inc(http->pri);
-    if (nghttp3_http_parse_priority(&pri, nv->value->base, nv->value->len) ==
-        0) {
-      http->pri = nghttp3_pri_to_uint8(&pri);
+    if (!trailers) {
+      pri.urgency = nghttp3_pri_uint8_urgency(http->pri);
+      pri.inc = nghttp3_pri_uint8_inc(http->pri);
+      if (nghttp3_http_parse_priority(&pri, nv->value->base, nv->value->len) ==
+          0) {
+        http->pri = nghttp3_pri_to_uint8(&pri);
+      }
     }
     break;
   default:
