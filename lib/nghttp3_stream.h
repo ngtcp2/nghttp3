@@ -93,42 +93,42 @@ typedef struct nghttp3_stream_read_state {
 } nghttp3_stream_read_state;
 
 /* NGHTTP3_STREAM_FLAG_NONE indicates that no flag is set. */
-#define NGHTTP3_STREAM_FLAG_NONE 0x0000
+#define NGHTTP3_STREAM_FLAG_NONE 0x0000u
 /* NGHTTP3_STREAM_FLAG_TYPE_IDENTIFIED is set when a unidirectional
    stream type is identified. */
-#define NGHTTP3_STREAM_FLAG_TYPE_IDENTIFIED 0x0001
+#define NGHTTP3_STREAM_FLAG_TYPE_IDENTIFIED 0x0001u
 /* NGHTTP3_STREAM_FLAG_FC_BLOCKED indicates that stream is blocked by
    QUIC flow control. */
-#define NGHTTP3_STREAM_FLAG_FC_BLOCKED 0x0002
+#define NGHTTP3_STREAM_FLAG_FC_BLOCKED 0x0002u
 /* NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED indicates that application is
    temporarily unable to provide data. */
-#define NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED 0x0004
+#define NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED 0x0004u
 /* NGHTTP3_STREAM_FLAG_WRITE_END_STREAM indicates that application
    finished to feed outgoing data. */
-#define NGHTTP3_STREAM_FLAG_WRITE_END_STREAM 0x0008
+#define NGHTTP3_STREAM_FLAG_WRITE_END_STREAM 0x0008u
 /* NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED indicates that stream is
    blocked due to QPACK decoding. */
-#define NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED 0x0010
+#define NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED 0x0010u
 /* NGHTTP3_STREAM_FLAG_READ_EOF indicates that remote endpoint sent
    fin. */
-#define NGHTTP3_STREAM_FLAG_READ_EOF 0x0020
+#define NGHTTP3_STREAM_FLAG_READ_EOF 0x0020u
 /* NGHTTP3_STREAM_FLAG_CLOSED indicates that QUIC stream was closed.
    nghttp3_stream object can still alive because it might be blocked
    by QPACK decoder. */
-#define NGHTTP3_STREAM_FLAG_CLOSED 0x0040
+#define NGHTTP3_STREAM_FLAG_CLOSED 0x0040u
 /* NGHTTP3_STREAM_FLAG_SHUT_WR indicates that any further write
    operation to a stream is prohibited. */
-#define NGHTTP3_STREAM_FLAG_SHUT_WR 0x0100
+#define NGHTTP3_STREAM_FLAG_SHUT_WR 0x0100u
 /* NGHTTP3_STREAM_FLAG_SHUT_RD indicates that a read-side stream is
    closed abruptly and any incoming and pending stream data is just
    discarded for a stream. */
-#define NGHTTP3_STREAM_FLAG_SHUT_RD 0x0200
+#define NGHTTP3_STREAM_FLAG_SHUT_RD 0x0200u
 /* NGHTTP3_STREAM_FLAG_SERVER_PRIORITY_SET indicates that server
    overrides stream priority. */
-#define NGHTTP3_STREAM_FLAG_SERVER_PRIORITY_SET 0x0400
+#define NGHTTP3_STREAM_FLAG_SERVER_PRIORITY_SET 0x0400u
 /* NGHTTP3_STREAM_FLAG_PRIORITY_UPDATE_RECVED indicates that server
    received PRIORITY_UPDATE frame for this stream. */
-#define NGHTTP3_STREAM_FLAG_PRIORITY_UPDATE_RECVED 0x0800
+#define NGHTTP3_STREAM_FLAG_PRIORITY_UPDATE_RECVED 0x0800u
 
 typedef enum nghttp3_stream_http_state {
   NGHTTP3_HTTP_STATE_NONE,
