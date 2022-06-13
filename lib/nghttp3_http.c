@@ -89,14 +89,14 @@ static int lws(const uint8_t *s, size_t n) {
 }
 
 static int check_pseudo_header(nghttp3_http_state *http,
-                               const nghttp3_qpack_nv *nv, int flag) {
+                               const nghttp3_qpack_nv *nv, uint32_t flag) {
   if (http->flags & flag) {
     return 0;
   }
   if (lws(nv->value->base, nv->value->len)) {
     return 0;
   }
-  http->flags = (uint16_t)(http->flags | flag);
+  http->flags |= flag;
   return 1;
 }
 
@@ -943,12 +943,16 @@ static int http_request_on_header(nghttp3_http_state *http,
     }
     break;
   case NGHTTP3_QPACK_TOKEN_PRIORITY:
-    if (!trailers) {
+    if (!trailers && !(http->flags & NGHTTP3_HTTP_FLAG_BAD_PRIORITY)) {
       pri.urgency = nghttp3_pri_uint8_urgency(http->pri);
       pri.inc = nghttp3_pri_uint8_inc(http->pri);
       if (nghttp3_http_parse_priority(&pri, nv->value->base, nv->value->len) ==
           0) {
         http->pri = nghttp3_pri_to_uint8(&pri);
+        http->flags |= NGHTTP3_HTTP_FLAG_PRIORITY;
+      } else {
+        http->flags &= ~NGHTTP3_HTTP_FLAG_PRIORITY;
+        http->flags |= NGHTTP3_HTTP_FLAG_BAD_PRIORITY;
       }
     }
     break;
@@ -1419,15 +1423,14 @@ int nghttp3_http_on_response_headers(nghttp3_http_state *http) {
 
   if (http->status_code / 100 == 1) {
     /* non-final response */
-    http->flags = (uint16_t)((http->flags & NGHTTP3_HTTP_FLAG_METH_ALL) |
-                             NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE);
+    http->flags = (http->flags & NGHTTP3_HTTP_FLAG_METH_ALL) |
+                  NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE;
     http->content_length = -1;
     http->status_code = -1;
     return 0;
   }
 
-  http->flags =
-      (uint16_t)(http->flags & ~NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE);
+  http->flags &= ~NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE;
 
   if (!expect_response_body(http)) {
     http->content_length = 0;

@@ -110,6 +110,8 @@ int main(void) {
                    test_nghttp3_conn_shutdown_client) ||
       !CU_add_test(pSuite, "conn_priority_update",
                    test_nghttp3_conn_priority_update) ||
+      !CU_add_test(pSuite, "conn_request_priority",
+                   test_nghttp3_conn_request_priority) ||
       !CU_add_test(pSuite, "conn_set_stream_priority",
                    test_nghttp3_conn_set_stream_priority) ||
       !CU_add_test(pSuite, "conn_shutdown_stream_read",

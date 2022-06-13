@@ -1387,6 +1387,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
         /* Only server utilizes priority information to schedule
            streams. */
         if (conn->server &&
+            (stream->rx.http.flags & NGHTTP3_HTTP_FLAG_PRIORITY) &&
             !(stream->flags & NGHTTP3_STREAM_FLAG_PRIORITY_UPDATE_RECVED) &&
             !(stream->flags & NGHTTP3_STREAM_FLAG_SERVER_PRIORITY_SET)) {
           rv = conn_update_stream_priority(conn, stream, stream->rx.http.pri);
