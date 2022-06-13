@@ -693,7 +693,7 @@ NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
  *
  * :macro:`NGHTTP3_NV_FLAG_NONE` indicates no flag set.
  */
-#define NGHTTP3_NV_FLAG_NONE 0
+#define NGHTTP3_NV_FLAG_NONE 0x00u
 
 /**
  * @macro
@@ -702,7 +702,7 @@ NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
  * pair must not be indexed.  Other implementation calls this bit as
  * "sensitive".
  */
-#define NGHTTP3_NV_FLAG_NEVER_INDEX 0x01
+#define NGHTTP3_NV_FLAG_NEVER_INDEX 0x01u
 
 /**
  * @macro
@@ -711,7 +711,7 @@ NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
  * If this flag is set, the library does not make a copy of header
  * field name.  This could improve performance.
  */
-#define NGHTTP3_NV_FLAG_NO_COPY_NAME 0x02
+#define NGHTTP3_NV_FLAG_NO_COPY_NAME 0x02u
 
 /**
  * @macro
@@ -720,7 +720,7 @@ NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
  * application.  If this flag is set, the library does not make a copy
  * of header field value.  This could improve performance.
  */
-#define NGHTTP3_NV_FLAG_NO_COPY_VALUE 0x04
+#define NGHTTP3_NV_FLAG_NO_COPY_VALUE 0x04u
 
 /**
  * @struct
@@ -1349,7 +1349,7 @@ nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
  *
  * :macro:`NGHTTP3_QPACK_DECODE_FLAG_NONE` indicates that no flag set.
  */
-#define NGHTTP3_QPACK_DECODE_FLAG_NONE 0
+#define NGHTTP3_QPACK_DECODE_FLAG_NONE 0x00u
 
 /**
  * @macro
@@ -1357,7 +1357,7 @@ nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
  * :macro:`NGHTTP3_QPACK_DECODE_FLAG_EMIT` indicates that a header
  * field is successfully decoded.
  */
-#define NGHTTP3_QPACK_DECODE_FLAG_EMIT 0x01
+#define NGHTTP3_QPACK_DECODE_FLAG_EMIT 0x01u
 
 /**
  * @macro
@@ -1365,7 +1365,7 @@ nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
  * :macro:`NGHTTP3_QPACK_DECODE_FLAG_FINAL` indicates that all header
  * fields have been decoded.
  */
-#define NGHTTP3_QPACK_DECODE_FLAG_FINAL 0x02
+#define NGHTTP3_QPACK_DECODE_FLAG_FINAL 0x02u
 
 /**
  * @macro
@@ -1373,7 +1373,7 @@ nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
  * :macro:`NGHTTP3_QPACK_DECODE_FLAG_BLOCKED` indicates that decoding
  * has been blocked.
  */
-#define NGHTTP3_QPACK_DECODE_FLAG_BLOCKED 0x04
+#define NGHTTP3_QPACK_DECODE_FLAG_BLOCKED 0x04u
 
 /**
  * @function
@@ -2185,7 +2185,7 @@ NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
  *
  * :macro:`NGHTTP3_DATA_FLAG_NONE` indicates no flag set.
  */
-#define NGHTTP3_DATA_FLAG_NONE 0x00
+#define NGHTTP3_DATA_FLAG_NONE 0x00u
 
 /**
  * @macro
@@ -2195,7 +2195,7 @@ NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
  * that sending side of stream is closed unless
  * :macro:`NGHTTP3_DATA_FLAG_NO_END_STREAM` is given at the same time.
  */
-#define NGHTTP3_DATA_FLAG_EOF 0x01
+#define NGHTTP3_DATA_FLAG_EOF 0x01u
 
 /**
  * @macro
@@ -2207,7 +2207,7 @@ NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
  * `nghttp3_conn_submit_trailers()` has been called, regardless of
  * this flag, the submitted trailer fields are sent.
  */
-#define NGHTTP3_DATA_FLAG_NO_END_STREAM 0x02
+#define NGHTTP3_DATA_FLAG_NO_END_STREAM 0x02u
 
 /**
  * @function

@@ -215,10 +215,10 @@ typedef enum nghttp3_qpack_decoder_stream_opcode {
 /* QPACK encoder flags */
 
 /* NGHTTP3_QPACK_ENCODER_FLAG_NONE indicates that no flag is set. */
-#define NGHTTP3_QPACK_ENCODER_FLAG_NONE 0x00
+#define NGHTTP3_QPACK_ENCODER_FLAG_NONE 0x00u
 /* NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP indicates that
    Set Dynamic Table Capacity is required. */
-#define NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP 0x01
+#define NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP 0x01u
 
 struct nghttp3_qpack_encoder {
   nghttp3_qpack_context ctx;
