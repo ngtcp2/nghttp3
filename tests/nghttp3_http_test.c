@@ -653,3 +653,24 @@ void test_nghttp3_sf_parse_inner_list(void) {
     CU_ASSERT(-1 == nghttp3_sf_parse_inner_list(NULL, s, s + sizeof(s) - 1));
   }
 }
+
+#define check_header_value(S)                                                  \
+  nghttp3_check_header_value((const uint8_t *)S, sizeof(S) - 1)
+
+void test_nghttp3_check_header_value(void) {
+  uint8_t goodval[] = {'a', 'b', 0x80u, 'c', 0xffu, 'd'};
+  uint8_t badval1[] = {'a', 0x1fu, 'b'};
+  uint8_t badval2[] = {'a', 0x7fu, 'b'};
+
+  CU_ASSERT(check_header_value("!|}~"));
+  CU_ASSERT(!check_header_value(" !|}~"));
+  CU_ASSERT(!check_header_value("!|}~ "));
+  CU_ASSERT(!check_header_value("\t!|}~"));
+  CU_ASSERT(!check_header_value("!|}~\t"));
+  CU_ASSERT(check_header_value(goodval));
+  CU_ASSERT(!check_header_value(badval1));
+  CU_ASSERT(!check_header_value(badval2));
+  CU_ASSERT(check_header_value(""));
+  CU_ASSERT(!check_header_value(" "));
+  CU_ASSERT(!check_header_value("\t"));
+}

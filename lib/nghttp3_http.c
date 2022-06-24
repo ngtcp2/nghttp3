@@ -1645,6 +1645,19 @@ static const int VALID_HD_VALUE_CHARS[] = {
 
 int nghttp3_check_header_value(const uint8_t *value, size_t len) {
   const uint8_t *last;
+
+  switch (len) {
+  case 0:
+    return 1;
+  case 1:
+    return !(*value == ' ' || *value == '\t');
+  default:
+    if (*value == ' ' || *value == '\t' || *(value + len - 1) == ' ' ||
+        *(value + len - 1) == '\t') {
+      return 0;
+    }
+  }
+
   for (last = value + len; value != last; ++value) {
     if (!VALID_HD_VALUE_CHARS[*value]) {
       return 0;
