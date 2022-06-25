@@ -97,6 +97,7 @@ int main(void) {
                    test_nghttp3_conn_http_ignore_content_length) ||
       !CU_add_test(pSuite, "conn_http_record_request_method",
                    test_nghttp3_conn_http_record_request_method) ||
+      !CU_add_test(pSuite, "conn_http_error", test_nghttp3_conn_http_error) ||
       !CU_add_test(pSuite, "conn_qpack_blocked_stream",
                    test_nghttp3_conn_qpack_blocked_stream) ||
       !CU_add_test(pSuite, "conn_submit_response_read_blocked",

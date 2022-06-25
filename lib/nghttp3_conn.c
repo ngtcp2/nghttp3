@@ -1339,6 +1339,10 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       nread = nghttp3_conn_on_headers(conn, stream, p, len,
                                       (int64_t)len == rstate->left);
       if (nread < 0) {
+        if (nread == NGHTTP3_ERR_MALFORMED_HTTP_HEADER) {
+          goto http_header_error;
+        }
+
         return nread;
       }
 
@@ -1379,6 +1383,10 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       }
 
       if (rv != 0) {
+        if (rv == NGHTTP3_ERR_MALFORMED_HTTP_HEADER) {
+          goto http_header_error;
+        }
+
         return rv;
       }
 
@@ -1417,6 +1425,27 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       assert(0 == rv);
 
       nghttp3_stream_read_state_reset(rstate);
+
+      break;
+
+    http_header_error:
+      stream->flags |= NGHTTP3_STREAM_FLAG_HTTP_ERROR;
+
+      busy = 1;
+      rstate->state = NGHTTP3_REQ_STREAM_STATE_IGN_REST;
+
+      rv = conn_call_stop_sending(conn, stream,
+                                  NGHTTP3_H3_GENERAL_PROTOCOL_ERROR);
+      if (rv != 0) {
+        return rv;
+      }
+
+      rv = conn_call_reset_stream(conn, stream,
+                                  NGHTTP3_H3_GENERAL_PROTOCOL_ERROR);
+      if (rv != 0) {
+        return rv;
+      }
+
       break;
     case NGHTTP3_REQ_STREAM_STATE_IGN_FRAME:
       len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
@@ -1432,7 +1461,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       break;
     case NGHTTP3_REQ_STREAM_STATE_IGN_REST:
       nconsumed += (size_t)(end - p);
-      *pnproc = (size_t)(p - src);
+      *pnproc = (size_t)(end - src);
       return (nghttp3_ssize)nconsumed;
     }
   }

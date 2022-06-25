@@ -129,6 +129,10 @@ typedef struct nghttp3_stream_read_state {
 /* NGHTTP3_STREAM_FLAG_PRIORITY_UPDATE_RECVED indicates that server
    received PRIORITY_UPDATE frame for this stream. */
 #define NGHTTP3_STREAM_FLAG_PRIORITY_UPDATE_RECVED 0x0800u
+/* NGHTTP3_STREAM_FLAG_HTTP_ERROR indicates that
+   NGHTTP3_ERR_MALFORMED_HTTP_HEADER error is encountered while
+   processing incoming HTTP fields. */
+#define NGHTTP3_STREAM_FLAG_HTTP_ERROR 0x1000u
 
 typedef enum nghttp3_stream_http_state {
   NGHTTP3_HTTP_STATE_NONE,

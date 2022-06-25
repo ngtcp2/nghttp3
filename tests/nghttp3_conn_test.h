@@ -41,6 +41,7 @@ void test_nghttp3_conn_http_non_final_response(void);
 void test_nghttp3_conn_http_trailers(void);
 void test_nghttp3_conn_http_ignore_content_length(void);
 void test_nghttp3_conn_http_record_request_method(void);
+void test_nghttp3_conn_http_error(void);
 void test_nghttp3_conn_qpack_blocked_stream(void);
 void test_nghttp3_conn_just_fin(void);
 void test_nghttp3_conn_submit_response_read_blocked(void);
