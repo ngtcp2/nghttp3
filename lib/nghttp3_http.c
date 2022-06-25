@@ -78,22 +78,9 @@ static int64_t parse_uint(const uint8_t *s, size_t len) {
   return n;
 }
 
-static int lws(const uint8_t *s, size_t n) {
-  size_t i;
-  for (i = 0; i < n; ++i) {
-    if (s[i] != ' ' && s[i] != '\t') {
-      return 0;
-    }
-  }
-  return 1;
-}
-
 static int check_pseudo_header(nghttp3_http_state *http,
                                const nghttp3_qpack_nv *nv, uint32_t flag) {
-  if (http->flags & flag) {
-    return 0;
-  }
-  if (lws(nv->value->base, nv->value->len)) {
+  if ((http->flags & flag) || nv->value->len == 0) {
     return 0;
   }
   http->flags |= flag;
