@@ -56,6 +56,7 @@ AM_CFLAGS = $(WARNCFLAGS) \
 	-I${top_srcdir}/lib \
 	-I${top_srcdir}/lib/includes \
 	-I${top_builddir}/lib/includes \
+	-DBUILDING_NGHTTP3 \
 	@CUNIT_CFLAGS@ @DEFS@
 AM_LDFLAGS = -no-install
 
