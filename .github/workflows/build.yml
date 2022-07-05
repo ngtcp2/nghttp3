@@ -95,17 +95,11 @@ jobs:
     strategy:
       matrix:
         host: [x86_64-w64-mingw32, i686-w64-mingw32]
-        include:
-        - host: x86_64-w64-mingw32
-          oscc: mingw64
-        - host: i686-w64-mingw32
-          oscc: mingw
 
     runs-on: ubuntu-22.04
 
     env:
       HOST: ${{ matrix.host }}
-      OSCC: ${{ matrix.oscc }}
 
     steps:
     - uses: actions/checkout@v3
