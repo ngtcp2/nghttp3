@@ -720,11 +720,11 @@ void test_nghttp3_qpack_huffman(void) {
   nghttp3_qpack_huffman_decode_context ctx;
   nghttp3_ssize nwrite;
 
-  srandom(1000000007);
+  srand(1000000007);
 
   for (i = 0; i < 100000; ++i) {
     for (j = 0; j < sizeof(raw); ++j) {
-      raw[j] = (uint8_t)round(((double)random() / RAND_MAX * 255));
+      raw[j] = (uint8_t)round(((double)rand() / RAND_MAX * 255));
     }
     end = nghttp3_qpack_huffman_encode(ebuf, raw, sizeof(raw));
 
