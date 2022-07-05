@@ -477,7 +477,7 @@ void test_nghttp3_conn_submit_request(void) {
       MAKE_NV(":scheme", "https"),
       MAKE_NV(":method", "GET"),
   };
-  size_t len;
+  uint64_t len;
   size_t i;
   nghttp3_stream *stream;
   userdata ud;
@@ -679,8 +679,8 @@ void test_nghttp3_conn_http_request(void) {
       break;
     }
 
-    rv = nghttp3_conn_add_write_offset(cl, stream_id,
-                                       nghttp3_vec_len(vec, (size_t)sveccnt));
+    rv = nghttp3_conn_add_write_offset(
+        cl, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
     CU_ASSERT(0 == rv);
 
@@ -720,8 +720,8 @@ void test_nghttp3_conn_http_request(void) {
       break;
     }
 
-    rv = nghttp3_conn_add_write_offset(sv, stream_id,
-                                       nghttp3_vec_len(vec, (size_t)sveccnt));
+    rv = nghttp3_conn_add_write_offset(
+        sv, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
     CU_ASSERT(0 == rv);
 
@@ -2354,8 +2354,8 @@ void test_nghttp3_conn_just_fin(void) {
       break;
     }
 
-    rv = nghttp3_conn_add_write_offset(conn, stream_id,
-                                       nghttp3_vec_len(vec, (size_t)sveccnt));
+    rv = nghttp3_conn_add_write_offset(
+        conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
     CU_ASSERT(0 == rv);
   }
@@ -2374,8 +2374,8 @@ void test_nghttp3_conn_just_fin(void) {
   CU_ASSERT(0 == stream_id);
   CU_ASSERT(1 == fin);
 
-  rv = nghttp3_conn_add_write_offset(conn, stream_id,
-                                     nghttp3_vec_len(vec, (size_t)sveccnt));
+  rv = nghttp3_conn_add_write_offset(
+      conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
   CU_ASSERT(0 == rv);
 
@@ -2395,8 +2395,8 @@ void test_nghttp3_conn_just_fin(void) {
   CU_ASSERT(4 == stream_id);
   CU_ASSERT(0 == fin);
 
-  rv = nghttp3_conn_add_write_offset(conn, stream_id,
-                                     nghttp3_vec_len(vec, (size_t)sveccnt));
+  rv = nghttp3_conn_add_write_offset(
+      conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
   CU_ASSERT(0 == rv);
 
@@ -2410,8 +2410,8 @@ void test_nghttp3_conn_just_fin(void) {
   CU_ASSERT(4 == stream_id);
   CU_ASSERT(1 == fin);
 
-  rv = nghttp3_conn_add_write_offset(conn, stream_id,
-                                     nghttp3_vec_len(vec, (size_t)sveccnt));
+  rv = nghttp3_conn_add_write_offset(
+      conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
   CU_ASSERT(0 == rv);
 
