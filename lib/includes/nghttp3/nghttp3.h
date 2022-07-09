@@ -1879,7 +1879,7 @@ typedef struct nghttp3_callbacks {
   /**
    * :member:`reset_stream` is a callback function which is invoked
    * when the library asks application to reset stream (by sending
-   * RESET_STREAM).  It is only used by server to reject a request.
+   * RESET_STREAM).
    */
   nghttp3_reset_stream reset_stream;
   /**
