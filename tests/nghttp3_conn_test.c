@@ -2028,12 +2028,10 @@ void test_nghttp3_conn_http_error(void) {
   CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
   CU_ASSERT(1 == ud.stop_sending_cb.ncalled);
   CU_ASSERT(0 == ud.stop_sending_cb.stream_id);
-  CU_ASSERT(NGHTTP3_H3_GENERAL_PROTOCOL_ERROR ==
-            ud.stop_sending_cb.app_error_code);
+  CU_ASSERT(NGHTTP3_H3_MESSAGE_ERROR == ud.stop_sending_cb.app_error_code);
   CU_ASSERT(1 == ud.reset_stream_cb.ncalled);
   CU_ASSERT(0 == ud.reset_stream_cb.stream_id);
-  CU_ASSERT(NGHTTP3_H3_GENERAL_PROTOCOL_ERROR ==
-            ud.reset_stream_cb.app_error_code);
+  CU_ASSERT(NGHTTP3_H3_MESSAGE_ERROR == ud.reset_stream_cb.app_error_code);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
@@ -2070,12 +2068,10 @@ void test_nghttp3_conn_http_error(void) {
   CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
   CU_ASSERT(1 == ud.stop_sending_cb.ncalled);
   CU_ASSERT(0 == ud.stop_sending_cb.stream_id);
-  CU_ASSERT(NGHTTP3_H3_GENERAL_PROTOCOL_ERROR ==
-            ud.stop_sending_cb.app_error_code);
+  CU_ASSERT(NGHTTP3_H3_MESSAGE_ERROR == ud.stop_sending_cb.app_error_code);
   CU_ASSERT(1 == ud.reset_stream_cb.ncalled);
   CU_ASSERT(0 == ud.reset_stream_cb.stream_id);
-  CU_ASSERT(NGHTTP3_H3_GENERAL_PROTOCOL_ERROR ==
-            ud.reset_stream_cb.app_error_code);
+  CU_ASSERT(NGHTTP3_H3_MESSAGE_ERROR == ud.reset_stream_cb.app_error_code);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
@@ -2141,12 +2137,10 @@ void test_nghttp3_conn_http_error(void) {
   CU_ASSERT(0 == nghttp3_ringbuf_len(&stream->inq));
   CU_ASSERT(1 == ud.stop_sending_cb.ncalled);
   CU_ASSERT(0 == ud.stop_sending_cb.stream_id);
-  CU_ASSERT(NGHTTP3_H3_GENERAL_PROTOCOL_ERROR ==
-            ud.stop_sending_cb.app_error_code);
+  CU_ASSERT(NGHTTP3_H3_MESSAGE_ERROR == ud.stop_sending_cb.app_error_code);
   CU_ASSERT(1 == ud.reset_stream_cb.ncalled);
   CU_ASSERT(0 == ud.reset_stream_cb.stream_id);
-  CU_ASSERT(NGHTTP3_H3_GENERAL_PROTOCOL_ERROR ==
-            ud.reset_stream_cb.app_error_code);
+  CU_ASSERT(NGHTTP3_H3_MESSAGE_ERROR == ud.reset_stream_cb.app_error_code);
 
   /* After the error, everything is just discarded. */
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
