@@ -1434,14 +1434,12 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       busy = 1;
       rstate->state = NGHTTP3_REQ_STREAM_STATE_IGN_REST;
 
-      rv = conn_call_stop_sending(conn, stream,
-                                  NGHTTP3_H3_GENERAL_PROTOCOL_ERROR);
+      rv = conn_call_stop_sending(conn, stream, NGHTTP3_H3_MESSAGE_ERROR);
       if (rv != 0) {
         return rv;
       }
 
-      rv = conn_call_reset_stream(conn, stream,
-                                  NGHTTP3_H3_GENERAL_PROTOCOL_ERROR);
+      rv = conn_call_reset_stream(conn, stream, NGHTTP3_H3_MESSAGE_ERROR);
       if (rv != 0) {
         return rv;
       }
