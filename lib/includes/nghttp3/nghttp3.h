@@ -2100,8 +2100,8 @@ NGHTTP3_EXTERN int nghttp3_conn_add_ack_offset(nghttp3_conn *conn,
  * `nghttp3_conn_block_stream` tells the library that stream
  * identified by |stream_id| is blocked due to QUIC flow control.
  */
-NGHTTP3_EXTERN int nghttp3_conn_block_stream(nghttp3_conn *conn,
-                                             int64_t stream_id);
+NGHTTP3_EXTERN void nghttp3_conn_block_stream(nghttp3_conn *conn,
+                                              int64_t stream_id);
 
 /**
  * @function
@@ -2141,8 +2141,8 @@ NGHTTP3_EXTERN int nghttp3_conn_is_stream_writable(nghttp3_conn *conn,
  * prohibited.  This works like `nghttp3_conn_block_stream`, but it
  * cannot be unblocked by `nghttp3_conn_unblock_stream`.
  */
-NGHTTP3_EXTERN int nghttp3_conn_shutdown_stream_write(nghttp3_conn *conn,
-                                                      int64_t stream_id);
+NGHTTP3_EXTERN void nghttp3_conn_shutdown_stream_write(nghttp3_conn *conn,
+                                                       int64_t stream_id);
 
 /**
  * @function

@@ -2023,7 +2023,7 @@ int nghttp3_conn_add_write_offset(nghttp3_conn *conn, int64_t stream_id,
   int rv;
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_STREAM_NOT_FOUND;
+    return 0;
   }
 
   rv = nghttp3_stream_add_outq_offset(stream, n);
@@ -2054,7 +2054,7 @@ int nghttp3_conn_add_ack_offset(nghttp3_conn *conn, int64_t stream_id,
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_STREAM_NOT_FOUND;
+    return 0;
   }
 
   return nghttp3_stream_add_ack_offset(stream, n);
@@ -2295,11 +2295,11 @@ int nghttp3_conn_reject_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
   return conn_call_reset_stream(conn, stream, NGHTTP3_H3_REQUEST_REJECTED);
 }
 
-int nghttp3_conn_block_stream(nghttp3_conn *conn, int64_t stream_id) {
+void nghttp3_conn_block_stream(nghttp3_conn *conn, int64_t stream_id) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_STREAM_NOT_FOUND;
+    return;
   }
 
   stream->flags |= NGHTTP3_STREAM_FLAG_FC_BLOCKED;
@@ -2308,15 +2308,13 @@ int nghttp3_conn_block_stream(nghttp3_conn *conn, int64_t stream_id) {
   if (nghttp3_client_stream_bidi(stream->node.nid.id)) {
     nghttp3_conn_unschedule_stream(conn, stream);
   }
-
-  return 0;
 }
 
-int nghttp3_conn_shutdown_stream_write(nghttp3_conn *conn, int64_t stream_id) {
+void nghttp3_conn_shutdown_stream_write(nghttp3_conn *conn, int64_t stream_id) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_STREAM_NOT_FOUND;
+    return;
   }
 
   stream->flags |= NGHTTP3_STREAM_FLAG_SHUT_WR;
@@ -2325,15 +2323,13 @@ int nghttp3_conn_shutdown_stream_write(nghttp3_conn *conn, int64_t stream_id) {
   if (nghttp3_client_stream_bidi(stream->node.nid.id)) {
     nghttp3_conn_unschedule_stream(conn, stream);
   }
-
-  return 0;
 }
 
 int nghttp3_conn_unblock_stream(nghttp3_conn *conn, int64_t stream_id) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_STREAM_NOT_FOUND;
+    return 0;
   }
 
   stream->flags &= (uint16_t)~NGHTTP3_STREAM_FLAG_FC_BLOCKED;
@@ -2363,7 +2359,7 @@ int nghttp3_conn_resume_stream(nghttp3_conn *conn, int64_t stream_id) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_STREAM_NOT_FOUND;
+    return 0;
   }
 
   stream->flags &= (uint16_t)~NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED;
@@ -2381,7 +2377,7 @@ int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id,
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_STREAM_NOT_FOUND;
+    return 0;
   }
 
   if (nghttp3_stream_uni(stream_id) &&
