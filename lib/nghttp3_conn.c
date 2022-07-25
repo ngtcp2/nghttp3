@@ -2377,7 +2377,7 @@ int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id,
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
-    return 0;
+    return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
   if (nghttp3_stream_uni(stream_id) &&

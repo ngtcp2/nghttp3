@@ -2169,6 +2169,16 @@ NGHTTP3_EXTERN int nghttp3_conn_resume_stream(nghttp3_conn *conn,
  *
  * `nghttp3_conn_close_stream` closes stream identified by
  * |stream_id|.  |app_error_code| is the reason of the closure.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :macro:`NGHTTP3_ERR_STREAM_NOT_FOUND`
+ *     Stream not found.
+ * :macro:`NGHTTP3_ERR_H3_CLOSED_CRITICAL_STREAM`
+ *     A critical stream is closed.
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`
+ *     User callback failed
  */
 NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
                                              int64_t stream_id,
