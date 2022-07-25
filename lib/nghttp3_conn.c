@@ -2461,15 +2461,15 @@ int nghttp3_conn_set_stream_user_data(nghttp3_conn *conn, int64_t stream_id,
   return 0;
 }
 
-int64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
-                                            int64_t stream_id) {
+uint64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
+                                             int64_t stream_id) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
-    return NGHTTP3_ERR_STREAM_NOT_FOUND;
+    return 0;
   }
 
-  return stream->rstate.left;
+  return (uint64_t)stream->rstate.left;
 }
 
 int nghttp3_conn_get_stream_priority(nghttp3_conn *conn, nghttp3_pri *dest,
