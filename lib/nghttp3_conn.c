@@ -264,7 +264,6 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
   nghttp3_settings_default(&conn->remote.settings);
   conn->mem = mem;
   conn->user_data = user_data;
-  conn->next_seq = 0;
   conn->server = server;
   conn->rx.goaway_id = NGHTTP3_VARINT_MAX + 1;
   conn->tx.goaway_id = NGHTTP3_VARINT_MAX + 1;
@@ -1794,7 +1793,7 @@ int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
       conn_stream_acked_data,
   };
 
-  rv = nghttp3_stream_new(&stream, stream_id, conn->next_seq, &callbacks,
+  rv = nghttp3_stream_new(&stream, stream_id, &callbacks,
                           &conn->out_chunk_objalloc, &conn->stream_objalloc,
                           conn->mem);
   if (rv != 0) {
@@ -1810,7 +1809,6 @@ int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
     return rv;
   }
 
-  ++conn->next_seq;
   *pstream = stream;
 
   return 0;

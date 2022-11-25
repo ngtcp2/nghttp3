@@ -90,7 +90,6 @@ struct nghttp3_conn {
   void *user_data;
   int server;
   uint16_t flags;
-  uint64_t next_seq;
 
   struct {
     nghttp3_settings settings;

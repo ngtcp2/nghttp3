@@ -44,7 +44,7 @@
 #define NGHTTP3_MIN_RBLEN 4
 
 int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
-                       uint64_t seq, const nghttp3_stream_callbacks *callbacks,
+                       const nghttp3_stream_callbacks *callbacks,
                        nghttp3_objalloc *out_chunk_objalloc,
                        nghttp3_objalloc *stream_objalloc,
                        const nghttp3_mem *mem) {
@@ -62,7 +62,7 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
 
   nghttp3_tnode_init(
       &stream->node,
-      nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_STREAM, stream_id), seq,
+      nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_STREAM, stream_id),
       NGHTTP3_DEFAULT_URGENCY);
 
   nghttp3_ringbuf_init(&stream->frq, 0, sizeof(nghttp3_frame_entry), mem);
