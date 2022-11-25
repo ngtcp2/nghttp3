@@ -204,7 +204,7 @@ static int cycle_less(const nghttp3_pq_entry *lhsx,
   const nghttp3_tnode *rhs = nghttp3_struct_of(rhsx, nghttp3_tnode, pe);
 
   if (lhs->cycle == rhs->cycle) {
-    return lhs->seq < rhs->seq;
+    return lhs->nid.id < rhs->nid.id;
   }
 
   return rhs->cycle - lhs->cycle <= NGHTTP3_TNODE_MAX_CYCLE_GAP;
