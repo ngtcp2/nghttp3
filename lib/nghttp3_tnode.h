@@ -54,14 +54,13 @@ typedef struct nghttp3_tnode {
   nghttp3_pq_entry pe;
   size_t num_children;
   nghttp3_node_id nid;
-  uint64_t seq;
   uint64_t cycle;
   /* pri is a stream priority produced by nghttp3_pri_to_uint8. */
   uint8_t pri;
 } nghttp3_tnode;
 
 void nghttp3_tnode_init(nghttp3_tnode *tnode, const nghttp3_node_id *nid,
-                        uint64_t seq, uint8_t pri);
+                        uint8_t pri);
 
 void nghttp3_tnode_free(nghttp3_tnode *tnode);
 

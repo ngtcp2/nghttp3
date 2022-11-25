@@ -43,12 +43,11 @@ int nghttp3_node_id_eq(const nghttp3_node_id *a, const nghttp3_node_id *b) {
 }
 
 void nghttp3_tnode_init(nghttp3_tnode *tnode, const nghttp3_node_id *nid,
-                        uint64_t seq, uint8_t pri) {
+                        uint8_t pri) {
   assert(nghttp3_pri_uint8_urgency(pri) < NGHTTP3_URGENCY_LEVELS);
 
   tnode->pe.index = NGHTTP3_PQ_BAD_INDEX;
   tnode->nid = *nid;
-  tnode->seq = seq;
   tnode->cycle = 0;
   tnode->pri = pri;
 }
