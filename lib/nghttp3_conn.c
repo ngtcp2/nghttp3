@@ -453,12 +453,6 @@ nghttp3_ssize nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
         stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
       }
     }
-  } else if (nghttp3_stream_uni(stream_id) &&
-             stream->type == NGHTTP3_STREAM_TYPE_PUSH) {
-    if (stream->rx.hstate == NGHTTP3_HTTP_STATE_NONE) {
-      stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
-      stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
-    }
   }
 
   if (srclen == 0 && !fin) {
@@ -2379,7 +2373,6 @@ int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id,
   }
 
   if (nghttp3_stream_uni(stream_id) &&
-      stream->type != NGHTTP3_STREAM_TYPE_PUSH &&
       stream->type != NGHTTP3_STREAM_TYPE_UNKNOWN) {
     return NGHTTP3_ERR_H3_CLOSED_CRITICAL_STREAM;
   }

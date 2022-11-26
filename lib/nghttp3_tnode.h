@@ -37,7 +37,6 @@
 
 typedef enum nghttp3_node_id_type {
   NGHTTP3_NODE_ID_TYPE_STREAM = 0x00,
-  NGHTTP3_NODE_ID_TYPE_PUSH = 0x01,
 } nghttp3_node_id_type;
 
 typedef struct nghttp3_node_id {
