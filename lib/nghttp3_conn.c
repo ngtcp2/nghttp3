@@ -56,7 +56,7 @@ static int conn_call_begin_headers(nghttp3_conn *conn, nghttp3_stream *stream) {
     return 0;
   }
 
-  rv = conn->callbacks.begin_headers(conn, stream->node.nid.id, conn->user_data,
+  rv = conn->callbacks.begin_headers(conn, stream->node.id, conn->user_data,
                                      stream->user_data);
   if (rv != 0) {
     /* TODO Allow ignore headers */
@@ -74,8 +74,8 @@ static int conn_call_end_headers(nghttp3_conn *conn, nghttp3_stream *stream,
     return 0;
   }
 
-  rv = conn->callbacks.end_headers(conn, stream->node.nid.id, fin,
-                                   conn->user_data, stream->user_data);
+  rv = conn->callbacks.end_headers(conn, stream->node.id, fin, conn->user_data,
+                                   stream->user_data);
   if (rv != 0) {
     /* TODO Allow ignore headers */
     return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -92,8 +92,8 @@ static int conn_call_begin_trailers(nghttp3_conn *conn,
     return 0;
   }
 
-  rv = conn->callbacks.begin_trailers(conn, stream->node.nid.id,
-                                      conn->user_data, stream->user_data);
+  rv = conn->callbacks.begin_trailers(conn, stream->node.id, conn->user_data,
+                                      stream->user_data);
   if (rv != 0) {
     /* TODO Allow ignore headers */
     return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -110,8 +110,8 @@ static int conn_call_end_trailers(nghttp3_conn *conn, nghttp3_stream *stream,
     return 0;
   }
 
-  rv = conn->callbacks.end_trailers(conn, stream->node.nid.id, fin,
-                                    conn->user_data, stream->user_data);
+  rv = conn->callbacks.end_trailers(conn, stream->node.id, fin, conn->user_data,
+                                    stream->user_data);
   if (rv != 0) {
     /* TODO Allow ignore headers */
     return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -127,7 +127,7 @@ static int conn_call_end_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
     return 0;
   }
 
-  rv = conn->callbacks.end_stream(conn, stream->node.nid.id, conn->user_data,
+  rv = conn->callbacks.end_stream(conn, stream->node.id, conn->user_data,
                                   stream->user_data);
   if (rv != 0) {
     return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -144,7 +144,7 @@ static int conn_call_stop_sending(nghttp3_conn *conn, nghttp3_stream *stream,
     return 0;
   }
 
-  rv = conn->callbacks.stop_sending(conn, stream->node.nid.id, app_error_code,
+  rv = conn->callbacks.stop_sending(conn, stream->node.id, app_error_code,
                                     conn->user_data, stream->user_data);
   if (rv != 0) {
     return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -161,7 +161,7 @@ static int conn_call_reset_stream(nghttp3_conn *conn, nghttp3_stream *stream,
     return 0;
   }
 
-  rv = conn->callbacks.reset_stream(conn, stream->node.nid.id, app_error_code,
+  rv = conn->callbacks.reset_stream(conn, stream->node.id, app_error_code,
                                     conn->user_data, stream->user_data);
   if (rv != 0) {
     return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -179,7 +179,7 @@ static int conn_call_deferred_consume(nghttp3_conn *conn,
     return 0;
   }
 
-  rv = conn->callbacks.deferred_consume(conn, stream->node.nid.id, nconsumed,
+  rv = conn->callbacks.deferred_consume(conn, stream->node.id, nconsumed,
                                         conn->user_data, stream->user_data);
   if (rv != 0) {
     return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -204,7 +204,7 @@ static int cycle_less(const nghttp3_pq_entry *lhsx,
   const nghttp3_tnode *rhs = nghttp3_struct_of(rhsx, nghttp3_tnode, pe);
 
   if (lhs->cycle == rhs->cycle) {
-    return lhs->nid.id < rhs->nid.id;
+    return lhs->id < rhs->id;
   }
 
   return rhs->cycle - lhs->cycle <= NGHTTP3_TNODE_MAX_CYCLE_GAP;
@@ -1015,7 +1015,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
 }
 
 static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
-  int bidi = nghttp3_client_stream_bidi(stream->node.nid.id);
+  int bidi = nghttp3_client_stream_bidi(stream->node.id);
   int rv;
 
   rv = conn_call_deferred_consume(conn, stream,
@@ -1025,16 +1025,15 @@ static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
   }
 
   if (bidi && conn->callbacks.stream_close) {
-    rv = conn->callbacks.stream_close(conn, stream->node.nid.id,
-                                      stream->error_code, conn->user_data,
-                                      stream->user_data);
+    rv = conn->callbacks.stream_close(conn, stream->node.id, stream->error_code,
+                                      conn->user_data, stream->user_data);
     if (rv != 0) {
       return NGHTTP3_ERR_CALLBACK_FAILURE;
     }
   }
 
-  rv = nghttp3_map_remove(&conn->streams,
-                          (nghttp3_map_key_type)stream->node.nid.id);
+  rv =
+      nghttp3_map_remove(&conn->streams, (nghttp3_map_key_type)stream->node.id);
 
   assert(0 == rv);
 
@@ -1051,7 +1050,7 @@ static int conn_process_blocked_stream_data(nghttp3_conn *conn,
   int rv;
   size_t len;
 
-  assert(nghttp3_client_stream_bidi(stream->node.nid.id));
+  assert(nghttp3_client_stream_bidi(stream->node.id));
 
   for (;;) {
     len = nghttp3_ringbuf_len(&stream->inq);
@@ -1143,7 +1142,7 @@ static nghttp3_tnode *stream_get_sched_node(nghttp3_stream *stream) {
 
 static int conn_update_stream_priority(nghttp3_conn *conn,
                                        nghttp3_stream *stream, uint8_t pri) {
-  assert(nghttp3_client_stream_bidi(stream->node.nid.id));
+  assert(nghttp3_client_stream_bidi(stream->node.id));
 
   if (stream->node.pri == pri) {
     return 0;
@@ -1498,7 +1497,7 @@ int nghttp3_conn_on_data(nghttp3_conn *conn, nghttp3_stream *stream,
     return 0;
   }
 
-  rv = conn->callbacks.recv_data(conn, stream->node.nid.id, data, datalen,
+  rv = conn->callbacks.recv_data(conn, stream->node.id, data, datalen,
                                  conn->user_data, stream->user_data);
   if (rv != 0) {
     return NGHTTP3_ERR_CALLBACK_FAILURE;
@@ -1599,9 +1598,8 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
         break;
       case 0:
         if (recv_header) {
-          rv = recv_header(conn, stream->node.nid.id, nv.token, nv.name,
-                           nv.value, nv.flags, conn->user_data,
-                           stream->user_data);
+          rv = recv_header(conn, stream->node.id, nv.token, nv.name, nv.value,
+                           nv.flags, conn->user_data, stream->user_data);
           if (rv != 0) {
             rv = NGHTTP3_ERR_CALLBACK_FAILURE;
           }
@@ -1796,8 +1794,8 @@ int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
 
   stream->conn = conn;
 
-  rv = nghttp3_map_insert(&conn->streams,
-                          (nghttp3_map_key_type)stream->node.nid.id, stream);
+  rv = nghttp3_map_insert(&conn->streams, (nghttp3_map_key_type)stream->node.id,
+                          stream);
   if (rv != 0) {
     nghttp3_stream_del(stream);
     return rv;
@@ -1902,14 +1900,14 @@ static nghttp3_ssize conn_writev_stream(nghttp3_conn *conn, int64_t *pstream_id,
     }
   }
 
-  if (!nghttp3_stream_uni(stream->node.nid.id) && conn->tx.qenc &&
+  if (!nghttp3_stream_uni(stream->node.id) && conn->tx.qenc &&
       !nghttp3_stream_is_blocked(conn->tx.qenc)) {
     n = nghttp3_stream_writev(conn->tx.qenc, pfin, vec, veccnt);
     if (n < 0) {
       return n;
     }
     if (n) {
-      *pstream_id = conn->tx.qenc->node.nid.id;
+      *pstream_id = conn->tx.qenc->node.id;
       return n;
     }
   }
@@ -1924,7 +1922,7 @@ static nghttp3_ssize conn_writev_stream(nghttp3_conn *conn, int64_t *pstream_id,
     return 0;
   }
 
-  *pstream_id = stream->node.nid.id;
+  *pstream_id = stream->node.id;
 
   return n;
 }
@@ -1982,7 +1980,7 @@ nghttp3_ssize nghttp3_conn_writev_stream(nghttp3_conn *conn,
     return ncnt;
   }
 
-  if (nghttp3_client_stream_bidi(stream->node.nid.id) &&
+  if (nghttp3_client_stream_bidi(stream->node.id) &&
       !nghttp3_stream_require_schedule(stream)) {
     nghttp3_conn_unschedule_stream(conn, stream);
   }
@@ -2025,7 +2023,7 @@ int nghttp3_conn_add_write_offset(nghttp3_conn *conn, int64_t stream_id,
 
   stream->unscheduled_nwrite += n;
 
-  if (!nghttp3_client_stream_bidi(stream->node.nid.id)) {
+  if (!nghttp3_client_stream_bidi(stream->node.id)) {
     return 0;
   }
 
@@ -2297,7 +2295,7 @@ void nghttp3_conn_block_stream(nghttp3_conn *conn, int64_t stream_id) {
   stream->flags |= NGHTTP3_STREAM_FLAG_FC_BLOCKED;
   stream->unscheduled_nwrite = 0;
 
-  if (nghttp3_client_stream_bidi(stream->node.nid.id)) {
+  if (nghttp3_client_stream_bidi(stream->node.id)) {
     nghttp3_conn_unschedule_stream(conn, stream);
   }
 }
@@ -2312,7 +2310,7 @@ void nghttp3_conn_shutdown_stream_write(nghttp3_conn *conn, int64_t stream_id) {
   stream->flags |= NGHTTP3_STREAM_FLAG_SHUT_WR;
   stream->unscheduled_nwrite = 0;
 
-  if (nghttp3_client_stream_bidi(stream->node.nid.id)) {
+  if (nghttp3_client_stream_bidi(stream->node.id)) {
     nghttp3_conn_unschedule_stream(conn, stream);
   }
 }
@@ -2326,7 +2324,7 @@ int nghttp3_conn_unblock_stream(nghttp3_conn *conn, int64_t stream_id) {
 
   stream->flags &= (uint16_t)~NGHTTP3_STREAM_FLAG_FC_BLOCKED;
 
-  if (nghttp3_client_stream_bidi(stream->node.nid.id) &&
+  if (nghttp3_client_stream_bidi(stream->node.id) &&
       nghttp3_stream_require_schedule(stream)) {
     return nghttp3_conn_ensure_stream_scheduled(conn, stream);
   }
@@ -2356,7 +2354,7 @@ int nghttp3_conn_resume_stream(nghttp3_conn *conn, int64_t stream_id) {
 
   stream->flags &= (uint16_t)~NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED;
 
-  if (nghttp3_client_stream_bidi(stream->node.nid.id) &&
+  if (nghttp3_client_stream_bidi(stream->node.id) &&
       nghttp3_stream_require_schedule(stream)) {
     return nghttp3_conn_ensure_stream_scheduled(conn, stream);
   }
