@@ -48,6 +48,8 @@ void test_nghttp3_tnode_schedule(void) {
   nghttp3_tnode node, node2;
   nghttp3_pq pq;
   int rv;
+  nghttp3_pq_entry *ent;
+  nghttp3_tnode *p;
 
   nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_STREAM, 0);
   nghttp3_node_id_init(&nid2, NGHTTP3_NODE_ID_TYPE_STREAM, 1);
@@ -115,6 +117,52 @@ void test_nghttp3_tnode_schedule(void) {
 
   CU_ASSERT(0 == rv);
   CU_ASSERT(0 == node.cycle);
+
+  nghttp3_pq_free(&pq);
+
+  /* Stream with lower stream ID takes precedence */
+  nghttp3_pq_init(&pq, cycle_less, mem);
+
+  nghttp3_tnode_init(&node2, &nid2, NGHTTP3_DEFAULT_URGENCY);
+
+  rv = nghttp3_tnode_schedule(&node2, &pq, 0);
+
+  CU_ASSERT(0 == rv);
+
+  nghttp3_tnode_init(&node, &nid, NGHTTP3_DEFAULT_URGENCY);
+
+  rv = nghttp3_tnode_schedule(&node, &pq, 0);
+
+  CU_ASSERT(0 == rv);
+
+  ent = nghttp3_pq_top(&pq);
+
+  p = nghttp3_struct_of(ent, nghttp3_tnode, pe);
+
+  CU_ASSERT(nid.id == p->nid.id);
+
+  nghttp3_pq_free(&pq);
+
+  /* Check the same reversing push order */
+  nghttp3_pq_init(&pq, cycle_less, mem);
+
+  nghttp3_tnode_init(&node, &nid, NGHTTP3_DEFAULT_URGENCY);
+
+  rv = nghttp3_tnode_schedule(&node, &pq, 0);
+
+  CU_ASSERT(0 == rv);
+
+  nghttp3_tnode_init(&node2, &nid2, NGHTTP3_DEFAULT_URGENCY);
+
+  rv = nghttp3_tnode_schedule(&node2, &pq, 0);
+
+  CU_ASSERT(0 == rv);
+
+  ent = nghttp3_pq_top(&pq);
+
+  p = nghttp3_struct_of(ent, nghttp3_tnode, pe);
+
+  CU_ASSERT(nid.id == p->nid.id);
 
   nghttp3_pq_free(&pq);
 }
