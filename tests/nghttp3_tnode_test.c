@@ -36,7 +36,7 @@ static int cycle_less(const nghttp3_pq_entry *lhsx,
   const nghttp3_tnode *rhs = nghttp3_struct_of(rhsx, nghttp3_tnode, pe);
 
   if (lhs->cycle == rhs->cycle) {
-    return lhs->nid.id < rhs->nid.id;
+    return lhs->id < rhs->id;
   }
 
   return rhs->cycle - lhs->cycle <= NGHTTP3_TNODE_MAX_CYCLE_GAP;
@@ -44,18 +44,14 @@ static int cycle_less(const nghttp3_pq_entry *lhsx,
 
 void test_nghttp3_tnode_schedule(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
-  nghttp3_node_id nid, nid2;
   nghttp3_tnode node, node2;
   nghttp3_pq pq;
   int rv;
   nghttp3_pq_entry *ent;
   nghttp3_tnode *p;
 
-  nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_STREAM, 0);
-  nghttp3_node_id_init(&nid2, NGHTTP3_NODE_ID_TYPE_STREAM, 1);
-
   /* Schedule node with incremental enabled */
-  nghttp3_tnode_init(&node, &nid, (1 << 7) | NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node, 0, (1 << 7) | NGHTTP3_DEFAULT_URGENCY);
 
   nghttp3_pq_init(&pq, cycle_less, mem);
 
@@ -65,7 +61,7 @@ void test_nghttp3_tnode_schedule(void) {
   CU_ASSERT(0 == node.cycle);
 
   /* Schedule another node */
-  nghttp3_tnode_init(&node2, &nid2, (1 << 7) | NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node2, 1, (1 << 7) | NGHTTP3_DEFAULT_URGENCY);
 
   rv = nghttp3_tnode_schedule(&node2, &pq, 0);
 
@@ -88,7 +84,7 @@ void test_nghttp3_tnode_schedule(void) {
   nghttp3_pq_free(&pq);
 
   /* Schedule node without incremental */
-  nghttp3_tnode_init(&node, &nid, NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node, 0, NGHTTP3_DEFAULT_URGENCY);
 
   nghttp3_pq_init(&pq, cycle_less, mem);
 
@@ -98,7 +94,7 @@ void test_nghttp3_tnode_schedule(void) {
   CU_ASSERT(0 == node.cycle);
 
   /* Schedule another node */
-  nghttp3_tnode_init(&node2, &nid2, NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node2, 1, NGHTTP3_DEFAULT_URGENCY);
 
   rv = nghttp3_tnode_schedule(&node2, &pq, 0);
 
@@ -123,13 +119,13 @@ void test_nghttp3_tnode_schedule(void) {
   /* Stream with lower stream ID takes precedence */
   nghttp3_pq_init(&pq, cycle_less, mem);
 
-  nghttp3_tnode_init(&node2, &nid2, NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node2, 1, NGHTTP3_DEFAULT_URGENCY);
 
   rv = nghttp3_tnode_schedule(&node2, &pq, 0);
 
   CU_ASSERT(0 == rv);
 
-  nghttp3_tnode_init(&node, &nid, NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node, 0, NGHTTP3_DEFAULT_URGENCY);
 
   rv = nghttp3_tnode_schedule(&node, &pq, 0);
 
@@ -139,20 +135,20 @@ void test_nghttp3_tnode_schedule(void) {
 
   p = nghttp3_struct_of(ent, nghttp3_tnode, pe);
 
-  CU_ASSERT(nid.id == p->nid.id);
+  CU_ASSERT(0 == p->id);
 
   nghttp3_pq_free(&pq);
 
   /* Check the same reversing push order */
   nghttp3_pq_init(&pq, cycle_less, mem);
 
-  nghttp3_tnode_init(&node, &nid, NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node, 0, NGHTTP3_DEFAULT_URGENCY);
 
   rv = nghttp3_tnode_schedule(&node, &pq, 0);
 
   CU_ASSERT(0 == rv);
 
-  nghttp3_tnode_init(&node2, &nid2, NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node2, 1, NGHTTP3_DEFAULT_URGENCY);
 
   rv = nghttp3_tnode_schedule(&node2, &pq, 0);
 
@@ -162,7 +158,7 @@ void test_nghttp3_tnode_schedule(void) {
 
   p = nghttp3_struct_of(ent, nghttp3_tnode, pe);
 
-  CU_ASSERT(nid.id == p->nid.id);
+  CU_ASSERT(0 == p->id);
 
   nghttp3_pq_free(&pq);
 }

@@ -49,7 +49,6 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
                        nghttp3_objalloc *stream_objalloc,
                        const nghttp3_mem *mem) {
   nghttp3_stream *stream = nghttp3_objalloc_stream_get(stream_objalloc);
-  nghttp3_node_id nid;
 
   if (stream == NULL) {
     return NGHTTP3_ERR_NOMEM;
@@ -60,10 +59,7 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
   stream->out_chunk_objalloc = out_chunk_objalloc;
   stream->stream_objalloc = stream_objalloc;
 
-  nghttp3_tnode_init(
-      &stream->node,
-      nghttp3_node_id_init(&nid, NGHTTP3_NODE_ID_TYPE_STREAM, stream_id),
-      NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&stream->node, stream_id, NGHTTP3_DEFAULT_URGENCY);
 
   nghttp3_ringbuf_init(&stream->frq, 0, sizeof(nghttp3_frame_entry), mem);
   nghttp3_ringbuf_init(&stream->chunks, 0, sizeof(nghttp3_buf), mem);
@@ -453,8 +449,8 @@ int nghttp3_stream_write_header_block(nghttp3_stream *stream,
 
   nghttp3_buf_wrap_init(&pbuf, raw_pbuf, sizeof(raw_pbuf));
 
-  rv = nghttp3_qpack_encoder_encode(qenc, &pbuf, rbuf, ebuf,
-                                    stream->node.nid.id, nva, nvlen);
+  rv = nghttp3_qpack_encoder_encode(qenc, &pbuf, rbuf, ebuf, stream->node.id,
+                                    nva, nvlen);
   if (rv != 0) {
     goto fail;
   }
@@ -574,8 +570,8 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
 
   *peof = 0;
 
-  sveccnt = read_data(conn, stream->node.nid.id, vec, nghttp3_arraylen(vec),
-                      &flags, conn->user_data, stream->user_data);
+  sveccnt = read_data(conn, stream->node.id, vec, nghttp3_arraylen(vec), &flags,
+                      conn->user_data, stream->user_data);
   if (sveccnt < 0) {
     if (sveccnt == NGHTTP3_ERR_WOULDBLOCK) {
       stream->flags |= NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED;
@@ -940,7 +936,7 @@ int nghttp3_stream_add_ack_offset(nghttp3_stream *stream, uint64_t n) {
     if (tbuf->type == NGHTTP3_BUF_TYPE_ALIEN) {
       nack = nghttp3_min(offset, (uint64_t)buflen) - stream->ack_done;
       if (stream->callbacks.acked_data) {
-        rv = stream->callbacks.acked_data(stream, stream->node.nid.id, nack,
+        rv = stream->callbacks.acked_data(stream, stream->node.id, nack,
                                           stream->user_data);
         if (rv != 0) {
           return NGHTTP3_ERR_CALLBACK_FAILURE;
