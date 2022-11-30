@@ -33,6 +33,7 @@
 #include "nghttp3_err.h"
 #include "nghttp3_conv.h"
 #include "nghttp3_http.h"
+#include "nghttp3_unreachable.h"
 
 /* NGHTTP3_QPACK_ENCODER_MAX_DTABLE_CAPACITY is the upper bound of the
    dynamic table capacity that QPACK encoder is willing to use. */
@@ -596,8 +597,7 @@ nghttp3_ssize nghttp3_conn_read_uni(nghttp3_conn *conn, nghttp3_stream *stream,
     }
     break;
   default:
-    /* unreachable */
-    assert(0);
+    nghttp3_unreachable();
   }
 
   if (nconsumed < 0) {
@@ -1006,8 +1006,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
       nghttp3_stream_read_state_reset(rstate);
       break;
     default:
-      /* unreachable */
-      assert(0);
+      nghttp3_unreachable();
     }
   }
 
@@ -1278,8 +1277,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
           rv = conn_call_begin_trailers(conn, stream);
           break;
         default:
-          /* Unreachable */
-          assert(0);
+          nghttp3_unreachable();
         }
 
         if (rv != 0) {
@@ -1369,9 +1367,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
         rv = 0;
         break;
       default:
-        /* Unreachable */
-        assert(0);
-        abort();
+        nghttp3_unreachable();
       }
 
       if (rv != 0) {
@@ -1404,8 +1400,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
         rv = conn_call_end_trailers(conn, stream, p == end && fin);
         break;
       default:
-        /* Unreachable */
-        assert(0);
+        nghttp3_unreachable();
       }
 
       if (rv != 0) {
@@ -1544,8 +1539,7 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
     recv_header = conn->callbacks.recv_trailer;
     break;
   default:
-    /* Unreachable */
-    assert(0);
+    nghttp3_unreachable();
   }
   http = &stream->rx.http;
 
@@ -1606,8 +1600,7 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
         }
         break;
       default:
-        /* Unreachable */
-        assert(0);
+        nghttp3_unreachable();
       }
 
       nghttp3_rcbuf_decref(nv.name);

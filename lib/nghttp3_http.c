@@ -31,6 +31,7 @@
 #include "nghttp3_stream.h"
 #include "nghttp3_macro.h"
 #include "nghttp3_conv.h"
+#include "nghttp3_unreachable.h"
 
 static uint8_t downcase(uint8_t c) {
   return 'A' <= c && c <= 'Z' ? (uint8_t)(c - 'A' + 'a') : c;
@@ -259,8 +260,7 @@ fin:
 
     return p - begin;
   default:
-    assert(0);
-    abort();
+    nghttp3_unreachable();
   }
 }
 

@@ -29,6 +29,7 @@
 #include <assert.h>
 
 #include "nghttp3_str.h"
+#include "nghttp3_unreachable.h"
 
 int64_t nghttp3_get_varint(size_t *plen, const uint8_t *p) {
   union {
@@ -57,8 +58,7 @@ int64_t nghttp3_get_varint(size_t *plen, const uint8_t *p) {
     return (int64_t)nghttp3_ntohl64(n.n64);
   }
 
-  assert(0);
-  abort();
+  nghttp3_unreachable();
 }
 
 int64_t nghttp3_get_varint_fb(const uint8_t *p) { return *p & 0x3f; }
