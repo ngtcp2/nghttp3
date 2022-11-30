@@ -1668,12 +1668,20 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
     if (!conn->server) {
       break;
     }
-    if (ent->value != 0 && ent->value != 1) {
+
+    switch (ent->value) {
+    case 0:
+      if (dest->enable_connect_protocol) {
+        return NGHTTP3_ERR_H3_SETTINGS_ERROR;
+      }
+
+      break;
+    case 1:
+      break;
+    default:
       return NGHTTP3_ERR_H3_SETTINGS_ERROR;
     }
-    if (ent->value == 0 && dest->enable_connect_protocol) {
-      return NGHTTP3_ERR_H3_SETTINGS_ERROR;
-    }
+
     dest->enable_connect_protocol = (int)ent->value;
     break;
   case NGHTTP3_H2_SETTINGS_ID_ENABLE_PUSH:
