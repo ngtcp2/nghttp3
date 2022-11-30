@@ -35,6 +35,7 @@
 #include "nghttp3_str.h"
 #include "nghttp3_http.h"
 #include "nghttp3_vec.h"
+#include "nghttp3_unreachable.h"
 
 /* NGHTTP3_STREAM_MAX_COPY_THRES is the maximum size of buffer which
    makes a copy to outq. */
@@ -911,8 +912,7 @@ static int stream_pop_outq_entry(nghttp3_stream *stream,
     }
     break;
   default:
-    assert(0);
-    abort();
+    nghttp3_unreachable();
   };
 
   nghttp3_ringbuf_pop_front(&stream->outq);
@@ -1217,8 +1217,7 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
   case NGHTTP3_HTTP_STATE_RESP_END:
     return NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING;
   default:
-    assert(0);
-    abort();
+    nghttp3_unreachable();
   }
 }
 

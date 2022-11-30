@@ -32,6 +32,7 @@
 #include "nghttp3_str.h"
 #include "nghttp3_macro.h"
 #include "nghttp3_debug.h"
+#include "nghttp3_unreachable.h"
 
 /* NGHTTP3_QPACK_MAX_QPACK_STREAMS is the maximum number of concurrent
    nghttp3_qpack_stream object to handle a client which never cancel
@@ -2552,18 +2553,14 @@ nghttp3_ssize nghttp3_qpack_encoder_read_decoder(nghttp3_qpack_encoder *encoder,
                                             (int64_t)encoder->rstate.left);
         break;
       default:
-        /* unreachable */
-        assert(0);
-        break;
+        nghttp3_unreachable();
       }
 
       encoder->state = NGHTTP3_QPACK_DS_STATE_OPCODE;
       nghttp3_qpack_read_state_reset(&encoder->rstate);
       break;
     default:
-      /* unreachable */
-      assert(0);
-      break;
+      nghttp3_unreachable();
     }
   }
 
@@ -2854,9 +2851,7 @@ nghttp3_ssize nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
         break;
       }
 
-      /* Unreachable */
-      assert(0);
-      break;
+      nghttp3_unreachable();
     case NGHTTP3_QPACK_ES_STATE_CHECK_NAME_HUFFMAN:
       qpack_read_state_check_huffman(&decoder->rstate, *p);
       decoder->state = NGHTTP3_QPACK_ES_STATE_READ_NAMELEN;
@@ -3010,9 +3005,7 @@ nghttp3_ssize nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
         rv = nghttp3_qpack_decoder_dtable_literal_add(decoder);
         break;
       default:
-        /* Unreachable */
-        assert(0);
-        abort();
+        nghttp3_unreachable();
       }
       if (rv != 0) {
         goto fail;
@@ -3045,9 +3038,7 @@ nghttp3_ssize nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
         rv = nghttp3_qpack_decoder_dtable_literal_add(decoder);
         break;
       default:
-        /* Unreachable */
-        assert(0);
-        abort();
+        nghttp3_unreachable();
       }
       if (rv != 0) {
         goto fail;
@@ -3430,8 +3421,7 @@ nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
         sctx->state = NGHTTP3_QPACK_RS_STATE_CHECK_VALUE_HUFFMAN;
         break;
       default:
-        /* Unreachable */
-        assert(0);
+        nghttp3_unreachable();
       }
       break;
     case NGHTTP3_QPACK_RS_STATE_CHECK_NAME_HUFFMAN:
@@ -3589,8 +3579,7 @@ nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
         nghttp3_qpack_decoder_emit_literal(decoder, sctx, nv);
         break;
       default:
-        /* Unreachable */
-        assert(0);
+        nghttp3_unreachable();
       }
 
       *pflags |= NGHTTP3_QPACK_DECODE_FLAG_EMIT;
@@ -3627,8 +3616,7 @@ nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
         nghttp3_qpack_decoder_emit_literal(decoder, sctx, nv);
         break;
       default:
-        /* Unreachable */
-        assert(0);
+        nghttp3_unreachable();
       }
 
       *pflags |= NGHTTP3_QPACK_DECODE_FLAG_EMIT;
