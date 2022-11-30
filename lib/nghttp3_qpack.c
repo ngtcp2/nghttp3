@@ -2835,23 +2835,27 @@ nghttp3_ssize nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
         goto fail;
       }
 
-      if (decoder->opcode == NGHTTP3_QPACK_ES_OPCODE_DUPLICATE) {
+      switch (decoder->opcode) {
+      case NGHTTP3_QPACK_ES_OPCODE_DUPLICATE:
         rv = nghttp3_qpack_decoder_dtable_duplicate_add(decoder);
         if (rv != 0) {
           goto fail;
         }
+
         decoder->state = NGHTTP3_QPACK_ES_STATE_OPCODE;
         nghttp3_qpack_read_state_reset(&decoder->rstate);
-        break;
-      }
 
-      if (decoder->opcode == NGHTTP3_QPACK_ES_OPCODE_INSERT_INDEXED) {
+        break;
+      case NGHTTP3_QPACK_ES_OPCODE_INSERT_INDEXED:
         decoder->rstate.prefix = 7;
         decoder->state = NGHTTP3_QPACK_ES_STATE_CHECK_VALUE_HUFFMAN;
+
         break;
+      default:
+        nghttp3_unreachable();
       }
 
-      nghttp3_unreachable();
+      break;
     case NGHTTP3_QPACK_ES_STATE_CHECK_NAME_HUFFMAN:
       qpack_read_state_check_huffman(&decoder->rstate, *p);
       decoder->state = NGHTTP3_QPACK_ES_STATE_READ_NAMELEN;
