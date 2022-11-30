@@ -810,7 +810,7 @@ nghttp3_ssize nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
                                     nghttp3_vec *vec, size_t veccnt) {
   nghttp3_ringbuf *outq = &stream->outq;
   size_t len = nghttp3_ringbuf_len(outq);
-  size_t i;
+  size_t i = stream->outq_idx;
   uint64_t offset = stream->outq_offset;
   size_t buflen;
   nghttp3_vec *vbegin = vec, *vend = vec + veccnt;
@@ -818,25 +818,27 @@ nghttp3_ssize nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
 
   assert(veccnt > 0);
 
-  for (i = stream->outq_idx; i < len; ++i) {
+  if (i < len) {
     tbuf = nghttp3_ringbuf_get(outq, i);
     buflen = nghttp3_buf_len(&tbuf->buf);
-    if (offset >= buflen) {
-      offset -= buflen;
-      continue;
+
+    if (offset < buflen) {
+      vec->base = tbuf->buf.pos + offset;
+      vec->len = (size_t)(buflen - offset);
+      ++vec;
+    } else {
+      /* This is the only case that satisfies offset >= buflen */
+      assert(0 == offset);
+      assert(0 == buflen);
     }
 
-    vec->base = tbuf->buf.pos + offset;
-    vec->len = (size_t)(buflen - offset);
-    ++vec;
     ++i;
-    break;
-  }
 
-  for (; i < len && vec != vend; ++i, ++vec) {
-    tbuf = nghttp3_ringbuf_get(outq, i);
-    vec->base = tbuf->buf.pos;
-    vec->len = nghttp3_buf_len(&tbuf->buf);
+    for (; i < len && vec != vend; ++i, ++vec) {
+      tbuf = nghttp3_ringbuf_get(outq, i);
+      vec->base = tbuf->buf.pos;
+      vec->len = nghttp3_buf_len(&tbuf->buf);
+    }
   }
 
   /* TODO Rework this if we have finished implementing HTTP
