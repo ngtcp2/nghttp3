@@ -59,6 +59,7 @@ set(nghttp3_SOURCES
   nghttp3_balloc.c
   nghttp3_opl.c
   nghttp3_objalloc.c
+  nghttp3_unreachable.c
 )
 
 # Public shared library

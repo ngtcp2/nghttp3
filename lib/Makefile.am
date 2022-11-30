@@ -61,7 +61,8 @@ OBJECTS = \
 	nghttp3_version.c \
 	nghttp3_balloc.c \
 	nghttp3_opl.c \
-	nghttp3_objalloc.c
+	nghttp3_objalloc.c \
+	nghttp3_unreachable.c
 HFILES = \
 	nghttp3_rcbuf.h \
 	nghttp3_mem.h \
@@ -88,6 +89,7 @@ HFILES = \
 	nghttp3_balloc.h \
 	nghttp3_opl.h \
 	nghttp3_objalloc.h \
+	nghttp3_unreachable.h \
 	nghttp3_macro.h
 
 libnghttp3_la_SOURCES = $(HFILES) $(OBJECTS)
