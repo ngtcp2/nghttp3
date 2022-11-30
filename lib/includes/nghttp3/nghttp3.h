@@ -1925,8 +1925,8 @@ typedef struct nghttp3_settings {
   /**
    * :member:`enable_connect_protocol`, if set to nonzero, enables
    * Extended CONNECT Method (see
-   * https://www.ietf.org/archive/id/draft-ietf-httpbis-h3-websockets-00.html).
-   * Client ignores this field.
+   * https://datatracker.ietf.org/doc/html/rfc9220).  Client ignores
+   * this field.
    */
   int enable_connect_protocol;
 } nghttp3_settings;
