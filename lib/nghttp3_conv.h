@@ -150,25 +150,11 @@ size_t nghttp3_get_varint_len(const uint8_t *p);
 uint8_t *nghttp3_put_uint64be(uint8_t *p, uint64_t n);
 
 /*
- * nghttp3_put_uint48be writes |n| in host byte order in |p| in
- * network byte order.  It writes only least significant 48 bits.  It
- * returns the one beyond of the last written position.
- */
-uint8_t *nghttp3_put_uint48be(uint8_t *p, uint64_t n);
-
-/*
  * nghttp3_put_uint32be writes |n| in host byte order in |p| in
  * network byte order.  It returns the one beyond of the last written
  * position.
  */
 uint8_t *nghttp3_put_uint32be(uint8_t *p, uint32_t n);
-
-/*
- * nghttp3_put_uint24be writes |n| in host byte order in |p| in
- * network byte order.  It writes only least significant 24 bits.  It
- * returns the one beyond of the last written position.
- */
-uint8_t *nghttp3_put_uint24be(uint8_t *p, uint32_t n);
 
 /*
  * nghttp3_put_uint16be writes |n| in host byte order in |p| in
