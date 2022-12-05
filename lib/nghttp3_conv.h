@@ -137,10 +137,10 @@ int64_t nghttp3_get_varint(size_t *plen, const uint8_t *p);
 int64_t nghttp3_get_varint_fb(const uint8_t *p);
 
 /*
- * nghttp3_get_varint_len returns the required number of bytes to read
+ * nghttp3_get_varintlen returns the required number of bytes to read
  * variable-length integer starting at |p|.
  */
-size_t nghttp3_get_varint_len(const uint8_t *p);
+size_t nghttp3_get_varintlen(const uint8_t *p);
 
 /*
  * nghttp3_put_uint64be writes |n| in host byte order in |p| in
@@ -170,10 +170,10 @@ uint8_t *nghttp3_put_uint16be(uint8_t *p, uint16_t n);
 uint8_t *nghttp3_put_varint(uint8_t *p, int64_t n);
 
 /*
- * nghttp3_put_varint_len returns the required number of bytes to
+ * nghttp3_put_varintlen returns the required number of bytes to
  * encode |n|.
  */
-size_t nghttp3_put_varint_len(int64_t n);
+size_t nghttp3_put_varintlen(int64_t n);
 
 /*
  * nghttp3_ord_stream_id returns the ordinal number of |stream_id|.

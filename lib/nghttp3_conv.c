@@ -63,7 +63,7 @@ int64_t nghttp3_get_varint(size_t *plen, const uint8_t *p) {
 
 int64_t nghttp3_get_varint_fb(const uint8_t *p) { return *p & 0x3f; }
 
-size_t nghttp3_get_varint_len(const uint8_t *p) { return 1u << (*p >> 6); }
+size_t nghttp3_get_varintlen(const uint8_t *p) { return 1u << (*p >> 6); }
 
 uint8_t *nghttp3_put_uint64be(uint8_t *p, uint64_t n) {
   n = nghttp3_htonl64(n);
@@ -102,7 +102,7 @@ uint8_t *nghttp3_put_varint(uint8_t *p, int64_t n) {
   return rv;
 }
 
-size_t nghttp3_put_varint_len(int64_t n) {
+size_t nghttp3_put_varintlen(int64_t n) {
   if (n < 64) {
     return 1;
   }
