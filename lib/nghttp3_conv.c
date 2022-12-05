@@ -70,19 +70,9 @@ uint8_t *nghttp3_put_uint64be(uint8_t *p, uint64_t n) {
   return nghttp3_cpymem(p, (const uint8_t *)&n, sizeof(n));
 }
 
-uint8_t *nghttp3_put_uint48be(uint8_t *p, uint64_t n) {
-  n = nghttp3_htonl64(n);
-  return nghttp3_cpymem(p, ((const uint8_t *)&n) + 2, 6);
-}
-
 uint8_t *nghttp3_put_uint32be(uint8_t *p, uint32_t n) {
   n = htonl(n);
   return nghttp3_cpymem(p, (const uint8_t *)&n, sizeof(n));
-}
-
-uint8_t *nghttp3_put_uint24be(uint8_t *p, uint32_t n) {
-  n = htonl(n);
-  return nghttp3_cpymem(p, ((const uint8_t *)&n) + 1, 3);
 }
 
 uint8_t *nghttp3_put_uint16be(uint8_t *p, uint16_t n) {
