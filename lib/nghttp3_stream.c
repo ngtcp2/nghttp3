@@ -185,7 +185,7 @@ nghttp3_ssize nghttp3_read_varint(nghttp3_varint_read_state *rvint,
   if (rvint->left == 0) {
     assert(rvint->acc == 0);
 
-    rvint->left = nghttp3_get_varint_len(src);
+    rvint->left = nghttp3_get_varintlen(src);
     if (rvint->left <= srclen) {
       rvint->acc = nghttp3_get_varint(&nread, src);
       rvint->left = 0;
@@ -305,7 +305,7 @@ static void typed_buf_shared_init(nghttp3_typed_buf *tbuf,
 }
 
 int nghttp3_stream_write_stream_type(nghttp3_stream *stream) {
-  size_t len = nghttp3_put_varint_len((int64_t)stream->type);
+  size_t len = nghttp3_put_varintlen((int64_t)stream->type);
   nghttp3_buf *chunk;
   nghttp3_typed_buf tbuf;
   int rv;
