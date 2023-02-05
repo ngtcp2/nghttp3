@@ -723,6 +723,16 @@ NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
 #define NGHTTP3_NV_FLAG_NO_COPY_VALUE 0x04u
 
 /**
+ * @macro
+ *
+ * :macro:`NGHTTP3_NV_FLAG_TRY_INDEX` gives a hint to QPACK encoder to
+ * index a header field which is not indexed by default.  This is just
+ * a hint, and QPACK encoder might not encode the field in various
+ * reasons.
+ */
+#define NGHTTP3_NV_FLAG_TRY_INDEX 0x08u
+
+/**
  * @struct
  *
  * :type:`nghttp3_nv` is the name/value pair, which mainly used to

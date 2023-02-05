@@ -1282,6 +1282,19 @@ int nghttp3_qpack_encoder_stream_is_blocked(nghttp3_qpack_encoder *encoder,
   return stream && encoder->krcnt < nghttp3_qpack_stream_get_max_cnt(stream);
 }
 
+static uint32_t qpack_hash_name(const nghttp3_nv *nv) {
+  /* 32 bit FNV-1a: http://isthe.com/chongo/tech/comp/fnv/ */
+  uint32_t h = 2166136261u;
+  size_t i;
+
+  for (i = 0; i < nv->namelen; ++i) {
+    h ^= nv->name[i];
+    h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
+  }
+
+  return h;
+}
+
 /*
  * qpack_encoder_decide_indexing_mode determines and returns indexing
  * mode for header field |nv|.  |token| is a token of header field
@@ -1311,6 +1324,10 @@ qpack_encoder_decide_indexing_mode(nghttp3_qpack_encoder *encoder,
   case NGHTTP3_QPACK_TOKEN_IF_NONE_MATCH:
   case NGHTTP3_QPACK_TOKEN_LOCATION:
   case NGHTTP3_QPACK_TOKEN_SET_COOKIE:
+    if (nv->flags & NGHTTP3_NV_FLAG_TRY_INDEX) {
+      break;
+    }
+
     return NGHTTP3_QPACK_INDEXING_MODE_LITERAL;
   case NGHTTP3_QPACK_TOKEN_HOST:
   case NGHTTP3_QPACK_TOKEN_TE:
@@ -1318,6 +1335,10 @@ qpack_encoder_decide_indexing_mode(nghttp3_qpack_encoder *encoder,
   case NGHTTP3_QPACK_TOKEN_PRIORITY:
     break;
   default:
+    if (nv->flags & NGHTTP3_NV_FLAG_TRY_INDEX) {
+      break;
+    }
+
     if (token >= 1000) {
       return NGHTTP3_QPACK_INDEXING_MODE_LITERAL;
     }
@@ -1445,6 +1466,8 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
     case NGHTTP3_QPACK_TOKEN_PRIORITY:
       hash = 2498028297u;
       break;
+    default:
+      hash = qpack_hash_name(nv);
     }
   }
 
@@ -1458,8 +1481,7 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
     }
   }
 
-  if (hash &&
-      nghttp3_map_size(&encoder->streams) < NGHTTP3_QPACK_MAX_QPACK_STREAMS) {
+  if (nghttp3_map_size(&encoder->streams) < NGHTTP3_QPACK_MAX_QPACK_STREAMS) {
     dres = nghttp3_qpack_encoder_lookup_dtable(encoder, nv, token, hash,
                                                indexing_mode, encoder->krcnt,
                                                allow_blocking);
