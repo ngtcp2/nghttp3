@@ -1450,6 +1450,17 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
 
   token = qpack_lookup_token(nv->name, nv->namelen);
   static_entry = token != -1 && (size_t)token < nghttp3_arraylen(token_stable);
+
+  indexing_mode = qpack_encoder_decide_indexing_mode(encoder, nv, token);
+
+  if (static_entry) {
+    sres = nghttp3_qpack_lookup_stable(nv, token, indexing_mode);
+    if (sres.index != -1 && sres.name_value_match) {
+      return nghttp3_qpack_encoder_write_static_indexed(encoder, rbuf,
+                                                        (size_t)sres.index);
+    }
+  }
+
   if (static_entry) {
     hash = token_stable[token].hash;
   } else {
@@ -1468,16 +1479,6 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
       break;
     default:
       hash = qpack_hash_name(nv);
-    }
-  }
-
-  indexing_mode = qpack_encoder_decide_indexing_mode(encoder, nv, token);
-
-  if (static_entry) {
-    sres = nghttp3_qpack_lookup_stable(nv, token, indexing_mode);
-    if (sres.index != -1 && sres.name_value_match) {
-      return nghttp3_qpack_encoder_write_static_indexed(encoder, rbuf,
-                                                        (size_t)sres.index);
     }
   }
 
