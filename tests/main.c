@@ -60,6 +60,8 @@ int main(void) {
   /* add the tests to the suite */
   if (!CU_add_test(pSuite, "qpack_encoder_encode",
                    test_nghttp3_qpack_encoder_encode) ||
+      !CU_add_test(pSuite, "qpack_encoder_encode_try_encode",
+                   test_nghttp3_qpack_encoder_encode_try_encode) ||
       !CU_add_test(pSuite, "qpack_encoder_still_blocked",
                    test_nghttp3_qpack_encoder_still_blocked) ||
       !CU_add_test(pSuite, "qpack_encoder_set_dtable_cap",

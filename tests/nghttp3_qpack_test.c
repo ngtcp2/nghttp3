@@ -230,6 +230,111 @@ void test_nghttp3_qpack_encoder_encode(void) {
   nghttp3_buf_free(&pbuf, mem);
 }
 
+void test_nghttp3_qpack_encoder_encode_try_encode(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_qpack_encoder enc;
+  nghttp3_nv nva[] = {
+      MAKE_NV(":path", "/foo"),
+      MAKE_NV(":authority", "example.com"),
+      MAKE_NV("authorization", "bearer token"),
+      MAKE_NV("priority", "i"),
+      MAKE_NV("cookie", "short00000000000000"),
+      MAKE_NV("cookie", "large000000000000000"),
+      MAKE_NV("nonstd", "non-standard-cookie"),
+  };
+  int rv;
+  nghttp3_buf pbuf, rbuf, ebuf;
+  nghttp3_qpack_entry *ent;
+  size_t i;
+
+  /* NGHTTP3_NV_FLAG_TRY_INDEX indexes fields which are normally not
+     indexed. */
+  nghttp3_buf_init(&pbuf);
+  nghttp3_buf_init(&rbuf);
+  nghttp3_buf_init(&ebuf);
+  rv = nghttp3_qpack_encoder_init(&enc, 4096, mem);
+
+  CU_ASSERT(0 == rv);
+
+  nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 1);
+
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 4096);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 0, nva,
+                                    nghttp3_arraylen(nva));
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(3 == nghttp3_ringbuf_len(&enc.ctx.dtable));
+
+  ent = *(nghttp3_qpack_entry **)nghttp3_ringbuf_get(&enc.ctx.dtable, 0);
+
+  CU_ASSERT(nva[5].namelen == ent->nv.name->len);
+  CU_ASSERT(0 == memcmp(nva[5].name, ent->nv.name->base, ent->nv.name->len));
+
+  ent = *(nghttp3_qpack_entry **)nghttp3_ringbuf_get(&enc.ctx.dtable, 1);
+
+  CU_ASSERT(nva[3].namelen == ent->nv.name->len);
+  CU_ASSERT(0 == memcmp(nva[3].name, ent->nv.name->base, ent->nv.name->len));
+
+  ent = *(nghttp3_qpack_entry **)nghttp3_ringbuf_get(&enc.ctx.dtable, 2);
+
+  CU_ASSERT(nva[1].namelen == ent->nv.name->len);
+  CU_ASSERT(0 == memcmp(nva[1].name, ent->nv.name->base, ent->nv.name->len));
+
+  nghttp3_qpack_encoder_free(&enc);
+  nghttp3_buf_reset(&ebuf);
+  nghttp3_buf_reset(&rbuf);
+  nghttp3_buf_reset(&pbuf);
+
+  for (i = 0; i < nghttp3_arraylen(nva); ++i) {
+    nva[i].flags = NGHTTP3_NV_FLAG_TRY_INDEX;
+  }
+
+  rv = nghttp3_qpack_encoder_init(&enc, 4096, mem);
+
+  CU_ASSERT(0 == rv);
+
+  nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 1);
+
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 4096);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 0, nva,
+                                    nghttp3_arraylen(nva));
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(5 == nghttp3_ringbuf_len(&enc.ctx.dtable));
+
+  ent = *(nghttp3_qpack_entry **)nghttp3_ringbuf_get(&enc.ctx.dtable, 0);
+
+  CU_ASSERT(nva[6].namelen == ent->nv.name->len);
+  CU_ASSERT(0 == memcmp(nva[6].name, ent->nv.name->base, ent->nv.name->len));
+
+  ent = *(nghttp3_qpack_entry **)nghttp3_ringbuf_get(&enc.ctx.dtable, 1);
+
+  CU_ASSERT(nva[5].namelen == ent->nv.name->len);
+  CU_ASSERT(0 == memcmp(nva[5].name, ent->nv.name->base, ent->nv.name->len));
+
+  ent = *(nghttp3_qpack_entry **)nghttp3_ringbuf_get(&enc.ctx.dtable, 2);
+
+  CU_ASSERT(nva[3].namelen == ent->nv.name->len);
+  CU_ASSERT(0 == memcmp(nva[3].name, ent->nv.name->base, ent->nv.name->len));
+
+  ent = *(nghttp3_qpack_entry **)nghttp3_ringbuf_get(&enc.ctx.dtable, 3);
+
+  CU_ASSERT(nva[1].namelen == ent->nv.name->len);
+  CU_ASSERT(0 == memcmp(nva[1].name, ent->nv.name->base, ent->nv.name->len));
+
+  ent = *(nghttp3_qpack_entry **)nghttp3_ringbuf_get(&enc.ctx.dtable, 4);
+
+  CU_ASSERT(nva[0].namelen == ent->nv.name->len);
+  CU_ASSERT(0 == memcmp(nva[0].name, ent->nv.name->base, ent->nv.name->len));
+
+  nghttp3_qpack_encoder_free(&enc);
+  nghttp3_buf_free(&ebuf, mem);
+  nghttp3_buf_free(&rbuf, mem);
+  nghttp3_buf_free(&pbuf, mem);
+}
+
 void test_nghttp3_qpack_encoder_still_blocked(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_qpack_encoder enc;
