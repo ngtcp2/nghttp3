@@ -1071,8 +1071,8 @@ typedef struct nghttp3_qpack_nv {
   nghttp3_rcbuf *value;
   /**
    * :member:`token` is :type:`nghttp3_qpack_token` value of
-   *  :member:`name`.  It could be -1 if we have no token for that
-   *  header field name.
+   * :member:`name`.  It could be -1 if we have no token for that
+   * header field name.
    */
   int32_t token;
   /**
