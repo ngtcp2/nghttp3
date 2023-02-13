@@ -1100,7 +1100,7 @@ static void qpack_encoder_remove_stream(nghttp3_qpack_encoder *encoder,
 /*
  * reserve_buf_internal ensures that |buf| contains at least
  * |extra_size| of free space.  In other words, if this function
- * succeeds, nghttp2_buf_left(buf) >= extra_size holds.  |min_size| is
+ * succeeds, nghttp3_buf_left(buf) >= extra_size holds.  |min_size| is
  * the minimum size of buffer.  The allocated buffer has at least
  * |min_size| bytes.
  *
