@@ -245,7 +245,7 @@ int nghttp3_stream_fill_outq(nghttp3_stream *stream) {
   int data_eof;
   int rv;
 
-  for (; nghttp3_ringbuf_len(frq) && !nghttp3_stream_outq_is_full(stream) &&
+  for (; nghttp3_ringbuf_len(frq) &&
          stream->unsent_bytes < NGHTTP3_MIN_UNSENT_BYTES;) {
     frent = nghttp3_ringbuf_get(frq, 0);
 
@@ -686,11 +686,6 @@ int nghttp3_stream_write_qpack_decoder_stream(nghttp3_stream *stream) {
   tbuf.buf.last = chunk->last;
 
   return nghttp3_stream_outq_add(stream, &tbuf);
-}
-
-int nghttp3_stream_outq_is_full(nghttp3_stream *stream) {
-  /* TODO Verify that the limit is reasonable. */
-  return nghttp3_ringbuf_len(&stream->outq) >= 2048;
 }
 
 int nghttp3_stream_outq_add(nghttp3_stream *stream,
