@@ -690,7 +690,7 @@ int nghttp3_stream_write_qpack_decoder_stream(nghttp3_stream *stream) {
 
 int nghttp3_stream_outq_is_full(nghttp3_stream *stream) {
   /* TODO Verify that the limit is reasonable. */
-  return nghttp3_ringbuf_len(&stream->outq) >= 1024;
+  return nghttp3_ringbuf_len(&stream->outq) >= 2048;
 }
 
 int nghttp3_stream_outq_add(nghttp3_stream *stream,
