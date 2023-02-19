@@ -298,8 +298,6 @@ nghttp3_ssize nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
 
 int nghttp3_stream_write_qpack_decoder_stream(nghttp3_stream *stream);
 
-int nghttp3_stream_outq_is_full(nghttp3_stream *stream);
-
 int nghttp3_stream_outq_add(nghttp3_stream *stream,
                             const nghttp3_typed_buf *tbuf);
 
