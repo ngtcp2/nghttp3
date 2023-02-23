@@ -721,12 +721,22 @@ static nghttp3_ssize sf_parse_item_or_inner_list(nghttp3_sf_value *dest,
   return sf_parse_item(dest, begin, end);
 }
 
+static int is_ws(uint8_t c) {
+  switch (c) {
+  case ' ':
+  case '\t':
+    return 1;
+  default:
+    return 0;
+  }
+}
+
 #define sf_discard_ows(BEGIN, END)                                             \
   for (;; ++(BEGIN)) {                                                         \
     if ((BEGIN) == (END)) {                                                    \
       goto fin;                                                                \
     }                                                                          \
-    if (*(BEGIN) != ' ' && *(BEGIN) != '\t') {                                 \
+    if (!is_ws(*(BEGIN))) {                                                    \
       break;                                                                   \
     }                                                                          \
   }
@@ -736,7 +746,7 @@ static nghttp3_ssize sf_parse_item_or_inner_list(nghttp3_sf_value *dest,
     if ((BEGIN) == (END)) {                                                    \
       return (ERR);                                                            \
     }                                                                          \
-    if (*(BEGIN) != ' ' && *(BEGIN) != '\t') {                                 \
+    if (!is_ws(*(BEGIN))) {                                                    \
       break;                                                                   \
     }                                                                          \
   }
@@ -1637,10 +1647,9 @@ int nghttp3_check_header_value(const uint8_t *value, size_t len) {
   case 0:
     return 1;
   case 1:
-    return !(*value == ' ' || *value == '\t');
+    return !is_ws(*value);
   default:
-    if (*value == ' ' || *value == '\t' || *(value + len - 1) == ' ' ||
-        *(value + len - 1) == '\t') {
+    if (is_ws(*value) || is_ws(*(value + len - 1))) {
       return 0;
     }
   }
