@@ -1031,6 +1031,12 @@ static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
     }
   }
 
+  if (conn->server && nghttp3_client_stream_bidi(stream->node.id)) {
+    assert(conn->remote.bidi.num_streams > 0);
+
+    --conn->remote.bidi.num_streams;
+  }
+
   rv =
       nghttp3_map_remove(&conn->streams, (nghttp3_map_key_type)stream->node.id);
 
@@ -1802,6 +1808,10 @@ int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
     return rv;
   }
 
+  if (conn->server && nghttp3_client_stream_bidi(stream_id)) {
+    ++conn->remote.bidi.num_streams;
+  }
+
   *pstream = stream;
 
   return 0;
@@ -2270,7 +2280,8 @@ int nghttp3_conn_shutdown(nghttp3_conn *conn) {
   }
 
   conn->tx.goaway_id = frent.fr.goaway.id;
-  conn->flags |= NGHTTP3_CONN_FLAG_GOAWAY_QUEUED;
+  conn->flags |=
+      NGHTTP3_CONN_FLAG_GOAWAY_QUEUED | NGHTTP3_CONN_FLAG_SHUTDOWN_COMMENCED;
 
   return 0;
 }
@@ -2519,6 +2530,15 @@ int nghttp3_conn_is_remote_qpack_encoder_stream(nghttp3_conn *conn,
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
   return stream && stream->type == NGHTTP3_STREAM_TYPE_QPACK_ENCODER;
+}
+
+int nghttp3_conn_is_drained(nghttp3_conn *conn) {
+  assert(conn->server);
+
+  return (conn->flags & NGHTTP3_CONN_FLAG_SHUTDOWN_COMMENCED) &&
+         conn->remote.bidi.num_streams == 0 &&
+         nghttp3_stream_outq_write_done(conn->tx.ctrl) &&
+         nghttp3_ringbuf_len(&conn->tx.ctrl->frq) == 0;
 }
 
 void nghttp3_settings_default_versioned(int settings_version,
