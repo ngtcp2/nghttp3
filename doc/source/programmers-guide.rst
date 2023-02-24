@@ -204,4 +204,7 @@ couple of RTTs, call `nghttp3_conn_submit_shutdown` to start graceful
 shutdown.  After calling this function, the local endpoint starts
 rejecting new incoming streams.  The existing streams are processed
 normally.  When all those streams are completely processed, the
-connection can be closed.
+connection can be closed.  Clients inherently know whether their
+requests have completed or not.  For server, `nghttp3_conn_is_drained`
+tells whether all those streams have been completely processed.  When
+it returns nonzero, the connection can be closed.
