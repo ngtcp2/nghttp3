@@ -2368,7 +2368,7 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn);
  * called after `nghttp3_conn_submit_shutdown_notice` and a couple of
  * RTT.  After calling this function, the local endpoint starts
  * rejecting new incoming streams.  The existing streams are processed
- * normally.
+ * normally.  See also `nghttp3_conn_is_drained`.
  */
 NGHTTP3_EXTERN int nghttp3_conn_shutdown(nghttp3_conn *conn);
 
@@ -2554,6 +2554,15 @@ NGHTTP3_EXTERN int nghttp3_check_header_value(const uint8_t *value, size_t len);
 NGHTTP3_EXTERN int nghttp3_http_parse_priority(nghttp3_pri *dest,
                                                const uint8_t *value,
                                                size_t len);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_is_drained` returns nonzero if
+ * `nghttp3_conn_shutdown` has been called, and there is no active
+ * remote streams.  This function is for server use only.
+ */
+NGHTTP3_EXTERN int nghttp3_conn_is_drained(nghttp3_conn *conn);
 
 /**
  * @macrosection
