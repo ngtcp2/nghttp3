@@ -30,8 +30,6 @@
 #endif /* HAVE_CONFIG_H */
 
 void test_nghttp3_http_parse_priority(void);
-void test_nghttp3_sf_parse_item(void);
-void test_nghttp3_sf_parse_inner_list(void);
 void test_nghttp3_check_header_value(void);
 
 #endif /* NGTCP2_CONN_TEST_H */

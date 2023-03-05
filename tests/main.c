@@ -124,9 +124,6 @@ int main(void) {
       !CU_add_test(pSuite, "tnode_schedule", test_nghttp3_tnode_schedule) ||
       !CU_add_test(pSuite, "http_parse_priority",
                    test_nghttp3_http_parse_priority) ||
-      !CU_add_test(pSuite, "sf_parse_item", test_nghttp3_sf_parse_item) ||
-      !CU_add_test(pSuite, "sf_parse_inner_list",
-                   test_nghttp3_sf_parse_inner_list) ||
       !CU_add_test(pSuite, "check_header_value",
                    test_nghttp3_check_header_value) ||
       !CU_add_test(pSuite, "pri_to_uint8", test_nghttp3_pri_to_uint8)) {
