@@ -479,6 +479,83 @@ void test_nghttp3_conn_read_control(void) {
   CU_ASSERT(NGHTTP3_ERR_H3_SETTINGS_ERROR == nconsumed);
 
   nghttp3_conn_del(conn);
+
+  /* Receive H3_DATAGRAM = 1 */
+  nghttp3_settings_default(&settings);
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings.hd.type = NGHTTP3_FRAME_SETTINGS;
+  iv = fr.settings.iv;
+  iv[0].id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM;
+  iv[0].value = 1;
+  fr.settings.niv = 1;
+
+  nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
+
+  rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+
+  CU_ASSERT(0 == rv);
+
+  nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
+  CU_ASSERT(1 == conn->remote.settings.h3_datagram);
+
+  nghttp3_conn_del(conn);
+
+  /* Receive H3_DATAGRAM = 0 */
+  nghttp3_settings_default(&settings);
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings.hd.type = NGHTTP3_FRAME_SETTINGS;
+  iv = fr.settings.iv;
+  iv[0].id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM;
+  iv[0].value = 0;
+  fr.settings.niv = 1;
+
+  nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
+
+  rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+
+  CU_ASSERT(0 == rv);
+
+  nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
+  CU_ASSERT(0 == conn->remote.settings.h3_datagram);
+
+  nghttp3_conn_del(conn);
+
+  /* Receive H3_DATAGRAM which is neither 0 nor 1 */
+  nghttp3_settings_default(&settings);
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings.hd.type = NGHTTP3_FRAME_SETTINGS;
+  iv = fr.settings.iv;
+  iv[0].id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM;
+  iv[0].value = 2;
+  fr.settings.niv = 1;
+
+  nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
+
+  rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+
+  CU_ASSERT(0 == rv);
+
+  nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  CU_ASSERT(NGHTTP3_ERR_H3_SETTINGS_ERROR == nconsumed);
+
+  nghttp3_conn_del(conn);
 }
 
 void test_nghttp3_conn_write_control(void) {

@@ -1690,6 +1690,17 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
 
     dest->enable_connect_protocol = (int)ent->value;
     break;
+  case NGHTTP3_SETTINGS_ID_H3_DATAGRAM:
+    switch (ent->value) {
+    case 0:
+    case 1:
+      break;
+    default:
+      return NGHTTP3_ERR_H3_SETTINGS_ERROR;
+    }
+
+    dest->h3_datagram = (int)ent->value;
+    break;
   case NGHTTP3_H2_SETTINGS_ID_ENABLE_PUSH:
   case NGHTTP3_H2_SETTINGS_ID_MAX_CONCURRENT_STREAMS:
   case NGHTTP3_H2_SETTINGS_ID_INITIAL_WINDOW_SIZE:

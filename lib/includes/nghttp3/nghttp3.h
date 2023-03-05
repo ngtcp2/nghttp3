@@ -1938,6 +1938,11 @@ typedef struct nghttp3_settings {
    * field.
    */
   int enable_connect_protocol;
+  /**
+   * :member:`h3_datagram`, if set to nonzero, enables HTTP/3
+   * Datagrams (see :rfc:`9297`).
+   */
+  int h3_datagram;
 } nghttp3_settings;
 
 /**
