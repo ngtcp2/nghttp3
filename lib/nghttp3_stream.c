@@ -338,7 +338,7 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
   nghttp3_settings *local_settings = frent->aux.settings.local_settings;
 
   fr.settings.hd.type = NGHTTP3_FRAME_SETTINGS;
-  fr.settings.niv = 4;
+  fr.settings.niv = 3;
   iv = &fr.settings.iv[0];
 
   iv[0].id = NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE;
@@ -347,13 +347,19 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
   iv[1].value = local_settings->qpack_max_dtable_capacity;
   iv[2].id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS;
   iv[2].value = local_settings->qpack_blocked_streams;
-  iv[3].id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM;
-  iv[3].value = (uint64_t)local_settings->h3_datagram;
+
+  if (local_settings->h3_datagram) {
+    iv[fr.settings.niv].id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM;
+    iv[fr.settings.niv].value = 1;
+
+    ++fr.settings.niv;
+  }
 
   if (local_settings->enable_connect_protocol) {
+    iv[fr.settings.niv].id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL;
+    iv[fr.settings.niv].value = 1;
+
     ++fr.settings.niv;
-    iv[4].id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL;
-    iv[4].value = 1;
   }
 
   len = nghttp3_frame_write_settings_len(&fr.settings.hd.length, &fr.settings);
