@@ -30,6 +30,59 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#define SF_STATE_DICT 0x10000000u
+#define SF_STATE_LIST 0x20000000u
+#define SF_STATE_ITEM 0x30000000u
+
+#define SF_STATE_INNER_LIST 0x01000000u
+
+#define SF_STATE_BEFORE 0x00000000u
+#define SF_STATE_BEFORE_PARAMS 0x00000001u
+#define SF_STATE_PARAMS 0x00000002u
+#define SF_STATE_AFTER 0x00000003u
+
+#define SF_SET_STATE_AFTER(NAME) (SF_STATE_##NAME | SF_STATE_AFTER)
+#define SF_SET_STATE_BEFORE_PARAMS(NAME)                                       \
+  (SF_STATE_##NAME | SF_STATE_BEFORE_PARAMS)
+#define SF_SET_STATE_PARAMS(NAME) (SF_STATE_##NAME | SF_STATE_PARAMS)
+#define SF_SET_STATE_INNER_LIST_BEFORE(NAME)                                   \
+  (SF_STATE_##NAME | SF_STATE_INNER_LIST | SF_STATE_BEFORE)
+#define SF_SET_STATE_INNER_LIST_BEFORE_PARAMS(NAME)                            \
+  (SF_STATE_##NAME | SF_STATE_INNER_LIST | SF_STATE_BEFORE_PARAMS)
+#define SF_SET_STATE_INNER_LIST_PARAMS(NAME)                                   \
+  (SF_STATE_##NAME | SF_STATE_INNER_LIST | SF_STATE_PARAMS)
+#define SF_SET_STATE_INNER_LIST_AFTER(NAME)                                    \
+  (SF_STATE_##NAME | SF_STATE_INNER_LIST | SF_STATE_AFTER)
+
+#define SF_STATE_DICT_AFTER SF_SET_STATE_AFTER(DICT)
+#define SF_STATE_DICT_BEFORE_PARAMS SF_SET_STATE_BEFORE_PARAMS(DICT)
+#define SF_STATE_DICT_PARAMS SF_SET_STATE_PARAMS(DICT)
+#define SF_STATE_DICT_INNER_LIST_BEFORE SF_SET_STATE_INNER_LIST_BEFORE(DICT)
+#define SF_STATE_DICT_INNER_LIST_BEFORE_PARAMS                                 \
+  SF_SET_STATE_INNER_LIST_BEFORE_PARAMS(DICT)
+#define SF_STATE_DICT_INNER_LIST_PARAMS SF_SET_STATE_INNER_LIST_PARAMS(DICT)
+#define SF_STATE_DICT_INNER_LIST_AFTER SF_SET_STATE_INNER_LIST_AFTER(DICT)
+
+#define SF_STATE_LIST_AFTER SF_SET_STATE_AFTER(LIST)
+#define SF_STATE_LIST_BEFORE_PARAMS SF_SET_STATE_BEFORE_PARAMS(LIST)
+#define SF_STATE_LIST_PARAMS SF_SET_STATE_PARAMS(LIST)
+#define SF_STATE_LIST_INNER_LIST_BEFORE SF_SET_STATE_INNER_LIST_BEFORE(LIST)
+#define SF_STATE_LIST_INNER_LIST_BEFORE_PARAMS                                 \
+  SF_SET_STATE_INNER_LIST_BEFORE_PARAMS(LIST)
+#define SF_STATE_LIST_INNER_LIST_PARAMS SF_SET_STATE_INNER_LIST_PARAMS(LIST)
+#define SF_STATE_LIST_INNER_LIST_AFTER SF_SET_STATE_INNER_LIST_AFTER(LIST)
+
+#define SF_STATE_ITEM_AFTER SF_SET_STATE_AFTER(ITEM)
+#define SF_STATE_ITEM_BEFORE_PARAMS SF_SET_STATE_BEFORE_PARAMS(ITEM)
+#define SF_STATE_ITEM_PARAMS SF_SET_STATE_PARAMS(ITEM)
+#define SF_STATE_ITEM_INNER_LIST_BEFORE SF_SET_STATE_INNER_LIST_BEFORE(ITEM)
+#define SF_STATE_ITEM_INNER_LIST_BEFORE_PARAMS                                 \
+  SF_SET_STATE_INNER_LIST_BEFORE_PARAMS(ITEM)
+#define SF_STATE_ITEM_INNER_LIST_PARAMS SF_SET_STATE_INNER_LIST_PARAMS(ITEM)
+#define SF_STATE_ITEM_INNER_LIST_AFTER SF_SET_STATE_INNER_LIST_AFTER(ITEM)
+
+#define SF_STATE_INITIAL 0x00000000u
+
 #define DIGIT_CASES                                                            \
   case '0':                                                                    \
   case '1':                                                                    \
@@ -119,6 +172,16 @@ static void parser_discard_ows(sf_parser *sfp) {
 static void parser_discard_sp(sf_parser *sfp) {
   for (; !parser_eof(sfp) && *sfp->pos == ' '; ++sfp->pos)
     ;
+}
+
+static void parser_set_op_state(sf_parser *sfp, uint32_t op) {
+  sfp->state &= 0xffffff00u;
+  sfp->state |= op;
+}
+
+static void parser_set_inner_list_state(sf_parser *sfp, uint32_t inner_list) {
+  sfp->state &= 0xf0ffffffu;
+  sfp->state |= inner_list;
 }
 
 static int parser_key(sf_parser *sfp, sf_vec *dest) {
@@ -257,9 +320,8 @@ static int parser_string(sf_parser *sfp, sf_value *dest) {
   const uint8_t *base;
   uint32_t flags = SF_VALUE_FLAG_NONE;
 
-  if (*sfp->pos != '"') {
-    return SF_ERR_PARSE_ERROR;
-  }
+  /* The first byte has already been validated by the caller. */
+  assert('"' == *sfp->pos);
 
   base = ++sfp->pos;
 
@@ -398,14 +460,7 @@ static int parser_string(sf_parser *sfp, sf_value *dest) {
 static int parser_token(sf_parser *sfp, sf_value *dest) {
   const uint8_t *base;
 
-  switch (*sfp->pos) {
-  case '*':
-  ALPHA_CASES:
-    break;
-  default:
-    return SF_ERR_PARSE_ERROR;
-  }
-
+  /* The first byte has already been validated by the caller. */
   base = sfp->pos++;
 
   for (; !parser_eof(sfp); ++sfp->pos) {
@@ -449,9 +504,8 @@ static int parser_byteseq(sf_parser *sfp, sf_value *dest) {
   const uint8_t *base;
   size_t i, r;
 
-  if (*sfp->pos != ':') {
-    return SF_ERR_PARSE_ERROR;
-  }
+  /* The first byte has already been validated by the caller. */
+  assert(':' == *sfp->pos);
 
   base = ++sfp->pos;
 
@@ -557,9 +611,8 @@ fin:
 static int parser_boolean(sf_parser *sfp, sf_value *dest) {
   int b;
 
-  if (*sfp->pos != '?') {
-    return SF_ERR_PARSE_ERROR;
-  }
+  /* The first byte has already been validated by the caller. */
+  assert('?' == *sfp->pos);
 
   ++sfp->pos;
 
@@ -614,18 +667,30 @@ int sf_parser_param(sf_parser *sfp, sf_vec *dest_key, sf_value *dest_value) {
   int rv;
 
   switch (sfp->state) {
-  case SF_PARSER_STATE_DICT_VALUE_INNER_LIST:
-  case SF_PARSER_STATE_LIST_INNER_LIST:
+  case SF_STATE_DICT_INNER_LIST_BEFORE:
+  case SF_STATE_LIST_INNER_LIST_BEFORE:
+  case SF_STATE_ITEM_INNER_LIST_BEFORE:
     rv = parser_skip_inner_list(sfp);
     if (rv != 0) {
       return rv;
     }
 
+    /* fall through */
+  case SF_STATE_DICT_BEFORE_PARAMS:
+  case SF_STATE_LIST_BEFORE_PARAMS:
+  case SF_STATE_ITEM_BEFORE_PARAMS:
+  case SF_STATE_DICT_INNER_LIST_BEFORE_PARAMS:
+  case SF_STATE_LIST_INNER_LIST_BEFORE_PARAMS:
+  case SF_STATE_ITEM_INNER_LIST_BEFORE_PARAMS:
+    parser_set_op_state(sfp, SF_STATE_PARAMS);
+
     break;
-  case SF_PARSER_STATE_DICT_VALUE_PARAMS:
-  case SF_PARSER_STATE_LIST_ITEM_PARAMS:
-  case SF_PARSER_STATE_ITEM_PARAMS:
-  case SF_PARSER_STATE_INNER_LIST_BARE_ITEM_PARAMS:
+  case SF_STATE_DICT_PARAMS:
+  case SF_STATE_LIST_PARAMS:
+  case SF_STATE_ITEM_PARAMS:
+  case SF_STATE_DICT_INNER_LIST_PARAMS:
+  case SF_STATE_LIST_INNER_LIST_PARAMS:
+  case SF_STATE_ITEM_INNER_LIST_PARAMS:
     break;
   default:
     assert(0);
@@ -633,27 +698,7 @@ int sf_parser_param(sf_parser *sfp, sf_vec *dest_key, sf_value *dest_value) {
   }
 
   if (parser_eof(sfp) || *sfp->pos != ';') {
-    switch (sfp->state) {
-    case SF_PARSER_STATE_DICT_VALUE_PARAMS:
-      sfp->state = SF_PARSER_STATE_AFTER_DICT_VALUE;
-
-      break;
-    case SF_PARSER_STATE_LIST_ITEM_PARAMS:
-      sfp->state = SF_PARSER_STATE_AFTER_LIST_ITEM;
-
-      break;
-    case SF_PARSER_STATE_INNER_LIST_BARE_ITEM_PARAMS:
-      sfp->state = SF_PARSER_STATE_INNER_LIST_BARE_ITEM;
-
-      break;
-    case SF_PARSER_STATE_ITEM_PARAMS:
-      sfp->state = SF_PARSER_STATE_AFTER_ITEM;
-
-      break;
-    default:
-      assert(0);
-      abort();
-    }
+    parser_set_op_state(sfp, SF_STATE_AFTER);
 
     return SF_ERR_EOF;
   }
@@ -712,28 +757,31 @@ int sf_parser_inner_list(sf_parser *sfp, sf_value *dest) {
   int rv;
 
   switch (sfp->state) {
-  case SF_PARSER_STATE_DICT_VALUE_INNER_LIST:
-  case SF_PARSER_STATE_LIST_INNER_LIST:
-  case SF_PARSER_STATE_ITEM_INNER_LIST:
-    sfp->back_state = sfp->state;
-    sfp->state = SF_PARSER_STATE_INNER_LIST_BARE_ITEM;
-
+  case SF_STATE_DICT_INNER_LIST_BEFORE:
+  case SF_STATE_LIST_INNER_LIST_BEFORE:
+  case SF_STATE_ITEM_INNER_LIST_BEFORE:
     parser_discard_sp(sfp);
     if (parser_eof(sfp)) {
       return SF_ERR_PARSE_ERROR;
     }
 
     break;
-  case SF_PARSER_STATE_INNER_LIST_BARE_ITEM_PARAMS:
+  case SF_STATE_DICT_INNER_LIST_BEFORE_PARAMS:
+  case SF_STATE_LIST_INNER_LIST_BEFORE_PARAMS:
+  case SF_STATE_ITEM_INNER_LIST_BEFORE_PARAMS:
     rv = parser_skip_params(sfp);
     if (rv != 0) {
       return rv;
     }
 
-    sfp->state = SF_PARSER_STATE_INNER_LIST_BARE_ITEM;
+    /* Technically, we are entering *_AFTER, but we will set another
+       state without reading the state. */
+    /* parser_set_op_state(sfp, SF_STATE_AFTER); */
 
     /* fall through */
-  case SF_PARSER_STATE_INNER_LIST_BARE_ITEM:
+  case SF_STATE_DICT_INNER_LIST_AFTER:
+  case SF_STATE_LIST_INNER_LIST_AFTER:
+  case SF_STATE_ITEM_INNER_LIST_AFTER:
     if (parser_eof(sfp)) {
       return SF_ERR_PARSE_ERROR;
     }
@@ -761,24 +809,8 @@ int sf_parser_inner_list(sf_parser *sfp, sf_value *dest) {
   if (*sfp->pos == ')') {
     ++sfp->pos;
 
-    switch (sfp->back_state) {
-    case SF_PARSER_STATE_DICT_VALUE_INNER_LIST:
-      sfp->state = SF_PARSER_STATE_DICT_VALUE_PARAMS;
-
-      break;
-    case SF_PARSER_STATE_LIST_INNER_LIST:
-      sfp->state = SF_PARSER_STATE_LIST_ITEM_PARAMS;
-
-      break;
-    case SF_PARSER_STATE_ITEM_INNER_LIST:
-      sfp->state = SF_PARSER_STATE_ITEM_PARAMS;
-
-      break;
-    default:
-      break;
-    }
-
-    sfp->back_state = 0;
+    parser_set_inner_list_state(sfp, 0);
+    parser_set_op_state(sfp, SF_STATE_BEFORE_PARAMS);
 
     return SF_ERR_EOF;
   }
@@ -788,7 +820,7 @@ int sf_parser_inner_list(sf_parser *sfp, sf_value *dest) {
     return rv;
   }
 
-  sfp->state = SF_PARSER_STATE_INNER_LIST_BARE_ITEM_PARAMS;
+  parser_set_op_state(sfp, SF_STATE_BEFORE_PARAMS);
 
   return 0;
 }
@@ -844,7 +876,7 @@ static int parser_dict_value(sf_parser *sfp, sf_value *dest) {
       dest->boolean = 1;
     }
 
-    sfp->state = SF_PARSER_STATE_DICT_VALUE_PARAMS;
+    sfp->state = SF_STATE_DICT_BEFORE_PARAMS;
 
     return 0;
   }
@@ -863,7 +895,7 @@ static int parser_dict_value(sf_parser *sfp, sf_value *dest) {
 
     ++sfp->pos;
 
-    sfp->state = SF_PARSER_STATE_DICT_VALUE_INNER_LIST;
+    sfp->state = SF_STATE_DICT_INNER_LIST_BEFORE;
 
     return 0;
   }
@@ -873,7 +905,7 @@ static int parser_dict_value(sf_parser *sfp, sf_value *dest) {
     return rv;
   }
 
-  sfp->state = SF_PARSER_STATE_DICT_VALUE_PARAMS;
+  sfp->state = SF_STATE_DICT_BEFORE_PARAMS;
 
   return 0;
 }
@@ -882,28 +914,28 @@ int sf_parser_dict(sf_parser *sfp, sf_vec *dest_key, sf_value *dest_value) {
   int rv;
 
   switch (sfp->state) {
-  case SF_PARSER_STATE_DICT_VALUE_INNER_LIST:
+  case SF_STATE_DICT_INNER_LIST_BEFORE:
     rv = parser_skip_inner_list(sfp);
     if (rv != 0) {
       return rv;
     }
 
     /* fall through */
-  case SF_PARSER_STATE_DICT_VALUE_PARAMS:
+  case SF_STATE_DICT_BEFORE_PARAMS:
     rv = parser_skip_params(sfp);
     if (rv != 0) {
       return rv;
     }
 
     /* fall through */
-  case SF_PARSER_STATE_AFTER_DICT_VALUE:
+  case SF_STATE_DICT_AFTER:
     rv = parser_next_key_or_item(sfp);
     if (rv != 0) {
       return rv;
     }
 
     break;
-  case SF_PARSER_STATE_INITIAL:
+  case SF_STATE_INITIAL:
     parser_discard_sp(sfp);
 
     if (parser_eof(sfp)) {
@@ -928,28 +960,28 @@ int sf_parser_list(sf_parser *sfp, sf_value *dest) {
   int rv;
 
   switch (sfp->state) {
-  case SF_PARSER_STATE_LIST_INNER_LIST:
+  case SF_STATE_LIST_INNER_LIST_BEFORE:
     rv = parser_skip_inner_list(sfp);
     if (rv != 0) {
       return rv;
     }
 
     /* fall through */
-  case SF_PARSER_STATE_LIST_ITEM_PARAMS:
+  case SF_STATE_LIST_BEFORE_PARAMS:
     rv = parser_skip_params(sfp);
     if (rv != 0) {
       return rv;
     }
 
     /* fall through */
-  case SF_PARSER_STATE_AFTER_LIST_ITEM:
+  case SF_STATE_LIST_AFTER:
     rv = parser_next_key_or_item(sfp);
     if (rv != 0) {
       return rv;
     }
 
     break;
-  case SF_PARSER_STATE_INITIAL:
+  case SF_STATE_INITIAL:
     parser_discard_sp(sfp);
 
     if (parser_eof(sfp)) {
@@ -970,7 +1002,7 @@ int sf_parser_list(sf_parser *sfp, sf_value *dest) {
 
     ++sfp->pos;
 
-    sfp->state = SF_PARSER_STATE_LIST_INNER_LIST;
+    sfp->state = SF_STATE_LIST_INNER_LIST_BEFORE;
 
     return 0;
   }
@@ -980,7 +1012,7 @@ int sf_parser_list(sf_parser *sfp, sf_value *dest) {
     return rv;
   }
 
-  sfp->state = SF_PARSER_STATE_LIST_ITEM_PARAMS;
+  sfp->state = SF_STATE_LIST_BEFORE_PARAMS;
 
   return 0;
 }
@@ -989,7 +1021,7 @@ int sf_parser_item(sf_parser *sfp, sf_value *dest) {
   int rv;
 
   switch (sfp->state) {
-  case SF_PARSER_STATE_INITIAL:
+  case SF_STATE_INITIAL:
     parser_discard_sp(sfp);
 
     if (parser_eof(sfp)) {
@@ -997,21 +1029,21 @@ int sf_parser_item(sf_parser *sfp, sf_value *dest) {
     }
 
     break;
-  case SF_PARSER_STATE_ITEM_INNER_LIST:
+  case SF_STATE_ITEM_INNER_LIST_BEFORE:
     rv = parser_skip_inner_list(sfp);
     if (rv != 0) {
       return rv;
     }
 
     /* fall through */
-  case SF_PARSER_STATE_ITEM_PARAMS:
+  case SF_STATE_ITEM_BEFORE_PARAMS:
     rv = parser_skip_params(sfp);
     if (rv != 0) {
       return rv;
     }
 
     /* fall through */
-  case SF_PARSER_STATE_AFTER_ITEM:
+  case SF_STATE_ITEM_AFTER:
     parser_discard_sp(sfp);
 
     if (!parser_eof(sfp)) {
@@ -1032,7 +1064,7 @@ int sf_parser_item(sf_parser *sfp, sf_value *dest) {
 
     ++sfp->pos;
 
-    sfp->state = SF_PARSER_STATE_ITEM_INNER_LIST;
+    sfp->state = SF_STATE_ITEM_INNER_LIST_BEFORE;
 
     return 0;
   }
@@ -1042,7 +1074,7 @@ int sf_parser_item(sf_parser *sfp, sf_value *dest) {
     return rv;
   }
 
-  sfp->state = SF_PARSER_STATE_ITEM_PARAMS;
+  sfp->state = SF_STATE_ITEM_BEFORE_PARAMS;
 
   return 0;
 }
@@ -1055,8 +1087,7 @@ void sf_parser_init(sf_parser *sfp, const uint8_t *data, size_t datalen) {
     sfp->end = data + datalen;
   }
 
-  sfp->state = SF_PARSER_STATE_INITIAL;
-  sfp->back_state = 0;
+  sfp->state = SF_STATE_INITIAL;
 }
 
 void sf_unescape(sf_vec *dest, const sf_vec *src) {

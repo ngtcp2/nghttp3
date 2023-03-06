@@ -193,12 +193,14 @@ typedef struct sf_value {
      * :member:`vec` contains sequence of bytes if :member:`type` is
      * either :enum:`sf_value_type.SF_VALUE_TYPE_STRING`,
      * :enum:`sf_value_type.SF_VALUE_TYPE_TOKEN`, or
-     * :enum:`sf_value_type.SF_VALUE_TYPE_BYTESEQ`.  For
-     * :enum:`sf_value_type.SF_VALUE_TYPE_STRING`, the string
-     * contained in this field contains escaped character if
-     * :member:`flags` has :macro:`SF_VALUE_FLAG_ESCAPED_STRING` set.
-     * To unescape the string, use `sf_unescape`.  For
-     * :enum:`sf_value_type.SF_VALUE_TYPE_BYTESEQ`, this field
+     * :enum:`sf_value_type.SF_VALUE_TYPE_BYTESEQ`.
+     *
+     * For :enum:`sf_value_type.SF_VALUE_TYPE_STRING`, this field
+     * contains one or more escaped characters if :member:`flags` has
+     * :macro:`SF_VALUE_FLAG_ESCAPED_STRING` set.  To unescape the
+     * string, use `sf_unescape`.
+     *
+     * For :enum:`sf_value_type.SF_VALUE_TYPE_BYTESEQ`, this field
      * contains base64 encoded string.  To decode this byte string,
      * use `sf_base64decode`.
      */
@@ -208,21 +210,6 @@ typedef struct sf_value {
      */
   };
 } sf_value;
-
-typedef enum sf_parser_state {
-  SF_PARSER_STATE_INITIAL,
-  SF_PARSER_STATE_DICT_VALUE_INNER_LIST,
-  SF_PARSER_STATE_DICT_VALUE_PARAMS,
-  SF_PARSER_STATE_AFTER_DICT_VALUE,
-  SF_PARSER_STATE_LIST_INNER_LIST,
-  SF_PARSER_STATE_LIST_ITEM_PARAMS,
-  SF_PARSER_STATE_AFTER_LIST_ITEM,
-  SF_PARSER_STATE_ITEM_INNER_LIST,
-  SF_PARSER_STATE_ITEM_PARAMS,
-  SF_PARSER_STATE_AFTER_ITEM,
-  SF_PARSER_STATE_INNER_LIST_BARE_ITEM,
-  SF_PARSER_STATE_INNER_LIST_BARE_ITEM_PARAMS
-} sf_parser_state;
 
 /**
  * @struct
@@ -234,8 +221,7 @@ typedef struct sf_parser {
   /* all fields are private */
   const uint8_t *pos;
   const uint8_t *end;
-  sf_parser_state state;
-  sf_parser_state back_state;
+  uint32_t state;
 } sf_parser;
 
 /**
@@ -252,6 +238,9 @@ void sf_parser_init(sf_parser *sfp, const uint8_t *data, size_t datalen);
  * `sf_parser_param` reads a parameter.  If this function returns 0,
  * it stores parameter key and value in |dest_key| and |dest_value|
  * respectively, if they are not NULL.
+ *
+ * This function does no effort to find duplicated keys.  Same key may
+ * be reported more than once.
  *
  * Caller should keep calling this function until it returns negative
  * error code.  If it returns :macro:`SF_ERR_EOF`, all parameters have
@@ -270,6 +259,9 @@ int sf_parser_param(sf_parser *sfp, sf_vec *dest_key, sf_value *dest_value);
  *
  * Caller can optionally read parameters attached to the pair by
  * calling `sf_parser_param`.
+ *
+ * This function does no effort to find duplicated keys.  Same key may
+ * be reported more than once.
  *
  * Caller should keep calling this function until it returns negative
  * error code.  If it returns :macro:`SF_ERR_EOF`, all key and value
