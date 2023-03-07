@@ -99,7 +99,7 @@ typedef enum sf_value_type {
  * The context of this error varies depending on the function that
  * returns this error code.
  */
-#define SF_ERR_EOF -201
+#define SF_ERR_EOF -2
 
 /**
  * @struct
