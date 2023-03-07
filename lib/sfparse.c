@@ -30,58 +30,38 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#define SF_STATE_DICT 0x10000000u
-#define SF_STATE_LIST 0x20000000u
-#define SF_STATE_ITEM 0x30000000u
+#define SF_STATE_DICT 0x08u
+#define SF_STATE_LIST 0x10u
+#define SF_STATE_ITEM 0x18u
 
-#define SF_STATE_INNER_LIST 0x01000000u
+#define SF_STATE_INNER_LIST 0x04u
 
-#define SF_STATE_BEFORE 0x00000000u
-#define SF_STATE_BEFORE_PARAMS 0x00000001u
-#define SF_STATE_PARAMS 0x00000002u
-#define SF_STATE_AFTER 0x00000003u
+#define SF_STATE_BEFORE 0x00u
+#define SF_STATE_BEFORE_PARAMS 0x01u
+#define SF_STATE_PARAMS 0x02u
+#define SF_STATE_AFTER 0x03u
+
+#define SF_STATE_OP_MASK 0x03u
 
 #define SF_SET_STATE_AFTER(NAME) (SF_STATE_##NAME | SF_STATE_AFTER)
 #define SF_SET_STATE_BEFORE_PARAMS(NAME)                                       \
   (SF_STATE_##NAME | SF_STATE_BEFORE_PARAMS)
-#define SF_SET_STATE_PARAMS(NAME) (SF_STATE_##NAME | SF_STATE_PARAMS)
 #define SF_SET_STATE_INNER_LIST_BEFORE(NAME)                                   \
   (SF_STATE_##NAME | SF_STATE_INNER_LIST | SF_STATE_BEFORE)
-#define SF_SET_STATE_INNER_LIST_BEFORE_PARAMS(NAME)                            \
-  (SF_STATE_##NAME | SF_STATE_INNER_LIST | SF_STATE_BEFORE_PARAMS)
-#define SF_SET_STATE_INNER_LIST_PARAMS(NAME)                                   \
-  (SF_STATE_##NAME | SF_STATE_INNER_LIST | SF_STATE_PARAMS)
-#define SF_SET_STATE_INNER_LIST_AFTER(NAME)                                    \
-  (SF_STATE_##NAME | SF_STATE_INNER_LIST | SF_STATE_AFTER)
 
 #define SF_STATE_DICT_AFTER SF_SET_STATE_AFTER(DICT)
 #define SF_STATE_DICT_BEFORE_PARAMS SF_SET_STATE_BEFORE_PARAMS(DICT)
-#define SF_STATE_DICT_PARAMS SF_SET_STATE_PARAMS(DICT)
 #define SF_STATE_DICT_INNER_LIST_BEFORE SF_SET_STATE_INNER_LIST_BEFORE(DICT)
-#define SF_STATE_DICT_INNER_LIST_BEFORE_PARAMS                                 \
-  SF_SET_STATE_INNER_LIST_BEFORE_PARAMS(DICT)
-#define SF_STATE_DICT_INNER_LIST_PARAMS SF_SET_STATE_INNER_LIST_PARAMS(DICT)
-#define SF_STATE_DICT_INNER_LIST_AFTER SF_SET_STATE_INNER_LIST_AFTER(DICT)
 
 #define SF_STATE_LIST_AFTER SF_SET_STATE_AFTER(LIST)
 #define SF_STATE_LIST_BEFORE_PARAMS SF_SET_STATE_BEFORE_PARAMS(LIST)
-#define SF_STATE_LIST_PARAMS SF_SET_STATE_PARAMS(LIST)
 #define SF_STATE_LIST_INNER_LIST_BEFORE SF_SET_STATE_INNER_LIST_BEFORE(LIST)
-#define SF_STATE_LIST_INNER_LIST_BEFORE_PARAMS                                 \
-  SF_SET_STATE_INNER_LIST_BEFORE_PARAMS(LIST)
-#define SF_STATE_LIST_INNER_LIST_PARAMS SF_SET_STATE_INNER_LIST_PARAMS(LIST)
-#define SF_STATE_LIST_INNER_LIST_AFTER SF_SET_STATE_INNER_LIST_AFTER(LIST)
 
 #define SF_STATE_ITEM_AFTER SF_SET_STATE_AFTER(ITEM)
 #define SF_STATE_ITEM_BEFORE_PARAMS SF_SET_STATE_BEFORE_PARAMS(ITEM)
-#define SF_STATE_ITEM_PARAMS SF_SET_STATE_PARAMS(ITEM)
 #define SF_STATE_ITEM_INNER_LIST_BEFORE SF_SET_STATE_INNER_LIST_BEFORE(ITEM)
-#define SF_STATE_ITEM_INNER_LIST_BEFORE_PARAMS                                 \
-  SF_SET_STATE_INNER_LIST_BEFORE_PARAMS(ITEM)
-#define SF_STATE_ITEM_INNER_LIST_PARAMS SF_SET_STATE_INNER_LIST_PARAMS(ITEM)
-#define SF_STATE_ITEM_INNER_LIST_AFTER SF_SET_STATE_INNER_LIST_AFTER(ITEM)
 
-#define SF_STATE_INITIAL 0x00000000u
+#define SF_STATE_INITIAL 0x00u
 
 #define DIGIT_CASES                                                            \
   case '0':                                                                    \
@@ -123,7 +103,7 @@
   case 'y':                                                                    \
   case 'z'
 
-#define ALPHA_CASES                                                            \
+#define UCALPHA_CASES                                                          \
   case 'A':                                                                    \
   case 'B':                                                                    \
   case 'C':                                                                    \
@@ -149,8 +129,51 @@
   case 'W':                                                                    \
   case 'X':                                                                    \
   case 'Y':                                                                    \
-  case 'Z':                                                                    \
-    LCALPHA_CASES
+  case 'Z'
+
+#define ALPHA_CASES                                                            \
+  UCALPHA_CASES:                                                               \
+  LCALPHA_CASES
+
+#define X20_21_CASES                                                           \
+  case ' ':                                                                    \
+  case '!'
+
+#define X23_5B_CASES                                                           \
+  case '#':                                                                    \
+  case '$':                                                                    \
+  case '%':                                                                    \
+  case '&':                                                                    \
+  case '\'':                                                                   \
+  case '(':                                                                    \
+  case ')':                                                                    \
+  case '*':                                                                    \
+  case '+':                                                                    \
+  case ',':                                                                    \
+  case '-':                                                                    \
+  case '.':                                                                    \
+  case '/':                                                                    \
+  DIGIT_CASES:                                                                 \
+  case ':':                                                                    \
+  case ';':                                                                    \
+  case '<':                                                                    \
+  case '=':                                                                    \
+  case '>':                                                                    \
+  case '?':                                                                    \
+  case '@':                                                                    \
+  UCALPHA_CASES:                                                               \
+  case '['
+
+#define X5D_7E_CASES                                                           \
+  case ']':                                                                    \
+  case '^':                                                                    \
+  case '_':                                                                    \
+  case '`':                                                                    \
+  LCALPHA_CASES:                                                               \
+  case '{':                                                                    \
+  case '|':                                                                    \
+  case '}':                                                                    \
+  case '~'
 
 static int is_ws(uint8_t c) {
   switch (c) {
@@ -175,13 +198,12 @@ static void parser_discard_sp(sf_parser *sfp) {
 }
 
 static void parser_set_op_state(sf_parser *sfp, uint32_t op) {
-  sfp->state &= 0xffffff00u;
+  sfp->state &= ~SF_STATE_OP_MASK;
   sfp->state |= op;
 }
 
-static void parser_set_inner_list_state(sf_parser *sfp, uint32_t inner_list) {
-  sfp->state &= 0xf0ffffffu;
-  sfp->state |= inner_list;
+static void parser_unset_inner_list_state(sf_parser *sfp) {
+  sfp->state &= ~SF_STATE_INNER_LIST;
 }
 
 static int parser_key(sf_parser *sfp, sf_vec *dest) {
@@ -270,7 +292,7 @@ static int parser_number(sf_parser *sfp, sf_value *dest) {
       }
 
       goto fin;
-    };
+    }
   }
 
 fin:
@@ -327,99 +349,9 @@ static int parser_string(sf_parser *sfp, sf_value *dest) {
 
   for (; !parser_eof(sfp); ++sfp->pos) {
     switch (*sfp->pos) {
-    case '\x20':
-    case '\x21':
-    case '\x23':
-    case '\x24':
-    case '\x25':
-    case '\x26':
-    case '\x27':
-    case '\x28':
-    case '\x29':
-    case '\x2a':
-    case '\x2b':
-    case '\x2c':
-    case '\x2d':
-    case '\x2e':
-    case '\x2f':
-    case '\x30':
-    case '\x31':
-    case '\x32':
-    case '\x33':
-    case '\x34':
-    case '\x35':
-    case '\x36':
-    case '\x37':
-    case '\x38':
-    case '\x39':
-    case '\x3a':
-    case '\x3b':
-    case '\x3c':
-    case '\x3d':
-    case '\x3e':
-    case '\x3f':
-    case '\x40':
-    case '\x41':
-    case '\x42':
-    case '\x43':
-    case '\x44':
-    case '\x45':
-    case '\x46':
-    case '\x47':
-    case '\x48':
-    case '\x49':
-    case '\x4a':
-    case '\x4b':
-    case '\x4c':
-    case '\x4d':
-    case '\x4e':
-    case '\x4f':
-    case '\x50':
-    case '\x51':
-    case '\x52':
-    case '\x53':
-    case '\x54':
-    case '\x55':
-    case '\x56':
-    case '\x57':
-    case '\x58':
-    case '\x59':
-    case '\x5a':
-    case '\x5b':
-    case '\x5d':
-    case '\x5e':
-    case '\x5f':
-    case '\x60':
-    case '\x61':
-    case '\x62':
-    case '\x63':
-    case '\x64':
-    case '\x65':
-    case '\x66':
-    case '\x67':
-    case '\x68':
-    case '\x69':
-    case '\x6a':
-    case '\x6b':
-    case '\x6c':
-    case '\x6d':
-    case '\x6e':
-    case '\x6f':
-    case '\x70':
-    case '\x71':
-    case '\x72':
-    case '\x73':
-    case '\x74':
-    case '\x75':
-    case '\x76':
-    case '\x77':
-    case '\x78':
-    case '\x79':
-    case '\x7a':
-    case '\x7b':
-    case '\x7c':
-    case '\x7d':
-    case '\x7e':
+    X20_21_CASES:
+    X23_5B_CASES:
+    X5D_7E_CASES:
       break;
     case '\\':
       ++sfp->pos;
@@ -502,7 +434,6 @@ static int parser_token(sf_parser *sfp, sf_value *dest) {
 
 static int parser_byteseq(sf_parser *sfp, sf_value *dest) {
   const uint8_t *base;
-  size_t i, r;
 
   /* The first byte has already been validated by the caller. */
   assert(':' == *sfp->pos);
@@ -517,71 +448,61 @@ static int parser_byteseq(sf_parser *sfp, sf_value *dest) {
     ALPHA_CASES:
       continue;
     case '=':
-      r = (size_t)((sfp->pos - base) & 0x3);
-
-      switch (r) {
+      switch ((sfp->pos - base) & 0x3) {
       case 0:
       case 1:
         return SF_ERR_PARSE_ERROR;
-      default:
-        switch (r) {
-        case 2:
-          switch (*(sfp->pos - 1)) {
-          case 'A':
-          case 'Q':
-          case 'g':
-          case 'w':
-            break;
-          default:
-            return SF_ERR_PARSE_ERROR;
-          }
-
-          break;
-        case 3:
-          switch (*(sfp->pos - 1)) {
-          case 'A':
-          case 'E':
-          case 'I':
-          case 'M':
-          case 'Q':
-          case 'U':
-          case 'Y':
-          case 'c':
-          case 'g':
-          case 'k':
-          case 'o':
-          case 's':
-          case 'w':
-          case '0':
-          case '4':
-          case '8':
-            break;
-          default:
-            return SF_ERR_PARSE_ERROR;
-          }
-
+      case 2:
+        switch (*(sfp->pos - 1)) {
+        case 'A':
+        case 'Q':
+        case 'g':
+        case 'w':
           break;
         default:
-          assert(0);
-          abort();
-        }
-
-        for (i = r; i < 3; ++i) {
-          ++sfp->pos;
-
-          if (parser_eof(sfp) || *sfp->pos != '=') {
-            return SF_ERR_PARSE_ERROR;
-          }
+          return SF_ERR_PARSE_ERROR;
         }
 
         ++sfp->pos;
 
-        if (*sfp->pos != ':') {
+        if (parser_eof(sfp) || *sfp->pos != '=') {
           return SF_ERR_PARSE_ERROR;
         }
 
-        goto fin;
+        break;
+      case 3:
+        switch (*(sfp->pos - 1)) {
+        case 'A':
+        case 'E':
+        case 'I':
+        case 'M':
+        case 'Q':
+        case 'U':
+        case 'Y':
+        case 'c':
+        case 'g':
+        case 'k':
+        case 'o':
+        case 's':
+        case 'w':
+        case '0':
+        case '4':
+        case '8':
+          break;
+        default:
+          return SF_ERR_PARSE_ERROR;
+        }
+
+        break;
       }
+
+      ++sfp->pos;
+
+      if (parser_eof(sfp) || *sfp->pos != ':') {
+        return SF_ERR_PARSE_ERROR;
+      }
+
+      goto fin;
     case ':':
       if ((sfp->pos - base) & 0x3) {
         return SF_ERR_PARSE_ERROR;
@@ -617,7 +538,7 @@ static int parser_boolean(sf_parser *sfp, sf_value *dest) {
   ++sfp->pos;
 
   if (parser_eof(sfp)) {
-    return -1;
+    return SF_ERR_PARSE_ERROR;
   }
 
   switch (*sfp->pos) {
@@ -666,31 +587,19 @@ static int parser_skip_inner_list(sf_parser *sfp);
 int sf_parser_param(sf_parser *sfp, sf_vec *dest_key, sf_value *dest_value) {
   int rv;
 
-  switch (sfp->state) {
-  case SF_STATE_DICT_INNER_LIST_BEFORE:
-  case SF_STATE_LIST_INNER_LIST_BEFORE:
-  case SF_STATE_ITEM_INNER_LIST_BEFORE:
+  switch (sfp->state & SF_STATE_OP_MASK) {
+  case SF_STATE_BEFORE:
     rv = parser_skip_inner_list(sfp);
     if (rv != 0) {
       return rv;
     }
 
     /* fall through */
-  case SF_STATE_DICT_BEFORE_PARAMS:
-  case SF_STATE_LIST_BEFORE_PARAMS:
-  case SF_STATE_ITEM_BEFORE_PARAMS:
-  case SF_STATE_DICT_INNER_LIST_BEFORE_PARAMS:
-  case SF_STATE_LIST_INNER_LIST_BEFORE_PARAMS:
-  case SF_STATE_ITEM_INNER_LIST_BEFORE_PARAMS:
+  case SF_STATE_BEFORE_PARAMS:
     parser_set_op_state(sfp, SF_STATE_PARAMS);
 
     break;
-  case SF_STATE_DICT_PARAMS:
-  case SF_STATE_LIST_PARAMS:
-  case SF_STATE_ITEM_PARAMS:
-  case SF_STATE_DICT_INNER_LIST_PARAMS:
-  case SF_STATE_LIST_INNER_LIST_PARAMS:
-  case SF_STATE_ITEM_INNER_LIST_PARAMS:
+  case SF_STATE_PARAMS:
     break;
   default:
     assert(0);
@@ -756,32 +665,26 @@ static int parser_skip_params(sf_parser *sfp) {
 int sf_parser_inner_list(sf_parser *sfp, sf_value *dest) {
   int rv;
 
-  switch (sfp->state) {
-  case SF_STATE_DICT_INNER_LIST_BEFORE:
-  case SF_STATE_LIST_INNER_LIST_BEFORE:
-  case SF_STATE_ITEM_INNER_LIST_BEFORE:
+  switch (sfp->state & SF_STATE_OP_MASK) {
+  case SF_STATE_BEFORE:
     parser_discard_sp(sfp);
     if (parser_eof(sfp)) {
       return SF_ERR_PARSE_ERROR;
     }
 
     break;
-  case SF_STATE_DICT_INNER_LIST_BEFORE_PARAMS:
-  case SF_STATE_LIST_INNER_LIST_BEFORE_PARAMS:
-  case SF_STATE_ITEM_INNER_LIST_BEFORE_PARAMS:
+  case SF_STATE_BEFORE_PARAMS:
     rv = parser_skip_params(sfp);
     if (rv != 0) {
       return rv;
     }
 
-    /* Technically, we are entering *_AFTER, but we will set another
-       state without reading the state. */
+    /* Technically, we are entering SF_STATE_AFTER, but we will set
+       another state without reading the state. */
     /* parser_set_op_state(sfp, SF_STATE_AFTER); */
 
     /* fall through */
-  case SF_STATE_DICT_INNER_LIST_AFTER:
-  case SF_STATE_LIST_INNER_LIST_AFTER:
-  case SF_STATE_ITEM_INNER_LIST_AFTER:
+  case SF_STATE_AFTER:
     if (parser_eof(sfp)) {
       return SF_ERR_PARSE_ERROR;
     }
@@ -809,7 +712,7 @@ int sf_parser_inner_list(sf_parser *sfp, sf_value *dest) {
   if (*sfp->pos == ')') {
     ++sfp->pos;
 
-    parser_set_inner_list_state(sfp, 0);
+    parser_unset_inner_list_state(sfp);
     parser_set_op_state(sfp, SF_STATE_BEFORE_PARAMS);
 
     return SF_ERR_EOF;
