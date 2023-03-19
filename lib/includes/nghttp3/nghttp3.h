@@ -1814,8 +1814,8 @@ typedef int (*nghttp3_reset_stream)(nghttp3_conn *conn, int64_t stream_id,
 typedef int (*nghttp3_shutdown)(nghttp3_conn *conn, int64_t id,
                                 void *conn_user_data);
 
-#define NGHTTP3_CALLBACKS_VERSION_V1 1
-#define NGHTTP3_CALLBACKS_VERSION NGHTTP3_CALLBACKS_VERSION_V1
+#define NGHTTP3_CALLBACKS_V1 1
+#define NGHTTP3_CALLBACKS_VERSION NGHTTP3_CALLBACKS_V1
 
 /**
  * @struct
@@ -1899,8 +1899,8 @@ typedef struct nghttp3_callbacks {
   nghttp3_shutdown shutdown;
 } nghttp3_callbacks;
 
-#define NGHTTP3_SETTINGS_VERSION_V1 1
-#define NGHTTP3_SETTINGS_VERSION NGHTTP3_SETTINGS_VERSION_V1
+#define NGHTTP3_SETTINGS_V1 1
+#define NGHTTP3_SETTINGS_VERSION NGHTTP3_SETTINGS_V1
 
 /**
  * @struct
