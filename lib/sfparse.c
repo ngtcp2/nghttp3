@@ -244,7 +244,6 @@ static int parser_key(sf_parser *sfp, sf_vec *dest) {
 static int parser_number(sf_parser *sfp, sf_value *dest) {
   int sign = 1;
   int64_t value = 0;
-  int type = SF_VALUE_TYPE_INTEGER;
   size_t len = 0;
   size_t fpos = 0;
 
@@ -269,73 +268,108 @@ static int parser_number(sf_parser *sfp, sf_value *dest) {
       value *= 10;
       value += *sfp->pos - '0';
 
-      break;
-    case '.':
-      if (len == 0) {
-        return SF_ERR_PARSE_ERROR;
-      }
-
-      if (type != SF_VALUE_TYPE_INTEGER) {
-        goto fin;
-      }
-
-      if (len > 12) {
-        return SF_ERR_PARSE_ERROR;
-      }
-      fpos = len;
-      type = SF_VALUE_TYPE_DECIMAL;
-
-      break;
-    default:
-      if (len == 0) {
-        return SF_ERR_PARSE_ERROR;
-      }
-
-      goto fin;
+      continue;
     }
+
+    break;
   }
 
-fin:
-  switch (type) {
-  case SF_VALUE_TYPE_INTEGER:
+  if (len == 0) {
+    return SF_ERR_PARSE_ERROR;
+  }
+
+  if (parser_eof(sfp) || *sfp->pos != '.') {
     if (dest) {
-      dest->type = (uint8_t)type;
+      dest->type = SF_TYPE_INTEGER;
       dest->flags = SF_VALUE_FLAG_NONE;
       dest->integer = value * sign;
     }
 
     return 0;
-  case SF_VALUE_TYPE_DECIMAL:
-    if (fpos == len || len - fpos > 3) {
-      return SF_ERR_PARSE_ERROR;
-    }
-
-    if (dest) {
-      dest->type = (uint8_t)type;
-      dest->flags = SF_VALUE_FLAG_NONE;
-      dest->decimal.numer = value * sign;
-
-      switch (len - fpos) {
-      case 1:
-        dest->decimal.denom = 10;
-
-        break;
-      case 2:
-        dest->decimal.denom = 100;
-
-        break;
-      case 3:
-        dest->decimal.denom = 1000;
-
-        break;
-      }
-    }
-
-    return 0;
-  default:
-    assert(0);
-    abort();
   }
+
+  /* decimal */
+
+  if (len > 12) {
+    return SF_ERR_PARSE_ERROR;
+  }
+
+  fpos = len;
+
+  ++sfp->pos;
+
+  for (; !parser_eof(sfp); ++sfp->pos) {
+    switch (*sfp->pos) {
+    DIGIT_CASES:
+      if (++len > 15) {
+        return SF_ERR_PARSE_ERROR;
+      }
+
+      value *= 10;
+      value += *sfp->pos - '0';
+
+      continue;
+    }
+
+    break;
+  }
+
+  if (fpos == len || len - fpos > 3) {
+    return SF_ERR_PARSE_ERROR;
+  }
+
+  if (dest) {
+    dest->type = SF_TYPE_DECIMAL;
+    dest->flags = SF_VALUE_FLAG_NONE;
+    dest->decimal.numer = value * sign;
+
+    switch (len - fpos) {
+    case 1:
+      dest->decimal.denom = 10;
+
+      break;
+    case 2:
+      dest->decimal.denom = 100;
+
+      break;
+    case 3:
+      dest->decimal.denom = 1000;
+
+      break;
+    }
+  }
+
+  return 0;
+}
+
+static int parser_date(sf_parser *sfp, sf_value *dest) {
+  int rv;
+  sf_value val;
+
+  /* The first byte has already been validated by the caller. */
+  assert('@' == *sfp->pos);
+
+  ++sfp->pos;
+
+  if (parser_eof(sfp)) {
+    return SF_ERR_PARSE_ERROR;
+  }
+
+  rv = parser_number(sfp, &val);
+  if (rv != 0) {
+    return rv;
+  }
+
+  if (val.type != SF_TYPE_INTEGER) {
+    return SF_ERR_PARSE_ERROR;
+  }
+
+  if (dest) {
+    *dest = val;
+    dest->type = SF_TYPE_DATE;
+  }
+
+  return 0;
 }
 
 static int parser_string(sf_parser *sfp, sf_value *dest) {
@@ -372,10 +406,10 @@ static int parser_string(sf_parser *sfp, sf_value *dest) {
       break;
     case '"':
       if (dest) {
-        dest->type = SF_VALUE_TYPE_STRING;
+        dest->type = SF_TYPE_STRING;
         dest->flags = flags;
-        dest->vec.base = (uint8_t *)base;
         dest->vec.len = (size_t)(sfp->pos - base);
+        dest->vec.base = dest->vec.len == 0 ? NULL : (uint8_t *)base;
       }
 
       ++sfp->pos;
@@ -423,7 +457,7 @@ static int parser_token(sf_parser *sfp, sf_value *dest) {
   }
 
   if (dest) {
-    dest->type = SF_VALUE_TYPE_TOKEN;
+    dest->type = SF_TYPE_TOKEN;
     dest->flags = SF_VALUE_FLAG_NONE;
     dest->vec.base = (uint8_t *)base;
     dest->vec.len = (size_t)(sfp->pos - base);
@@ -518,10 +552,10 @@ static int parser_byteseq(sf_parser *sfp, sf_value *dest) {
 
 fin:
   if (dest) {
-    dest->type = SF_VALUE_TYPE_BYTESEQ;
+    dest->type = SF_TYPE_BYTESEQ;
     dest->flags = SF_VALUE_FLAG_NONE;
-    dest->vec.base = (uint8_t *)base;
     dest->vec.len = (size_t)(sfp->pos - base);
+    dest->vec.base = dest->vec.len == 0 ? NULL : (uint8_t *)base;
   }
 
   ++sfp->pos;
@@ -544,9 +578,11 @@ static int parser_boolean(sf_parser *sfp, sf_value *dest) {
   switch (*sfp->pos) {
   case '0':
     b = 0;
+
     break;
   case '1':
     b = 1;
+
     break;
   default:
     return SF_ERR_PARSE_ERROR;
@@ -555,7 +591,7 @@ static int parser_boolean(sf_parser *sfp, sf_value *dest) {
   ++sfp->pos;
 
   if (dest) {
-    dest->type = SF_VALUE_TYPE_BOOLEAN;
+    dest->type = SF_TYPE_BOOLEAN;
     dest->flags = SF_VALUE_FLAG_NONE;
     dest->boolean = b;
   }
@@ -570,6 +606,8 @@ static int parser_bare_item(sf_parser *sfp, sf_value *dest) {
   case '-':
   DIGIT_CASES:
     return parser_number(sfp, dest);
+  case '@':
+    return parser_date(sfp, dest);
   case ':':
     return parser_byteseq(sfp, dest);
   case '?':
@@ -626,7 +664,7 @@ int sf_parser_param(sf_parser *sfp, sf_vec *dest_key, sf_value *dest_value) {
 
   if (parser_eof(sfp) || *sfp->pos != '=') {
     if (dest_value) {
-      dest_value->type = SF_VALUE_TYPE_BOOLEAN;
+      dest_value->type = SF_TYPE_BOOLEAN;
       dest_value->flags = SF_VALUE_FLAG_NONE;
       dest_value->boolean = 1;
     }
@@ -774,7 +812,7 @@ static int parser_dict_value(sf_parser *sfp, sf_value *dest) {
   if (parser_eof(sfp) || *(sfp->pos) != '=') {
     /* Boolean true */
     if (dest) {
-      dest->type = SF_VALUE_TYPE_BOOLEAN;
+      dest->type = SF_TYPE_BOOLEAN;
       dest->flags = SF_VALUE_FLAG_NONE;
       dest->boolean = 1;
     }
@@ -792,7 +830,7 @@ static int parser_dict_value(sf_parser *sfp, sf_value *dest) {
 
   if (*sfp->pos == '(') {
     if (dest) {
-      dest->type = SF_VALUE_TYPE_INNER_LIST;
+      dest->type = SF_TYPE_INNER_LIST;
       dest->flags = SF_VALUE_FLAG_NONE;
     }
 
@@ -899,7 +937,7 @@ int sf_parser_list(sf_parser *sfp, sf_value *dest) {
 
   if (*sfp->pos == '(') {
     if (dest) {
-      dest->type = SF_VALUE_TYPE_INNER_LIST;
+      dest->type = SF_TYPE_INNER_LIST;
       dest->flags = SF_VALUE_FLAG_NONE;
     }
 
@@ -961,7 +999,7 @@ int sf_parser_item(sf_parser *sfp, sf_value *dest) {
 
   if (*sfp->pos == '(') {
     if (dest) {
-      dest->type = SF_VALUE_TYPE_INNER_LIST;
+      dest->type = SF_TYPE_INNER_LIST;
       dest->flags = SF_VALUE_FLAG_NONE;
     }
 
@@ -1062,6 +1100,7 @@ void sf_base64decode(sf_vec *dest, const sf_vec *src) {
 
   if (src->len == 0) {
     *dest = *src;
+
     return;
   }
 
@@ -1089,7 +1128,7 @@ void sf_base64decode(sf_vec *dest, const sf_vec *src) {
         assert(*p == '=' && p + 1 == end);
 
         *o++ = (uint8_t)(n >> 16);
-        *o++ = n >> 8 & 0xffu;
+        *o++ = (n >> 8) & 0xffu;
 
         goto fin;
       }
@@ -1098,7 +1137,7 @@ void sf_base64decode(sf_vec *dest, const sf_vec *src) {
     }
 
     *o++ = (uint8_t)(n >> 16);
-    *o++ = n >> 8 & 0xffu;
+    *o++ = (n >> 8) & 0xffu;
     *o++ = n & 0xffu;
   }
 
