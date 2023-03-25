@@ -143,7 +143,7 @@ int nghttp3_http_parse_priority(nghttp3_pri *dest, const uint8_t *value,
 
     switch (key.base[0]) {
     case 'i':
-      if (val.type != SF_VALUE_TYPE_BOOLEAN) {
+      if (val.type != SF_TYPE_BOOLEAN) {
         return NGHTTP3_ERR_INVALID_ARGUMENT;
       }
 
@@ -151,8 +151,7 @@ int nghttp3_http_parse_priority(nghttp3_pri *dest, const uint8_t *value,
 
       break;
     case 'u':
-      if (val.type != SF_VALUE_TYPE_INTEGER ||
-          val.integer < NGHTTP3_URGENCY_HIGH ||
+      if (val.type != SF_TYPE_INTEGER || val.integer < NGHTTP3_URGENCY_HIGH ||
           NGHTTP3_URGENCY_LOW < val.integer) {
         return NGHTTP3_ERR_INVALID_ARGUMENT;
       }
