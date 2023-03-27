@@ -30,22 +30,3 @@
 
 #include "nghttp3_conv.h"
 #include "nghttp3_test_helper.h"
-
-void test_nghttp3_pri_to_uint8(void) {
-  {
-    nghttp3_pri pri = {1, 0};
-    CU_ASSERT(1 == nghttp3_pri_to_uint8(&pri));
-  }
-  {
-    nghttp3_pri pri = {1, 1};
-    CU_ASSERT((0x80 | 1) == nghttp3_pri_to_uint8(&pri));
-  }
-  {
-    nghttp3_pri pri = {7, 1};
-    CU_ASSERT((0x80 | 7) == nghttp3_pri_to_uint8(&pri));
-  }
-  {
-    nghttp3_pri pri = {7, 0};
-    CU_ASSERT(7 == nghttp3_pri_to_uint8(&pri));
-  }
-}

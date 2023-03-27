@@ -293,7 +293,7 @@ def process_function(domain, infile):
         else:
             func_proto.append(line)
     func_proto = ''.join(func_proto)
-    func_proto = re.sub(r'int (settings|callbacks)_version,',
+    func_proto = re.sub(r'int (settings|callbacks|pri)_version,',
                         '', func_proto)
     func_proto = re.sub(r'_versioned\(', '(', func_proto)
     func_proto = re.sub(r';\n$', '', func_proto)
