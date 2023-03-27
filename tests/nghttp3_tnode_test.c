@@ -51,7 +51,8 @@ void test_nghttp3_tnode_schedule(void) {
   nghttp3_tnode *p;
 
   /* Schedule node with incremental enabled */
-  nghttp3_tnode_init(&node, 0, (1 << 7) | NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node, 0);
+  node.pri.inc = 1;
 
   nghttp3_pq_init(&pq, cycle_less, mem);
 
@@ -61,7 +62,8 @@ void test_nghttp3_tnode_schedule(void) {
   CU_ASSERT(0 == node.cycle);
 
   /* Schedule another node */
-  nghttp3_tnode_init(&node2, 1, (1 << 7) | NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node2, 1);
+  node.pri.inc = 1;
 
   rv = nghttp3_tnode_schedule(&node2, &pq, 0);
 
@@ -84,7 +86,7 @@ void test_nghttp3_tnode_schedule(void) {
   nghttp3_pq_free(&pq);
 
   /* Schedule node without incremental */
-  nghttp3_tnode_init(&node, 0, NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node, 0);
 
   nghttp3_pq_init(&pq, cycle_less, mem);
 
@@ -94,7 +96,7 @@ void test_nghttp3_tnode_schedule(void) {
   CU_ASSERT(0 == node.cycle);
 
   /* Schedule another node */
-  nghttp3_tnode_init(&node2, 1, NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node2, 1);
 
   rv = nghttp3_tnode_schedule(&node2, &pq, 0);
 
@@ -119,13 +121,13 @@ void test_nghttp3_tnode_schedule(void) {
   /* Stream with lower stream ID takes precedence */
   nghttp3_pq_init(&pq, cycle_less, mem);
 
-  nghttp3_tnode_init(&node2, 1, NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node2, 1);
 
   rv = nghttp3_tnode_schedule(&node2, &pq, 0);
 
   CU_ASSERT(0 == rv);
 
-  nghttp3_tnode_init(&node, 0, NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node, 0);
 
   rv = nghttp3_tnode_schedule(&node, &pq, 0);
 
@@ -142,13 +144,13 @@ void test_nghttp3_tnode_schedule(void) {
   /* Check the same reversing push order */
   nghttp3_pq_init(&pq, cycle_less, mem);
 
-  nghttp3_tnode_init(&node, 0, NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node, 0);
 
   rv = nghttp3_tnode_schedule(&node, &pq, 0);
 
   CU_ASSERT(0 == rv);
 
-  nghttp3_tnode_init(&node2, 1, NGHTTP3_DEFAULT_URGENCY);
+  nghttp3_tnode_init(&node2, 1);
 
   rv = nghttp3_tnode_schedule(&node2, &pq, 0);
 

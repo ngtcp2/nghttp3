@@ -119,7 +119,3 @@ size_t nghttp3_put_varintlen(int64_t n) {
 uint64_t nghttp3_ord_stream_id(int64_t stream_id) {
   return (uint64_t)(stream_id >> 2) + 1;
 }
-
-uint8_t nghttp3_pri_to_uint8(const nghttp3_pri *pri) {
-  return (uint8_t)((uint32_t)pri->inc << 7 | pri->urgency);
-}

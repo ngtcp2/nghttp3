@@ -29,6 +29,4 @@
 #  include <config.h>
 #endif /* HAVE_CONFIG_H */
 
-void test_nghttp3_pri_to_uint8(void);
-
 #endif /* NGTCP2_CONV_TEST_H */

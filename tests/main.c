@@ -125,8 +125,7 @@ int main(void) {
       !CU_add_test(pSuite, "http_parse_priority",
                    test_nghttp3_http_parse_priority) ||
       !CU_add_test(pSuite, "check_header_value",
-                   test_nghttp3_check_header_value) ||
-      !CU_add_test(pSuite, "pri_to_uint8", test_nghttp3_pri_to_uint8)) {
+                   test_nghttp3_check_header_value)) {
     CU_cleanup_registry();
     return (int)CU_get_error();
   }

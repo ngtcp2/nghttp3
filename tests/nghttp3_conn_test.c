@@ -2972,8 +2972,8 @@ void test_nghttp3_conn_priority_update(void) {
 
   fr.hd.type = NGHTTP3_FRAME_PRIORITY_UPDATE;
   fr.priority_update.pri_elem_id = 0;
-  fr.priority_update.pri.urgency = 2;
-  fr.priority_update.pri.inc = 1;
+  fr.priority_update.data = (uint8_t *)"u=2,i";
+  fr.priority_update.datalen = strlen("u=2,i");
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
@@ -2986,8 +2986,8 @@ void test_nghttp3_conn_priority_update(void) {
 
   CU_ASSERT(NULL != stream);
   CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_PRIORITY_UPDATE_RECVED);
-  CU_ASSERT(2 == nghttp3_pri_uint8_urgency(stream->node.pri));
-  CU_ASSERT(1 == nghttp3_pri_uint8_inc(stream->node.pri));
+  CU_ASSERT(2 == stream->node.pri.urgency);
+  CU_ASSERT(1 == stream->node.pri.inc);
 
   nghttp3_buf_reset(&buf);
 
@@ -3004,8 +3004,8 @@ void test_nghttp3_conn_priority_update(void) {
 
   /* priority header field should not override the value set by
      PRIORITY_UPDATE frame. */
-  CU_ASSERT(2 == nghttp3_pri_uint8_urgency(stream->node.pri));
-  CU_ASSERT(1 == nghttp3_pri_uint8_inc(stream->node.pri));
+  CU_ASSERT(2 == stream->node.pri.urgency);
+  CU_ASSERT(1 == stream->node.pri.inc);
 
   nghttp3_qpack_encoder_free(&qenc);
   nghttp3_conn_del(conn);
@@ -3029,8 +3029,8 @@ void test_nghttp3_conn_priority_update(void) {
 
   fr.hd.type = NGHTTP3_FRAME_PRIORITY_UPDATE;
   fr.priority_update.pri_elem_id = 0;
-  fr.priority_update.pri.urgency = 6;
-  fr.priority_update.pri.inc = 0;
+  fr.priority_update.data = (uint8_t *)"u=6";
+  fr.priority_update.datalen = strlen("u=6");
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
@@ -3039,8 +3039,8 @@ void test_nghttp3_conn_priority_update(void) {
 
   CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
   CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_PRIORITY_UPDATE_RECVED);
-  CU_ASSERT(6 == nghttp3_pri_uint8_urgency(stream->node.pri));
-  CU_ASSERT(0 == nghttp3_pri_uint8_inc(stream->node.pri));
+  CU_ASSERT(6 == stream->node.pri.urgency);
+  CU_ASSERT(0 == stream->node.pri.inc);
 
   nghttp3_conn_del(conn);
   nghttp3_buf_reset(&buf);
@@ -3059,8 +3059,8 @@ void test_nghttp3_conn_priority_update(void) {
 
   fr.hd.type = NGHTTP3_FRAME_PRIORITY_UPDATE_PUSH_ID;
   fr.priority_update.pri_elem_id = 0;
-  fr.priority_update.pri.urgency = 6;
-  fr.priority_update.pri.inc = 0;
+  fr.priority_update.data = (uint8_t *)"u=6";
+  fr.priority_update.datalen = strlen("u=6");
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
@@ -3087,8 +3087,8 @@ void test_nghttp3_conn_priority_update(void) {
 
   fr.hd.type = NGHTTP3_FRAME_PRIORITY_UPDATE;
   fr.priority_update.pri_elem_id = 0;
-  fr.priority_update.pri.urgency = 2;
-  fr.priority_update.pri.inc = 1;
+  fr.priority_update.data = (uint8_t *)"u=2,i";
+  fr.priority_update.datalen = strlen("u=2,i");
 
   nghttp3_frame_write_priority_update_len(&fr.hd.length, &fr.priority_update);
   fr.hd.length += 10;
@@ -3176,8 +3176,8 @@ void test_nghttp3_conn_request_priority(void) {
   stream = nghttp3_conn_find_stream(conn, 0);
 
   CU_ASSERT(NULL != stream);
-  CU_ASSERT(5 == nghttp3_pri_uint8_urgency(stream->node.pri));
-  CU_ASSERT(1 == nghttp3_pri_uint8_inc(stream->node.pri));
+  CU_ASSERT(5 == stream->node.pri.urgency);
+  CU_ASSERT(1 == stream->node.pri.inc);
 
   nghttp3_qpack_encoder_free(&qenc);
   nghttp3_conn_del(conn);
@@ -3216,7 +3216,8 @@ void test_nghttp3_conn_request_priority(void) {
   stream = nghttp3_conn_find_stream(conn, 0);
 
   CU_ASSERT(NULL != stream);
-  CU_ASSERT(NGHTTP3_DEFAULT_URGENCY == stream->node.pri);
+  CU_ASSERT(NGHTTP3_DEFAULT_URGENCY == stream->node.pri.urgency);
+  CU_ASSERT(0 == stream->node.pri.inc);
 
   nghttp3_qpack_encoder_free(&qenc);
   nghttp3_conn_del(conn);
@@ -3256,7 +3257,9 @@ void test_nghttp3_conn_set_stream_priority(void) {
   pri.urgency = 2;
   pri.inc = 1;
 
-  rv = nghttp3_conn_set_stream_priority(conn, 0, &pri);
+#define NGHTTP3_PRI_DATA "u=2,i"
+  rv = nghttp3_conn_set_client_stream_priority(
+      conn, 0, (const uint8_t *)NGHTTP3_PRI_DATA, strlen(NGHTTP3_PRI_DATA));
 
   CU_ASSERT(0 == rv);
 
@@ -3268,11 +3271,13 @@ void test_nghttp3_conn_set_stream_priority(void) {
       continue;
     }
 
-    CU_ASSERT(2 == ent->fr.priority_update.pri.urgency);
-    CU_ASSERT(1 == ent->fr.priority_update.pri.inc);
+    CU_ASSERT(strlen(NGHTTP3_PRI_DATA) == ent->fr.priority_update.datalen);
+    CU_ASSERT(0 == memcmp(NGHTTP3_PRI_DATA, ent->fr.priority_update.data,
+                          strlen(NGHTTP3_PRI_DATA)));
 
     break;
   }
+#undef NGHTTP3_PRI_DATA
 
   CU_ASSERT(i < nghttp3_ringbuf_len(&stream->frq));
 
@@ -3286,7 +3291,10 @@ void test_nghttp3_conn_set_stream_priority(void) {
   pri.urgency = 2;
   pri.inc = 1;
 
-  rv = nghttp3_conn_set_stream_priority(conn, 0, &pri);
+#define NGHTTP3_PRI_DATA "u=2,i"
+  rv = nghttp3_conn_set_client_stream_priority(
+      conn, 0, (const uint8_t *)NGHTTP3_PRI_DATA, strlen(NGHTTP3_PRI_DATA));
+#undef NGHTTP3_PRI_DATA
 
   CU_ASSERT(NGHTTP3_ERR_STREAM_NOT_FOUND == rv);
 
@@ -3303,14 +3311,14 @@ void test_nghttp3_conn_set_stream_priority(void) {
   pri.urgency = 4;
   pri.inc = 0;
 
-  rv = nghttp3_conn_set_stream_priority(conn, 0, &pri);
+  rv = nghttp3_conn_set_server_stream_priority(conn, 0, &pri);
 
   CU_ASSERT(0 == rv);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
   CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_SERVER_PRIORITY_SET);
-  CU_ASSERT(nghttp3_pri_to_uint8(&pri) == stream->node.pri);
+  CU_ASSERT(nghttp3_pri_eq(&pri, &stream->node.pri));
 
   nghttp3_conn_del(conn);
 }
