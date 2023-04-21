@@ -24,6 +24,7 @@
  */
 #include "nghttp3_conv_test.h"
 
+#include <stdio.h>
 #include <assert.h>
 
 #include <CUnit/CUnit.h>
