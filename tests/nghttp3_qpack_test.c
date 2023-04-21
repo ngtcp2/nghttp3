@@ -830,7 +830,7 @@ void test_nghttp3_qpack_huffman(void) {
 
   for (i = 0; i < 100000; ++i) {
     for (j = 0; j < sizeof(raw); ++j) {
-      raw[j] = (uint8_t)round(((double)rand() / RAND_MAX * 255));
+      raw[j] = (uint8_t)((double)rand() / RAND_MAX * 255);
     }
     end = nghttp3_qpack_huffman_encode(ebuf, raw, sizeof(raw));
 
