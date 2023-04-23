@@ -147,7 +147,7 @@ int nghttp3_http_parse_priority(nghttp3_pri *dest, const uint8_t *value,
         return NGHTTP3_ERR_INVALID_ARGUMENT;
       }
 
-      pri.inc = val.boolean;
+      pri.inc = (uint8_t)val.boolean;
 
       break;
     case 'u':

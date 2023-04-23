@@ -1943,12 +1943,12 @@ typedef struct nghttp3_settings {
    * Extended CONNECT Method (see :rfc:`9220`).  Client ignores this
    * field.
    */
-  int enable_connect_protocol;
+  uint8_t enable_connect_protocol;
   /**
    * :member:`h3_datagram`, if set to nonzero, enables HTTP/3
    * Datagrams (see :rfc:`9297`).
    */
-  int h3_datagram;
+  uint8_t h3_datagram;
 } nghttp3_settings;
 
 /**
@@ -2458,7 +2458,7 @@ typedef struct NGHTTP3_ALIGN(8) nghttp3_pri {
    * incrementally.  If inc is 1, it can be processed incrementally.
    * Other value is not permitted.
    */
-  int inc;
+  uint8_t inc;
 } nghttp3_pri;
 
 /**
