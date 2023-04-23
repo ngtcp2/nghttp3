@@ -1687,7 +1687,7 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
       return NGHTTP3_ERR_H3_SETTINGS_ERROR;
     }
 
-    dest->enable_connect_protocol = (int)ent->value;
+    dest->enable_connect_protocol = (uint8_t)ent->value;
     break;
   case NGHTTP3_SETTINGS_ID_H3_DATAGRAM:
     switch (ent->value) {
@@ -1698,7 +1698,7 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
       return NGHTTP3_ERR_H3_SETTINGS_ERROR;
     }
 
-    dest->h3_datagram = (int)ent->value;
+    dest->h3_datagram = (uint8_t)ent->value;
     break;
   case NGHTTP3_H2_SETTINGS_ID_ENABLE_PUSH:
   case NGHTTP3_H2_SETTINGS_ID_MAX_CONCURRENT_STREAMS:
