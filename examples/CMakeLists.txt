@@ -28,9 +28,15 @@ if(ENABLE_EXAMPLES)
     ${CMAKE_BINARY_DIR}/lib/includes
   )
 
-  link_libraries(
-    nghttp3
-  )
+  if(ENABLE_SHARED_LIB)
+    link_libraries(
+      nghttp3
+    )
+  elseif(HAVE_CUNIT OR ENABLE_STATIC_LIB)
+    link_libraries(
+      nghttp3_static
+    )
+  endif()
 
   set(qpack_SOURCES
     qpack.cc
