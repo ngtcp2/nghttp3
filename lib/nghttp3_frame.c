@@ -154,11 +154,11 @@ int nghttp3_nva_copy(nghttp3_nv **pnva, const nghttp3_nv *nva, size_t nvlen,
     } else {
       if (nva[i].namelen) {
         memcpy(data, nva[i].name, nva[i].namelen);
+        nghttp3_downcase(data, nva[i].namelen);
       }
       p->name = data;
       p->namelen = nva[i].namelen;
       data[p->namelen] = '\0';
-      nghttp3_downcase(p->name, p->namelen);
       data += nva[i].namelen + 1;
     }
 
