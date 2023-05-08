@@ -748,11 +748,11 @@ typedef struct nghttp3_nv {
   /**
    * :member:`name` is the header field name.
    */
-  uint8_t *name;
+  const uint8_t *name;
   /**
    * :member:`value` is the header field value.
    */
-  uint8_t *value;
+  const uint8_t *value;
   /**
    * :member:`namelen` is the length of the |name|, excluding
    * terminating NULL.
