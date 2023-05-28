@@ -1602,6 +1602,56 @@ NGHTTP3_EXTERN void nghttp3_set_debug_vprintf_callback(
  */
 typedef struct nghttp3_conn nghttp3_conn;
 
+#define NGHTTP3_SETTINGS_V1 1
+#define NGHTTP3_SETTINGS_VERSION NGHTTP3_SETTINGS_V1
+
+/**
+ * @struct
+ *
+ * :type:`nghttp3_settings` defines HTTP/3 settings.
+ */
+typedef struct nghttp3_settings {
+  /**
+   * :member:`max_field_section_size` specifies the maximum header
+   * section (block) size.
+   */
+  uint64_t max_field_section_size;
+  /**
+   * :member:`qpack_max_dtable_capacity` is the maximum size of QPACK
+   * dynamic table.
+   */
+  size_t qpack_max_dtable_capacity;
+  /**
+   * :member:`qpack_encoder_max_dtable_capacity` is the upper bound of
+   * QPACK dynamic table capacity that the QPACK encoder is willing to
+   * use.  The effective maximum dynamic table capacity is the minimum
+   * of this field and the value of the received
+   * SETTINGS_QPACK_MAX_TABLE_CAPACITY.  If this field is set to 0,
+   * the encoder does not use the dynamic table.
+   *
+   * When :type:`nghttp3_settings` is passed to
+   * :member:`nghttp3_callbacks.recv_settings` callback, this field
+   * should be ignored.
+   */
+  size_t qpack_encoder_max_dtable_capacity;
+  /**
+   * :member:`qpack_blocked_streams` is the maximum number of streams
+   * which can be blocked while they are being decoded.
+   */
+  size_t qpack_blocked_streams;
+  /**
+   * :member:`enable_connect_protocol`, if set to nonzero, enables
+   * Extended CONNECT Method (see :rfc:`9220`).  Client ignores this
+   * field.
+   */
+  uint8_t enable_connect_protocol;
+  /**
+   * :member:`h3_datagram`, if set to nonzero, enables HTTP/3
+   * Datagrams (see :rfc:`9297`).
+   */
+  uint8_t h3_datagram;
+} nghttp3_settings;
+
 /**
  * @functypedef
  *
@@ -1820,6 +1870,22 @@ typedef int (*nghttp3_reset_stream)(nghttp3_conn *conn, int64_t stream_id,
 typedef int (*nghttp3_shutdown)(nghttp3_conn *conn, int64_t id,
                                 void *conn_user_data);
 
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_recv_settings` is a callback function which is
+ * invoked when SETTINGS frame is received.  |settings| is a received
+ * remote HTTP/3 settings.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
+typedef int (*nghttp3_recv_settings)(nghttp3_conn *conn,
+                                     const nghttp3_settings *settings,
+                                     void *conn_user_data);
+
 #define NGHTTP3_CALLBACKS_V1 1
 #define NGHTTP3_CALLBACKS_VERSION NGHTTP3_CALLBACKS_V1
 
@@ -1903,53 +1969,12 @@ typedef struct nghttp3_callbacks {
    * the remote endpoint has signalled initiation of connection shutdown.
    */
   nghttp3_shutdown shutdown;
+  /**
+   * :member:`recv_settings` is a callback function which is invoked
+   * when SETTINGS frame is received.
+   */
+  nghttp3_recv_settings recv_settings;
 } nghttp3_callbacks;
-
-#define NGHTTP3_SETTINGS_V1 1
-#define NGHTTP3_SETTINGS_VERSION NGHTTP3_SETTINGS_V1
-
-/**
- * @struct
- *
- * :type:`nghttp3_settings` defines HTTP/3 settings.
- */
-typedef struct nghttp3_settings {
-  /**
-   * :member:`max_field_section_size` specifies the maximum header
-   * section (block) size.
-   */
-  uint64_t max_field_section_size;
-  /**
-   * :member:`qpack_max_dtable_capacity` is the maximum size of QPACK
-   * dynamic table.
-   */
-  size_t qpack_max_dtable_capacity;
-  /**
-   * :member:`qpack_encoder_max_dtable_capacity` is the upper bound of
-   * QPACK dynamic table capacity that the QPACK encoder is willing to
-   * use.  The effective maximum dynamic table capacity is the minimum
-   * of this field and the value of the received
-   * SETTINGS_QPACK_MAX_TABLE_CAPACITY.  If this field is set to 0,
-   * the encoder does not use the dynamic table.
-   */
-  size_t qpack_encoder_max_dtable_capacity;
-  /**
-   * :member:`qpack_blocked_streams` is the maximum number of streams
-   * which can be blocked while they are being decoded.
-   */
-  size_t qpack_blocked_streams;
-  /**
-   * :member:`enable_connect_protocol`, if set to nonzero, enables
-   * Extended CONNECT Method (see :rfc:`9220`).  Client ignores this
-   * field.
-   */
-  uint8_t enable_connect_protocol;
-  /**
-   * :member:`h3_datagram`, if set to nonzero, enables HTTP/3
-   * Datagrams (see :rfc:`9297`).
-   */
-  uint8_t h3_datagram;
-} nghttp3_settings;
 
 /**
  * @function

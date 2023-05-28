@@ -189,6 +189,22 @@ static int conn_call_deferred_consume(nghttp3_conn *conn,
   return 0;
 }
 
+static int conn_call_recv_settings(nghttp3_conn *conn) {
+  int rv;
+
+  if (!conn->callbacks.recv_settings) {
+    return 0;
+  }
+
+  rv = conn->callbacks.recv_settings(conn, &conn->remote.settings,
+                                     conn->user_data);
+  if (rv != 0) {
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
+  return 0;
+}
+
 static int ricnt_less(const nghttp3_pq_entry *lhsx,
                       const nghttp3_pq_entry *rhsx) {
   nghttp3_stream *lhs =
@@ -679,6 +695,11 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
       case NGHTTP3_FRAME_SETTINGS:
         /* SETTINGS frame might be empty. */
         if (rstate->left == 0) {
+          rv = conn_call_recv_settings(conn);
+          if (rv != 0) {
+            return rv;
+          }
+
           nghttp3_stream_read_state_reset(rstate);
           break;
         }
@@ -728,11 +749,21 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
       }
       break;
     case NGHTTP3_CTRL_STREAM_STATE_SETTINGS:
-      for (; p != end;) {
+      for (;;) {
         if (rstate->left == 0) {
+          rv = conn_call_recv_settings(conn);
+          if (rv != 0) {
+            return rv;
+          }
+
           nghttp3_stream_read_state_reset(rstate);
           break;
         }
+
+        if (p == end) {
+          return (nghttp3_ssize)nconsumed;
+        }
+
         /* Read Identifier */
         len = (size_t)nghttp3_min(rstate->left, (int64_t)(end - p));
         assert(len > 0);
@@ -836,6 +867,11 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
       if (rstate->left) {
         rstate->state = NGHTTP3_CTRL_STREAM_STATE_SETTINGS;
         break;
+      }
+
+      rv = conn_call_recv_settings(conn);
+      if (rv != 0) {
+        return rv;
       }
 
       nghttp3_stream_read_state_reset(rstate);
