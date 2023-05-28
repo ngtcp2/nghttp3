@@ -27,6 +27,10 @@ The following extensions have been implemented:
 - `Bootstrapping WebSockets with HTTP/3
   <https://datatracker.ietf.org/doc/html/rfc9220>`_
 
+It can also send and receive `SETTINGS_H3_DATAGRAM` from `HTTP
+Datagrams and the Capsule Protocol
+<https://datatracker.ietf.org/doc/html/rfc9297>`_.
+
 QPACK
 -----
 
