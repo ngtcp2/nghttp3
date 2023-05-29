@@ -103,6 +103,10 @@ endif()
 
 check_symbol_exists(bswap_64 "byteswap.h" HAVE_BSWAP_64)
 
+if(${CMAKE_C_BYTE_ORDER} STREQUAL "BIG_ENDIAN")
+  set(WORDS_BIGENDIAN 1)
+endif()
+
 include(ExtractValidFlags)
 set(WARNCFLAGS)
 set(WARNCXXFLAGS)
