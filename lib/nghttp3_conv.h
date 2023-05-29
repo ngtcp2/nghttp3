@@ -50,15 +50,11 @@
 #  include <sys/endian.h>
 #endif /* HAVE_SYS_ENDIAN_H */
 
-#include <nghttp3/nghttp3.h>
+#if defined(__APPLE__)
+#  include <libkern/OSByteOrder.h>
+#endif // __APPLE__
 
-#if defined(HAVE_BSWAP_64) ||                                                  \
-    (defined(HAVE_DECL_BSWAP_64) && HAVE_DECL_BSWAP_64 > 0)
-#  define nghttp3_bswap64 bswap_64
-#else /* !HAVE_BSWAP_64 */
-#  define nghttp3_bswap64(N)                                                   \
-    ((uint64_t)(ntohl((uint32_t)(N))) << 32 | ntohl((uint32_t)((N) >> 32)))
-#endif /* !HAVE_BSWAP_64 */
+#include <nghttp3/nghttp3.h>
 
 #if defined(HAVE_BE64TOH) ||                                                   \
     (defined(HAVE_DECL_BE64TOH) && HAVE_DECL_BE64TOH > 0)
@@ -69,6 +65,18 @@
 #    define nghttp3_ntohl64(N) (N)
 #    define nghttp3_htonl64(N) (N)
 #  else /* !WORDS_BIGENDIAN */
+#    if defined(HAVE_BSWAP_64) ||                                              \
+        (defined(HAVE_DECL_BSWAP_64) && HAVE_DECL_BSWAP_64 > 0)
+#      define nghttp3_bswap64 bswap_64
+#    elif defined(WIN32)
+#      define nghttp3_bswap64 _byteswap_uint64
+#    elif defined(__APPLE__)
+#      define nghttp3_bswap64 OSSwapInt64
+#    else /* !HAVE_BSWAP_64 && !WIN32 && !__APPLE__ */
+#      define nghttp3_bswap64(N)                                               \
+        ((uint64_t)(nghttp3_ntohl((uint32_t)(N))) << 32 |                      \
+         nghttp3_ntohl((uint32_t)((N) >> 32)))
+#    endif /* !HAVE_BSWAP_64 && !WIN32 && !__APPLE__ */
 #    define nghttp3_ntohl64(N) nghttp3_bswap64(N)
 #    define nghttp3_htonl64(N) nghttp3_bswap64(N)
 #  endif /* !WORDS_BIGENDIAN */
