@@ -328,7 +328,7 @@ nghttp3_buf *nghttp3_stream_get_chunk(nghttp3_stream *stream);
 
 int nghttp3_stream_is_blocked(nghttp3_stream *stream);
 
-int nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n);
+void nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n);
 
 /*
  * nghttp3_stream_outq_write_done returns nonzero if all contents in

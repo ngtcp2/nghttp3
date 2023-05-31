@@ -857,7 +857,7 @@ nghttp3_ssize nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
   return vec - vbegin;
 }
 
-int nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n) {
+void nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n) {
   nghttp3_ringbuf *outq = &stream->outq;
   size_t i;
   size_t len = nghttp3_ringbuf_len(outq);
@@ -881,8 +881,6 @@ int nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n) {
   stream->unsent_bytes -= n;
   stream->outq_idx = i;
   stream->outq_offset = offset;
-
-  return 0;
 }
 
 int nghttp3_stream_outq_write_done(nghttp3_stream *stream) {
@@ -892,8 +890,8 @@ int nghttp3_stream_outq_write_done(nghttp3_stream *stream) {
   return len == 0 || stream->outq_idx >= len;
 }
 
-static int stream_pop_outq_entry(nghttp3_stream *stream,
-                                 nghttp3_typed_buf *tbuf) {
+static void stream_pop_outq_entry(nghttp3_stream *stream,
+                                  nghttp3_typed_buf *tbuf) {
   nghttp3_ringbuf *chunks = &stream->chunks;
   nghttp3_buf *chunk;
 
@@ -926,8 +924,6 @@ static int stream_pop_outq_entry(nghttp3_stream *stream,
   };
 
   nghttp3_ringbuf_pop_front(&stream->outq);
-
-  return 0;
 }
 
 int nghttp3_stream_add_ack_offset(nghttp3_stream *stream, uint64_t n) {
@@ -956,10 +952,7 @@ int nghttp3_stream_add_ack_offset(nghttp3_stream *stream, uint64_t n) {
     }
 
     if (offset >= buflen) {
-      rv = stream_pop_outq_entry(stream, tbuf);
-      if (rv != 0) {
-        return rv;
-      }
+      stream_pop_outq_entry(stream, tbuf);
 
       offset -= buflen;
       ++npopped;
