@@ -2066,16 +2066,12 @@ nghttp3_stream *nghttp3_conn_get_next_tx_stream(nghttp3_conn *conn) {
 int nghttp3_conn_add_write_offset(nghttp3_conn *conn, int64_t stream_id,
                                   size_t n) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
-  int rv;
 
   if (stream == NULL) {
     return 0;
   }
 
-  rv = nghttp3_stream_add_outq_offset(stream, n);
-  if (rv != 0) {
-    return rv;
-  }
+  nghttp3_stream_add_outq_offset(stream, n);
 
   stream->unscheduled_nwrite += n;
 
