@@ -74,8 +74,8 @@
 #      define nghttp3_bswap64 OSSwapInt64
 #    else /* !HAVE_BSWAP_64 && !WIN32 && !__APPLE__ */
 #      define nghttp3_bswap64(N)                                               \
-        ((uint64_t)(nghttp3_ntohl((uint32_t)(N))) << 32 |                      \
-         nghttp3_ntohl((uint32_t)((N) >> 32)))
+        ((uint64_t)(ntohl((uint32_t)(N))) << 32 |                      \
+         ntohl((uint32_t)((N) >> 32)))
 #    endif /* !HAVE_BSWAP_64 && !WIN32 && !__APPLE__ */
 #    define nghttp3_ntohl64(N) nghttp3_bswap64(N)
 #    define nghttp3_htonl64(N) nghttp3_bswap64(N)
