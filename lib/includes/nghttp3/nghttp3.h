@@ -2586,7 +2586,9 @@ NGHTTP3_EXTERN int nghttp3_conn_set_stream_user_data(nghttp3_conn *conn,
  *
  * `nghttp3_conn_get_frame_payload_left` returns the number of bytes
  * left to read current frame payload for a stream denoted by
- * |stream_id|.  If no such stream is found, it returns 0.
+ * |stream_id|.  If no such stream is found, or |stream_id| identifies
+ * neither client bidirectional stream nor remote control stream, it
+ * returns 0.
  */
 NGHTTP3_EXTERN uint64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
                                                             int64_t stream_id);
