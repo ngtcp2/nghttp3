@@ -39,17 +39,6 @@
    dynamic table capacity that QPACK encoder is willing to use. */
 #define NGHTTP3_QPACK_ENCODER_MAX_DTABLE_CAPACITY 4096
 
-/*
- * conn_remote_stream_uni returns nonzero if |stream_id| is remote
- * unidirectional stream ID.
- */
-static int conn_remote_stream_uni(nghttp3_conn *conn, int64_t stream_id) {
-  if (conn->server) {
-    return (stream_id & 0x03) == 0x02;
-  }
-  return (stream_id & 0x03) == 0x03;
-}
-
 static int conn_call_begin_headers(nghttp3_conn *conn, nghttp3_stream *stream) {
   int rv;
 
@@ -2592,18 +2581,6 @@ int nghttp3_conn_set_server_stream_priority_versioned(nghttp3_conn *conn,
   stream->flags |= NGHTTP3_STREAM_FLAG_SERVER_PRIORITY_SET;
 
   return conn_update_stream_priority(conn, stream, pri);
-}
-
-int nghttp3_conn_is_remote_qpack_encoder_stream(nghttp3_conn *conn,
-                                                int64_t stream_id) {
-  nghttp3_stream *stream;
-
-  if (!conn_remote_stream_uni(conn, stream_id)) {
-    return 0;
-  }
-
-  stream = nghttp3_conn_find_stream(conn, stream_id);
-  return stream && stream->type == NGHTTP3_STREAM_TYPE_QPACK_ENCODER;
 }
 
 int nghttp3_conn_is_drained(nghttp3_conn *conn) {
