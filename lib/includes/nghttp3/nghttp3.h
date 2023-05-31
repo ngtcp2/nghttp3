@@ -2728,17 +2728,6 @@ NGHTTP3_EXTERN int nghttp3_conn_set_server_stream_priority_versioned(
 /**
  * @function
  *
- * `nghttp3_conn_is_remote_qpack_encoder_stream` returns nonzero if a
- * stream denoted by |stream_id| is QPACK encoder stream of a remote
- * endpoint.
- */
-NGHTTP3_EXTERN int
-nghttp3_conn_is_remote_qpack_encoder_stream(nghttp3_conn *conn,
-                                            int64_t stream_id);
-
-/**
- * @function
- *
  * `nghttp3_vec_len` returns the sum of length in |vec| of |cnt|
  * elements.
  */
