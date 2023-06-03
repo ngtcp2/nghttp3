@@ -115,7 +115,7 @@ stream.  The order of streams to produce HTTP stream data is
 determined by the nghttp3 library.  In general, the control streams
 have higher priority.  The regular HTTP streams are ordered by
 header-based HTTP priority (see
-https://tools.ietf.org/html/draft-ietf-httpbis-priority-03).
+https://datatracker.ietf.org/doc/html/rfc9218).
 
 When HTTP stream data is generated, its stream ID is assigned to
 *\*pstream_id*.  The pointer to HTTP stream data is assigned to *vec*,
