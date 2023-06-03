@@ -4,7 +4,7 @@
 # This scripts reads static table entries [1] and generates
 # token_stable and stable.  This table is used in lib/nghttp3_qpack.c.
 #
-# [1] https://quicwg.org/base-drafts/draft-ietf-quic-qpack.html#name-static-table-2
+# [1] https://datatracker.ietf.org/doc/html/rfc9204#name-static-table-2
 
 import re, sys
 
