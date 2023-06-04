@@ -25,7 +25,7 @@
 
 cmake_minimum_required(VERSION 3.1)
 # XXX using 0.1.90 instead of 0.2.0-DEV
-project(nghttp3 VERSION 0.12.0)
+project(nghttp3 VERSION 0.12.90)
 
 # See versioning rule:
 #  https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
