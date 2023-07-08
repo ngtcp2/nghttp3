@@ -137,77 +137,77 @@ typedef ptrdiff_t nghttp3_ssize;
  * :macro:`NGHTTP3_ERR_MALFORMED_HTTP_HEADER` indicates that an HTTP
  * header field is malformed.
  */
-#define NGHTTP3_ERR_MALFORMED_HTTP_HEADER -107
+#define NGHTTP3_ERR_MALFORMED_HTTP_HEADER -106
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_REMOVE_HTTP_HEADER` indicates that an HTTP
  * header field is discarded.
  */
-#define NGHTTP3_ERR_REMOVE_HTTP_HEADER -108
+#define NGHTTP3_ERR_REMOVE_HTTP_HEADER -107
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING` indicates that HTTP
  * messaging is malformed.
  */
-#define NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING -109
+#define NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING -108
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_QPACK_FATAL` indicates that a fatal error is
  * occurred during QPACK processing, and it cannot be recoverable.
  */
-#define NGHTTP3_ERR_QPACK_FATAL -111
+#define NGHTTP3_ERR_QPACK_FATAL -109
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE` indicates that a header
  * field is too large to process.
  */
-#define NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE -112
+#define NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE -110
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_STREAM_NOT_FOUND` indicates that a stream is
  * not found.
  */
-#define NGHTTP3_ERR_STREAM_NOT_FOUND -114
+#define NGHTTP3_ERR_STREAM_NOT_FOUND -111
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_CONN_CLOSING` indicates that a connection is
  * closing state.
  */
-#define NGHTTP3_ERR_CONN_CLOSING -116
+#define NGHTTP3_ERR_CONN_CLOSING -112
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_STREAM_DATA_OVERFLOW` indicates that the length
  * of stream data is too long, and causes overflow.
  */
-#define NGHTTP3_ERR_STREAM_DATA_OVERFLOW -117
+#define NGHTTP3_ERR_STREAM_DATA_OVERFLOW -113
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED` indicates that a
  * QPACK decompression failed.
  */
-#define NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED -402
+#define NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED -401
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR` indicates that an
  * error occurred while reading QPACK encoder stream.
  */
-#define NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR -403
+#define NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR -402
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR` indicates that an
  * error occurred while reading QPACK decoder stream.
  */
-#define NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR -404
+#define NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR -403
 /**
  * @macro
  *
@@ -228,41 +228,41 @@ typedef ptrdiff_t nghttp3_ssize;
  * :macro:`NGHTTP3_ERR_H3_MISSING_SETTINGS` indicates that an HTTP/3
  * SETTINGS frame is missing.
  */
-#define NGHTTP3_ERR_H3_MISSING_SETTINGS -665
+#define NGHTTP3_ERR_H3_MISSING_SETTINGS -603
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_H3_INTERNAL_ERROR` indicates an internal error.
  */
-#define NGHTTP3_ERR_H3_INTERNAL_ERROR -667
+#define NGHTTP3_ERR_H3_INTERNAL_ERROR -604
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_H3_CLOSED_CRITICAL_STREAM` indicates that a
  * critical stream is closed.
  */
-#define NGHTTP3_ERR_H3_CLOSED_CRITICAL_STREAM -668
+#define NGHTTP3_ERR_H3_CLOSED_CRITICAL_STREAM -605
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR` indicates a general
  * protocol error.  This is typically a catch-all error.
  */
-#define NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR -669
+#define NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR -606
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_H3_ID_ERROR` indicates that an ID related error
  * occurred.
  */
-#define NGHTTP3_ERR_H3_ID_ERROR -670
+#define NGHTTP3_ERR_H3_ID_ERROR -607
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_H3_SETTINGS_ERROR` indicates that an HTTP/3
  * SETTINGS frame is malformed.
  */
-#define NGHTTP3_ERR_H3_SETTINGS_ERROR -671
+#define NGHTTP3_ERR_H3_SETTINGS_ERROR -608
 /**
  * @macro
  *
@@ -270,7 +270,7 @@ typedef ptrdiff_t nghttp3_ssize;
  * remote endpoint attempts to create a new stream which is not
  * allowed.
  */
-#define NGHTTP3_ERR_H3_STREAM_CREATION_ERROR -672
+#define NGHTTP3_ERR_H3_STREAM_CREATION_ERROR -609
 /**
  * @macro
  *
