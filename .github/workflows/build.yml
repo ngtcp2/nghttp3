@@ -8,11 +8,11 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-11]
+        os: [ubuntu-22.04, macos-12]
         compiler: [gcc, clang]
         buildtool: [autotools, distcheck, cmake]
         exclude:
-        - os: macos-11
+        - os: macos-12
           buildtool: distcheck
         - compiler: gcc
           buildtool: distcheck
