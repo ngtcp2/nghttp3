@@ -816,8 +816,8 @@ int nghttp3_stream_require_schedule(nghttp3_stream *stream) {
           !(stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED));
 }
 
-nghttp3_ssize nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
-                                    nghttp3_vec *vec, size_t veccnt) {
+size_t nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
+                             nghttp3_vec *vec, size_t veccnt) {
   nghttp3_ringbuf *outq = &stream->outq;
   size_t len = nghttp3_ringbuf_len(outq);
   size_t i = stream->outq_idx;
@@ -856,7 +856,7 @@ nghttp3_ssize nghttp3_stream_writev(nghttp3_stream *stream, int *pfin,
   *pfin = nghttp3_ringbuf_len(&stream->frq) == 0 && i == len &&
           (stream->flags & NGHTTP3_STREAM_FLAG_WRITE_END_STREAM);
 
-  return vec - vbegin;
+  return (size_t)(vec - vbegin);
 }
 
 void nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n) {

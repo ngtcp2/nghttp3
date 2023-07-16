@@ -1945,7 +1945,7 @@ static nghttp3_ssize conn_writev_stream(nghttp3_conn *conn, int64_t *pstream_id,
                                         int *pfin, nghttp3_vec *vec,
                                         size_t veccnt, nghttp3_stream *stream) {
   int rv;
-  nghttp3_ssize n;
+  size_t n;
 
   assert(veccnt > 0);
 
@@ -1961,19 +1961,13 @@ static nghttp3_ssize conn_writev_stream(nghttp3_conn *conn, int64_t *pstream_id,
   if (!nghttp3_stream_uni(stream->node.id) && conn->tx.qenc &&
       !nghttp3_stream_is_blocked(conn->tx.qenc)) {
     n = nghttp3_stream_writev(conn->tx.qenc, pfin, vec, veccnt);
-    if (n < 0) {
-      return n;
-    }
     if (n) {
       *pstream_id = conn->tx.qenc->node.id;
-      return n;
+      return (nghttp3_ssize)n;
     }
   }
 
   n = nghttp3_stream_writev(stream, pfin, vec, veccnt);
-  if (n < 0) {
-    return n;
-  }
   /* We might just want to write stream fin without sending any stream
      data. */
   if (n == 0 && *pfin == 0) {
@@ -1982,7 +1976,7 @@ static nghttp3_ssize conn_writev_stream(nghttp3_conn *conn, int64_t *pstream_id,
 
   *pstream_id = stream->node.id;
 
-  return n;
+  return (nghttp3_ssize)n;
 }
 
 nghttp3_ssize nghttp3_conn_writev_stream(nghttp3_conn *conn,
