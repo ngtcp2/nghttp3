@@ -44,6 +44,8 @@
 /* NGHTTP3_MIN_RBLEN is the minimum length of nghttp3_ringbuf */
 #define NGHTTP3_MIN_RBLEN 4
 
+nghttp3_objalloc_def(stream, nghttp3_stream, oplent);
+
 int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
                        const nghttp3_stream_callbacks *callbacks,
                        nghttp3_objalloc *out_chunk_objalloc,
