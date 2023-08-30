@@ -22,8 +22,8 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef NGTCP2_QPACK_TEST_H
-#define NGTCP2_QPACK_TEST_H
+#ifndef NGHTTP3_QPACK_TEST_H
+#define NGHTTP3_QPACK_TEST_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -39,4 +39,4 @@ void test_nghttp3_qpack_huffman(void);
 void test_nghttp3_qpack_huffman_decode_failure_state(void);
 void test_nghttp3_qpack_decoder_reconstruct_ricnt(void);
 
-#endif /* NGTCP2_QPCK_TEST_H */
+#endif /* NGHTTP3_QPACK_TEST_H */

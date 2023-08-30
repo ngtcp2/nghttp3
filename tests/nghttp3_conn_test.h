@@ -22,8 +22,8 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef NGTCP2_CONN_TEST_H
-#define NGTCP2_CONN_TEST_H
+#ifndef NGHTTP3_CONN_TEST_H
+#define NGHTTP3_CONN_TEST_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -56,4 +56,4 @@ void test_nghttp3_conn_shutdown_stream_read(void);
 void test_nghttp3_conn_stream_data_overflow(void);
 void test_nghttp3_conn_get_frame_payload_left(void);
 
-#endif /* NGTCP2_CONN_TEST_H */
+#endif /* NGHTTP3_CONN_TEST_H */

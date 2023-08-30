@@ -22,8 +22,8 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef NGTCP2_TNODE_TEST_H
-#define NGTCP2_TNODE_TEST_H
+#ifndef NGHTTP3_TNODE_TEST_H
+#define NGHTTP3_TNODE_TEST_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -31,4 +31,4 @@
 
 void test_nghttp3_tnode_schedule(void);
 
-#endif /* NGTCP2_TNODE_TEST_H */
+#endif /* NGHTTP3_TNODE_TEST_H */
