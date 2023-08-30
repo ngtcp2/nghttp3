@@ -106,13 +106,6 @@ typedef ptrdiff_t nghttp3_ssize;
 /**
  * @macro
  *
- * :macro:`NGHTTP3_ERR_NOBUF` indicates that a provided buffer does
- * not have enough space to store data.
- */
-#define NGHTTP3_ERR_NOBUF -102
-/**
- * @macro
- *
  * :macro:`NGHTTP3_ERR_INVALID_STATE` indicates that a requested
  * operation is not allowed at the current connection state.
  */

@@ -28,8 +28,6 @@ const char *nghttp3_strerror(int liberr) {
   switch (liberr) {
   case NGHTTP3_ERR_INVALID_ARGUMENT:
     return "ERR_INVALID_ARGUMENT";
-  case NGHTTP3_ERR_NOBUF:
-    return "ERR_NOBUF";
   case NGHTTP3_ERR_INVALID_STATE:
     return "ERR_INVALID_STATE";
   case NGHTTP3_ERR_WOULDBLOCK:
