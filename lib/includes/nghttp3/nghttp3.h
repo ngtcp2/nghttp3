@@ -109,77 +109,77 @@ typedef ptrdiff_t nghttp3_ssize;
  * :macro:`NGHTTP3_ERR_INVALID_STATE` indicates that a requested
  * operation is not allowed at the current connection state.
  */
-#define NGHTTP3_ERR_INVALID_STATE -103
+#define NGHTTP3_ERR_INVALID_STATE -102
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_WOULDBLOCK` indicates that an operation might
  * block.
  */
-#define NGHTTP3_ERR_WOULDBLOCK -104
+#define NGHTTP3_ERR_WOULDBLOCK -103
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_STREAM_IN_USE` indicates that a stream ID is
  * already in use.
  */
-#define NGHTTP3_ERR_STREAM_IN_USE -105
+#define NGHTTP3_ERR_STREAM_IN_USE -104
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_MALFORMED_HTTP_HEADER` indicates that an HTTP
  * header field is malformed.
  */
-#define NGHTTP3_ERR_MALFORMED_HTTP_HEADER -106
+#define NGHTTP3_ERR_MALFORMED_HTTP_HEADER -105
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_REMOVE_HTTP_HEADER` indicates that an HTTP
  * header field is discarded.
  */
-#define NGHTTP3_ERR_REMOVE_HTTP_HEADER -107
+#define NGHTTP3_ERR_REMOVE_HTTP_HEADER -106
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING` indicates that HTTP
  * messaging is malformed.
  */
-#define NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING -108
+#define NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING -107
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_QPACK_FATAL` indicates that a fatal error is
  * occurred during QPACK processing, and it cannot be recoverable.
  */
-#define NGHTTP3_ERR_QPACK_FATAL -109
+#define NGHTTP3_ERR_QPACK_FATAL -108
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE` indicates that a header
  * field is too large to process.
  */
-#define NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE -110
+#define NGHTTP3_ERR_QPACK_HEADER_TOO_LARGE -109
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_STREAM_NOT_FOUND` indicates that a stream is
  * not found.
  */
-#define NGHTTP3_ERR_STREAM_NOT_FOUND -111
+#define NGHTTP3_ERR_STREAM_NOT_FOUND -110
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_CONN_CLOSING` indicates that a connection is
  * closing state.
  */
-#define NGHTTP3_ERR_CONN_CLOSING -112
+#define NGHTTP3_ERR_CONN_CLOSING -111
 /**
  * @macro
  *
  * :macro:`NGHTTP3_ERR_STREAM_DATA_OVERFLOW` indicates that the length
  * of stream data is too long, and causes overflow.
  */
-#define NGHTTP3_ERR_STREAM_DATA_OVERFLOW -113
+#define NGHTTP3_ERR_STREAM_DATA_OVERFLOW -112
 /**
  * @macro
  *
