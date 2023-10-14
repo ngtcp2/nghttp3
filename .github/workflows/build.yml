@@ -81,7 +81,7 @@ jobs:
 
         echo 'NGHTTP3_BUILD_DIR='"$PWD" >> $GITHUB_ENV
 
-        cmake $CMAKE_OPTS ..
+        cmake -DENABLE_WERROR=ON $CMAKE_OPTS ..
     - name: Build nghttp3
       if: matrix.buildtool != 'distcheck'
       run: |
@@ -161,7 +161,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake -DENABLE_LIB_ONLY=ON -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_GENERATOR_PLATFORM=${{ matrix.platform }} -DVCPKG_TARGET_TRIPLET=${{ matrix.arch}}-windows ..
+        cmake -DENABLE_WERROR=ON -DENABLE_LIB_ONLY=ON -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_GENERATOR_PLATFORM=${{ matrix.platform }} -DVCPKG_TARGET_TRIPLET=${{ matrix.arch}}-windows ..
     - name: Build nghttp3
       run: |
         cmake --build build
