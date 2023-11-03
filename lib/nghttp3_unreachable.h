@@ -32,8 +32,14 @@
 
 #include <nghttp3/nghttp3.h>
 
+#ifdef __FILE_NAME__
+#  define NGHTTP3_FILE_NAME __FILE_NAME__
+#else /* !__FILE_NAME__ */
+#  define NGHTTP3_FILE_NAME "(file)"
+#endif /* !__FILE_NAME__ */
+
 #define nghttp3_unreachable()                                                  \
-  nghttp3_unreachable_fail(__FILE__, __LINE__, __func__)
+  nghttp3_unreachable_fail(NGHTTP3_FILE_NAME, __LINE__, __func__)
 
 #ifdef _MSC_VER
 __declspec(noreturn)
