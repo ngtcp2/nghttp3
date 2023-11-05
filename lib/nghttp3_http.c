@@ -167,6 +167,14 @@ int nghttp3_http_parse_priority(nghttp3_pri *dest, const uint8_t *value,
   return 0;
 }
 
+int nghttp3_pri_parse_priority_versioned(int pri_version, nghttp3_pri *dest,
+                                         const uint8_t *value,
+                                         size_t valuelen) {
+  (void)pri_version;
+
+  return nghttp3_http_parse_priority(dest, value, valuelen);
+}
+
 static int http_request_on_header(nghttp3_http_state *http,
                                   nghttp3_qpack_nv *nv, int trailers,
                                   int connect_protocol) {

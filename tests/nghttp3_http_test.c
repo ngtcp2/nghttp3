@@ -47,6 +47,18 @@ void test_nghttp3_http_parse_priority(void) {
     CU_ASSERT(UINT8_MAX == pri.inc);
   }
 
+  // Check API version.
+  {
+    nghttp3_pri pri = {(uint32_t)-1, UINT8_MAX};
+    const uint8_t v[] = "";
+
+    rv = nghttp3_pri_parse_priority(&pri, v, sizeof(v) - 1);
+
+    CU_ASSERT(0 == rv);
+    CU_ASSERT((uint32_t)-1 == pri.urgency);
+    CU_ASSERT(UINT8_MAX == pri.inc);
+  }
+
   {
     nghttp3_pri pri = {(uint32_t)-1, UINT8_MAX};
     const uint8_t v[] = "u=1";
