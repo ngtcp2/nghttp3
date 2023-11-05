@@ -2759,6 +2759,29 @@ NGHTTP3_EXTERN int nghttp3_check_header_value(const uint8_t *value, size_t len);
 NGHTTP3_EXTERN int nghttp3_conn_is_drained(nghttp3_conn *conn);
 
 /**
+ * @function
+ *
+ * `nghttp3_pri_parse_priority` parses Priority header field value
+ * pointed by |value| of length |len|, and stores the result in the
+ * object pointed by |dest|.  Priority header field is defined in
+ * :rfc:`9218`.
+ *
+ * This function does not initialize the object pointed by |dest|
+ * before storing the result.  It only assigns the values that the
+ * parser correctly extracted to fields.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :enum:`NGHTTP3_ERR_INVALID_ARGUMENT`
+ *     Failed to parse the header field value.
+ */
+NGHTTP3_EXTERN int nghttp3_pri_parse_priority_versioned(int pri_version,
+                                                        nghttp3_pri *dest,
+                                                        const uint8_t *value,
+                                                        size_t len);
+
+/**
  * @macrosection
  *
  * nghttp3_info flags
@@ -2868,6 +2891,15 @@ NGHTTP3_EXTERN int nghttp3_err_is_fatal(int liberr);
 #define nghttp3_conn_get_stream_priority(CONN, DEST, STREAM_ID)                \
   nghttp3_conn_get_stream_priority_versioned((CONN), NGHTTP3_PRI_VERSION,      \
                                              (DEST), (STREAM_ID))
+
+/*
+ * `nghttp3_pri_parse_priority` is a wrapper around
+ * `nghttp3_pri_parse_priority_versioned` to set the correct struct
+ * version.
+ */
+#define nghttp3_pri_parse_priority(DEST, VALUE, LEN)                           \
+  nghttp3_pri_parse_priority_versioned(NGHTTP3_PRI_VERSION, (DEST), (VALUE),   \
+                                       (LEN))
 
 #ifdef __cplusplus
 }
