@@ -50,13 +50,13 @@
 #define NGHTTP3_STREAM_MIN_WRITELEN 800
 
 /* nghttp3_stream_type is unidirectional stream type. */
-typedef enum nghttp3_stream_type {
-  NGHTTP3_STREAM_TYPE_CONTROL = 0x00,
-  NGHTTP3_STREAM_TYPE_PUSH = 0x01,
-  NGHTTP3_STREAM_TYPE_QPACK_ENCODER = 0x02,
-  NGHTTP3_STREAM_TYPE_QPACK_DECODER = 0x03,
-  NGHTTP3_STREAM_TYPE_UNKNOWN = UINT64_MAX,
-} nghttp3_stream_type;
+typedef uint64_t nghttp3_stream_type;
+
+#define NGHTTP3_STREAM_TYPE_CONTROL 0x00
+#define NGHTTP3_STREAM_TYPE_PUSH 0x01
+#define NGHTTP3_STREAM_TYPE_QPACK_ENCODER 0x02
+#define NGHTTP3_STREAM_TYPE_QPACK_DECODER 0x03
+#define NGHTTP3_STREAM_TYPE_UNKNOWN UINT64_MAX
 
 typedef enum nghttp3_ctrl_stream_state {
   NGHTTP3_CTRL_STREAM_STATE_FRAME_TYPE,

@@ -34,25 +34,23 @@
 
 #include "nghttp3_buf.h"
 
-typedef enum nghttp3_frame_type {
-  NGHTTP3_FRAME_DATA = 0x00,
-  NGHTTP3_FRAME_HEADERS = 0x01,
-  NGHTTP3_FRAME_CANCEL_PUSH = 0x03,
-  NGHTTP3_FRAME_SETTINGS = 0x04,
-  NGHTTP3_FRAME_PUSH_PROMISE = 0x05,
-  NGHTTP3_FRAME_GOAWAY = 0x07,
-  NGHTTP3_FRAME_MAX_PUSH_ID = 0x0d,
-  /* PRIORITY_UPDATE: https://datatracker.ietf.org/doc/html/rfc9218 */
-  NGHTTP3_FRAME_PRIORITY_UPDATE = 0x0f0700,
-  NGHTTP3_FRAME_PRIORITY_UPDATE_PUSH_ID = 0x0f0701,
-} nghttp3_frame_type;
+#define NGHTTP3_FRAME_DATA 0x00
+#define NGHTTP3_FRAME_HEADERS 0x01
+#define NGHTTP3_FRAME_CANCEL_PUSH 0x03
+#define NGHTTP3_FRAME_SETTINGS 0x04
+#define NGHTTP3_FRAME_PUSH_PROMISE 0x05
+#define NGHTTP3_FRAME_GOAWAY 0x07
+#define NGHTTP3_FRAME_MAX_PUSH_ID 0x0d
+/* PRIORITY_UPDATE: https://datatracker.ietf.org/doc/html/rfc9218 */
+#define NGHTTP3_FRAME_PRIORITY_UPDATE 0x0f0700
+#define NGHTTP3_FRAME_PRIORITY_UPDATE_PUSH_ID 0x0f0701
 
-typedef enum nghttp3_h2_reserved_type {
-  NGHTTP3_H2_FRAME_PRIORITY = 0x02,
-  NGHTTP3_H2_FRAME_PING = 0x06,
-  NGHTTP3_H2_FRAME_WINDOW_UPDATE = 0x08,
-  NGHTTP3_H2_FRAME_CONTINUATION = 0x9,
-} nghttp3_h2_reserved_type;
+/* Frame types that are reserved for HTTP/2, and must not be used in
+   HTTP/3. */
+#define NGHTTP3_H2_FRAME_PRIORITY 0x02
+#define NGHTTP3_H2_FRAME_PING 0x06
+#define NGHTTP3_H2_FRAME_WINDOW_UPDATE 0x08
+#define NGHTTP3_H2_FRAME_CONTINUATION 0x9
 
 typedef struct nghttp3_frame_hd {
   int64_t type;
