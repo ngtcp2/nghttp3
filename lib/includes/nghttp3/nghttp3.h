@@ -2773,7 +2773,7 @@ NGHTTP3_EXTERN int nghttp3_conn_is_drained(nghttp3_conn *conn);
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * :enum:`NGHTTP3_ERR_INVALID_ARGUMENT`
+ * :macro:`NGHTTP3_ERR_INVALID_ARGUMENT`
  *     Failed to parse the header field value.
  */
 NGHTTP3_EXTERN int nghttp3_pri_parse_priority_versioned(int pri_version,
