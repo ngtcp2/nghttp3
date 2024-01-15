@@ -59,7 +59,7 @@ Options:
   -s, --max-dtable-size=<N>
               The maximum size of dynamic table.
   -a, --immediate-ack
-              Turn on immediate acknowlegement.
+              Turn on immediate acknowledgement.
 )";
 }
 } // namespace
