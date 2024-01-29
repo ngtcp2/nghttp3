@@ -29,7 +29,7 @@
 #  include <config.h>
 #endif /* HAVE_CONFIG_H */
 
-void test_nghttp3_http_parse_priority(void);
-void test_nghttp3_check_header_value(void);
+void test_nghttp3_http_parse_priority(void **);
+void test_nghttp3_check_header_value(void **);
 
 #endif /* NGHTTP3_HTTP_TEST_H */

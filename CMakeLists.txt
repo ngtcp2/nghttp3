@@ -63,10 +63,10 @@ foreach(_build_type "Release" "MinSizeRel" "RelWithDebInfo")
   endforeach()
 endforeach()
 
-find_package(CUnit 2.1)
+find_package(CMOCKA 1.1.5)
 enable_testing()
-set(HAVE_CUNIT      ${CUNIT_FOUND})
-if(HAVE_CUNIT)
+set(HAVE_CMOCKA      ${CMOCKA_FOUND})
+if(HAVE_CMOCKA)
   add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
 endif()
 
@@ -212,7 +212,7 @@ message(STATUS "summary of build options:
       Shared:         ${ENABLE_SHARED_LIB}
       Static:         ${ENABLE_STATIC_LIB}
     Test:
-      CUnit:          ${HAVE_CUNIT} (LIBS='${CUNIT_LIBRARIES}')
+      cmocka:         ${HAVE_CMOCKA} (LIBS='${CMOCKA_LIBRARIES}')
     Library only:     ${ENABLE_LIB_ONLY}
     Examples:         ${ENABLE_EXAMPLES}
 ")

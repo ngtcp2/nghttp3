@@ -32,7 +32,7 @@ if(ENABLE_EXAMPLES)
     link_libraries(
       nghttp3
     )
-  elseif(HAVE_CUNIT OR ENABLE_STATIC_LIB)
+  elseif(HAVE_CMOCKA OR ENABLE_STATIC_LIB)
     link_libraries(
       nghttp3_static
     )

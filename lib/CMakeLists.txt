@@ -78,7 +78,7 @@ if(ENABLE_SHARED_LIB)
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 endif()
 
-if(HAVE_CUNIT OR ENABLE_STATIC_LIB)
+if(HAVE_CMOCKA OR ENABLE_STATIC_LIB)
   # Static library (for unittests because of symbol visibility)
   add_library(nghttp3_static STATIC ${nghttp3_SOURCES})
   set_target_properties(nghttp3_static PROPERTIES

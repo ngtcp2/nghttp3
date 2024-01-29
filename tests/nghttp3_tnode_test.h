@@ -29,6 +29,6 @@
 #  include <config.h>
 #endif /* HAVE_CONFIG_H */
 
-void test_nghttp3_tnode_schedule(void);
+void test_nghttp3_tnode_schedule(void **);
 
 #endif /* NGHTTP3_TNODE_TEST_H */

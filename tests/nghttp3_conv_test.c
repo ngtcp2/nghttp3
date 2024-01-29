@@ -26,8 +26,12 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <setjmp.h>
 
-#include <CUnit/CUnit.h>
+#include <cmocka.h>
 
 #include "nghttp3_conv.h"
 #include "nghttp3_test_helper.h"

@@ -24,7 +24,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 EXTRA_DIST = CMakeLists.txt
 
-if HAVE_CUNIT
+if HAVE_CMOCKA
 
 check_PROGRAMS = main
 
@@ -49,7 +49,7 @@ main_SOURCES = $(HFILES) $(OBJECTS)
 # With static lib disabled and symbol hiding enabled, we have to link object
 # files directly because the tests use symbols not included in public API.
 main_LDADD = ${top_builddir}/lib/.libs/*.o
-main_LDADD += @CUNIT_LIBS@
+main_LDADD += @CMOCKA_LIBS@
 main_LDFLAGS = -static
 
 AM_CFLAGS = $(WARNCFLAGS) \
@@ -57,9 +57,9 @@ AM_CFLAGS = $(WARNCFLAGS) \
 	-I${top_srcdir}/lib/includes \
 	-I${top_builddir}/lib/includes \
 	-DBUILDING_NGHTTP3 \
-	@CUNIT_CFLAGS@ @DEFS@
+	@CMOCKA_CFLAGS@ @DEFS@
 AM_LDFLAGS = -no-install
 
 TESTS = main
 
-endif # HAVE_CUNIT
+endif # HAVE_CMOCKA

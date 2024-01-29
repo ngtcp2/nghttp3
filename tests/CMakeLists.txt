@@ -23,12 +23,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-if(HAVE_CUNIT)
+if(HAVE_CMOCKA)
   include_directories(
     "${CMAKE_SOURCE_DIR}/lib"
     "${CMAKE_SOURCE_DIR}/lib/includes"
     "${CMAKE_BINARY_DIR}/lib/includes"
-    ${CUNIT_INCLUDE_DIRS}
+    ${CMOCKA_INCLUDE_DIRS}
   )
 
   set(main_SOURCES
@@ -44,12 +44,12 @@ if(HAVE_CUNIT)
   add_executable(main EXCLUDE_FROM_ALL
     ${main_SOURCES}
   )
-  target_include_directories(main PRIVATE ${CUNIT_INCLUDE_DIRS})
+  target_include_directories(main PRIVATE ${CMOCKA_INCLUDE_DIRS})
   # FIXME enable and fix warnings
   #set_target_properties(main PROPERTIES COMPILE_FLAGS "${WARNCFLAGS}")
   target_link_libraries(main
     nghttp3_static
-    ${CUNIT_LIBRARIES}
+    ${CMOCKA_LIBRARIES}
   )
   add_test(main main)
   add_dependencies(check main)

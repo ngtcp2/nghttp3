@@ -29,14 +29,14 @@
 #  include <config.h>
 #endif /* HAVE_CONFIG_H */
 
-void test_nghttp3_qpack_encoder_encode(void);
-void test_nghttp3_qpack_encoder_encode_try_encode(void);
-void test_nghttp3_qpack_encoder_still_blocked(void);
-void test_nghttp3_qpack_encoder_set_dtable_cap(void);
-void test_nghttp3_qpack_decoder_feedback(void);
-void test_nghttp3_qpack_decoder_stream_overflow(void);
-void test_nghttp3_qpack_huffman(void);
-void test_nghttp3_qpack_huffman_decode_failure_state(void);
-void test_nghttp3_qpack_decoder_reconstruct_ricnt(void);
+void test_nghttp3_qpack_encoder_encode(void **);
+void test_nghttp3_qpack_encoder_encode_try_encode(void **);
+void test_nghttp3_qpack_encoder_still_blocked(void **);
+void test_nghttp3_qpack_encoder_set_dtable_cap(void **);
+void test_nghttp3_qpack_decoder_feedback(void **);
+void test_nghttp3_qpack_decoder_stream_overflow(void **);
+void test_nghttp3_qpack_huffman(void **);
+void test_nghttp3_qpack_huffman_decode_failure_state(void **);
+void test_nghttp3_qpack_decoder_reconstruct_ricnt(void **);
 
 #endif /* NGHTTP3_QPACK_TEST_H */
