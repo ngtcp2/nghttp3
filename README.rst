@@ -13,6 +13,18 @@ Documentation
 
 `Online documentation <https://nghttp2.org/nghttp3/>`_ is available.
 
+Build from git
+---------------
+
+.. code-block:: shell
+
+   $ git clone https://github.com/ngtcp2/nghttp3
+   $ cd nghttp3
+   $ git submodule update --init
+   $ autoreconf -i
+   $ ./configure
+   $ make -j$(nproc) check
+
 HTTP/3
 ------
 

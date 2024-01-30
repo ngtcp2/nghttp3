@@ -29,6 +29,12 @@
 #  include <config.h>
 #endif /* HAVE_CONFIG_H */
 
-void test_nghttp3_tnode_schedule(void);
+#define MUNIT_ENABLE_ASSERT_ALIASES
+
+#include "munit/munit.h"
+
+extern const MunitSuite tnode_suite;
+
+munit_void_test_decl(test_nghttp3_tnode_schedule);
 
 #endif /* NGHTTP3_TNODE_TEST_H */
