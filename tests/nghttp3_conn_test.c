@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include <CUnit/CUnit.h>
+#include "munit/munit.h"
 
 #include "nghttp3_conn.h"
 #include "nghttp3_macro.h"
@@ -36,6 +36,40 @@
 #include "nghttp3_vec.h"
 #include "nghttp3_test_helper.h"
 #include "nghttp3_http.h"
+
+static const MunitTest tests[] = {
+    munit_void_test(test_nghttp3_conn_read_control),
+    munit_void_test(test_nghttp3_conn_write_control),
+    munit_void_test(test_nghttp3_conn_submit_request),
+    munit_void_test(test_nghttp3_conn_http_request),
+    munit_void_test(test_nghttp3_conn_http_resp_header),
+    munit_void_test(test_nghttp3_conn_http_req_header),
+    munit_void_test(test_nghttp3_conn_http_content_length),
+    munit_void_test(test_nghttp3_conn_http_content_length_mismatch),
+    munit_void_test(test_nghttp3_conn_http_non_final_response),
+    munit_void_test(test_nghttp3_conn_http_trailers),
+    munit_void_test(test_nghttp3_conn_http_ignore_content_length),
+    munit_void_test(test_nghttp3_conn_http_record_request_method),
+    munit_void_test(test_nghttp3_conn_http_error),
+    munit_void_test(test_nghttp3_conn_qpack_blocked_stream),
+    munit_void_test(test_nghttp3_conn_just_fin),
+    munit_void_test(test_nghttp3_conn_submit_response_read_blocked),
+    munit_void_test(test_nghttp3_conn_recv_uni),
+    munit_void_test(test_nghttp3_conn_recv_goaway),
+    munit_void_test(test_nghttp3_conn_shutdown_server),
+    munit_void_test(test_nghttp3_conn_shutdown_client),
+    munit_void_test(test_nghttp3_conn_priority_update),
+    munit_void_test(test_nghttp3_conn_request_priority),
+    munit_void_test(test_nghttp3_conn_set_stream_priority),
+    munit_void_test(test_nghttp3_conn_shutdown_stream_read),
+    munit_void_test(test_nghttp3_conn_stream_data_overflow),
+    munit_void_test(test_nghttp3_conn_get_frame_payload_left),
+    munit_test_end(),
+};
+
+const MunitSuite conn_suite = {
+    "/conn", tests, NULL, 1, MUNIT_SUITE_OPTION_NONE,
+};
 
 static uint8_t nulldata[4096];
 
@@ -63,7 +97,7 @@ typedef struct {
     int64_t id;
   } shutdown_cb;
   struct {
-    uint64_t consumed_total;
+    size_t consumed_total;
   } deferred_consume_cb;
   struct {
     size_t ncalled;
@@ -323,41 +357,41 @@ void test_nghttp3_conn_read_control(void) {
 
   rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   memset(&ud, 0, sizeof(ud));
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(nconsumed == (nghttp3_ssize)nghttp3_buf_len(&buf));
-  CU_ASSERT(65536 == conn->remote.settings.max_field_section_size);
-  CU_ASSERT(4096 == conn->remote.settings.qpack_max_dtable_capacity);
-  CU_ASSERT(99 == conn->remote.settings.qpack_blocked_streams);
-  CU_ASSERT(4096 == conn->qenc.ctx.hard_max_dtable_capacity);
-  CU_ASSERT(4096 == conn->qenc.ctx.max_dtable_capacity);
-  CU_ASSERT(99 == conn->qenc.ctx.max_blocked_streams);
-  CU_ASSERT(1 == ud.recv_settings_cb.ncalled);
-  CU_ASSERT(65536 == ud.recv_settings_cb.settings.max_field_section_size);
-  CU_ASSERT(4096 == ud.recv_settings_cb.settings.qpack_max_dtable_capacity);
-  CU_ASSERT(99 == ud.recv_settings_cb.settings.qpack_blocked_streams);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  assert_uint64(65536, ==, conn->remote.settings.max_field_section_size);
+  assert_size(4096, ==, conn->remote.settings.qpack_max_dtable_capacity);
+  assert_size(99, ==, conn->remote.settings.qpack_blocked_streams);
+  assert_size(4096, ==, conn->qenc.ctx.hard_max_dtable_capacity);
+  assert_size(4096, ==, conn->qenc.ctx.max_dtable_capacity);
+  assert_size(99, ==, conn->qenc.ctx.max_blocked_streams);
+  assert_size(1, ==, ud.recv_settings_cb.ncalled);
+  assert_uint64(65536, ==, ud.recv_settings_cb.settings.max_field_section_size);
+  assert_size(4096, ==, ud.recv_settings_cb.settings.qpack_max_dtable_capacity);
+  assert_size(99, ==, ud.recv_settings_cb.settings.qpack_blocked_streams);
 
   nghttp3_conn_del(conn);
 
   /* Feed 1 byte at a time to verify that state machine works */
   rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   for (i = 0; i < nghttp3_buf_len(&buf); ++i) {
     nconsumed =
         nghttp3_conn_read_stream(conn, 2, buf.pos + i, 1, /* fin = */ 0);
 
-    CU_ASSERT(1 == nconsumed);
+    assert_ptrdiff(1, ==, nconsumed);
   }
 
-  CU_ASSERT(65536 == conn->remote.settings.max_field_section_size);
-  CU_ASSERT(4096 == conn->remote.settings.qpack_max_dtable_capacity);
-  CU_ASSERT(99 == conn->remote.settings.qpack_blocked_streams);
+  assert_uint64(65536, ==, conn->remote.settings.max_field_section_size);
+  assert_size(4096, ==, conn->remote.settings.qpack_max_dtable_capacity);
+  assert_size(99, ==, conn->remote.settings.qpack_blocked_streams);
 
   nghttp3_conn_del(conn);
 
@@ -374,18 +408,18 @@ void test_nghttp3_conn_read_control(void) {
 
   rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   memset(&ud, 0, sizeof(ud));
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(nconsumed == (nghttp3_ssize)nghttp3_buf_len(&buf));
-  CU_ASSERT(1 == ud.recv_settings_cb.ncalled);
-  CU_ASSERT(NGHTTP3_VARINT_MAX ==
-            ud.recv_settings_cb.settings.max_field_section_size);
-  CU_ASSERT(0 == ud.recv_settings_cb.settings.qpack_max_dtable_capacity);
-  CU_ASSERT(0 == ud.recv_settings_cb.settings.qpack_blocked_streams);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  assert_size(1, ==, ud.recv_settings_cb.ncalled);
+  assert_uint64(NGHTTP3_VARINT_MAX, ==,
+                ud.recv_settings_cb.settings.max_field_section_size);
+  assert_size(0, ==, ud.recv_settings_cb.settings.qpack_max_dtable_capacity);
+  assert_size(0, ==, ud.recv_settings_cb.settings.qpack_blocked_streams);
 
   nghttp3_conn_del(conn);
 
@@ -407,17 +441,17 @@ void test_nghttp3_conn_read_control(void) {
 
   rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(nconsumed == (nghttp3_ssize)nghttp3_buf_len(&buf));
-  CU_ASSERT(4097 == conn->remote.settings.qpack_max_dtable_capacity);
-  CU_ASSERT(101 == conn->remote.settings.qpack_blocked_streams);
-  CU_ASSERT(4096 == conn->qenc.ctx.hard_max_dtable_capacity);
-  CU_ASSERT(4096 == conn->qenc.ctx.max_dtable_capacity);
-  CU_ASSERT(100 == conn->qenc.ctx.max_blocked_streams);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  assert_size(4097, ==, conn->remote.settings.qpack_max_dtable_capacity);
+  assert_size(101, ==, conn->remote.settings.qpack_blocked_streams);
+  assert_size(4096, ==, conn->qenc.ctx.hard_max_dtable_capacity);
+  assert_size(4096, ==, conn->qenc.ctx.max_dtable_capacity);
+  assert_size(100, ==, conn->qenc.ctx.max_blocked_streams);
 
   nghttp3_conn_del(conn);
 
@@ -440,12 +474,12 @@ void test_nghttp3_conn_read_control(void) {
 
   rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_H3_SETTINGS_ERROR == nconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_H3_SETTINGS_ERROR, ==, nconsumed);
 
   nghttp3_conn_del(conn);
 
@@ -468,12 +502,12 @@ void test_nghttp3_conn_read_control(void) {
 
   rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_H3_SETTINGS_ERROR == nconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_H3_SETTINGS_ERROR, ==, nconsumed);
 
   nghttp3_conn_del(conn);
 
@@ -493,13 +527,13 @@ void test_nghttp3_conn_read_control(void) {
 
   rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
-  CU_ASSERT(1 == conn->remote.settings.enable_connect_protocol);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  assert_uint8(1, ==, conn->remote.settings.enable_connect_protocol);
 
   nghttp3_conn_del(conn);
 
@@ -522,12 +556,12 @@ void test_nghttp3_conn_read_control(void) {
 
   rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_H3_SETTINGS_ERROR == nconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_H3_SETTINGS_ERROR, ==, nconsumed);
 
   nghttp3_conn_del(conn);
 
@@ -547,13 +581,13 @@ void test_nghttp3_conn_read_control(void) {
 
   rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
-  CU_ASSERT(1 == conn->remote.settings.h3_datagram);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  assert_uint8(1, ==, conn->remote.settings.h3_datagram);
 
   nghttp3_conn_del(conn);
 
@@ -573,13 +607,13 @@ void test_nghttp3_conn_read_control(void) {
 
   rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
-  CU_ASSERT(0 == conn->remote.settings.h3_datagram);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  assert_uint8(0, ==, conn->remote.settings.h3_datagram);
 
   nghttp3_conn_del(conn);
 
@@ -599,12 +633,12 @@ void test_nghttp3_conn_read_control(void) {
 
   rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_H3_SETTINGS_ERROR == nconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_H3_SETTINGS_ERROR, ==, nconsumed);
 
   nghttp3_conn_del(conn);
 }
@@ -625,21 +659,21 @@ void test_nghttp3_conn_write_control(void) {
 
   rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   rv = nghttp3_conn_bind_control_stream(conn, 3);
 
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(NULL != conn->tx.ctrl);
-  CU_ASSERT(NGHTTP3_STREAM_TYPE_CONTROL == conn->tx.ctrl->type);
+  assert_int(0, ==, rv);
+  assert_not_null(conn->tx.ctrl);
+  assert_uint64(NGHTTP3_STREAM_TYPE_CONTROL, ==, conn->tx.ctrl->type);
 
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(3 == stream_id);
-  CU_ASSERT(1 == sveccnt);
-  CU_ASSERT(vec[0].len > 1);
-  CU_ASSERT(NGHTTP3_STREAM_TYPE_CONTROL == vec[0].base[0]);
+  assert_int64(3, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_true(vec[0].len > 1);
+  assert_uint8(NGHTTP3_STREAM_TYPE_CONTROL, ==, vec[0].base[0]);
 
   nghttp3_conn_del(conn);
 }
@@ -677,113 +711,113 @@ void test_nghttp3_conn_submit_request(void) {
 
   rv = nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   rv = nghttp3_conn_bind_qpack_streams(conn, 6, 10);
 
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(NULL != conn->tx.qenc);
-  CU_ASSERT(NGHTTP3_STREAM_TYPE_QPACK_ENCODER == conn->tx.qenc->type);
-  CU_ASSERT(NULL != conn->tx.qdec);
-  CU_ASSERT(NGHTTP3_STREAM_TYPE_QPACK_DECODER == conn->tx.qdec->type);
+  assert_int(0, ==, rv);
+  assert_not_null(conn->tx.qenc);
+  assert_uint64(NGHTTP3_STREAM_TYPE_QPACK_ENCODER, ==, conn->tx.qenc->type);
+  assert_not_null(conn->tx.qdec);
+  assert_uint64(NGHTTP3_STREAM_TYPE_QPACK_DECODER, ==, conn->tx.qdec->type);
 
   dr.read_data = step_read_data;
   rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr,
                                    NULL);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   /* This will write QPACK decoder stream; just stream type */
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(10 == stream_id);
-  CU_ASSERT(1 == sveccnt);
-  CU_ASSERT(1 == nghttp3_ringbuf_len(&conn->tx.qdec->outq));
-  CU_ASSERT(0 == conn->tx.qdec->outq_idx);
-  CU_ASSERT(0 == conn->tx.qdec->outq_offset);
+  assert_int64(10, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_size(1, ==, nghttp3_ringbuf_len(&conn->tx.qdec->outq));
+  assert_size(0, ==, conn->tx.qdec->outq_idx);
+  assert_uint64(0, ==, conn->tx.qdec->outq_offset);
 
   /* Calling twice will return the same result */
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(10 == stream_id);
-  CU_ASSERT(1 == sveccnt);
+  assert_int64(10, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
 
   rv = nghttp3_conn_add_write_offset(conn, 10, vec[0].len);
 
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(1 == nghttp3_ringbuf_len(&conn->tx.qdec->outq));
-  CU_ASSERT(1 == conn->tx.qdec->outq_idx);
-  CU_ASSERT(0 == conn->tx.qdec->outq_offset);
+  assert_int(0, ==, rv);
+  assert_size(1, ==, nghttp3_ringbuf_len(&conn->tx.qdec->outq));
+  assert_size(1, ==, conn->tx.qdec->outq_idx);
+  assert_uint64(0, ==, conn->tx.qdec->outq_offset);
 
   rv = nghttp3_conn_add_ack_offset(conn, 10, vec[0].len);
 
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(0 == nghttp3_ringbuf_len(&conn->tx.qdec->outq));
-  CU_ASSERT(0 == conn->tx.qdec->outq_idx);
-  CU_ASSERT(0 == conn->tx.qdec->outq_offset);
-  CU_ASSERT(0 == conn->tx.qdec->ack_offset);
+  assert_int(0, ==, rv);
+  assert_size(0, ==, nghttp3_ringbuf_len(&conn->tx.qdec->outq));
+  assert_size(0, ==, conn->tx.qdec->outq_idx);
+  assert_uint64(0, ==, conn->tx.qdec->outq_offset);
+  assert_uint64(0, ==, conn->tx.qdec->ack_offset);
 
   /* This will write QPACK encoder stream; just stream type */
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(6 == stream_id);
-  CU_ASSERT(1 == sveccnt);
+  assert_int64(6, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
 
   rv = nghttp3_conn_add_write_offset(conn, 6, vec[0].len);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   rv = nghttp3_conn_add_ack_offset(conn, 6, vec[0].len);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   /* This will write request stream */
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(0 == stream_id);
-  CU_ASSERT(2 == sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_ptrdiff(2, ==, sveccnt);
 
   len = nghttp3_vec_len(vec, (size_t)sveccnt);
   for (i = 0; i < len; ++i) {
     rv = nghttp3_conn_add_write_offset(conn, 0, 1);
 
-    CU_ASSERT(0 == rv);
+    assert_int(0, ==, rv);
 
     rv = nghttp3_conn_add_ack_offset(conn, 0, 1);
 
-    CU_ASSERT(0 == rv);
+    assert_int(0, ==, rv);
   }
 
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(0 == stream_id);
-  CU_ASSERT(2 == sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_ptrdiff(2, ==, sveccnt);
 
   len = nghttp3_vec_len(vec, (size_t)sveccnt);
 
   for (i = 0; i < len; ++i) {
     rv = nghttp3_conn_add_write_offset(conn, 0, 1);
 
-    CU_ASSERT(0 == rv);
+    assert_int(0, ==, rv);
 
     rv = nghttp3_conn_add_ack_offset(conn, 0, 1);
 
-    CU_ASSERT(0 == rv);
+    assert_int(0, ==, rv);
   }
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(0 == nghttp3_ringbuf_len(&stream->outq));
-  CU_ASSERT(0 == nghttp3_ringbuf_len(&stream->chunks));
-  CU_ASSERT(0 == stream->outq_idx);
-  CU_ASSERT(0 == stream->outq_offset);
-  CU_ASSERT(0 == stream->ack_offset);
-  CU_ASSERT(2000 == ud.ack.acc);
+  assert_size(0, ==, nghttp3_ringbuf_len(&stream->outq));
+  assert_size(0, ==, nghttp3_ringbuf_len(&stream->chunks));
+  assert_size(0, ==, stream->outq_idx);
+  assert_uint64(0, ==, stream->outq_offset);
+  assert_uint64(0, ==, stream->ack_offset);
+  assert_uint64(2000, ==, ud.ack.acc);
 
   nghttp3_conn_del(conn);
 }
@@ -846,7 +880,7 @@ void test_nghttp3_conn_http_request(void) {
   rv = nghttp3_conn_submit_request(cl, 0, reqnva, nghttp3_arraylen(reqnva), &dr,
                                    NULL);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nread = 0;
   nconsumed = 0;
@@ -855,7 +889,7 @@ void test_nghttp3_conn_http_request(void) {
     sveccnt = nghttp3_conn_writev_stream(cl, &stream_id, &fin, vec,
                                          nghttp3_arraylen(vec));
 
-    CU_ASSERT(sveccnt >= 0);
+    assert_true(sveccnt >= 0);
 
     if (sveccnt <= 0) {
       break;
@@ -864,13 +898,13 @@ void test_nghttp3_conn_http_request(void) {
     rv = nghttp3_conn_add_write_offset(
         cl, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
-    CU_ASSERT(0 == rv);
+    assert_int(0, ==, rv);
 
     for (i = 0; i < (size_t)sveccnt; ++i) {
       sconsumed =
           nghttp3_conn_read_stream(sv, stream_id, vec[i].base, vec[i].len,
                                    fin && i == (size_t)sveccnt - 1);
-      CU_ASSERT(sconsumed >= 0);
+      assert_true(sconsumed >= 0);
 
       nread += vec[i].len;
       nconsumed += (size_t)sconsumed;
@@ -879,15 +913,15 @@ void test_nghttp3_conn_http_request(void) {
     rv = nghttp3_conn_add_ack_offset(cl, stream_id,
                                      nghttp3_vec_len(vec, (size_t)sveccnt));
 
-    CU_ASSERT(0 == rv);
+    assert_int(0, ==, rv);
   }
 
-  CU_ASSERT(nread == nconsumed + 2000);
+  assert_size(nread, ==, nconsumed + 2000);
 
   rv = nghttp3_conn_submit_response(sv, 0, respnva, nghttp3_arraylen(respnva),
                                     &dr);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nread = 0;
   nconsumed = 0;
@@ -896,7 +930,7 @@ void test_nghttp3_conn_http_request(void) {
     sveccnt = nghttp3_conn_writev_stream(sv, &stream_id, &fin, vec,
                                          nghttp3_arraylen(vec));
 
-    CU_ASSERT(sveccnt >= 0);
+    assert_true(sveccnt >= 0);
 
     if (sveccnt <= 0) {
       break;
@@ -905,13 +939,13 @@ void test_nghttp3_conn_http_request(void) {
     rv = nghttp3_conn_add_write_offset(
         sv, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
-    CU_ASSERT(0 == rv);
+    assert_int(0, ==, rv);
 
     for (i = 0; i < (size_t)sveccnt; ++i) {
       sconsumed =
           nghttp3_conn_read_stream(cl, stream_id, vec[i].base, vec[i].len,
                                    fin && i == (size_t)sveccnt - 1);
-      CU_ASSERT(sconsumed >= 0);
+      assert_true(sconsumed >= 0);
 
       nread += vec[i].len;
       nconsumed += (size_t)sconsumed;
@@ -920,10 +954,10 @@ void test_nghttp3_conn_http_request(void) {
     rv = nghttp3_conn_add_ack_offset(sv, stream_id,
                                      nghttp3_vec_len(vec, (size_t)sveccnt));
 
-    CU_ASSERT(0 == rv);
+    assert_int(0, ==, rv);
   }
 
-  CU_ASSERT(nread == nconsumed + 1999);
+  assert_size(nread, ==, nconsumed + 1999);
 
   nghttp3_conn_del(sv);
   nghttp3_conn_del(cl);
@@ -969,16 +1003,16 @@ static void check_http_header(const nghttp3_nv *nva, size_t nvlen, int request,
 
   if (want_lib_error) {
     if (want_lib_error == NGHTTP3_ERR_MALFORMED_HTTP_HEADER) {
-      CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
+      assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
 
       stream = nghttp3_conn_find_stream(conn, 0);
 
-      CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
+      assert_true(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
     } else {
-      CU_ASSERT(want_lib_error == sconsumed);
+      assert_ptrdiff(want_lib_error, ==, sconsumed);
     }
   } else {
-    CU_ASSERT(sconsumed > 0);
+    assert_true(sconsumed > 0);
   }
 
   nghttp3_conn_del(conn);
@@ -1319,9 +1353,9 @@ void test_nghttp3_conn_http_content_length(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(9000000000LL == stream->rx.http.content_length);
-  CU_ASSERT(200 == stream->rx.http.status_code);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_int64(9000000000LL, ==, stream->rx.http.content_length);
+  assert_int32(200, ==, stream->rx.http.status_code);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1342,11 +1376,11 @@ void test_nghttp3_conn_http_content_length(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(9000000000LL == stream->rx.http.content_length);
+  assert_int64(9000000000LL, ==, stream->rx.http.content_length);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1395,7 +1429,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 1);
 
-  CU_ASSERT(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING == sconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1417,15 +1451,15 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
 
   rv = nghttp3_conn_shutdown_stream_read(conn, 0);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1447,7 +1481,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING == sconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1471,7 +1505,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 1);
 
-  CU_ASSERT(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING == sconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1494,15 +1528,15 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
 
   rv = nghttp3_conn_shutdown_stream_read(conn, 0);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1525,7 +1559,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING == sconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1573,7 +1607,7 @@ void test_nghttp3_conn_http_non_final_response(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_H3_FRAME_UNEXPECTED == sconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_UNEXPECTED, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1602,7 +1636,7 @@ void test_nghttp3_conn_http_non_final_response(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1632,11 +1666,11 @@ void test_nghttp3_conn_http_non_final_response(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1696,7 +1730,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1724,11 +1758,11 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1757,7 +1791,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING == sconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1788,7 +1822,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_H3_FRAME_UNEXPECTED == sconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_UNEXPECTED, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1820,7 +1854,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_H3_FRAME_UNEXPECTED == sconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_UNEXPECTED, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1847,7 +1881,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1869,11 +1903,11 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1901,7 +1935,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_H3_FRAME_UNEXPECTED == sconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_UNEXPECTED, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1928,7 +1962,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_H3_FRAME_UNEXPECTED == sconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_UNEXPECTED, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -1956,7 +1990,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_H3_FRAME_UNEXPECTED == sconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_UNEXPECTED, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2008,12 +2042,12 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(0 == stream->rx.http.content_length);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_int64(0, ==, stream->rx.http.content_length);
 
   rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2034,15 +2068,15 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(-1 == stream->rx.http.content_length);
+  assert_int64(-1, ==, stream->rx.http.content_length);
 
   rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2065,12 +2099,12 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(-1 == stream->rx.http.content_length);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_int64(-1, ==, stream->rx.http.content_length);
 
   rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2125,8 +2159,8 @@ void test_nghttp3_conn_http_record_request_method(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(-1 == stream->rx.http.content_length);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_int64(-1, ==, stream->rx.http.content_length);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2151,8 +2185,8 @@ void test_nghttp3_conn_http_record_request_method(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(0 == stream->rx.http.content_length);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_int64(0, ==, stream->rx.http.content_length);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2207,25 +2241,27 @@ void test_nghttp3_conn_http_error(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(1 == ud.stop_sending_cb.ncalled);
-  CU_ASSERT(0 == ud.stop_sending_cb.stream_id);
-  CU_ASSERT(NGHTTP3_H3_MESSAGE_ERROR == ud.stop_sending_cb.app_error_code);
-  CU_ASSERT(1 == ud.reset_stream_cb.ncalled);
-  CU_ASSERT(0 == ud.reset_stream_cb.stream_id);
-  CU_ASSERT(NGHTTP3_H3_MESSAGE_ERROR == ud.reset_stream_cb.app_error_code);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_size(1, ==, ud.stop_sending_cb.ncalled);
+  assert_int64(0, ==, ud.stop_sending_cb.stream_id);
+  assert_uint64(NGHTTP3_H3_MESSAGE_ERROR, ==,
+                ud.stop_sending_cb.app_error_code);
+  assert_size(1, ==, ud.reset_stream_cb.ncalled);
+  assert_int64(0, ==, ud.reset_stream_cb.stream_id);
+  assert_uint64(NGHTTP3_H3_MESSAGE_ERROR, ==,
+                ud.reset_stream_cb.app_error_code);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
 
   /* After the error, everything is just discarded. */
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(1 == ud.stop_sending_cb.ncalled);
-  CU_ASSERT(1 == ud.reset_stream_cb.ncalled);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_size(1, ==, ud.stop_sending_cb.ncalled);
+  assert_size(1, ==, ud.reset_stream_cb.ncalled);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2247,25 +2283,27 @@ void test_nghttp3_conn_http_error(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(1 == ud.stop_sending_cb.ncalled);
-  CU_ASSERT(0 == ud.stop_sending_cb.stream_id);
-  CU_ASSERT(NGHTTP3_H3_MESSAGE_ERROR == ud.stop_sending_cb.app_error_code);
-  CU_ASSERT(1 == ud.reset_stream_cb.ncalled);
-  CU_ASSERT(0 == ud.reset_stream_cb.stream_id);
-  CU_ASSERT(NGHTTP3_H3_MESSAGE_ERROR == ud.reset_stream_cb.app_error_code);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_size(1, ==, ud.stop_sending_cb.ncalled);
+  assert_int64(0, ==, ud.stop_sending_cb.stream_id);
+  assert_uint64(NGHTTP3_H3_MESSAGE_ERROR, ==,
+                ud.stop_sending_cb.app_error_code);
+  assert_size(1, ==, ud.reset_stream_cb.ncalled);
+  assert_int64(0, ==, ud.reset_stream_cb.stream_id);
+  assert_uint64(NGHTTP3_H3_MESSAGE_ERROR, ==,
+                ud.reset_stream_cb.app_error_code);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
 
   /* After the error, everything is just discarded. */
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(1 == ud.stop_sending_cb.ncalled);
-  CU_ASSERT(1 == ud.reset_stream_cb.ncalled);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_size(1, ==, ud.stop_sending_cb.ncalled);
+  assert_size(1, ==, ud.reset_stream_cb.ncalled);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2293,15 +2331,15 @@ void test_nghttp3_conn_http_error(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(sconsumed > 0);
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) != sconsumed);
-  CU_ASSERT(0 == ud.stop_sending_cb.ncalled);
-  CU_ASSERT(0 == ud.reset_stream_cb.ncalled);
+  assert_true(sconsumed > 0);
+  assert_ptrdiff(sconsumed, !=, (nghttp3_ssize)nghttp3_buf_len(&buf));
+  assert_size(0, ==, ud.stop_sending_cb.ncalled);
+  assert_size(0, ==, ud.reset_stream_cb.ncalled);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(!(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR));
-  CU_ASSERT(0 != nghttp3_ringbuf_len(&stream->inq));
+  assert_false(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
+  assert_size(0, !=, nghttp3_ringbuf_len(&stream->inq));
 
   nghttp3_buf_reset(&buf);
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_QPACK_ENCODER);
@@ -2309,28 +2347,30 @@ void test_nghttp3_conn_http_error(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 7, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
 
   sconsumed = nghttp3_conn_read_stream(conn, 7, ebuf.pos,
                                        nghttp3_buf_len(&ebuf), /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&ebuf) == sconsumed);
-  CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
-  CU_ASSERT(0 == nghttp3_ringbuf_len(&stream->inq));
-  CU_ASSERT(1 == ud.stop_sending_cb.ncalled);
-  CU_ASSERT(0 == ud.stop_sending_cb.stream_id);
-  CU_ASSERT(NGHTTP3_H3_MESSAGE_ERROR == ud.stop_sending_cb.app_error_code);
-  CU_ASSERT(1 == ud.reset_stream_cb.ncalled);
-  CU_ASSERT(0 == ud.reset_stream_cb.stream_id);
-  CU_ASSERT(NGHTTP3_H3_MESSAGE_ERROR == ud.reset_stream_cb.app_error_code);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&ebuf), ==, sconsumed);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
+  assert_size(0, ==, nghttp3_ringbuf_len(&stream->inq));
+  assert_size(1, ==, ud.stop_sending_cb.ncalled);
+  assert_int64(0, ==, ud.stop_sending_cb.stream_id);
+  assert_uint64(NGHTTP3_H3_MESSAGE_ERROR, ==,
+                ud.stop_sending_cb.app_error_code);
+  assert_size(1, ==, ud.reset_stream_cb.ncalled);
+  assert_int64(0, ==, ud.reset_stream_cb.stream_id);
+  assert_uint64(NGHTTP3_H3_MESSAGE_ERROR, ==,
+                ud.reset_stream_cb.app_error_code);
 
   /* After the error, everything is just discarded. */
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == sconsumed);
-  CU_ASSERT(1 == ud.stop_sending_cb.ncalled);
-  CU_ASSERT(1 == ud.reset_stream_cb.ncalled);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_size(1, ==, ud.stop_sending_cb.ncalled);
+  assert_size(1, ==, ud.reset_stream_cb.ncalled);
 
   nghttp3_buf_free(&ebuf, mem);
   nghttp3_conn_del(conn);
@@ -2383,7 +2423,7 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   rv = nghttp3_conn_submit_request(conn, 0, reqnv, nghttp3_arraylen(reqnv),
                                    NULL, NULL);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.headers.nva = (nghttp3_nv *)resnv;
@@ -2394,16 +2434,16 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 1);
 
-  CU_ASSERT(sconsumed > 0);
-  CU_ASSERT(sconsumed != (nghttp3_ssize)nghttp3_buf_len(&buf));
+  assert_true(sconsumed > 0);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), !=, sconsumed);
 
   rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_CLOSED);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_CLOSED);
 
   nghttp3_buf_reset(&buf);
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_QPACK_ENCODER);
@@ -2411,14 +2451,14 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 7, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(sconsumed == (nghttp3_ssize)nghttp3_buf_len(&buf));
-  CU_ASSERT(NULL != nghttp3_conn_find_stream(conn, 0));
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_not_null(nghttp3_conn_find_stream(conn, 0));
 
   sconsumed = nghttp3_conn_read_stream(conn, 7, ebuf.pos,
                                        nghttp3_buf_len(&ebuf), /* fin = */ 0);
 
-  CU_ASSERT(sconsumed == (nghttp3_ssize)nghttp3_buf_len(&ebuf));
-  CU_ASSERT(NULL == nghttp3_conn_find_stream(conn, 0));
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&ebuf), ==, sconsumed);
+  assert_null(nghttp3_conn_find_stream(conn, 0));
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2441,7 +2481,7 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   rv = nghttp3_conn_submit_request(conn, 0, reqnv, nghttp3_arraylen(reqnv),
                                    NULL, NULL);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.headers.nva = (nghttp3_nv *)resnv;
@@ -2460,16 +2500,16 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
       conn, 0, buf.pos, 5 /* Frame header + Header Block Prefix */,
       /* fin = */ 1);
 
-  CU_ASSERT(sconsumed > 0);
-  CU_ASSERT(sconsumed != (nghttp3_ssize)nghttp3_buf_len(&buf));
+  assert_true(sconsumed > 0);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), !=, sconsumed);
 
   rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_CLOSED);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_CLOSED);
 
   nghttp3_buf_reset(&buf);
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_QPACK_ENCODER);
@@ -2477,14 +2517,14 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 7, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(sconsumed == (nghttp3_ssize)nghttp3_buf_len(&buf));
-  CU_ASSERT(NULL != nghttp3_conn_find_stream(conn, 0));
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_not_null(nghttp3_conn_find_stream(conn, 0));
 
   sconsumed = nghttp3_conn_read_stream(conn, 7, ebuf.pos,
                                        nghttp3_buf_len(&ebuf), /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED == sconsumed);
-  CU_ASSERT(NULL != nghttp3_conn_find_stream(conn, 0));
+  assert_ptrdiff(NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED, ==, sconsumed);
+  assert_not_null(nghttp3_conn_find_stream(conn, 0));
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2524,7 +2564,7 @@ void test_nghttp3_conn_just_fin(void) {
     sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                          nghttp3_arraylen(vec));
 
-    CU_ASSERT(sveccnt >= 0);
+    assert_true(sveccnt >= 0);
 
     if (sveccnt == 0) {
       break;
@@ -2533,7 +2573,7 @@ void test_nghttp3_conn_just_fin(void) {
     rv = nghttp3_conn_add_write_offset(
         conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
-    CU_ASSERT(0 == rv);
+    assert_int(0, ==, rv);
   }
 
   /* No DATA frame header */
@@ -2541,19 +2581,19 @@ void test_nghttp3_conn_just_fin(void) {
   rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr,
                                    NULL);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(1 == sveccnt);
-  CU_ASSERT(0 == stream_id);
-  CU_ASSERT(1 == fin);
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_int(1, ==, fin);
 
   rv = nghttp3_conn_add_write_offset(
       conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   /* Just fin */
   ud.data.nblock = 1;
@@ -2562,19 +2602,19 @@ void test_nghttp3_conn_just_fin(void) {
   rv = nghttp3_conn_submit_request(conn, 4, nva, nghttp3_arraylen(nva), &dr,
                                    NULL);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(1 == sveccnt);
-  CU_ASSERT(4 == stream_id);
-  CU_ASSERT(0 == fin);
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(4, ==, stream_id);
+  assert_int(0, ==, fin);
 
   rv = nghttp3_conn_add_write_offset(
       conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   /* Resume stream 4 because it was blocked */
   nghttp3_conn_resume_stream(conn, 4);
@@ -2582,21 +2622,21 @@ void test_nghttp3_conn_just_fin(void) {
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(0 == sveccnt);
-  CU_ASSERT(4 == stream_id);
-  CU_ASSERT(1 == fin);
+  assert_ptrdiff(0, ==, sveccnt);
+  assert_int64(4, ==, stream_id);
+  assert_int(1, ==, fin);
 
   rv = nghttp3_conn_add_write_offset(
       conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(0 == sveccnt);
-  CU_ASSERT(-1 == stream_id);
-  CU_ASSERT(0 == fin);
+  assert_ptrdiff(0, ==, sveccnt);
+  assert_int64(-1, ==, stream_id);
+  assert_int(0, ==, fin);
 
   nghttp3_conn_del(conn);
 }
@@ -2634,13 +2674,13 @@ void test_nghttp3_conn_submit_response_read_blocked(void) {
   ud.data.step = 1000;
   rv = nghttp3_conn_submit_response(conn, 0, nva, nghttp3_arraylen(nva), &dr);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   for (;;) {
     sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                          nghttp3_arraylen(vec));
 
-    CU_ASSERT(sveccnt >= 0);
+    assert_true(sveccnt >= 0);
 
     if (sveccnt <= 0) {
       break;
@@ -2648,7 +2688,7 @@ void test_nghttp3_conn_submit_response_read_blocked(void) {
 
     rv = nghttp3_conn_add_write_offset(conn, stream_id, 1);
 
-    CU_ASSERT(0 == rv);
+    assert_int(0, ==, rv);
   }
 
   nghttp3_conn_del(conn);
@@ -2670,8 +2710,8 @@ void test_nghttp3_conn_recv_uni(void) {
 
   nread = nghttp3_conn_read_stream(conn, 3, NULL, 0, /* fin = */ 1);
 
-  CU_ASSERT(0 == nread);
-  CU_ASSERT(NULL == nghttp3_conn_find_stream(conn, 3));
+  assert_ptrdiff(0, ==, nread);
+  assert_null(nghttp3_conn_find_stream(conn, 3));
 
   nghttp3_conn_del(conn);
 
@@ -2681,13 +2721,13 @@ void test_nghttp3_conn_recv_uni(void) {
 
   nread = nghttp3_conn_read_stream(conn, 3, NULL, 0, /* fin = */ 0);
 
-  CU_ASSERT(0 == nread);
-  CU_ASSERT(NULL != nghttp3_conn_find_stream(conn, 3));
+  assert_ptrdiff(0, ==, nread);
+  assert_not_null(nghttp3_conn_find_stream(conn, 3));
 
   nread = nghttp3_conn_read_stream(conn, 3, NULL, 0, /* fin = */ 1);
 
-  CU_ASSERT(0 == nread);
-  CU_ASSERT(NULL == nghttp3_conn_find_stream(conn, 3));
+  assert_ptrdiff(0, ==, nread);
+  assert_null(nghttp3_conn_find_stream(conn, 3));
 
   nghttp3_conn_del(conn);
 
@@ -2698,12 +2738,12 @@ void test_nghttp3_conn_recv_uni(void) {
   buf[0] = 0xc0;
   nread = nghttp3_conn_read_stream(conn, 3, buf, 1, /* fin = */ 0);
 
-  CU_ASSERT(1 == nread);
-  CU_ASSERT(NULL != nghttp3_conn_find_stream(conn, 3));
+  assert_ptrdiff(1, ==, nread);
+  assert_not_null(nghttp3_conn_find_stream(conn, 3));
 
   nread = nghttp3_conn_read_stream(conn, 3, NULL, 0, /* fin = */ 1);
 
-  CU_ASSERT(NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR == nread);
+  assert_ptrdiff(NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR, ==, nread);
 
   nghttp3_conn_del(conn);
 }
@@ -2754,17 +2794,17 @@ void test_nghttp3_conn_recv_goaway(void) {
   nconsumed = nghttp3_conn_read_stream(conn, 3, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
-  CU_ASSERT(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED);
-  CU_ASSERT(12 == conn->rx.goaway_id);
-  CU_ASSERT(1 == ud.shutdown_cb.ncalled);
-  CU_ASSERT(12 == ud.shutdown_cb.id);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  assert_true(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED);
+  assert_int64(12, ==, conn->rx.goaway_id);
+  assert_size(1, ==, ud.shutdown_cb.ncalled);
+  assert_int64(12, ==, ud.shutdown_cb.id);
 
   /* Cannot submit request anymore */
   rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), NULL,
                                    NULL);
 
-  CU_ASSERT(NGHTTP3_ERR_CONN_CLOSING == rv);
+  assert_int(NGHTTP3_ERR_CONN_CLOSING, ==, rv);
 
   nghttp3_conn_del(conn);
 
@@ -2797,11 +2837,11 @@ void test_nghttp3_conn_recv_goaway(void) {
   nconsumed = nghttp3_conn_read_stream(conn, 3, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_H3_ID_ERROR == nconsumed);
-  CU_ASSERT(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED);
-  CU_ASSERT(12 == conn->rx.goaway_id);
-  CU_ASSERT(1 == ud.shutdown_cb.ncalled);
-  CU_ASSERT(12 == ud.shutdown_cb.id);
+  assert_ptrdiff(NGHTTP3_ERR_H3_ID_ERROR, ==, nconsumed);
+  assert_true(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED);
+  assert_int64(12, ==, conn->rx.goaway_id);
+  assert_size(1, ==, ud.shutdown_cb.ncalled);
+  assert_int64(12, ==, ud.shutdown_cb.id);
 
   nghttp3_conn_del(conn);
 
@@ -2829,11 +2869,11 @@ void test_nghttp3_conn_recv_goaway(void) {
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
-  CU_ASSERT(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED);
-  CU_ASSERT(101 == conn->rx.goaway_id);
-  CU_ASSERT(1 == ud.shutdown_cb.ncalled);
-  CU_ASSERT(101 == ud.shutdown_cb.id);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  assert_true(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED);
+  assert_int64(101, ==, conn->rx.goaway_id);
+  assert_size(1, ==, ud.shutdown_cb.ncalled);
+  assert_int64(101, ==, ud.shutdown_cb.id);
 
   nghttp3_conn_del(conn);
 }
@@ -2884,20 +2924,20 @@ void test_nghttp3_conn_shutdown_server(void) {
   nconsumed = nghttp3_conn_read_stream(conn, 4, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
-  CU_ASSERT(4 == conn->rx.max_stream_id_bidi);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  assert_int64(4, ==, conn->rx.max_stream_id_bidi);
 
   rv = nghttp3_conn_shutdown(conn);
 
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_QUEUED);
-  CU_ASSERT(8 == conn->tx.goaway_id);
+  assert_int(0, ==, rv);
+  assert_true(conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_QUEUED);
+  assert_int64(8, ==, conn->tx.goaway_id);
 
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(sveccnt > 0);
-  CU_ASSERT(3 == stream_id);
+  assert_true(sveccnt > 0);
+  assert_int64(3, ==, stream_id);
 
   nghttp3_buf_reset(&buf);
 
@@ -2911,18 +2951,20 @@ void test_nghttp3_conn_shutdown_server(void) {
   nconsumed = nghttp3_conn_read_stream(conn, 8, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
-  CU_ASSERT(8 == conn->rx.max_stream_id_bidi);
-  CU_ASSERT(1 == ud.stop_sending_cb.ncalled);
-  CU_ASSERT(8 == ud.stop_sending_cb.stream_id);
-  CU_ASSERT(NGHTTP3_H3_REQUEST_REJECTED == ud.stop_sending_cb.app_error_code);
-  CU_ASSERT(1 == ud.reset_stream_cb.ncalled);
-  CU_ASSERT(8 == ud.reset_stream_cb.stream_id);
-  CU_ASSERT(NGHTTP3_H3_REQUEST_REJECTED == ud.reset_stream_cb.app_error_code);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  assert_int64(8, ==, conn->rx.max_stream_id_bidi);
+  assert_size(1, ==, ud.stop_sending_cb.ncalled);
+  assert_int64(8, ==, ud.stop_sending_cb.stream_id);
+  assert_uint64(NGHTTP3_H3_REQUEST_REJECTED, ==,
+                ud.stop_sending_cb.app_error_code);
+  assert_size(1, ==, ud.reset_stream_cb.ncalled);
+  assert_int64(8, ==, ud.reset_stream_cb.stream_id);
+  assert_uint64(NGHTTP3_H3_REQUEST_REJECTED, ==,
+                ud.reset_stream_cb.app_error_code);
 
   stream = nghttp3_conn_find_stream(conn, 8);
 
-  CU_ASSERT(NGHTTP3_REQ_STREAM_STATE_IGN_REST == stream->rstate.state);
+  assert_int(NGHTTP3_REQ_STREAM_STATE_IGN_REST, ==, stream->rstate.state);
 
   nghttp3_qpack_encoder_free(&qenc);
   nghttp3_conn_del(conn);
@@ -2963,18 +3005,18 @@ void test_nghttp3_conn_shutdown_client(void) {
   rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), NULL,
                                    NULL);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   rv = nghttp3_conn_shutdown(conn);
 
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(0 == conn->tx.goaway_id);
+  assert_int(0, ==, rv);
+  assert_int64(0, ==, conn->tx.goaway_id);
 
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(sveccnt > 0);
-  CU_ASSERT(2 == stream_id);
+  assert_true(sveccnt > 0);
+  assert_int64(2, ==, stream_id);
 
   nghttp3_buf_reset(&buf);
 
@@ -3031,14 +3073,14 @@ void test_nghttp3_conn_priority_update(void) {
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(NULL != stream);
-  CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_PRIORITY_UPDATE_RECVED);
-  CU_ASSERT(2 == stream->node.pri.urgency);
-  CU_ASSERT(1 == stream->node.pri.inc);
+  assert_not_null(stream);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_PRIORITY_UPDATE_RECVED);
+  assert_uint32(2, ==, stream->node.pri.urgency);
+  assert_uint8(1, ==, stream->node.pri.inc);
 
   nghttp3_buf_reset(&buf);
 
@@ -3051,12 +3093,12 @@ void test_nghttp3_conn_priority_update(void) {
   nconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 1);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
 
   /* priority header field should not override the value set by
      PRIORITY_UPDATE frame. */
-  CU_ASSERT(2 == stream->node.pri.urgency);
-  CU_ASSERT(1 == stream->node.pri.inc);
+  assert_uint32(2, ==, stream->node.pri.urgency);
+  assert_uint8(1, ==, stream->node.pri.inc);
 
   nghttp3_qpack_encoder_free(&qenc);
   nghttp3_conn_del(conn);
@@ -3069,7 +3111,7 @@ void test_nghttp3_conn_priority_update(void) {
 
   rv = nghttp3_conn_create_stream(conn, &stream, 0);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
@@ -3088,10 +3130,10 @@ void test_nghttp3_conn_priority_update(void) {
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
-  CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_PRIORITY_UPDATE_RECVED);
-  CU_ASSERT(6 == stream->node.pri.urgency);
-  CU_ASSERT(0 == stream->node.pri.inc);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_PRIORITY_UPDATE_RECVED);
+  assert_uint32(6, ==, stream->node.pri.urgency);
+  assert_uint8(0, ==, stream->node.pri.inc);
 
   nghttp3_conn_del(conn);
   nghttp3_buf_reset(&buf);
@@ -3118,7 +3160,7 @@ void test_nghttp3_conn_priority_update(void) {
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(NGHTTP3_ERR_H3_ID_ERROR == nconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_H3_ID_ERROR, ==, nconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_buf_reset(&buf);
@@ -3153,15 +3195,16 @@ void test_nghttp3_conn_priority_update(void) {
                                /* fin = */ 0);
   stream = nghttp3_conn_find_stream(conn, 2);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) - 10 == nconsumed);
-  CU_ASSERT(NGHTTP3_CTRL_STREAM_STATE_PRIORITY_UPDATE == stream->rstate.state);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf) - 10, ==, nconsumed);
+  assert_int(NGHTTP3_CTRL_STREAM_STATE_PRIORITY_UPDATE, ==,
+             stream->rstate.state);
 
   nconsumed =
       nghttp3_conn_read_stream(conn, 2, buf.pos + nconsumed, 10, /* fin = */ 0);
 
-  CU_ASSERT(10 == nconsumed);
-  CU_ASSERT(NGHTTP3_CTRL_STREAM_STATE_FRAME_TYPE == stream->rstate.state);
-  CU_ASSERT(NULL == nghttp3_conn_find_stream(conn, 0));
+  assert_ptrdiff(10, ==, nconsumed);
+  assert_int(NGHTTP3_CTRL_STREAM_STATE_FRAME_TYPE, ==, stream->rstate.state);
+  assert_null(nghttp3_conn_find_stream(conn, 0));
 
   nghttp3_conn_del(conn);
 }
@@ -3211,7 +3254,7 @@ void test_nghttp3_conn_request_priority(void) {
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
 
   nghttp3_buf_reset(&buf);
 
@@ -3226,9 +3269,9 @@ void test_nghttp3_conn_request_priority(void) {
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(NULL != stream);
-  CU_ASSERT(5 == stream->node.pri.urgency);
-  CU_ASSERT(1 == stream->node.pri.inc);
+  assert_not_null(stream);
+  assert_uint32(5, ==, stream->node.pri.urgency);
+  assert_uint8(1, ==, stream->node.pri.inc);
 
   nghttp3_qpack_encoder_free(&qenc);
   nghttp3_conn_del(conn);
@@ -3251,7 +3294,7 @@ void test_nghttp3_conn_request_priority(void) {
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT((nghttp3_ssize)nghttp3_buf_len(&buf) == nconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
 
   nghttp3_buf_reset(&buf);
 
@@ -3266,9 +3309,9 @@ void test_nghttp3_conn_request_priority(void) {
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(NULL != stream);
-  CU_ASSERT(NGHTTP3_DEFAULT_URGENCY == stream->node.pri.urgency);
-  CU_ASSERT(0 == stream->node.pri.inc);
+  assert_not_null(stream);
+  assert_uint32(NGHTTP3_DEFAULT_URGENCY, ==, stream->node.pri.urgency);
+  assert_uint8(0, ==, stream->node.pri.inc);
 
   nghttp3_qpack_encoder_free(&qenc);
   nghttp3_conn_del(conn);
@@ -3303,7 +3346,7 @@ void test_nghttp3_conn_set_stream_priority(void) {
   rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), NULL,
                                    NULL);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   pri.urgency = 2;
   pri.inc = 1;
@@ -3312,7 +3355,7 @@ void test_nghttp3_conn_set_stream_priority(void) {
   rv = nghttp3_conn_set_client_stream_priority(
       conn, 0, (const uint8_t *)NGHTTP3_PRI_DATA, strlen(NGHTTP3_PRI_DATA));
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   stream = nghttp3_conn_find_stream(conn, 2);
 
@@ -3322,15 +3365,15 @@ void test_nghttp3_conn_set_stream_priority(void) {
       continue;
     }
 
-    CU_ASSERT(strlen(NGHTTP3_PRI_DATA) == ent->fr.priority_update.datalen);
-    CU_ASSERT(0 == memcmp(NGHTTP3_PRI_DATA, ent->fr.priority_update.data,
-                          strlen(NGHTTP3_PRI_DATA)));
+    assert_size(strlen(NGHTTP3_PRI_DATA), ==, ent->fr.priority_update.datalen);
+    assert_memory_equal(strlen(NGHTTP3_PRI_DATA), NGHTTP3_PRI_DATA,
+                        ent->fr.priority_update.data);
 
     break;
   }
 #undef NGHTTP3_PRI_DATA
 
-  CU_ASSERT(i < nghttp3_ringbuf_len(&stream->frq));
+  assert_true(i < nghttp3_ringbuf_len(&stream->frq));
 
   nghttp3_conn_del(conn);
 
@@ -3347,7 +3390,7 @@ void test_nghttp3_conn_set_stream_priority(void) {
       conn, 0, (const uint8_t *)NGHTTP3_PRI_DATA, strlen(NGHTTP3_PRI_DATA));
 #undef NGHTTP3_PRI_DATA
 
-  CU_ASSERT(NGHTTP3_ERR_STREAM_NOT_FOUND == rv);
+  assert_int(NGHTTP3_ERR_STREAM_NOT_FOUND, ==, rv);
 
   nghttp3_conn_del(conn);
 
@@ -3357,19 +3400,19 @@ void test_nghttp3_conn_set_stream_priority(void) {
 
   rv = nghttp3_conn_create_stream(conn, &stream, 0);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   pri.urgency = 4;
   pri.inc = 0;
 
   rv = nghttp3_conn_set_server_stream_priority(conn, 0, &pri);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  CU_ASSERT(stream->flags & NGHTTP3_STREAM_FLAG_SERVER_PRIORITY_SET);
-  CU_ASSERT(nghttp3_pri_eq(&pri, &stream->node.pri));
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_SERVER_PRIORITY_SET);
+  assert_true(nghttp3_pri_eq(&pri, &stream->node.pri));
 
   nghttp3_conn_del(conn);
 }
@@ -3423,7 +3466,7 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   rv = nghttp3_conn_submit_request(conn, 0, reqnv, nghttp3_arraylen(reqnv),
                                    NULL, NULL);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.headers.nva = (nghttp3_nv *)resnv;
@@ -3438,15 +3481,15 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(sconsumed > 0);
-  CU_ASSERT(sconsumed != (nghttp3_ssize)nghttp3_buf_len(&buf));
+  assert_true(sconsumed > 0);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), !=, sconsumed);
 
   consumed_total += (size_t)sconsumed;
 
   rv = nghttp3_conn_shutdown_stream_read(conn, 0);
 
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(1 == nghttp3_buf_len(&conn->qdec.dbuf));
+  assert_int(0, ==, rv);
+  assert_size(1, ==, nghttp3_buf_len(&conn->qdec.dbuf));
 
   /* Reading further stream data is discarded. */
   nghttp3_buf_reset(&buf);
@@ -3458,7 +3501,7 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 1);
 
-  CU_ASSERT(1 == sconsumed);
+  assert_ptrdiff(1, ==, sconsumed);
 
   consumed_total += (size_t)sconsumed;
 
@@ -3468,16 +3511,16 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 7, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  CU_ASSERT(sconsumed == (nghttp3_ssize)nghttp3_buf_len(&buf));
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
 
   sconsumed = nghttp3_conn_read_stream(conn, 7, ebuf.pos,
                                        nghttp3_buf_len(&ebuf), /* fin = */ 0);
 
-  CU_ASSERT(sconsumed == (nghttp3_ssize)nghttp3_buf_len(&ebuf));
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&ebuf), ==, sconsumed);
   /* Make sure that Section Acknowledgement is not written. */
-  CU_ASSERT(1 == nghttp3_buf_len(&conn->qdec.dbuf));
-  CU_ASSERT(indatalen ==
-            consumed_total + ud.deferred_consume_cb.consumed_total);
+  assert_size(1, ==, nghttp3_buf_len(&conn->qdec.dbuf));
+  assert_size(indatalen, ==,
+              consumed_total + ud.deferred_consume_cb.consumed_total);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -3517,13 +3560,13 @@ void test_nghttp3_conn_stream_data_overflow(void) {
   rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr,
                                    NULL);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(10 == stream_id);
-  CU_ASSERT(1 == sveccnt);
+  assert_int64(10, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
 
   nghttp3_conn_add_write_offset(conn, 10, vec[0].len);
 
@@ -3531,8 +3574,8 @@ void test_nghttp3_conn_stream_data_overflow(void) {
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(6 == stream_id);
-  CU_ASSERT(1 == sveccnt);
+  assert_int64(6, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
 
   nghttp3_conn_add_write_offset(conn, 6, vec[0].len);
 
@@ -3540,7 +3583,7 @@ void test_nghttp3_conn_stream_data_overflow(void) {
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(NGHTTP3_ERR_STREAM_DATA_OVERFLOW == sveccnt);
+  assert_ptrdiff(NGHTTP3_ERR_STREAM_DATA_OVERFLOW, ==, sveccnt);
 
   nghttp3_conn_del(conn);
 
@@ -3554,13 +3597,13 @@ void test_nghttp3_conn_stream_data_overflow(void) {
   rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr,
                                    NULL);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(10 == stream_id);
-  CU_ASSERT(1 == sveccnt);
+  assert_int64(10, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
 
   nghttp3_conn_add_write_offset(conn, 10, vec[0].len);
 
@@ -3568,8 +3611,8 @@ void test_nghttp3_conn_stream_data_overflow(void) {
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(6 == stream_id);
-  CU_ASSERT(1 == sveccnt);
+  assert_int64(6, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
 
   nghttp3_conn_add_write_offset(conn, 6, vec[0].len);
 
@@ -3577,7 +3620,7 @@ void test_nghttp3_conn_stream_data_overflow(void) {
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
-  CU_ASSERT(NGHTTP3_ERR_STREAM_DATA_OVERFLOW == sveccnt);
+  assert_ptrdiff(NGHTTP3_ERR_STREAM_DATA_OVERFLOW, ==, sveccnt);
 
   nghttp3_conn_del(conn);
 #endif /* SIZE_MAX > UINT32_MAX */
@@ -3611,7 +3654,7 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
   /* Control stream */
   nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
 
-  CU_ASSERT(0 == nghttp3_conn_get_frame_payload_left(conn, 2));
+  assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left(conn, 2));
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
@@ -3627,24 +3670,24 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&settingsfr);
 
-  CU_ASSERT(18 == nghttp3_buf_len(&buf));
+  assert_size(18, ==, nghttp3_buf_len(&buf));
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, 3, /* fin = */ 0);
 
-  CU_ASSERT(3 == nconsumed);
-  CU_ASSERT(nghttp3_buf_len(&buf) - 3 ==
-            nghttp3_conn_get_frame_payload_left(conn, 2));
+  assert_ptrdiff(3, ==, nconsumed);
+  assert_uint64(nghttp3_buf_len(&buf) - 3, ==,
+                nghttp3_conn_get_frame_payload_left(conn, 2));
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos + 3, 14, /* fin = */ 0);
 
-  CU_ASSERT(14 == nconsumed);
-  CU_ASSERT(nghttp3_buf_len(&buf) - 17 ==
-            nghttp3_conn_get_frame_payload_left(conn, 2));
+  assert_ptrdiff(14, ==, nconsumed);
+  assert_uint64(nghttp3_buf_len(&buf) - 17, ==,
+                nghttp3_conn_get_frame_payload_left(conn, 2));
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos + 17, 1, /* fin = */ 0);
 
-  CU_ASSERT(1 == nconsumed);
-  CU_ASSERT(0 == nghttp3_conn_get_frame_payload_left(conn, 2));
+  assert_ptrdiff(1, ==, nconsumed);
+  assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left(conn, 2));
 
   nghttp3_conn_del(conn);
   nghttp3_buf_reset(&buf);
@@ -3652,7 +3695,7 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
   /* Client bidi stream */
   nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
 
-  CU_ASSERT(0 == nghttp3_conn_get_frame_payload_left(conn, 0));
+  assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left(conn, 0));
 
   nghttp3_qpack_encoder_init(&qenc, 0, mem);
 
@@ -3664,15 +3707,15 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
 
   nconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, 1, /* fin = 0 */ 0);
 
-  CU_ASSERT(1 == nconsumed);
-  CU_ASSERT(0 == nghttp3_conn_get_frame_payload_left(conn, 0));
+  assert_ptrdiff(1, ==, nconsumed);
+  assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left(conn, 0));
 
   nconsumed =
       nghttp3_conn_read_stream(conn, 0, buf.pos + 1, 1, /* fin = 0 */ 0);
 
-  CU_ASSERT(1 == nconsumed);
-  CU_ASSERT(nghttp3_buf_len(&buf) - 2 ==
-            nghttp3_conn_get_frame_payload_left(conn, 0));
+  assert_ptrdiff(1, ==, nconsumed);
+  assert_uint64(nghttp3_buf_len(&buf) - 2, ==,
+                nghttp3_conn_get_frame_payload_left(conn, 0));
 
   nghttp3_qpack_encoder_free(&qenc);
   nghttp3_conn_del(conn);

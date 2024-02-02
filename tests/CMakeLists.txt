@@ -23,34 +23,30 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-if(HAVE_CUNIT)
-  include_directories(
-    "${CMAKE_SOURCE_DIR}/lib"
-    "${CMAKE_SOURCE_DIR}/lib/includes"
-    "${CMAKE_BINARY_DIR}/lib/includes"
-    ${CUNIT_INCLUDE_DIRS}
-  )
+include_directories(
+  "${CMAKE_SOURCE_DIR}/lib"
+  "${CMAKE_SOURCE_DIR}/lib/includes"
+  "${CMAKE_BINARY_DIR}/lib/includes"
+)
 
-  set(main_SOURCES
-    main.c
-    nghttp3_qpack_test.c
-    nghttp3_conn_test.c
-    nghttp3_tnode_test.c
-    nghttp3_http_test.c
-    nghttp3_conv_test.c
-    nghttp3_test_helper.c
-  )
+set(main_SOURCES
+  main.c
+  nghttp3_qpack_test.c
+  nghttp3_conn_test.c
+  nghttp3_tnode_test.c
+  nghttp3_http_test.c
+  nghttp3_conv_test.c
+  nghttp3_test_helper.c
+  munit/munit.c
+)
 
-  add_executable(main EXCLUDE_FROM_ALL
-    ${main_SOURCES}
-  )
-  target_include_directories(main PRIVATE ${CUNIT_INCLUDE_DIRS})
-  # FIXME enable and fix warnings
-  #set_target_properties(main PROPERTIES COMPILE_FLAGS "${WARNCFLAGS}")
-  target_link_libraries(main
-    nghttp3_static
-    ${CUNIT_LIBRARIES}
-  )
-  add_test(main main)
-  add_dependencies(check main)
-endif()
+add_executable(main EXCLUDE_FROM_ALL
+  ${main_SOURCES}
+)
+# FIXME enable and fix warnings
+#set_target_properties(main PROPERTIES COMPILE_FLAGS "${WARNCFLAGS}")
+target_link_libraries(main
+  nghttp3_static
+)
+add_test(main main)
+add_dependencies(check main)

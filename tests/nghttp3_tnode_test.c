@@ -26,11 +26,20 @@
 
 #include <stdio.h>
 
-#include <CUnit/CUnit.h>
+#include "munit/munit.h"
 
 #include "nghttp3_tnode.h"
 #include "nghttp3_macro.h"
 #include "nghttp3_test_helper.h"
+
+static const MunitTest tests[] = {
+    munit_void_test(test_nghttp3_tnode_schedule),
+    munit_test_end(),
+};
+
+const MunitSuite tnode_suite = {
+    "/tnode", tests, NULL, 1, MUNIT_SUITE_OPTION_NONE,
+};
 
 static int cycle_less(const nghttp3_pq_entry *lhsx,
                       const nghttp3_pq_entry *rhsx) {
@@ -60,8 +69,8 @@ void test_nghttp3_tnode_schedule(void) {
 
   rv = nghttp3_tnode_schedule(&node, &pq, 0);
 
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(0 == node.cycle);
+  assert_int(0, ==, rv);
+  assert_uint64(0, ==, node.cycle);
 
   /* Schedule another node */
   nghttp3_tnode_init(&node2, 1);
@@ -69,21 +78,21 @@ void test_nghttp3_tnode_schedule(void) {
 
   rv = nghttp3_tnode_schedule(&node2, &pq, 0);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   /* Rescheduling node with nwrite > 0 */
 
   rv = nghttp3_tnode_schedule(&node, &pq, 1000);
 
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(1 == node.cycle);
+  assert_int(0, ==, rv);
+  assert_uint64(1, ==, node.cycle);
 
   /* Rescheduling node with nwrite == 0 */
 
   rv = nghttp3_tnode_schedule(&node, &pq, 0);
 
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(1 == node.cycle);
+  assert_int(0, ==, rv);
+  assert_uint64(1, ==, node.cycle);
 
   nghttp3_pq_free(&pq);
 
@@ -94,29 +103,29 @@ void test_nghttp3_tnode_schedule(void) {
 
   rv = nghttp3_tnode_schedule(&node, &pq, 0);
 
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(0 == node.cycle);
+  assert_int(0, ==, rv);
+  assert_uint64(0, ==, node.cycle);
 
   /* Schedule another node */
   nghttp3_tnode_init(&node2, 1);
 
   rv = nghttp3_tnode_schedule(&node2, &pq, 0);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   /* Rescheduling node with nwrite > 0 */
 
   rv = nghttp3_tnode_schedule(&node, &pq, 1000);
 
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(0 == node.cycle);
+  assert_int(0, ==, rv);
+  assert_uint64(0, ==, node.cycle);
 
   /* Rescheduling node with nwrit == 0 */
 
   rv = nghttp3_tnode_schedule(&node, &pq, 0);
 
-  CU_ASSERT(0 == rv);
-  CU_ASSERT(0 == node.cycle);
+  assert_int(0, ==, rv);
+  assert_uint64(0, ==, node.cycle);
 
   nghttp3_pq_free(&pq);
 
@@ -127,19 +136,19 @@ void test_nghttp3_tnode_schedule(void) {
 
   rv = nghttp3_tnode_schedule(&node2, &pq, 0);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nghttp3_tnode_init(&node, 0);
 
   rv = nghttp3_tnode_schedule(&node, &pq, 0);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   ent = nghttp3_pq_top(&pq);
 
   p = nghttp3_struct_of(ent, nghttp3_tnode, pe);
 
-  CU_ASSERT(0 == p->id);
+  assert_int64(0, ==, p->id);
 
   nghttp3_pq_free(&pq);
 
@@ -150,19 +159,19 @@ void test_nghttp3_tnode_schedule(void) {
 
   rv = nghttp3_tnode_schedule(&node, &pq, 0);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   nghttp3_tnode_init(&node2, 1);
 
   rv = nghttp3_tnode_schedule(&node2, &pq, 0);
 
-  CU_ASSERT(0 == rv);
+  assert_int(0, ==, rv);
 
   ent = nghttp3_pq_top(&pq);
 
   p = nghttp3_struct_of(ent, nghttp3_tnode, pe);
 
-  CU_ASSERT(0 == p->id);
+  assert_int64(0, ==, p->id);
 
   nghttp3_pq_free(&pq);
 }

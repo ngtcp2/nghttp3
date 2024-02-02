@@ -29,31 +29,37 @@
 #  include <config.h>
 #endif /* HAVE_CONFIG_H */
 
-void test_nghttp3_conn_read_control(void);
-void test_nghttp3_conn_write_control(void);
-void test_nghttp3_conn_submit_request(void);
-void test_nghttp3_conn_http_request(void);
-void test_nghttp3_conn_http_resp_header(void);
-void test_nghttp3_conn_http_req_header(void);
-void test_nghttp3_conn_http_content_length(void);
-void test_nghttp3_conn_http_content_length_mismatch(void);
-void test_nghttp3_conn_http_non_final_response(void);
-void test_nghttp3_conn_http_trailers(void);
-void test_nghttp3_conn_http_ignore_content_length(void);
-void test_nghttp3_conn_http_record_request_method(void);
-void test_nghttp3_conn_http_error(void);
-void test_nghttp3_conn_qpack_blocked_stream(void);
-void test_nghttp3_conn_just_fin(void);
-void test_nghttp3_conn_submit_response_read_blocked(void);
-void test_nghttp3_conn_recv_uni(void);
-void test_nghttp3_conn_recv_goaway(void);
-void test_nghttp3_conn_shutdown_server(void);
-void test_nghttp3_conn_shutdown_client(void);
-void test_nghttp3_conn_priority_update(void);
-void test_nghttp3_conn_request_priority(void);
-void test_nghttp3_conn_set_stream_priority(void);
-void test_nghttp3_conn_shutdown_stream_read(void);
-void test_nghttp3_conn_stream_data_overflow(void);
-void test_nghttp3_conn_get_frame_payload_left(void);
+#define MUNIT_ENABLE_ASSERT_ALIASES
+
+#include "munit/munit.h"
+
+extern const MunitSuite conn_suite;
+
+munit_void_test_decl(test_nghttp3_conn_read_control);
+munit_void_test_decl(test_nghttp3_conn_write_control);
+munit_void_test_decl(test_nghttp3_conn_submit_request);
+munit_void_test_decl(test_nghttp3_conn_http_request);
+munit_void_test_decl(test_nghttp3_conn_http_resp_header);
+munit_void_test_decl(test_nghttp3_conn_http_req_header);
+munit_void_test_decl(test_nghttp3_conn_http_content_length);
+munit_void_test_decl(test_nghttp3_conn_http_content_length_mismatch);
+munit_void_test_decl(test_nghttp3_conn_http_non_final_response);
+munit_void_test_decl(test_nghttp3_conn_http_trailers);
+munit_void_test_decl(test_nghttp3_conn_http_ignore_content_length);
+munit_void_test_decl(test_nghttp3_conn_http_record_request_method);
+munit_void_test_decl(test_nghttp3_conn_http_error);
+munit_void_test_decl(test_nghttp3_conn_qpack_blocked_stream);
+munit_void_test_decl(test_nghttp3_conn_just_fin);
+munit_void_test_decl(test_nghttp3_conn_submit_response_read_blocked);
+munit_void_test_decl(test_nghttp3_conn_recv_uni);
+munit_void_test_decl(test_nghttp3_conn_recv_goaway);
+munit_void_test_decl(test_nghttp3_conn_shutdown_server);
+munit_void_test_decl(test_nghttp3_conn_shutdown_client);
+munit_void_test_decl(test_nghttp3_conn_priority_update);
+munit_void_test_decl(test_nghttp3_conn_request_priority);
+munit_void_test_decl(test_nghttp3_conn_set_stream_priority);
+munit_void_test_decl(test_nghttp3_conn_shutdown_stream_read);
+munit_void_test_decl(test_nghttp3_conn_stream_data_overflow);
+munit_void_test_decl(test_nghttp3_conn_get_frame_payload_left);
 
 #endif /* NGHTTP3_CONN_TEST_H */

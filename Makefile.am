@@ -31,7 +31,6 @@ EXTRA_DIST = \
 	cmakeconfig.h.in \
 	CMakeLists.txt \
 	CMakeOptions.txt \
-	cmake/FindCUnit.cmake \
 	cmake/PickyWarningsC.cmake \
 	cmake/PickyWarningsCXX.cmake \
 	cmake/Version.cmake

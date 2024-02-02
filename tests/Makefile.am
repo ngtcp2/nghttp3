@@ -22,9 +22,7 @@
 # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-EXTRA_DIST = CMakeLists.txt
-
-if HAVE_CUNIT
+EXTRA_DIST = CMakeLists.txt munit/munit.c munit/munit.h munit/COPYING
 
 check_PROGRAMS = main
 
@@ -35,21 +33,22 @@ OBJECTS = \
 	nghttp3_tnode_test.c \
 	nghttp3_http_test.c \
 	nghttp3_conv_test.c \
-	nghttp3_test_helper.c
+	nghttp3_test_helper.c \
+	munit/munit.c
 HFILES = \
 	nghttp3_qpack_test.h \
 	nghttp3_conn_test.h \
 	nghttp3_tnode_test.h \
 	nghttp3_http_test.h \
 	nghttp3_conv_test.h \
-	nghttp3_test_helper.h
+	nghttp3_test_helper.h \
+	munit/munit.h
 
 main_SOURCES = $(HFILES) $(OBJECTS)
 
 # With static lib disabled and symbol hiding enabled, we have to link object
 # files directly because the tests use symbols not included in public API.
 main_LDADD = ${top_builddir}/lib/.libs/*.o
-main_LDADD += @CUNIT_LIBS@
 main_LDFLAGS = -static
 
 AM_CFLAGS = $(WARNCFLAGS) \
@@ -57,9 +56,7 @@ AM_CFLAGS = $(WARNCFLAGS) \
 	-I${top_srcdir}/lib/includes \
 	-I${top_builddir}/lib/includes \
 	-DBUILDING_NGHTTP3 \
-	@CUNIT_CFLAGS@ @DEFS@
+	@DEFS@
 AM_LDFLAGS = -no-install
 
 TESTS = main
-
-endif # HAVE_CUNIT

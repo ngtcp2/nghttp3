@@ -29,7 +29,13 @@
 #  include <config.h>
 #endif /* HAVE_CONFIG_H */
 
-void test_nghttp3_http_parse_priority(void);
-void test_nghttp3_check_header_value(void);
+#define MUNIT_ENABLE_ASSERT_ALIASES
+
+#include "munit/munit.h"
+
+extern const MunitSuite http_suite;
+
+munit_void_test_decl(test_nghttp3_http_parse_priority);
+munit_void_test_decl(test_nghttp3_check_header_value);
 
 #endif /* NGHTTP3_HTTP_TEST_H */

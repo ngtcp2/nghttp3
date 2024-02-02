@@ -87,11 +87,6 @@ AC_ARG_ENABLE([lib-only],
                     [Build libnghttp3 only.])],
     [lib_only=$enableval], [lib_only=no])
 
-AC_ARG_WITH([cunit],
-    [AS_HELP_STRING([--with-cunit],
-                    [Use cunit [default=check]])],
-    [request_cunit=$withval], [request_cunit=check])
-
 # Checks for programs
 AC_PROG_CC
 AC_PROG_CXX
@@ -106,43 +101,6 @@ PKG_PROG_PKG_CONFIG([0.20])
 AX_CXX_COMPILE_STDCXX([17], [], [optional])
 
 # Checks for libraries.
-
-# cunit
-have_cunit=no
-if test "x${request_cunit}" != "xno"; then
-  PKG_CHECK_MODULES([CUNIT], [cunit >= 2.1], [have_cunit=yes], [have_cunit=no])
-  # If pkg-config does not find cunit, check it using AC_CHECK_LIB.  We
-  # do this because Debian (Ubuntu) lacks pkg-config file for cunit.
-  if test "x${have_cunit}" = "xno"; then
-    AC_MSG_WARN([${CUNIT_PKG_ERRORS}])
-    AC_CHECK_LIB([cunit], [CU_initialize_registry],
-                 [have_cunit=yes], [have_cunit=no])
-    if test "x${have_cunit}" = "xyes"; then
-      CUNIT_LIBS="-lcunit"
-      CUNIT_CFLAGS=""
-      AC_SUBST([CUNIT_LIBS])
-      AC_SUBST([CUNIT_CFLAGS])
-    fi
-  fi
-  if test "x${have_cunit}" = "xyes"; then
-    # cunit in Mac OS X requires ncurses. Note that in Mac OS X, test
-    # program can be built without -lncurses, but it emits runtime
-    # error.
-    case "${build}" in
-      *-apple-darwin*)
-        CUNIT_LIBS="$CUNIT_LIBS -lncurses"
-        AC_SUBST([CUNIT_LIBS])
-        ;;
-    esac
-  fi
-fi
-
-if test "x${request_cunit}" = "xyes" &&
-   test "x${have_cunit}" != "xyes"; then
-  AC_MSG_ERROR([cunit was requested (--with-cunit) but not found])
-fi
-
-AM_CONDITIONAL([HAVE_CUNIT], [ test "x${have_cunit}" = "xyes" ])
 
 enable_examples=yes
 if test "x${lib_only}" = "xyes"; then
@@ -344,8 +302,6 @@ AC_MSG_NOTICE([summary of build options:
     Library:
       Shared:         ${enable_shared}
       Static:         ${enable_static}
-    Test:
-      CUnit:          ${have_cunit} (CFLAGS='${CUNIT_CFLAGS}' LIBS='${CUNIT_LIBS}')
     Debug:
       Debug:          ${debug} (CFLAGS='${DEBUGCFLAGS}')
     Library only:     ${lib_only}
