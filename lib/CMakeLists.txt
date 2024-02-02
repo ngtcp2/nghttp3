@@ -60,7 +60,7 @@ set(nghttp3_SOURCES
   nghttp3_opl.c
   nghttp3_objalloc.c
   nghttp3_unreachable.c
-  sfparse.c
+  sfparse/sfparse.c
 )
 
 # Public shared library
