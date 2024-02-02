@@ -233,6 +233,9 @@ struct nghttp3_stream {
          they are acknowledged inside the first outq element if it is of
          type NGHTTP3_BUF_TYPE_ALIEN. */
       uint64_t ack_done;
+      /* ack_total is the cumulative number of bytes acknowledged so
+         far. */
+      uint64_t ack_total;
       uint64_t unscheduled_nwrite;
       nghttp3_stream_type type;
       nghttp3_stream_read_state rstate;
