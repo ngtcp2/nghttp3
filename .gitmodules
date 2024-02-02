@@ -1,3 +1,6 @@
 [submodule "tests/munit"]
 	path = tests/munit
 	url = https://github.com/ngtcp2/munit
+[submodule "lib/sfparse"]
+	path = lib/sfparse
+	url = https://github.com/ngtcp2/sfparse

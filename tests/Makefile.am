@@ -48,7 +48,8 @@ main_SOURCES = $(HFILES) $(OBJECTS)
 
 # With static lib disabled and symbol hiding enabled, we have to link object
 # files directly because the tests use symbols not included in public API.
-main_LDADD = ${top_builddir}/lib/.libs/*.o
+main_LDADD = ${top_builddir}/lib/.libs/*.o \
+	${top_builddir}/lib/sfparse/.libs/*.o
 main_LDFLAGS = -static
 
 AM_CFLAGS = $(WARNCFLAGS) \
