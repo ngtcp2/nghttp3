@@ -26,6 +26,7 @@
 include_directories(
   "${CMAKE_SOURCE_DIR}/lib"
   "${CMAKE_SOURCE_DIR}/lib/includes"
+  "${CMAKE_SOURCE_DIR}/tests/munit"
   "${CMAKE_BINARY_DIR}/lib/includes"
 )
 

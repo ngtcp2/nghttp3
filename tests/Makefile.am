@@ -55,6 +55,7 @@ main_LDFLAGS = -static
 AM_CFLAGS = $(WARNCFLAGS) \
 	-I${top_srcdir}/lib \
 	-I${top_srcdir}/lib/includes \
+	-I${top_srcdir}/tests/munit \
 	-I${top_builddir}/lib/includes \
 	-DBUILDING_NGHTTP3 \
 	@DEFS@
