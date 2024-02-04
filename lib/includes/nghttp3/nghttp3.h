@@ -624,7 +624,7 @@ typedef struct nghttp3_buf {
    */
   uint8_t *end;
   /**
-   * :member:`pos` pointers to the start of data.  Typically, this
+   * :member:`pos` points to the start of data.  Typically, this
    * points to the address that next data should be read.  Initially,
    * it points to :member:`begin`.
    */
