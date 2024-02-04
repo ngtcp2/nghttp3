@@ -31,7 +31,7 @@
 
 #define MUNIT_ENABLE_ASSERT_ALIASES
 
-#include "munit/munit.h"
+#include "munit.h"
 
 extern const MunitSuite qpack_suite;
 

@@ -27,8 +27,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "munit/munit.h"
-
 #include "nghttp3_http.h"
 #include "nghttp3_macro.h"
 #include "nghttp3_test_helper.h"

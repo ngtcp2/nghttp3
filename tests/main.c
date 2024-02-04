@@ -28,7 +28,7 @@
 #  include <config.h>
 #endif /* HAVE_CONFIG_H */
 
-#include "munit/munit.h"
+#include "munit.h"
 
 /* include test cases' include files here */
 #include "nghttp3_qpack_test.h"
