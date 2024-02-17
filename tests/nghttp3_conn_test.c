@@ -79,6 +79,7 @@ typedef struct {
     size_t step;
   } data;
   struct {
+    size_t ncalled;
     uint64_t acc;
   } ack;
   struct {
@@ -113,6 +114,7 @@ static int acked_stream_data(nghttp3_conn *conn, int64_t stream_id,
   (void)stream_id;
   (void)stream_user_data;
 
+  ++ud->ack.ncalled;
   ud->ack.acc += datalen;
 
   return 0;
@@ -3747,6 +3749,8 @@ void test_nghttp3_conn_update_ack_offset(void) {
   memset(&ud, 0, sizeof(ud));
   nghttp3_settings_default(&settings);
 
+  callbacks.acked_stream_data = acked_stream_data;
+
   ud.data.left = 2000;
   ud.data.step = 1333;
 
@@ -3844,6 +3848,23 @@ void test_nghttp3_conn_update_ack_offset(void) {
   rv = nghttp3_conn_add_write_offset(conn, 0, (size_t)len);
 
   assert_int(0, ==, rv);
+
+  /* Make sure that we do not call acked_data with 0 length for an
+     alien buffer. */
+  ack_offset += vec[0].len;
+
+  ud.ack.ncalled = 0;
+
+  rv = nghttp3_conn_update_ack_offset(conn, 0, ack_offset);
+
+  assert_int(0, ==, rv);
+  assert_size(0, ==, ud.ack.ncalled);
+
+  /* Check with the same offset. */
+  rv = nghttp3_conn_update_ack_offset(conn, 0, ack_offset);
+
+  assert_int(0, ==, rv);
+  assert_size(0, ==, ud.ack.ncalled);
 
   /* Calling the function with smaller offset is an error. */
   rv = nghttp3_conn_update_ack_offset(conn, 0, ack_offset - 1);
