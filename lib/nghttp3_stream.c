@@ -940,15 +940,16 @@ int nghttp3_stream_update_ack_offset(nghttp3_stream *stream, uint64_t offset) {
     tbuf = nghttp3_ringbuf_get(outq, 0);
     buflen = nghttp3_buf_len(&tbuf->buf);
 
-    if (tbuf->type == NGHTTP3_BUF_TYPE_ALIEN) {
+    /* For NGHTTP3_BUF_TYPE_ALIEN, we never add 0 length buffer. */
+    if (tbuf->type == NGHTTP3_BUF_TYPE_ALIEN && stream->ack_offset < offset &&
+        stream->callbacks.acked_data) {
       nack =
           nghttp3_min(offset, stream->ack_base + buflen) - stream->ack_offset;
-      if (stream->callbacks.acked_data) {
-        rv = stream->callbacks.acked_data(stream, stream->node.id, nack,
-                                          stream->user_data);
-        if (rv != 0) {
-          return NGHTTP3_ERR_CALLBACK_FAILURE;
-        }
+
+      rv = stream->callbacks.acked_data(stream, stream->node.id, nack,
+                                        stream->user_data);
+      if (rv != 0) {
+        return NGHTTP3_ERR_CALLBACK_FAILURE;
       }
     }
 
