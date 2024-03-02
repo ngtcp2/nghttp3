@@ -44,5 +44,6 @@ munit_void_test_decl(test_nghttp3_qpack_decoder_stream_overflow);
 munit_void_test_decl(test_nghttp3_qpack_huffman);
 munit_void_test_decl(test_nghttp3_qpack_huffman_decode_failure_state);
 munit_void_test_decl(test_nghttp3_qpack_decoder_reconstruct_ricnt);
+munit_void_test_decl(test_nghttp3_qpack_decoder_read_encoder);
 
 #endif /* NGHTTP3_QPACK_TEST_H */

@@ -2670,6 +2670,7 @@ int nghttp3_qpack_decoder_init(nghttp3_qpack_decoder *decoder,
   decoder->opcode = 0;
   decoder->written_icnt = 0;
   decoder->max_concurrent_streams = 0;
+  decoder->uninterrupted_encoderlen = 0;
 
   nghttp3_qpack_read_state_reset(&decoder->rstate);
   nghttp3_buf_init(&decoder->dbuf);
@@ -2787,6 +2788,11 @@ nghttp3_ssize nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
 
   if (srclen == 0) {
     return 0;
+  }
+
+  decoder->uninterrupted_encoderlen += srclen;
+  if (decoder->uninterrupted_encoderlen > NGHTTP3_QPACK_MAX_ENCODERLEN) {
+    return NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR;
   }
 
   end = src + srclen;
@@ -3679,6 +3685,8 @@ almost_ok:
         goto fail;
       }
     }
+
+    decoder->uninterrupted_encoderlen = 0;
   }
 
   return p - src;

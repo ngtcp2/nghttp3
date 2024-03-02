@@ -48,6 +48,10 @@
 /* NGHTTP3_QPACK_MAX_VALUELEN is the maximum (compressed) length of
    header value this library can decode. */
 #define NGHTTP3_QPACK_MAX_VALUELEN 65536
+/* NGHTTP3_QPACK_MAX_ENCODERLEN is the maximum encoder stream length
+   that a decoder accepts without completely processing a single field
+   section. */
+#define NGHTTP3_QPACK_MAX_ENCODERLEN (128 * 1024)
 
 /* nghttp3_qpack_indexing_mode is a indexing strategy. */
 typedef enum nghttp3_qpack_indexing_mode {
@@ -779,6 +783,9 @@ struct nghttp3_qpack_decoder {
      unidirectional streams which potentially receives QPACK encoded
      HEADER frame. */
   size_t max_concurrent_streams;
+  /* uninterrupted_encoderlen is the number of bytes read from encoder
+     stream without completing a single field section. */
+  size_t uninterrupted_encoderlen;
 };
 
 /*
