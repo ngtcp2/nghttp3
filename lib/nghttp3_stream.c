@@ -73,7 +73,6 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
 
   stream->qpack_blocked_pe.index = NGHTTP3_PQ_BAD_INDEX;
   stream->mem = mem;
-  stream->tx.offset = 0;
   stream->rx.http.status_code = -1;
   stream->rx.http.content_length = -1;
   stream->rx.http.pri.urgency = NGHTTP3_DEFAULT_URGENCY;
