@@ -52,6 +52,10 @@
    that a decoder accepts without completely processing a single field
    section. */
 #define NGHTTP3_QPACK_MAX_ENCODERLEN (128 * 1024)
+/* NGHTTP3_QPACK_MAX_DECODERLEN is the maximum decoder stream length
+   that an encoder accepts without completely encoding a single field
+   section. */
+#define NGHTTP3_QPACK_MAX_DECODERLEN (128 * 1024)
 
 /* nghttp3_qpack_indexing_mode is a indexing strategy. */
 typedef enum nghttp3_qpack_indexing_mode {
@@ -254,6 +258,9 @@ struct nghttp3_qpack_encoder {
   /* last_max_dtable_update is the dynamic table size last
      requested. */
   size_t last_max_dtable_update;
+  /* uninterrupted_decoderlen is the number of bytes read from decoder
+     stream without encoding a single field section. */
+  size_t uninterrupted_decoderlen;
   /* flags is bitwise OR of zero or more of
      NGHTTP3_QPACK_ENCODER_FLAG_*. */
   uint8_t flags;

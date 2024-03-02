@@ -926,6 +926,7 @@ int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
   encoder->opcode = 0;
   encoder->min_dtable_update = SIZE_MAX;
   encoder->last_max_dtable_update = 0;
+  encoder->uninterrupted_decoderlen = 0;
   encoder->flags = NGHTTP3_QPACK_ENCODER_FLAG_NONE;
 
   nghttp3_qpack_read_state_reset(&encoder->rstate);
@@ -1180,6 +1181,8 @@ int nghttp3_qpack_encoder_encode(nghttp3_qpack_encoder *encoder,
 
   nghttp3_qpack_encoder_write_field_section_prefix(encoder, pbuf, max_cnt,
                                                    base);
+
+  encoder->uninterrupted_decoderlen = 0;
 
   /* TODO If max_cnt == 0, no reference is made to dtable. */
   if (!max_cnt) {
@@ -2521,6 +2524,11 @@ nghttp3_ssize nghttp3_qpack_encoder_read_decoder(nghttp3_qpack_encoder *encoder,
 
   if (srclen == 0) {
     return 0;
+  }
+
+  encoder->uninterrupted_decoderlen += srclen;
+  if (encoder->uninterrupted_decoderlen > NGHTTP3_QPACK_MAX_DECODERLEN) {
+    return NGHTTP3_ERR_QPACK_DECODER_STREAM_ERROR;
   }
 
   end = src + srclen;
