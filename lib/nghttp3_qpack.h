@@ -55,7 +55,7 @@
 /* NGHTTP3_QPACK_MAX_DECODERLEN is the maximum decoder stream length
    that an encoder accepts without completely encoding a single field
    section. */
-#define NGHTTP3_QPACK_MAX_DECODERLEN (128 * 1024)
+#define NGHTTP3_QPACK_MAX_DECODERLEN (4 * 1024)
 
 /* nghttp3_qpack_indexing_mode is a indexing strategy. */
 typedef enum nghttp3_qpack_indexing_mode {
