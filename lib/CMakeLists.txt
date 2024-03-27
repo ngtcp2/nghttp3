@@ -78,15 +78,16 @@ if(ENABLE_SHARED_LIB)
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 endif()
 
-# Static library (for unittests because of symbol visibility)
-add_library(nghttp3_static STATIC ${nghttp3_SOURCES})
-set_target_properties(nghttp3_static PROPERTIES
-  COMPILE_FLAGS "${WARNCFLAGS}"
-  VERSION ${LT_VERSION} SOVERSION ${LT_SOVERSION}
-  ARCHIVE_OUTPUT_NAME nghttp3${STATIC_LIB_SUFFIX}
-  )
-target_compile_definitions(nghttp3_static PUBLIC "-DNGHTTP3_STATICLIB")
 if(ENABLE_STATIC_LIB)
+  # Public static library
+  add_library(nghttp3_static STATIC ${nghttp3_SOURCES})
+  set_target_properties(nghttp3_static PROPERTIES
+    COMPILE_FLAGS "${WARNCFLAGS}"
+    VERSION ${LT_VERSION} SOVERSION ${LT_SOVERSION}
+    ARCHIVE_OUTPUT_NAME nghttp3${STATIC_LIB_SUFFIX}
+    )
+  target_compile_definitions(nghttp3_static PUBLIC "-DNGHTTP3_STATICLIB")
+
   install(TARGETS nghttp3_static
     DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 endif()
