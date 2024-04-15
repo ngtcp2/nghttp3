@@ -214,6 +214,8 @@ message(STATUS "summary of build options:
     Library:
       Shared:         ${ENABLE_SHARED_LIB}
       Static:         ${ENABLE_STATIC_LIB}
+    Test:
+      Build Test:     ${BUILD_TESTING}
     Library only:     ${ENABLE_LIB_ONLY}
     Examples:         ${ENABLE_EXAMPLES}
 ")
