@@ -230,7 +230,8 @@ int nghttp3_stream_frq_add(nghttp3_stream *stream,
   int rv;
 
   if (nghttp3_ringbuf_full(frq)) {
-    size_t nlen = nghttp3_max(NGHTTP3_MIN_RBLEN, nghttp3_ringbuf_len(frq) * 2);
+    size_t nlen =
+        nghttp3_max_size(NGHTTP3_MIN_RBLEN, nghttp3_ringbuf_len(frq) * 2);
     rv = nghttp3_ringbuf_reserve(frq, nlen);
     if (rv != 0) {
       return rv;
@@ -737,7 +738,7 @@ int nghttp3_stream_outq_add(nghttp3_stream *stream,
   }
 
   if (nghttp3_ringbuf_full(outq)) {
-    size_t nlen = nghttp3_max(NGHTTP3_MIN_RBLEN, len * 2);
+    size_t nlen = nghttp3_max_size(NGHTTP3_MIN_RBLEN, len * 2);
     rv = nghttp3_ringbuf_reserve(outq, nlen);
     if (rv != 0) {
       return rv;
@@ -779,7 +780,7 @@ int nghttp3_stream_ensure_chunk(nghttp3_stream *stream, size_t need) {
   }
 
   if (nghttp3_ringbuf_full(chunks)) {
-    size_t nlen = nghttp3_max(NGHTTP3_MIN_RBLEN, len * 2);
+    size_t nlen = nghttp3_max_size(NGHTTP3_MIN_RBLEN, len * 2);
     rv = nghttp3_ringbuf_reserve(chunks, nlen);
     if (rv != 0) {
       return rv;
@@ -942,8 +943,8 @@ int nghttp3_stream_update_ack_offset(nghttp3_stream *stream, uint64_t offset) {
     /* For NGHTTP3_BUF_TYPE_ALIEN, we never add 0 length buffer. */
     if (tbuf->type == NGHTTP3_BUF_TYPE_ALIEN && stream->ack_offset < offset &&
         stream->callbacks.acked_data) {
-      nack =
-          nghttp3_min(offset, stream->ack_base + buflen) - stream->ack_offset;
+      nack = nghttp3_min_uint64(offset, stream->ack_base + buflen) -
+             stream->ack_offset;
 
       rv = stream->callbacks.acked_data(stream, stream->node.id, nack,
                                         stream->user_data);
@@ -1004,7 +1005,7 @@ int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *data,
   for (; datalen;) {
     if (nghttp3_ringbuf_full(inq)) {
       size_t nlen =
-          nghttp3_max(NGHTTP3_MIN_RBLEN, nghttp3_ringbuf_len(inq) * 2);
+          nghttp3_max_size(NGHTTP3_MIN_RBLEN, nghttp3_ringbuf_len(inq) * 2);
       rv = nghttp3_ringbuf_reserve(inq, nlen);
       if (rv != 0) {
         return rv;
