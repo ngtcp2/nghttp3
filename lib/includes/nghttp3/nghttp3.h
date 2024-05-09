@@ -2344,9 +2344,9 @@ NGHTTP3_EXTERN int nghttp3_conn_resume_stream(nghttp3_conn *conn,
 /**
  * @function
  *
- * `nghttp3_conn_close_stream` closes stream identified by
- * |stream_id|.  QUIC application error code |app_error_code| is the
- * reason of the closure.
+ * `nghttp3_conn_close_stream` tells the library that a stream
+ * identified by |stream_id| has been closed.  QUIC application error
+ * code |app_error_code| is the reason of the closure.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
