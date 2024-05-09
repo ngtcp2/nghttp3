@@ -1431,7 +1431,7 @@ static int qpack_encoder_can_index_duplicate(nghttp3_qpack_encoder *encoder,
 static int qpack_context_check_draining(nghttp3_qpack_context *ctx,
                                         uint64_t absidx) {
   const size_t safe = ctx->max_dtable_capacity -
-                      nghttp3_min(512, ctx->max_dtable_capacity * 1 / 8);
+                      nghttp3_min_size(512, ctx->max_dtable_capacity * 1 / 8);
   nghttp3_qpack_entry *ent = nghttp3_qpack_context_dtable_get(ctx, absidx);
 
   return ctx->dtable_sum - ent->sum > safe;
@@ -1512,8 +1512,8 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
       new_ent = nghttp3_qpack_context_dtable_top(&encoder->ctx);
       dres.index = (nghttp3_ssize)new_ent->absidx;
     }
-    *pmax_cnt = nghttp3_max(*pmax_cnt, (size_t)(dres.index + 1));
-    *pmin_cnt = nghttp3_min(*pmin_cnt, (size_t)(dres.index + 1));
+    *pmax_cnt = nghttp3_max_uint64(*pmax_cnt, (uint64_t)(dres.index + 1));
+    *pmin_cnt = nghttp3_min_uint64(*pmin_cnt, (uint64_t)(dres.index + 1));
 
     return nghttp3_qpack_encoder_write_dynamic_indexed(
         encoder, rbuf, (size_t)dres.index, base);
@@ -1533,8 +1533,8 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
       }
       if (allow_blocking) {
         new_ent = nghttp3_qpack_context_dtable_top(&encoder->ctx);
-        *pmax_cnt = nghttp3_max(*pmax_cnt, new_ent->absidx + 1);
-        *pmin_cnt = nghttp3_min(*pmin_cnt, new_ent->absidx + 1);
+        *pmax_cnt = nghttp3_max_uint64(*pmax_cnt, new_ent->absidx + 1);
+        *pmin_cnt = nghttp3_min_uint64(*pmin_cnt, new_ent->absidx + 1);
 
         return nghttp3_qpack_encoder_write_dynamic_indexed(
             encoder, rbuf, new_ent->absidx, base);
@@ -1549,8 +1549,9 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
     if (just_index &&
         qpack_encoder_can_index_nv(
             encoder, nv,
-            allow_blocking ? *pmin_cnt
-                           : nghttp3_min((size_t)dres.index + 1, *pmin_cnt))) {
+            allow_blocking
+                ? *pmin_cnt
+                : nghttp3_min_uint64((uint64_t)dres.index + 1, *pmin_cnt))) {
       rv = nghttp3_qpack_encoder_write_dynamic_insert(encoder, ebuf,
                                                       (size_t)dres.index, nv);
       if (rv != 0) {
@@ -1558,7 +1559,7 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
       }
 
       if (!allow_blocking) {
-        *pmin_cnt = nghttp3_min(*pmin_cnt, (size_t)dres.index + 1);
+        *pmin_cnt = nghttp3_min_uint64(*pmin_cnt, (uint64_t)dres.index + 1);
       }
 
       rv = nghttp3_qpack_encoder_dtable_dynamic_add(encoder, (size_t)dres.index,
@@ -1569,16 +1570,16 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
 
       if (allow_blocking) {
         new_ent = nghttp3_qpack_context_dtable_top(&encoder->ctx);
-        *pmax_cnt = nghttp3_max(*pmax_cnt, new_ent->absidx + 1);
-        *pmin_cnt = nghttp3_min(*pmin_cnt, new_ent->absidx + 1);
+        *pmax_cnt = nghttp3_max_uint64(*pmax_cnt, new_ent->absidx + 1);
+        *pmin_cnt = nghttp3_min_uint64(*pmin_cnt, new_ent->absidx + 1);
 
         return nghttp3_qpack_encoder_write_dynamic_indexed(
             encoder, rbuf, new_ent->absidx, base);
       }
     }
 
-    *pmax_cnt = nghttp3_max(*pmax_cnt, (size_t)(dres.index + 1));
-    *pmin_cnt = nghttp3_min(*pmin_cnt, (size_t)(dres.index + 1));
+    *pmax_cnt = nghttp3_max_uint64(*pmax_cnt, (uint64_t)(dres.index + 1));
+    *pmin_cnt = nghttp3_min_uint64(*pmin_cnt, (uint64_t)(dres.index + 1));
 
     return nghttp3_qpack_encoder_write_dynamic_indexed_name(
         encoder, rbuf, (size_t)dres.index, base, nv);
@@ -1595,8 +1596,8 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
     }
     if (allow_blocking) {
       new_ent = nghttp3_qpack_context_dtable_top(&encoder->ctx);
-      *pmax_cnt = nghttp3_max(*pmax_cnt, new_ent->absidx + 1);
-      *pmin_cnt = nghttp3_min(*pmin_cnt, new_ent->absidx + 1);
+      *pmax_cnt = nghttp3_max_uint64(*pmax_cnt, new_ent->absidx + 1);
+      *pmin_cnt = nghttp3_min_uint64(*pmin_cnt, new_ent->absidx + 1);
 
       return nghttp3_qpack_encoder_write_dynamic_indexed(encoder, rbuf,
                                                          new_ent->absidx, base);
