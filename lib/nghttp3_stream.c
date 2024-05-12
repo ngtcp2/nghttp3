@@ -207,7 +207,7 @@ nghttp3_ssize nghttp3_read_varint(nghttp3_varint_read_state *rvint,
     --rvint->left;
   }
 
-  n = nghttp3_min(rvint->left, srclen);
+  n = nghttp3_min_size(rvint->left, srclen);
 
   for (i = 0; i < n; ++i) {
     rvint->acc = (rvint->acc << 8) + src[i];
@@ -996,7 +996,7 @@ int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *data,
   if (len) {
     buf = nghttp3_ringbuf_get(inq, len - 1);
     bufleft = nghttp3_buf_left(buf);
-    nwrite = nghttp3_min(datalen, bufleft);
+    nwrite = nghttp3_min_size(datalen, bufleft);
     buf->last = nghttp3_cpymem(buf->last, data, nwrite);
     data += nwrite;
     datalen -= nwrite;
@@ -1020,7 +1020,7 @@ int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *data,
     buf = nghttp3_ringbuf_push_back(inq);
     nghttp3_buf_wrap_init(buf, rawbuf, 16384);
     bufleft = nghttp3_buf_left(buf);
-    nwrite = nghttp3_min(datalen, bufleft);
+    nwrite = nghttp3_min_size(datalen, bufleft);
     buf->last = nghttp3_cpymem(buf->last, data, nwrite);
     data += nwrite;
     datalen -= nwrite;

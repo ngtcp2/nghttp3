@@ -419,7 +419,7 @@ nghttp3_ssize nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
         }
 
         conn->rx.max_stream_id_bidi =
-            nghttp3_max(conn->rx.max_stream_id_bidi, stream_id);
+            nghttp3_max_int64(conn->rx.max_stream_id_bidi, stream_id);
         rv = nghttp3_conn_create_stream(conn, &stream, stream_id);
         if (rv != 0) {
           return rv;
@@ -1705,7 +1705,7 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
     dest->qpack_blocked_streams = (size_t)ent->value;
 
     nghttp3_qpack_encoder_set_max_blocked_streams(
-        &conn->qenc, (size_t)nghttp3_min(100, ent->value));
+        &conn->qenc, (size_t)nghttp3_min_uint64(100, ent->value));
     break;
   case NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL:
     if (!conn->server) {
@@ -1784,7 +1784,7 @@ conn_on_priority_update_stream(nghttp3_conn *conn,
     }
 
     conn->rx.max_stream_id_bidi =
-        nghttp3_max(conn->rx.max_stream_id_bidi, stream_id);
+        nghttp3_max_int64(conn->rx.max_stream_id_bidi, stream_id);
     rv = nghttp3_conn_create_stream(conn, &stream, stream_id);
     if (rv != 0) {
       return rv;

@@ -952,8 +952,8 @@ void nghttp3_qpack_encoder_free(nghttp3_qpack_encoder *encoder) {
 
 void nghttp3_qpack_encoder_set_max_dtable_capacity(
     nghttp3_qpack_encoder *encoder, size_t max_dtable_capacity) {
-  max_dtable_capacity =
-      nghttp3_min(max_dtable_capacity, encoder->ctx.hard_max_dtable_capacity);
+  max_dtable_capacity = nghttp3_min_size(max_dtable_capacity,
+                                         encoder->ctx.hard_max_dtable_capacity);
 
   if (encoder->ctx.max_dtable_capacity == max_dtable_capacity) {
     return;
@@ -1377,7 +1377,7 @@ static int qpack_encoder_can_index(nghttp3_qpack_encoder *encoder, size_t need,
 
   if (!nghttp3_pq_empty(&encoder->min_cnts)) {
     gmin_cnt = nghttp3_qpack_encoder_get_min_cnt(encoder);
-    min_cnt = nghttp3_min(min_cnt, gmin_cnt);
+    min_cnt = nghttp3_min_uint64(min_cnt, gmin_cnt);
   }
 
   if (min_cnt == UINT64_MAX) {
@@ -2736,7 +2736,7 @@ static nghttp3_ssize qpack_read_string(nghttp3_qpack_read_state *rstate,
                                        nghttp3_buf *dest, const uint8_t *begin,
                                        const uint8_t *end) {
   size_t len = (size_t)(end - begin);
-  size_t n = (size_t)nghttp3_min((uint64_t)len, rstate->left);
+  size_t n = (size_t)nghttp3_min_uint64((uint64_t)len, rstate->left);
 
   dest->last = nghttp3_cpymem(dest->last, begin, n);
 
@@ -3247,7 +3247,7 @@ int nghttp3_qpack_decoder_dtable_literal_add(nghttp3_qpack_decoder *decoder) {
 void nghttp3_qpack_decoder_set_max_concurrent_streams(
     nghttp3_qpack_decoder *decoder, size_t max_concurrent_streams) {
   decoder->max_concurrent_streams =
-      nghttp3_max(decoder->max_concurrent_streams, max_concurrent_streams);
+      nghttp3_max_size(decoder->max_concurrent_streams, max_concurrent_streams);
 }
 
 void nghttp3_qpack_stream_context_init(nghttp3_qpack_stream_context *sctx,
@@ -3706,7 +3706,7 @@ fail:
 }
 
 static int qpack_decoder_dbuf_overflow(nghttp3_qpack_decoder *decoder) {
-  size_t limit = nghttp3_max(decoder->max_concurrent_streams, 100);
+  size_t limit = nghttp3_max_size(decoder->max_concurrent_streams, 100);
   /* 10 = nghttp3_qpack_put_varint_len((1ULL << 62) - 1, 2)) */
   return nghttp3_buf_len(&decoder->dbuf) > limit * 2 * 10;
 }

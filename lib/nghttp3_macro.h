@@ -34,9 +34,6 @@
 
 #include <nghttp3/nghttp3.h>
 
-#define nghttp3_min(A, B) ((A) < (B) ? (A) : (B))
-#define nghttp3_max(A, B) ((A) > (B) ? (A) : (B))
-
 #define nghttp3_struct_of(ptr, type, member)                                   \
   ((type *)(void *)((char *)(ptr)-offsetof(type, member)))
 
@@ -48,11 +45,6 @@
    variable-length integer encoding. */
 #define NGHTTP3_MAX_VARINT ((1ULL << 62) - 1)
 
-/*
- * nghttp3_max variants but they are inline functions.  The
- * intermediate values are stored in parameters so that they are
- * evaluated just once.
- */
 #define nghttp3_max_def(SUFFIX, T)                                             \
   static inline T nghttp3_max_##SUFFIX(T a, T b) { return a < b ? b : a; }
 
@@ -66,11 +58,6 @@ nghttp3_max_def(uint32, uint32_t);
 nghttp3_max_def(uint64, uint64_t);
 nghttp3_max_def(size, size_t);
 
-/*
- * nghttp3_min variants but they are inline functions.  The
- * intermediate values are stored in parameters so that they are
- * evaluated just once.
- */
 #define nghttp3_min_def(SUFFIX, T)                                             \
   static inline T nghttp3_min_##SUFFIX(T a, T b) { return a < b ? a : b; }
 
