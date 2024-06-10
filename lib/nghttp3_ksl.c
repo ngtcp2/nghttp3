@@ -61,8 +61,7 @@ void nghttp3_ksl_init(nghttp3_ksl *ksl, nghttp3_ksl_compar compar,
   size_t nodelen = ksl_nodelen(keylen);
 
   nghttp3_objalloc_init(&ksl->blkalloc,
-                        ((ksl_blklen(nodelen) + 0xfu) & ~(uintptr_t)0xfu) * 8,
-                        mem);
+                        (ksl_blklen(nodelen) + 0xfu) & ~(uintptr_t)0xfu, mem);
 
   ksl->head = NULL;
   ksl->front = ksl->back = NULL;
