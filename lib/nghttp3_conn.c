@@ -250,7 +250,7 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
 
   nghttp3_objalloc_init(&conn->out_chunk_objalloc,
                         NGHTTP3_STREAM_MIN_CHUNK_SIZE * 16, mem);
-  nghttp3_objalloc_stream_init(&conn->stream_objalloc, 64, mem);
+  nghttp3_objalloc_stream_init(&conn->stream_objalloc, 8, mem);
 
   nghttp3_map_init(&conn->streams, mem);
 
