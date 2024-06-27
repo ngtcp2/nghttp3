@@ -1,7 +1,7 @@
 #!/bin/bash -eu
 
 autoreconf -i
-./configure
+./configure --disable-dependency-tracking
 make -j$(nproc)
 
 $CXX $CXXFLAGS -std=c++17 -Ilib/includes \
