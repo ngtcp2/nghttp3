@@ -134,12 +134,7 @@ else()
 endif()
 
 if(ENABLE_STATIC_CRT)
-  foreach(lang C CXX)
-    foreach(suffix "" _DEBUG _MINSIZEREL _RELEASE _RELWITHDEBINFO)
-      set(var "CMAKE_${lang}_FLAGS${suffix}")
-      string(REPLACE "/MD" "/MT" ${var} "${${var}}")
-    endforeach()
-  endforeach()
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
 if(ENABLE_DEBUG)
