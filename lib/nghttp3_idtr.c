@@ -42,8 +42,7 @@ void nghttp3_idtr_free(nghttp3_idtr *idtr) {
 }
 
 /*
- * id_from_stream_id translates |stream_id| to id space used by
- * nghttp3_idtr.
+ * id_from_stream_id translates |stream_id| to an internal ID.
  */
 static uint64_t id_from_stream_id(int64_t stream_id) {
   return (uint64_t)(stream_id >> 2);
@@ -52,8 +51,8 @@ static uint64_t id_from_stream_id(int64_t stream_id) {
 int nghttp3_idtr_open(nghttp3_idtr *idtr, int64_t stream_id) {
   uint64_t q;
 
-  assert((idtr->server && (stream_id % 2)) ||
-         (!idtr->server && (stream_id % 2)) == 0);
+  assert((idtr->server && (stream_id & 1)) ||
+         (!idtr->server && !(stream_id & 1)));
 
   q = id_from_stream_id(stream_id);
 
@@ -67,14 +66,10 @@ int nghttp3_idtr_open(nghttp3_idtr *idtr, int64_t stream_id) {
 int nghttp3_idtr_is_open(nghttp3_idtr *idtr, int64_t stream_id) {
   uint64_t q;
 
-  assert((idtr->server && (stream_id % 2)) ||
-         (!idtr->server && (stream_id % 2)) == 0);
+  assert((idtr->server && (stream_id & 1)) ||
+         (!idtr->server && !(stream_id & 1)));
 
   q = id_from_stream_id(stream_id);
 
   return nghttp3_gaptr_is_pushed(&idtr->gap, q, 1);
-}
-
-uint64_t nghttp3_idtr_first_gap(nghttp3_idtr *idtr) {
-  return nghttp3_gaptr_first_gap_offset(&idtr->gap);
 }
