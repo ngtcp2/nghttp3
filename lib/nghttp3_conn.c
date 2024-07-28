@@ -273,7 +273,7 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
     nghttp3_pq_init(&conn->sched[i].spq, cycle_less, mem);
   }
 
-  nghttp3_idtr_init(&conn->remote.bidi.idtr, server, mem);
+  nghttp3_idtr_init(&conn->remote.bidi.idtr, !server, mem);
 
   conn->callbacks = *callbacks;
   conn->local.settings = *settings;

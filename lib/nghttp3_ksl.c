@@ -268,9 +268,9 @@ static void ksl_insert_node(nghttp3_ksl *ksl, nghttp3_ksl_blk *blk, size_t i,
   ++blk->n;
 }
 
-static size_t ksl_bsearch(nghttp3_ksl *ksl, nghttp3_ksl_blk *blk,
-                          const nghttp3_ksl_key *key,
-                          nghttp3_ksl_compar compar) {
+static size_t ksl_search(nghttp3_ksl *ksl, nghttp3_ksl_blk *blk,
+                         const nghttp3_ksl_key *key,
+                         nghttp3_ksl_compar compar) {
   size_t i;
   nghttp3_ksl_node *node;
 
@@ -307,7 +307,7 @@ int nghttp3_ksl_insert(nghttp3_ksl *ksl, nghttp3_ksl_it *it,
   }
 
   for (;;) {
-    i = ksl_bsearch(ksl, blk, key, ksl->compar);
+    i = ksl_search(ksl, blk, key, ksl->compar);
 
     if (blk->leaf) {
       if (i < blk->n &&
@@ -549,7 +549,7 @@ int nghttp3_ksl_remove(nghttp3_ksl *ksl, nghttp3_ksl_it *it,
   }
 
   for (;;) {
-    i = ksl_bsearch(ksl, blk, key, ksl->compar);
+    i = ksl_search(ksl, blk, key, ksl->compar);
 
     if (i == blk->n) {
       if (it) {
@@ -613,43 +613,7 @@ int nghttp3_ksl_remove(nghttp3_ksl *ksl, nghttp3_ksl_it *it,
 
 nghttp3_ksl_it nghttp3_ksl_lower_bound(nghttp3_ksl *ksl,
                                        const nghttp3_ksl_key *key) {
-  nghttp3_ksl_blk *blk = ksl->head;
-  nghttp3_ksl_it it;
-  size_t i;
-
-  if (!blk) {
-    nghttp3_ksl_it_init(&it, ksl, &null_blk, 0);
-    return it;
-  }
-
-  for (;;) {
-    i = ksl_bsearch(ksl, blk, key, ksl->compar);
-
-    if (blk->leaf) {
-      if (i == blk->n && blk->next) {
-        blk = blk->next;
-        i = 0;
-      }
-      nghttp3_ksl_it_init(&it, ksl, blk, i);
-      return it;
-    }
-
-    if (i == blk->n) {
-      /* This happens if descendant has smaller key.  Fast forward to
-         find last node in this subtree. */
-      for (; !blk->leaf; blk = nghttp3_ksl_nth_node(ksl, blk, blk->n - 1)->blk)
-        ;
-      if (blk->next) {
-        blk = blk->next;
-        i = 0;
-      } else {
-        i = blk->n;
-      }
-      nghttp3_ksl_it_init(&it, ksl, blk, i);
-      return it;
-    }
-    blk = nghttp3_ksl_nth_node(ksl, blk, i)->blk;
-  }
+  return nghttp3_ksl_lower_bound_compar(ksl, key, ksl->compar);
 }
 
 nghttp3_ksl_it nghttp3_ksl_lower_bound_compar(nghttp3_ksl *ksl,
@@ -665,7 +629,7 @@ nghttp3_ksl_it nghttp3_ksl_lower_bound_compar(nghttp3_ksl *ksl,
   }
 
   for (;;) {
-    i = ksl_bsearch(ksl, blk, key, compar);
+    i = ksl_search(ksl, blk, key, compar);
 
     if (blk->leaf) {
       if (i == blk->n && blk->next) {
@@ -703,7 +667,7 @@ void nghttp3_ksl_update_key(nghttp3_ksl *ksl, const nghttp3_ksl_key *old_key,
   assert(ksl->head);
 
   for (;;) {
-    i = ksl_bsearch(ksl, blk, old_key, ksl->compar);
+    i = ksl_search(ksl, blk, old_key, ksl->compar);
 
     assert(i < blk->n);
     node = nghttp3_ksl_nth_node(ksl, blk, i);
