@@ -44,18 +44,12 @@ typedef struct nghttp3_idtr {
      stream ID are in the different number spaces.  See
      id_from_stream_id to convert a stream ID to an internal ID. */
   nghttp3_gaptr gap;
-  /* server is nonzero if this object records server initiated stream
-     ID. */
-  int server;
 } nghttp3_idtr;
 
 /*
  * nghttp3_idtr_init initializes |idtr|.
- *
- * If this object records server initiated stream ID (odd number), set
- * |server| to nonzero.
  */
-void nghttp3_idtr_init(nghttp3_idtr *idtr, int server, const nghttp3_mem *mem);
+void nghttp3_idtr_init(nghttp3_idtr *idtr, const nghttp3_mem *mem);
 
 /*
  * nghttp3_idtr_free frees resources allocated for |idtr|.
