@@ -27,10 +27,8 @@
 
 #include <assert.h>
 
-void nghttp3_idtr_init(nghttp3_idtr *idtr, int server, const nghttp3_mem *mem) {
+void nghttp3_idtr_init(nghttp3_idtr *idtr, const nghttp3_mem *mem) {
   nghttp3_gaptr_init(&idtr->gap, mem);
-
-  idtr->server = server;
 }
 
 void nghttp3_idtr_free(nghttp3_idtr *idtr) {
@@ -51,9 +49,6 @@ static uint64_t id_from_stream_id(int64_t stream_id) {
 int nghttp3_idtr_open(nghttp3_idtr *idtr, int64_t stream_id) {
   uint64_t q;
 
-  assert((idtr->server && (stream_id & 1)) ||
-         (!idtr->server && !(stream_id & 1)));
-
   q = id_from_stream_id(stream_id);
 
   if (nghttp3_gaptr_is_pushed(&idtr->gap, q, 1)) {
@@ -65,9 +60,6 @@ int nghttp3_idtr_open(nghttp3_idtr *idtr, int64_t stream_id) {
 
 int nghttp3_idtr_is_open(nghttp3_idtr *idtr, int64_t stream_id) {
   uint64_t q;
-
-  assert((idtr->server && (stream_id & 1)) ||
-         (!idtr->server && !(stream_id & 1)));
 
   q = id_from_stream_id(stream_id);
 
