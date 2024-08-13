@@ -368,7 +368,7 @@ void nghttp3_conn_del(nghttp3_conn *conn) {
   nghttp3_qpack_encoder_free(&conn->qenc);
   nghttp3_qpack_decoder_free(&conn->qdec);
 
-  nghttp3_map_each_free(&conn->streams, free_stream, NULL);
+  nghttp3_map_each(&conn->streams, free_stream, NULL);
   nghttp3_map_free(&conn->streams);
 
   nghttp3_objalloc_free(&conn->stream_objalloc);

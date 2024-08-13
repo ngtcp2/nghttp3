@@ -944,8 +944,8 @@ static int map_stream_free(void *data, void *ptr) {
 void nghttp3_qpack_encoder_free(nghttp3_qpack_encoder *encoder) {
   nghttp3_pq_free(&encoder->min_cnts);
   nghttp3_ksl_free(&encoder->blocked_streams);
-  nghttp3_map_each_free(&encoder->streams, map_stream_free,
-                        (void *)encoder->ctx.mem);
+  nghttp3_map_each(&encoder->streams, map_stream_free,
+                   (void *)encoder->ctx.mem);
   nghttp3_map_free(&encoder->streams);
   qpack_context_free(&encoder->ctx);
 }
@@ -2361,8 +2361,8 @@ void nghttp3_qpack_encoder_ack_everything(nghttp3_qpack_encoder *encoder) {
 
   nghttp3_ksl_clear(&encoder->blocked_streams);
   nghttp3_pq_clear(&encoder->min_cnts);
-  nghttp3_map_each_free(&encoder->streams, map_stream_free,
-                        (void *)encoder->ctx.mem);
+  nghttp3_map_each(&encoder->streams, map_stream_free,
+                   (void *)encoder->ctx.mem);
   nghttp3_map_clear(&encoder->streams);
 }
 
