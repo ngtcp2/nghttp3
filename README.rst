@@ -50,6 +50,13 @@ This library implements `RFC 9204
 <https://datatracker.ietf.org/doc/html/rfc9204>`_ QPACK.  It supports
 dynamic table.
 
+Examples
+--------
+
+- client: https://github.com/ngtcp2/ngtcp2/blob/main/examples/client.cc
+- server: https://github.com/ngtcp2/ngtcp2/blob/main/examples/server.cc
+- curl: https://github.com/curl/curl/blob/master/lib/vquic/curl_ngtcp2.c
+
 License
 -------
 
