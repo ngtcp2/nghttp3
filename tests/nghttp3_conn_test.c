@@ -36,38 +36,38 @@
 #include "nghttp3_http.h"
 
 static const MunitTest tests[] = {
-    munit_void_test(test_nghttp3_conn_read_control),
-    munit_void_test(test_nghttp3_conn_write_control),
-    munit_void_test(test_nghttp3_conn_submit_request),
-    munit_void_test(test_nghttp3_conn_http_request),
-    munit_void_test(test_nghttp3_conn_http_resp_header),
-    munit_void_test(test_nghttp3_conn_http_req_header),
-    munit_void_test(test_nghttp3_conn_http_content_length),
-    munit_void_test(test_nghttp3_conn_http_content_length_mismatch),
-    munit_void_test(test_nghttp3_conn_http_non_final_response),
-    munit_void_test(test_nghttp3_conn_http_trailers),
-    munit_void_test(test_nghttp3_conn_http_ignore_content_length),
-    munit_void_test(test_nghttp3_conn_http_record_request_method),
-    munit_void_test(test_nghttp3_conn_http_error),
-    munit_void_test(test_nghttp3_conn_qpack_blocked_stream),
-    munit_void_test(test_nghttp3_conn_just_fin),
-    munit_void_test(test_nghttp3_conn_submit_response_read_blocked),
-    munit_void_test(test_nghttp3_conn_recv_uni),
-    munit_void_test(test_nghttp3_conn_recv_goaway),
-    munit_void_test(test_nghttp3_conn_shutdown_server),
-    munit_void_test(test_nghttp3_conn_shutdown_client),
-    munit_void_test(test_nghttp3_conn_priority_update),
-    munit_void_test(test_nghttp3_conn_request_priority),
-    munit_void_test(test_nghttp3_conn_set_stream_priority),
-    munit_void_test(test_nghttp3_conn_shutdown_stream_read),
-    munit_void_test(test_nghttp3_conn_stream_data_overflow),
-    munit_void_test(test_nghttp3_conn_get_frame_payload_left),
-    munit_void_test(test_nghttp3_conn_update_ack_offset),
-    munit_test_end(),
+  munit_void_test(test_nghttp3_conn_read_control),
+  munit_void_test(test_nghttp3_conn_write_control),
+  munit_void_test(test_nghttp3_conn_submit_request),
+  munit_void_test(test_nghttp3_conn_http_request),
+  munit_void_test(test_nghttp3_conn_http_resp_header),
+  munit_void_test(test_nghttp3_conn_http_req_header),
+  munit_void_test(test_nghttp3_conn_http_content_length),
+  munit_void_test(test_nghttp3_conn_http_content_length_mismatch),
+  munit_void_test(test_nghttp3_conn_http_non_final_response),
+  munit_void_test(test_nghttp3_conn_http_trailers),
+  munit_void_test(test_nghttp3_conn_http_ignore_content_length),
+  munit_void_test(test_nghttp3_conn_http_record_request_method),
+  munit_void_test(test_nghttp3_conn_http_error),
+  munit_void_test(test_nghttp3_conn_qpack_blocked_stream),
+  munit_void_test(test_nghttp3_conn_just_fin),
+  munit_void_test(test_nghttp3_conn_submit_response_read_blocked),
+  munit_void_test(test_nghttp3_conn_recv_uni),
+  munit_void_test(test_nghttp3_conn_recv_goaway),
+  munit_void_test(test_nghttp3_conn_shutdown_server),
+  munit_void_test(test_nghttp3_conn_shutdown_client),
+  munit_void_test(test_nghttp3_conn_priority_update),
+  munit_void_test(test_nghttp3_conn_request_priority),
+  munit_void_test(test_nghttp3_conn_set_stream_priority),
+  munit_void_test(test_nghttp3_conn_shutdown_stream_read),
+  munit_void_test(test_nghttp3_conn_stream_data_overflow),
+  munit_void_test(test_nghttp3_conn_get_frame_payload_left),
+  munit_void_test(test_nghttp3_conn_update_ack_offset),
+  munit_test_end(),
 };
 
 const MunitSuite conn_suite = {
-    "/conn", tests, NULL, 1, MUNIT_SUITE_OPTION_NONE,
+  "/conn", tests, NULL, 1, MUNIT_SUITE_OPTION_NONE,
 };
 
 static uint8_t nulldata[4096];
@@ -220,8 +220,8 @@ step_then_block_read_data(nghttp3_conn *conn, int64_t stream_id,
 
 #if SIZE_MAX > UINT32_MAX
 static nghttp3_ssize stream_data_overflow_read_data(
-    nghttp3_conn *conn, int64_t stream_id, nghttp3_vec *vec, size_t veccnt,
-    uint32_t *pflags, void *user_data, void *stream_user_data) {
+  nghttp3_conn *conn, int64_t stream_id, nghttp3_vec *vec, size_t veccnt,
+  uint32_t *pflags, void *user_data, void *stream_user_data) {
   (void)conn;
   (void)stream_id;
   (void)veccnt;
@@ -236,8 +236,8 @@ static nghttp3_ssize stream_data_overflow_read_data(
 }
 
 static nghttp3_ssize stream_data_almost_overflow_read_data(
-    nghttp3_conn *conn, int64_t stream_id, nghttp3_vec *vec, size_t veccnt,
-    uint32_t *pflags, void *user_data, void *stream_user_data) {
+  nghttp3_conn *conn, int64_t stream_id, nghttp3_vec *vec, size_t veccnt,
+  uint32_t *pflags, void *user_data, void *stream_user_data) {
   (void)conn;
   (void)stream_id;
   (void)veccnt;
@@ -385,7 +385,7 @@ void test_nghttp3_conn_read_control(void) {
 
   for (i = 0; i < nghttp3_buf_len(&buf); ++i) {
     nconsumed =
-        nghttp3_conn_read_stream(conn, 2, buf.pos + i, 1, /* fin = */ 0);
+      nghttp3_conn_read_stream(conn, 2, buf.pos + i, 1, /* fin = */ 0);
 
     assert_ptrdiff(1, ==, nconsumed);
   }
@@ -689,10 +689,10 @@ void test_nghttp3_conn_submit_request(void) {
   int rv;
   int64_t stream_id;
   const nghttp3_nv nva[] = {
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":authority", "example.com"),
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":method", "GET"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
   };
   uint64_t len;
   size_t i;
@@ -723,8 +723,8 @@ void test_nghttp3_conn_submit_request(void) {
   assert_uint64(NGHTTP3_STREAM_TYPE_QPACK_DECODER, ==, conn->tx.qdec->type);
 
   dr.read_data = step_read_data;
-  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr,
-                                   NULL);
+  rv =
+    nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr, NULL);
 
   assert_int(0, ==, rv);
 
@@ -835,15 +835,15 @@ void test_nghttp3_conn_http_request(void) {
   int rv;
   int64_t stream_id;
   const nghttp3_nv reqnva[] = {
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":authority", "example.com"),
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":method", "GET"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
   };
   const nghttp3_nv respnva[] = {
-      MAKE_NV(":status", "200"),
-      MAKE_NV("server", "nghttp3"),
-      MAKE_NV("content-length", "1999"),
+    MAKE_NV(":status", "200"),
+    MAKE_NV("server", "nghttp3"),
+    MAKE_NV("content-length", "1999"),
   };
   nghttp3_data_reader dr;
   int fin;
@@ -898,14 +898,14 @@ void test_nghttp3_conn_http_request(void) {
     }
 
     rv = nghttp3_conn_add_write_offset(
-        cl, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+      cl, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
     assert_int(0, ==, rv);
 
     for (i = 0; i < (size_t)sveccnt; ++i) {
       sconsumed =
-          nghttp3_conn_read_stream(sv, stream_id, vec[i].base, vec[i].len,
-                                   fin && i == (size_t)sveccnt - 1);
+        nghttp3_conn_read_stream(sv, stream_id, vec[i].base, vec[i].len,
+                                 fin && i == (size_t)sveccnt - 1);
       assert_true(sconsumed >= 0);
 
       nread += vec[i].len;
@@ -939,14 +939,14 @@ void test_nghttp3_conn_http_request(void) {
     }
 
     rv = nghttp3_conn_add_write_offset(
-        sv, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+      sv, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
     assert_int(0, ==, rv);
 
     for (i = 0; i < (size_t)sveccnt; ++i) {
       sconsumed =
-          nghttp3_conn_read_stream(cl, stream_id, vec[i].base, vec[i].len,
-                                   fin && i == (size_t)sveccnt - 1);
+        nghttp3_conn_read_stream(cl, stream_id, vec[i].base, vec[i].len,
+                                 fin && i == (size_t)sveccnt - 1);
       assert_true(sconsumed >= 0);
 
       nread += vec[i].len;
@@ -1035,63 +1035,63 @@ void test_nghttp3_conn_http_resp_header(void) {
   /* test case for response */
   /* response header lacks :status */
   const nghttp3_nv nostatus_resnv[] = {
-      MAKE_NV("server", "foo"),
+    MAKE_NV("server", "foo"),
   };
   /* response header has 2 :status */
   const nghttp3_nv dupstatus_resnv[] = {
-      MAKE_NV(":status", "200"),
-      MAKE_NV(":status", "200"),
+    MAKE_NV(":status", "200"),
+    MAKE_NV(":status", "200"),
   };
   /* response header has bad pseudo header :scheme */
   const nghttp3_nv badpseudo_resnv[] = {
-      MAKE_NV(":status", "200"),
-      MAKE_NV(":scheme", "https"),
+    MAKE_NV(":status", "200"),
+    MAKE_NV(":scheme", "https"),
   };
   /* response header has :status after regular header field */
   const nghttp3_nv latepseudo_resnv[] = {
-      MAKE_NV("server", "foo"),
-      MAKE_NV(":status", "200"),
+    MAKE_NV("server", "foo"),
+    MAKE_NV(":status", "200"),
   };
   /* response header has bad status code */
   const nghttp3_nv badstatus_resnv[] = {
-      MAKE_NV(":status", "2000"),
+    MAKE_NV(":status", "2000"),
   };
   /* response header has bad content-length */
   const nghttp3_nv badcl_resnv[] = {
-      MAKE_NV(":status", "200"),
-      MAKE_NV("content-length", "-1"),
+    MAKE_NV(":status", "200"),
+    MAKE_NV("content-length", "-1"),
   };
   /* response header has multiple content-length */
   const nghttp3_nv dupcl_resnv[] = {
-      MAKE_NV(":status", "200"),
-      MAKE_NV("content-length", "0"),
-      MAKE_NV("content-length", "0"),
+    MAKE_NV(":status", "200"),
+    MAKE_NV("content-length", "0"),
+    MAKE_NV("content-length", "0"),
   };
   /* response header has disallowed header field */
   const nghttp3_nv badhd_resnv[] = {
-      MAKE_NV(":status", "200"),
-      MAKE_NV("connection", "close"),
+    MAKE_NV(":status", "200"),
+    MAKE_NV("connection", "close"),
   };
   /* response header has content-length with 100 status code */
   const nghttp3_nv cl1xx_resnv[] = {
-      MAKE_NV(":status", "100"),
-      MAKE_NV("content-length", "0"),
+    MAKE_NV(":status", "100"),
+    MAKE_NV("content-length", "0"),
   };
   /* response header has 0 content-length with 204 status code */
   const nghttp3_nv cl204_resnv[] = {
-      MAKE_NV(":status", "204"),
-      MAKE_NV("content-length", "0"),
+    MAKE_NV(":status", "204"),
+    MAKE_NV("content-length", "0"),
   };
   /* response header has nonzero content-length with 204 status
      code */
   const nghttp3_nv clnonzero204_resnv[] = {
-      MAKE_NV(":status", "204"),
-      MAKE_NV("content-length", "100"),
+    MAKE_NV(":status", "204"),
+    MAKE_NV("content-length", "100"),
   };
   /* status code 101 should not be used in HTTP/3 because it is used
      for HTTP Upgrade which HTTP/3 removes. */
   const nghttp3_nv status101_resnv[] = {
-      MAKE_NV(":status", "101"),
+    MAKE_NV(":status", "101"),
   };
 
   check_http_resp_header(nostatus_resnv, nghttp3_arraylen(nostatus_resnv),
@@ -1125,142 +1125,142 @@ void test_nghttp3_conn_http_req_header(void) {
   /* test case for request */
   /* request header has no :path */
   const nghttp3_nv nopath_reqnv[] = {
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":method", "GET"),
-      MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"),
   };
   /* request header has CONNECT method, but followed by :path */
   const nghttp3_nv earlyconnect_reqnv[] = {
-      MAKE_NV(":method", "CONNECT"),
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":method", "CONNECT"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "localhost"),
   };
   /* request header has CONNECT method following :path */
   const nghttp3_nv lateconnect_reqnv[] = {
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":method", "CONNECT"),
-      MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "CONNECT"),
+    MAKE_NV(":authority", "localhost"),
   };
   /* request header has multiple :path */
   const nghttp3_nv duppath_reqnv[] = {
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":method", "GET"),
-      MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":path", "/"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":path", "/"),
   };
   /* request header has bad content-length */
   const nghttp3_nv badcl_reqnv[] = {
-      MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "POST"),
-      MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
-      MAKE_NV("content-length", "-1"),
+    MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "POST"),
+    MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
+    MAKE_NV("content-length", "-1"),
   };
   /* request header has multiple content-length */
   const nghttp3_nv dupcl_reqnv[] = {
-      MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "POST"),
-      MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
-      MAKE_NV("content-length", "0"),     MAKE_NV("content-length", "0"),
+    MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "POST"),
+    MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
+    MAKE_NV("content-length", "0"),     MAKE_NV("content-length", "0"),
   };
   /* request header has disallowed header field */
   const nghttp3_nv badhd_reqnv[] = {
-      MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "GET"),
-      MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
-      MAKE_NV("connection", "close"),
+    MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
+    MAKE_NV("connection", "close"),
   };
   /* request header has :authority header field containing illegal
      characters */
   const nghttp3_nv badauthority_reqnv[] = {
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":method", "GET"),
-      MAKE_NV(":authority", "\x0d\x0alocalhost"),
-      MAKE_NV(":path", "/"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "\x0d\x0alocalhost"),
+    MAKE_NV(":path", "/"),
   };
   /* request header has regular header field containing illegal
      character before all mandatory header fields are seen. */
   const nghttp3_nv badhdbtw_reqnv[] = {
-      MAKE_NV(":scheme", "https"), MAKE_NV(":method", "GET"),
-      MAKE_NV("foo", "\x0d\x0a"),  MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":path", "/"),
+    MAKE_NV(":scheme", "https"), MAKE_NV(":method", "GET"),
+    MAKE_NV("foo", "\x0d\x0a"),  MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":path", "/"),
   };
   /* request header has "*" in :path header field while method is GET.
      :path is received before :method */
   const nghttp3_nv asteriskget1_reqnv[] = {
-      MAKE_NV(":path", "*"),
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":method", "GET"),
+    MAKE_NV(":path", "*"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":method", "GET"),
   };
   /* request header has "*" in :path header field while method is GET.
      :method is received before :path */
   const nghttp3_nv asteriskget2_reqnv[] = {
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":method", "GET"),
-      MAKE_NV(":path", "*"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":path", "*"),
   };
   /* OPTIONS method can include "*" in :path header field.  :path is
      received before :method. */
   const nghttp3_nv asteriskoptions1_reqnv[] = {
-      MAKE_NV(":path", "*"),
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":method", "OPTIONS"),
+    MAKE_NV(":path", "*"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":method", "OPTIONS"),
   };
   /* OPTIONS method can include "*" in :path header field.  :method is
      received before :path. */
   const nghttp3_nv asteriskoptions2_reqnv[] = {
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":method", "OPTIONS"),
-      MAKE_NV(":path", "*"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":method", "OPTIONS"),
+    MAKE_NV(":path", "*"),
   };
   /* header name contains invalid character */
   const nghttp3_nv invalidname_reqnv[] = {
-      MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "GET"),
-      MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
-      MAKE_NV("\x0foo", "zzz"),
+    MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
+    MAKE_NV("\x0foo", "zzz"),
   };
   /* header value contains invalid character */
   const nghttp3_nv invalidvalue_reqnv[] = {
-      MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "GET"),
-      MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
-      MAKE_NV("foo", "\x0zzz"),
+    MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
+    MAKE_NV("foo", "\x0zzz"),
   };
   /* :protocol is not allowed unless it is enabled by the local
      endpoint. */
   /* :protocol is allowed if SETTINGS_CONNECT_PROTOCOL is enabled by
      the local endpoint. */
   const nghttp3_nv connectproto_reqnv[] = {
-      MAKE_NV(":scheme", "https"),       MAKE_NV(":path", "/"),
-      MAKE_NV(":method", "CONNECT"),     MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":protocol", "websocket"),
+    MAKE_NV(":scheme", "https"),       MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "CONNECT"),     MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":protocol", "websocket"),
   };
   /* :protocol is only allowed with CONNECT method. */
   const nghttp3_nv connectprotoget_reqnv[] = {
-      MAKE_NV(":scheme", "https"),       MAKE_NV(":path", "/"),
-      MAKE_NV(":method", "GET"),         MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":protocol", "websocket"),
+    MAKE_NV(":scheme", "https"),       MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "GET"),         MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":protocol", "websocket"),
   };
   /* CONNECT method with :protocol requires :path. */
   const nghttp3_nv connectprotonopath_reqnv[] = {
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":method", "CONNECT"),
-      MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":protocol", "websocket"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "CONNECT"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":protocol", "websocket"),
   };
   /* CONNECT method with :protocol requires :authority. */
   const nghttp3_nv connectprotonoauth_reqnv[] = {
-      MAKE_NV(":scheme", "http"),        MAKE_NV(":path", "/"),
-      MAKE_NV(":method", "CONNECT"),     MAKE_NV("host", "localhost"),
-      MAKE_NV(":protocol", "websocket"),
+    MAKE_NV(":scheme", "http"),        MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "CONNECT"),     MAKE_NV("host", "localhost"),
+    MAKE_NV(":protocol", "websocket"),
   };
   /* regular CONNECT method should succeed with
      SETTINGS_CONNECT_PROTOCOL */
   const nghttp3_nv regularconnect_reqnv[] = {
-      MAKE_NV(":method", "CONNECT"),
-      MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":method", "CONNECT"),
+    MAKE_NV(":authority", "localhost"),
   };
 
   /* request header has no :path */
@@ -1325,14 +1325,14 @@ void test_nghttp3_conn_http_content_length(void) {
   nghttp3_qpack_encoder qenc;
   nghttp3_stream *stream;
   const nghttp3_nv reqnv[] = {
-      MAKE_NV(":path", "/"),        MAKE_NV(":method", "PUT"),
-      MAKE_NV(":scheme", "https"),  MAKE_NV("te", "trailers"),
-      MAKE_NV("host", "localhost"), MAKE_NV("content-length", "9000000000"),
+    MAKE_NV(":path", "/"),        MAKE_NV(":method", "PUT"),
+    MAKE_NV(":scheme", "https"),  MAKE_NV("te", "trailers"),
+    MAKE_NV("host", "localhost"), MAKE_NV("content-length", "9000000000"),
   };
   const nghttp3_nv resnv[] = {
-      MAKE_NV(":status", "200"),
-      MAKE_NV("te", "trailers"),
-      MAKE_NV("content-length", "9000000000"),
+    MAKE_NV(":status", "200"),
+    MAKE_NV("te", "trailers"),
+    MAKE_NV("content-length", "9000000000"),
   };
 
   memset(&callbacks, 0, sizeof(callbacks));
@@ -1399,15 +1399,15 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
   const nghttp3_nv reqnv[] = {
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":method", "PUT"),
-      MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV("content-length", "20"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "PUT"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV("content-length", "20"),
   };
   const nghttp3_nv resnv[] = {
-      MAKE_NV(":status", "200"),
-      MAKE_NV("content-length", "20"),
+    MAKE_NV(":status", "200"),
+    MAKE_NV("content-length", "20"),
   };
   int rv;
   nghttp3_stream *stream;
@@ -1578,13 +1578,13 @@ void test_nghttp3_conn_http_non_final_response(void) {
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
   const nghttp3_nv infonv[] = {
-      MAKE_NV(":status", "103"),
+    MAKE_NV(":status", "103"),
   };
   const nghttp3_nv resnv[] = {
-      MAKE_NV(":status", "204"),
+    MAKE_NV(":status", "204"),
   };
   const nghttp3_nv trnv[] = {
-      MAKE_NV("my-status", "ok"),
+    MAKE_NV("my-status", "ok"),
   };
   nghttp3_stream *stream;
 
@@ -1689,20 +1689,20 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
   const nghttp3_nv reqnv[] = {
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":method", "PUT"),
-      MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":scheme", "https"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "PUT"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":scheme", "https"),
   };
   const nghttp3_nv connect_reqnv[] = {
-      MAKE_NV(":method", "CONNECT"),
-      MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":method", "CONNECT"),
+    MAKE_NV(":authority", "localhost"),
   };
   const nghttp3_nv resnv[] = {
-      MAKE_NV(":status", "200"),
+    MAKE_NV(":status", "200"),
   };
   const nghttp3_nv trnv[] = {
-      MAKE_NV("foo", "bar"),
+    MAKE_NV("foo", "bar"),
   };
   nghttp3_stream *stream;
 
@@ -2009,17 +2009,17 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
   const nghttp3_nv reqnv[] = {
-      MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":method", "CONNECT"),
-      MAKE_NV("content-length", "999999"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":method", "CONNECT"),
+    MAKE_NV("content-length", "999999"),
   };
   const nghttp3_nv resnv[] = {
-      MAKE_NV(":status", "304"),
-      MAKE_NV("content-length", "20"),
+    MAKE_NV(":status", "304"),
+    MAKE_NV("content-length", "20"),
   };
   const nghttp3_nv cl_resnv[] = {
-      MAKE_NV(":status", "200"),
-      MAKE_NV("content-length", "0"),
+    MAKE_NV(":status", "200"),
+    MAKE_NV("content-length", "0"),
   };
   int rv;
   nghttp3_stream *stream;
@@ -2123,18 +2123,18 @@ void test_nghttp3_conn_http_record_request_method(void) {
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
   const nghttp3_nv connect_reqnv[] = {
-      MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":method", "CONNECT"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":method", "CONNECT"),
   };
   const nghttp3_nv head_reqnv[] = {
-      MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":method", "HEAD"),
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":method", "HEAD"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":path", "/"),
   };
   const nghttp3_nv resnv[] = {
-      MAKE_NV(":status", "200"),
-      MAKE_NV("content-length", "1000000007"),
+    MAKE_NV(":status", "200"),
+    MAKE_NV("content-length", "1000000007"),
   };
   nghttp3_stream *stream;
 
@@ -2205,16 +2205,16 @@ void test_nghttp3_conn_http_error(void) {
   nghttp3_qpack_encoder qenc;
   nghttp3_settings settings;
   const nghttp3_nv dupschemenv[] = {
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":method", "GET"),
-      MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":scheme", "https"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":scheme", "https"),
   };
   const nghttp3_nv noschemenv[] = {
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":method", "GET"),
-      MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"),
   };
   userdata ud;
   nghttp3_stream *stream;
@@ -2316,7 +2316,7 @@ void test_nghttp3_conn_http_error(void) {
   nghttp3_qpack_encoder_set_max_blocked_streams(&qenc,
                                                 settings.qpack_blocked_streams);
   nghttp3_qpack_encoder_set_max_dtable_capacity(
-      &qenc, settings.qpack_max_dtable_capacity);
+    &qenc, settings.qpack_max_dtable_capacity);
   memset(&ud, 0, sizeof(ud));
 
   nghttp3_buf_init(&ebuf);
@@ -2390,14 +2390,14 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   uint8_t rawbuf[4096];
   nghttp3_buf buf;
   const nghttp3_nv reqnv[] = {
-      MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":method", "GET"),
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":scheme", "https"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":scheme", "https"),
   };
   const nghttp3_nv resnv[] = {
-      MAKE_NV(":status", "200"),
-      MAKE_NV("server", "nghttp3"),
+    MAKE_NV(":status", "200"),
+    MAKE_NV("server", "nghttp3"),
   };
   nghttp3_frame fr;
   nghttp3_ssize sconsumed;
@@ -2417,7 +2417,7 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   nghttp3_qpack_encoder_set_max_blocked_streams(&qenc,
                                                 settings.qpack_blocked_streams);
   nghttp3_qpack_encoder_set_max_dtable_capacity(
-      &qenc, settings.qpack_max_dtable_capacity);
+    &qenc, settings.qpack_max_dtable_capacity);
 
   nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
   nghttp3_conn_bind_qpack_streams(conn, 2, 6);
@@ -2475,7 +2475,7 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   nghttp3_qpack_encoder_set_max_blocked_streams(&qenc,
                                                 settings.qpack_blocked_streams);
   nghttp3_qpack_encoder_set_max_dtable_capacity(
-      &qenc, settings.qpack_max_dtable_capacity);
+    &qenc, settings.qpack_max_dtable_capacity);
 
   nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
   nghttp3_conn_bind_qpack_streams(conn, 2, 6);
@@ -2499,8 +2499,8 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   buf.pos[4] = 0xff;
 
   sconsumed = nghttp3_conn_read_stream(
-      conn, 0, buf.pos, 5 /* Frame header + Header Block Prefix */,
-      /* fin = */ 1);
+    conn, 0, buf.pos, 5 /* Frame header + Header Block Prefix */,
+    /* fin = */ 1);
 
   assert_true(sconsumed > 0);
   assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), !=, sconsumed);
@@ -2543,10 +2543,10 @@ void test_nghttp3_conn_just_fin(void) {
   int rv;
   int64_t stream_id;
   const nghttp3_nv nva[] = {
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":authority", "example.com"),
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":method", "GET"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
   };
   nghttp3_data_reader dr;
   int fin;
@@ -2573,15 +2573,15 @@ void test_nghttp3_conn_just_fin(void) {
     }
 
     rv = nghttp3_conn_add_write_offset(
-        conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+      conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
     assert_int(0, ==, rv);
   }
 
   /* No DATA frame header */
   dr.read_data = step_read_data;
-  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr,
-                                   NULL);
+  rv =
+    nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr, NULL);
 
   assert_int(0, ==, rv);
 
@@ -2593,7 +2593,7 @@ void test_nghttp3_conn_just_fin(void) {
   assert_int(1, ==, fin);
 
   rv = nghttp3_conn_add_write_offset(
-      conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
   assert_int(0, ==, rv);
 
@@ -2601,8 +2601,8 @@ void test_nghttp3_conn_just_fin(void) {
   ud.data.nblock = 1;
   dr.read_data = block_then_step_read_data;
 
-  rv = nghttp3_conn_submit_request(conn, 4, nva, nghttp3_arraylen(nva), &dr,
-                                   NULL);
+  rv =
+    nghttp3_conn_submit_request(conn, 4, nva, nghttp3_arraylen(nva), &dr, NULL);
 
   assert_int(0, ==, rv);
 
@@ -2614,7 +2614,7 @@ void test_nghttp3_conn_just_fin(void) {
   assert_int(0, ==, fin);
 
   rv = nghttp3_conn_add_write_offset(
-      conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
   assert_int(0, ==, rv);
 
@@ -2629,7 +2629,7 @@ void test_nghttp3_conn_just_fin(void) {
   assert_int(1, ==, fin);
 
   rv = nghttp3_conn_add_write_offset(
-      conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
   assert_int(0, ==, rv);
 
@@ -2649,7 +2649,7 @@ void test_nghttp3_conn_submit_response_read_blocked(void) {
   nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   const nghttp3_nv nva[] = {
-      MAKE_NV(":status", "200"),
+    MAKE_NV(":status", "200"),
   };
   nghttp3_stream *stream;
   int rv;
@@ -2760,10 +2760,10 @@ void test_nghttp3_conn_recv_goaway(void) {
   nghttp3_buf buf;
   nghttp3_ssize nconsumed;
   const nghttp3_nv nva[] = {
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":authority", "example.com"),
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":method", "GET"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
   };
   int rv;
   userdata ud;
@@ -2892,10 +2892,10 @@ void test_nghttp3_conn_shutdown_server(void) {
   nghttp3_stream *stream;
   nghttp3_qpack_encoder qenc;
   const nghttp3_nv nva[] = {
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":authority", "example.com"),
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":method", "GET"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
   };
   int rv;
   userdata ud;
@@ -2980,10 +2980,10 @@ void test_nghttp3_conn_shutdown_client(void) {
   uint8_t rawbuf[1024];
   nghttp3_buf buf;
   const nghttp3_nv nva[] = {
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":authority", "example.com"),
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":method", "GET"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
   };
   int rv;
   userdata ud;
@@ -3041,9 +3041,9 @@ void test_nghttp3_conn_priority_update(void) {
   userdata ud;
   nghttp3_qpack_encoder qenc;
   const nghttp3_nv nva[] = {
-      MAKE_NV(":path", "/"),         MAKE_NV(":authority", "example.com"),
-      MAKE_NV(":scheme", "https"),   MAKE_NV(":method", "GET"),
-      MAKE_NV("priority", "u=5, i"),
+    MAKE_NV(":path", "/"),         MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),   MAKE_NV(":method", "GET"),
+    MAKE_NV("priority", "u=5, i"),
   };
 
   memset(&callbacks, 0, sizeof(callbacks));
@@ -3193,8 +3193,8 @@ void test_nghttp3_conn_priority_update(void) {
 
   /* Make sure boundary check works when frame is fragmented. */
   nconsumed =
-      nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf) - 10,
-                               /* fin = */ 0);
+    nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf) - 10,
+                             /* fin = */ 0);
   stream = nghttp3_conn_find_stream(conn, 2);
 
   assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf) - 10, ==, nconsumed);
@@ -3202,7 +3202,7 @@ void test_nghttp3_conn_priority_update(void) {
              stream->rstate.state);
 
   nconsumed =
-      nghttp3_conn_read_stream(conn, 2, buf.pos + nconsumed, 10, /* fin = */ 0);
+    nghttp3_conn_read_stream(conn, 2, buf.pos + nconsumed, 10, /* fin = */ 0);
 
   assert_ptrdiff(10, ==, nconsumed);
   assert_int(NGHTTP3_CTRL_STREAM_STATE_FRAME_TYPE, ==, stream->rstate.state);
@@ -3224,14 +3224,14 @@ void test_nghttp3_conn_request_priority(void) {
   userdata ud;
   nghttp3_qpack_encoder qenc;
   const nghttp3_nv nva[] = {
-      MAKE_NV(":path", "/"),         MAKE_NV(":authority", "example.com"),
-      MAKE_NV(":scheme", "https"),   MAKE_NV(":method", "GET"),
-      MAKE_NV("priority", "u=5, i"),
+    MAKE_NV(":path", "/"),         MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),   MAKE_NV(":method", "GET"),
+    MAKE_NV("priority", "u=5, i"),
   };
   const nghttp3_nv badpri_nva[] = {
-      MAKE_NV(":path", "/"),         MAKE_NV(":authority", "example.com"),
-      MAKE_NV(":scheme", "https"),   MAKE_NV(":method", "GET"),
-      MAKE_NV("priority", "u=5, i"), MAKE_NV("priority", "i, u=x"),
+    MAKE_NV(":path", "/"),         MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),   MAKE_NV(":method", "GET"),
+    MAKE_NV("priority", "u=5, i"), MAKE_NV("priority", "i, u=x"),
   };
 
   memset(&callbacks, 0, sizeof(callbacks));
@@ -3326,10 +3326,10 @@ void test_nghttp3_conn_set_stream_priority(void) {
   nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   const nghttp3_nv nva[] = {
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":authority", "example.com"),
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":method", "GET"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
   };
   int rv;
   nghttp3_pri pri;
@@ -3355,7 +3355,7 @@ void test_nghttp3_conn_set_stream_priority(void) {
 
 #define NGHTTP3_PRI_DATA "u=2,i"
   rv = nghttp3_conn_set_client_stream_priority(
-      conn, 0, (const uint8_t *)NGHTTP3_PRI_DATA, strlen(NGHTTP3_PRI_DATA));
+    conn, 0, (const uint8_t *)NGHTTP3_PRI_DATA, strlen(NGHTTP3_PRI_DATA));
 
   assert_int(0, ==, rv);
 
@@ -3389,7 +3389,7 @@ void test_nghttp3_conn_set_stream_priority(void) {
 
 #define NGHTTP3_PRI_DATA "u=2,i"
   rv = nghttp3_conn_set_client_stream_priority(
-      conn, 0, (const uint8_t *)NGHTTP3_PRI_DATA, strlen(NGHTTP3_PRI_DATA));
+    conn, 0, (const uint8_t *)NGHTTP3_PRI_DATA, strlen(NGHTTP3_PRI_DATA));
 #undef NGHTTP3_PRI_DATA
 
   assert_int(NGHTTP3_ERR_STREAM_NOT_FOUND, ==, rv);
@@ -3430,14 +3430,14 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   uint8_t rawbuf[4096];
   nghttp3_buf buf;
   const nghttp3_nv reqnv[] = {
-      MAKE_NV(":authority", "localhost"),
-      MAKE_NV(":method", "GET"),
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":scheme", "https"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":scheme", "https"),
   };
   const nghttp3_nv resnv[] = {
-      MAKE_NV(":status", "200"),
-      MAKE_NV("server", "nghttp3"),
+    MAKE_NV(":status", "200"),
+    MAKE_NV("server", "nghttp3"),
   };
   nghttp3_frame fr;
   nghttp3_ssize sconsumed;
@@ -3460,7 +3460,7 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   nghttp3_qpack_encoder_set_max_blocked_streams(&qenc,
                                                 settings.qpack_blocked_streams);
   nghttp3_qpack_encoder_set_max_dtable_capacity(
-      &qenc, settings.qpack_max_dtable_capacity);
+    &qenc, settings.qpack_max_dtable_capacity);
 
   nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
   nghttp3_conn_bind_qpack_streams(conn, 2, 6);
@@ -3536,10 +3536,10 @@ void test_nghttp3_conn_stream_data_overflow(void) {
   nghttp3_callbacks callbacks;
   nghttp3_settings settings;
   const nghttp3_nv nva[] = {
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":authority", "example.com"),
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":method", "GET"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
   };
   nghttp3_vec vec[256];
   nghttp3_ssize sveccnt;
@@ -3559,8 +3559,8 @@ void test_nghttp3_conn_stream_data_overflow(void) {
   dr.read_data = stream_data_overflow_read_data;
 
   /* QPACK decoder stream */
-  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr,
-                                   NULL);
+  rv =
+    nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr, NULL);
 
   assert_int(0, ==, rv);
 
@@ -3596,8 +3596,8 @@ void test_nghttp3_conn_stream_data_overflow(void) {
   dr.read_data = stream_data_almost_overflow_read_data;
 
   /* QPACK decoder stream */
-  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr,
-                                   NULL);
+  rv =
+    nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr, NULL);
 
   assert_int(0, ==, rv);
 
@@ -3643,9 +3643,9 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
   nghttp3_settings_entry *iv;
   nghttp3_ssize nconsumed;
   const nghttp3_nv nva[] = {
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":method", "GET"),
-      MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"),
   };
   nghttp3_qpack_encoder qenc;
 
@@ -3713,7 +3713,7 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
   assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left(conn, 0));
 
   nconsumed =
-      nghttp3_conn_read_stream(conn, 0, buf.pos + 1, 1, /* fin = 0 */ 0);
+    nghttp3_conn_read_stream(conn, 0, buf.pos + 1, 1, /* fin = 0 */ 0);
 
   assert_ptrdiff(1, ==, nconsumed);
   assert_uint64(nghttp3_buf_len(&buf) - 2, ==,
@@ -3733,10 +3733,10 @@ void test_nghttp3_conn_update_ack_offset(void) {
   int rv;
   int64_t stream_id;
   const nghttp3_nv nva[] = {
-      MAKE_NV(":path", "/"),
-      MAKE_NV(":authority", "example.com"),
-      MAKE_NV(":scheme", "https"),
-      MAKE_NV(":method", "GET"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
   };
   uint64_t len;
   nghttp3_stream *stream;
@@ -3767,8 +3767,8 @@ void test_nghttp3_conn_update_ack_offset(void) {
   assert_uint64(NGHTTP3_STREAM_TYPE_QPACK_DECODER, ==, conn->tx.qdec->type);
 
   dr.read_data = step_read_data;
-  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr,
-                                   NULL);
+  rv =
+    nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr, NULL);
 
   assert_int(0, ==, rv);
 

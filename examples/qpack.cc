@@ -69,11 +69,11 @@ int main(int argc, char **argv) {
     static int flag = 0;
     (void)flag;
     constexpr static option long_opts[] = {
-        {"help", no_argument, nullptr, 'h'},
-        {"max-blocked", required_argument, nullptr, 'm'},
-        {"max-dtable-size", required_argument, nullptr, 's'},
-        {"immediate-ack", no_argument, nullptr, 'a'},
-        {nullptr, 0, nullptr, 0},
+      {"help", no_argument, nullptr, 'h'},
+      {"max-blocked", required_argument, nullptr, 'm'},
+      {"max-dtable-size", required_argument, nullptr, 's'},
+      {"immediate-ack", no_argument, nullptr, 'a'},
+      {nullptr, 0, nullptr, 0},
     };
 
     auto optidx = 0;

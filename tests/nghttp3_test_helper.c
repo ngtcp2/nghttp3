@@ -45,7 +45,7 @@ void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr) {
     nghttp3_frame_write_priority_update_len(&fr->hd.length,
                                             &fr->priority_update);
     dest->last =
-        nghttp3_frame_write_priority_update(dest->last, &fr->priority_update);
+      nghttp3_frame_write_priority_update(dest->last, &fr->priority_update);
     break;
   default:
     assert(0);

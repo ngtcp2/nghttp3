@@ -1161,8 +1161,8 @@ NGHTTP3_EXTERN void nghttp3_qpack_encoder_del(nghttp3_qpack_encoder *encoder);
  *      anymore.
  */
 NGHTTP3_EXTERN int nghttp3_qpack_encoder_encode(
-    nghttp3_qpack_encoder *encoder, nghttp3_buf *pbuf, nghttp3_buf *rbuf,
-    nghttp3_buf *ebuf, int64_t stream_id, const nghttp3_nv *nva, size_t nvlen);
+  nghttp3_qpack_encoder *encoder, nghttp3_buf *pbuf, nghttp3_buf *rbuf,
+  nghttp3_buf *ebuf, int64_t stream_id, const nghttp3_nv *nva, size_t nvlen);
 
 /**
  * @function
@@ -1182,7 +1182,7 @@ NGHTTP3_EXTERN int nghttp3_qpack_encoder_encode(
  *     |encoder| is unable to process input because it is malformed.
  */
 NGHTTP3_EXTERN nghttp3_ssize nghttp3_qpack_encoder_read_decoder(
-    nghttp3_qpack_encoder *encoder, const uint8_t *src, size_t srclen);
+  nghttp3_qpack_encoder *encoder, const uint8_t *src, size_t srclen);
 
 /**
  * @function
@@ -1343,7 +1343,7 @@ NGHTTP3_EXTERN void nghttp3_qpack_decoder_del(nghttp3_qpack_decoder *decoder);
  *     Could not interpret encoder stream instruction.
  */
 NGHTTP3_EXTERN nghttp3_ssize nghttp3_qpack_decoder_read_encoder(
-    nghttp3_qpack_decoder *decoder, const uint8_t *src, size_t srclen);
+  nghttp3_qpack_decoder *decoder, const uint8_t *src, size_t srclen);
 
 /**
  * @function
@@ -1436,9 +1436,9 @@ nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
  *     HTTP field is too large.
  */
 NGHTTP3_EXTERN nghttp3_ssize nghttp3_qpack_decoder_read_request(
-    nghttp3_qpack_decoder *decoder, nghttp3_qpack_stream_context *sctx,
-    nghttp3_qpack_nv *nv, uint8_t *pflags, const uint8_t *src, size_t srclen,
-    int fin);
+  nghttp3_qpack_decoder *decoder, nghttp3_qpack_stream_context *sctx,
+  nghttp3_qpack_nv *nv, uint8_t *pflags, const uint8_t *src, size_t srclen,
+  int fin);
 
 /**
  * @function
@@ -1568,7 +1568,7 @@ typedef void (*nghttp3_debug_vprintf_callback)(const char *format,
  *   times because this is important.
  */
 NGHTTP3_EXTERN void nghttp3_set_debug_vprintf_callback(
-    nghttp3_debug_vprintf_callback debug_vprintf_callback);
+  nghttp3_debug_vprintf_callback debug_vprintf_callback);
 
 /**
  * @macrosection
@@ -2449,8 +2449,8 @@ nghttp3_conn_set_max_concurrent_streams(nghttp3_conn *conn,
  * stream.
  */
 typedef nghttp3_ssize (*nghttp3_read_data_callback)(
-    nghttp3_conn *conn, int64_t stream_id, nghttp3_vec *vec, size_t veccnt,
-    uint32_t *pflags, void *conn_user_data, void *stream_user_data);
+  nghttp3_conn *conn, int64_t stream_id, nghttp3_vec *vec, size_t veccnt,
+  uint32_t *pflags, void *conn_user_data, void *stream_user_data);
 
 /**
  * @struct
@@ -2490,8 +2490,8 @@ typedef struct nghttp3_data_reader {
  *     Out of memory.
  */
 NGHTTP3_EXTERN int nghttp3_conn_submit_request(
-    nghttp3_conn *conn, int64_t stream_id, const nghttp3_nv *nva, size_t nvlen,
-    const nghttp3_data_reader *dr, void *stream_user_data);
+  nghttp3_conn *conn, int64_t stream_id, const nghttp3_nv *nva, size_t nvlen,
+  const nghttp3_data_reader *dr, void *stream_user_data);
 
 /**
  * @function
@@ -2697,7 +2697,7 @@ typedef struct NGHTTP3_ALIGN(8) nghttp3_pri {
  *     Stream not found.
  */
 NGHTTP3_EXTERN int nghttp3_conn_get_stream_priority_versioned(
-    nghttp3_conn *conn, int pri_version, nghttp3_pri *dest, int64_t stream_id);
+  nghttp3_conn *conn, int pri_version, nghttp3_pri *dest, int64_t stream_id);
 
 /**
  * @function
@@ -2750,8 +2750,8 @@ NGHTTP3_EXTERN int nghttp3_conn_set_client_stream_priority(nghttp3_conn *conn,
  *     Out of memory.
  */
 NGHTTP3_EXTERN int nghttp3_conn_set_server_stream_priority_versioned(
-    nghttp3_conn *conn, int64_t stream_id, int pri_version,
-    const nghttp3_pri *pri);
+  nghttp3_conn *conn, int64_t stream_id, int pri_version,
+  const nghttp3_pri *pri);
 
 /**
  * @function
@@ -2914,7 +2914,7 @@ NGHTTP3_EXTERN int nghttp3_err_is_fatal(int liberr);
  */
 #define nghttp3_conn_set_server_stream_priority(CONN, STREAM_ID, PRI)          \
   nghttp3_conn_set_server_stream_priority_versioned(                           \
-      (CONN), (STREAM_ID), NGHTTP3_PRI_VERSION, (PRI))
+    (CONN), (STREAM_ID), NGHTTP3_PRI_VERSION, (PRI))
 
 /*
  * `nghttp3_conn_get_stream_priority` is a wrapper around
