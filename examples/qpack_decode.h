@@ -81,7 +81,7 @@ private:
   std::priority_queue<std::shared_ptr<Request>,
                       std::vector<std::shared_ptr<Request>>,
                       std::greater<std::shared_ptr<Request>>>
-      blocked_reqs_;
+    blocked_reqs_;
   size_t max_dtable_size_;
   size_t max_blocked_;
 };

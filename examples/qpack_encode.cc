@@ -45,11 +45,11 @@ namespace nghttp3 {
 extern Config config;
 
 Encoder::Encoder(size_t max_dtable_size, size_t max_blocked, bool immediate_ack)
-    : mem_(nghttp3_mem_default()),
-      enc_(nullptr),
-      max_dtable_size_(max_dtable_size),
-      max_blocked_(max_blocked),
-      immediate_ack_(immediate_ack) {}
+  : mem_(nghttp3_mem_default()),
+    enc_(nullptr),
+    max_dtable_size_(max_dtable_size),
+    max_blocked_(max_blocked),
+    immediate_ack_(immediate_ack) {}
 
 Encoder::~Encoder() { nghttp3_qpack_encoder_del(enc_); }
 
@@ -72,7 +72,7 @@ int Encoder::init() {
 int Encoder::encode(nghttp3_buf *pbuf, nghttp3_buf *rbuf, nghttp3_buf *ebuf,
                     int64_t stream_id, const nghttp3_nv *nva, size_t len) {
   auto rv =
-      nghttp3_qpack_encoder_encode(enc_, pbuf, rbuf, ebuf, stream_id, nva, len);
+    nghttp3_qpack_encoder_encode(enc_, pbuf, rbuf, ebuf, stream_id, nva, len);
   if (rv != 0) {
     std::cerr << "nghttp3_qpack_encoder_encode: " << nghttp3_strerror(rv)
               << std::endl;
@@ -123,7 +123,7 @@ int encode(const std::string_view &outfile, const std::string_view &infile) {
   }
 
   auto enc =
-      Encoder(config.max_dtable_size, config.max_blocked, config.immediate_ack);
+    Encoder(config.max_dtable_size, config.max_blocked, config.immediate_ack);
   if (enc.init() != 0) {
     return -1;
   }
@@ -173,10 +173,9 @@ int encode(const std::string_view &outfile, const std::string_view &infile) {
       srclen += name.size() + value.size();
 
       nva.emplace_back(nghttp3_nv{
-          const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(name.data())),
-          const_cast<uint8_t *>(
-              reinterpret_cast<const uint8_t *>(value.data())),
-          name.size(), value.size()});
+        const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(name.data())),
+        const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(value.data())),
+        name.size(), value.size()});
     }
 
     if (nva.empty()) {
@@ -184,13 +183,13 @@ int encode(const std::string_view &outfile, const std::string_view &infile) {
     }
 
     if (auto rv =
-            enc.encode(&pbuf, &rbuf, &ebuf, stream_id, nva.data(), nva.size());
+          enc.encode(&pbuf, &rbuf, &ebuf, stream_id, nva.data(), nva.size());
         rv != 0) {
       return -1;
     }
 
-    enclen += nghttp3_buf_len(&pbuf) + nghttp3_buf_len(&rbuf) +
-              nghttp3_buf_len(&ebuf);
+    enclen +=
+      nghttp3_buf_len(&pbuf) + nghttp3_buf_len(&rbuf) + nghttp3_buf_len(&ebuf);
 
     if (nghttp3_buf_len(&ebuf)) {
       write_encoder_stream(out, &ebuf);

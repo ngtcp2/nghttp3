@@ -47,7 +47,7 @@ namespace nghttp3 {
 extern Config config;
 
 Request::Request(int64_t stream_id, const nghttp3_buf *buf)
-    : buf(*buf), stream_id(stream_id) {
+  : buf(*buf), stream_id(stream_id) {
   auto mem = nghttp3_mem_default();
   nghttp3_qpack_stream_context_new(&sctx, stream_id, mem);
 }
@@ -55,16 +55,16 @@ Request::Request(int64_t stream_id, const nghttp3_buf *buf)
 Request::~Request() { nghttp3_qpack_stream_context_del(sctx); }
 
 Decoder::Decoder(size_t max_dtable_size, size_t max_blocked)
-    : mem_(nghttp3_mem_default()),
-      dec_(nullptr),
-      max_dtable_size_(max_dtable_size),
-      max_blocked_(max_blocked) {}
+  : mem_(nghttp3_mem_default()),
+    dec_(nullptr),
+    max_dtable_size_(max_dtable_size),
+    max_blocked_(max_blocked) {}
 
 Decoder::~Decoder() { nghttp3_qpack_decoder_del(dec_); }
 
 int Decoder::init() {
-  if (auto rv = nghttp3_qpack_decoder_new(&dec_, max_dtable_size_, max_blocked_,
-                                          mem_);
+  if (auto rv =
+        nghttp3_qpack_decoder_new(&dec_, max_dtable_size_, max_blocked_, mem_);
       rv != 0) {
     std::cerr << "nghttp3_qpack_decoder_new: " << nghttp3_strerror(rv)
               << std::endl;
@@ -72,7 +72,7 @@ int Decoder::init() {
   }
 
   if (auto rv =
-          nghttp3_qpack_decoder_set_max_dtable_capacity(dec_, max_dtable_size_);
+        nghttp3_qpack_decoder_set_max_dtable_capacity(dec_, max_dtable_size_);
       rv != 0) {
     std::cerr << "nghttp3_qpack_decoder_set_max_dtable_capacity: "
               << nghttp3_strerror(rv) << std::endl;
@@ -84,7 +84,7 @@ int Decoder::init() {
 
 int Decoder::read_encoder(nghttp3_buf *buf) {
   auto nread =
-      nghttp3_qpack_decoder_read_encoder(dec_, buf->pos, nghttp3_buf_len(buf));
+    nghttp3_qpack_decoder_read_encoder(dec_, buf->pos, nghttp3_buf_len(buf));
   if (nread < 0) {
     std::cerr << "nghttp3_qpack_decoder_read_encoder: "
               << nghttp3_strerror(nread) << std::endl;
@@ -123,7 +123,7 @@ std::tuple<Headers, int> Decoder::read_request(Request &req) {
 
   for (;;) {
     auto nread = nghttp3_qpack_decoder_read_request(
-        dec_, req.sctx, &nv, &flags, req.buf.pos, nghttp3_buf_len(&req.buf), 1);
+      dec_, req.sctx, &nv, &flags, req.buf.pos, nghttp3_buf_len(&req.buf), 1);
     if (nread < 0) {
       std::cerr << "nghttp3_qpack_decoder_read_request: "
                 << nghttp3_strerror(nread) << std::endl;
@@ -177,8 +177,8 @@ size_t Decoder::get_num_blocked() const { return blocked_reqs_.size(); }
 
 namespace {
 void write_header(
-    std::ostream &out,
-    const std::vector<std::pair<std::string, std::string>> &headers) {
+  std::ostream &out,
+  const std::vector<std::pair<std::string, std::string>> &headers) {
   for (auto &nv : headers) {
     out.write(nv.first.c_str(), nv.first.size());
     out.put('\t');
@@ -213,7 +213,7 @@ int decode(const std::string_view &outfile, const std::string_view &infile) {
   }
 
   auto in = reinterpret_cast<uint8_t *>(
-      mmap(nullptr, st.st_size, PROT_READ, MAP_SHARED, fd, 0));
+    mmap(nullptr, st.st_size, PROT_READ, MAP_SHARED, fd, 0));
   if (in == MAP_FAILED) {
     std::cerr << "mmap: " << strerror(errno) << std::endl;
     return -1;

@@ -37,7 +37,7 @@ namespace nghttp3 {
 // template can take functions returning other than void.
 template <typename F, typename... T> struct Defer {
   Defer(F &&f, T &&...t)
-      : f(std::bind(std::forward<F>(f), std::forward<T>(t)...)) {}
+    : f(std::bind(std::forward<F>(f), std::forward<T>(t)...)) {}
   Defer(Defer &&o) noexcept : f(std::move(o.f)) {}
   ~Defer() { f(); }
 

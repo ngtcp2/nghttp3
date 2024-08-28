@@ -32,13 +32,13 @@
 #include "nghttp3_test_helper.h"
 
 static const MunitTest tests[] = {
-    munit_void_test(test_nghttp3_http_parse_priority),
-    munit_void_test(test_nghttp3_check_header_value),
-    munit_test_end(),
+  munit_void_test(test_nghttp3_http_parse_priority),
+  munit_void_test(test_nghttp3_check_header_value),
+  munit_test_end(),
 };
 
 const MunitSuite http_suite = {
-    "/http", tests, NULL, 1, MUNIT_SUITE_OPTION_NONE,
+  "/http", tests, NULL, 1, MUNIT_SUITE_OPTION_NONE,
 };
 
 void test_nghttp3_http_parse_priority(void) {
@@ -238,7 +238,7 @@ void test_nghttp3_http_parse_priority(void) {
   {
     nghttp3_pri pri = {(uint32_t)-1, UINT8_MAX};
     const uint8_t v[] =
-        "i=?0, u=1, a=(x y z), u=2; i=?0;foo=\",,,\", i=?1;i=?0; u=6";
+      "i=?0, u=1, a=(x y z), u=2; i=?0;foo=\",,,\", i=?1;i=?0; u=6";
 
     rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
 

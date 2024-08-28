@@ -31,12 +31,12 @@
 #include "nghttp3_test_helper.h"
 
 static const MunitTest tests[] = {
-    munit_void_test(test_nghttp3_tnode_schedule),
-    munit_test_end(),
+  munit_void_test(test_nghttp3_tnode_schedule),
+  munit_test_end(),
 };
 
 const MunitSuite tnode_suite = {
-    "/tnode", tests, NULL, 1, MUNIT_SUITE_OPTION_NONE,
+  "/tnode", tests, NULL, 1, MUNIT_SUITE_OPTION_NONE,
 };
 
 static int cycle_less(const nghttp3_pq_entry *lhsx,

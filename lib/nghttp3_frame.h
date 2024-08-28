@@ -188,7 +188,7 @@ nghttp3_frame_write_priority_update(uint8_t *dest,
  * stores payload length in |*ppayloadlen|.
  */
 size_t nghttp3_frame_write_priority_update_len(
-    int64_t *ppayloadlen, const nghttp3_frame_priority_update *fr);
+  int64_t *ppayloadlen, const nghttp3_frame_priority_update *fr);
 
 /*
  * nghttp3_nva_copy copies name/value pairs from |nva|, which contains

@@ -296,8 +296,8 @@ void nghttp3_ksl_it_init(nghttp3_ksl_it *it, const nghttp3_ksl *ksl,
  */
 #define nghttp3_ksl_it_next(IT)                                                \
   (++(IT)->i == (IT)->blk->n && (IT)->blk->next                                \
-       ? ((IT)->blk = (IT)->blk->next, (IT)->i = 0)                            \
-       : 0)
+     ? ((IT)->blk = (IT)->blk->next, (IT)->i = 0)                              \
+     : 0)
 
 /*
  * nghttp3_ksl_it_prev moves backward the iterator by one.  It is
