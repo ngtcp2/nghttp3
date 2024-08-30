@@ -91,6 +91,8 @@ if(ENABLE_SHARED_LIB)
     C_VISIBILITY_PRESET hidden
   )
 
+  target_include_directories(nghttp3 INTERFACE $<INSTALL_INTERFACE:include>)
+
   install(TARGETS nghttp3
     EXPORT ${NGHTTP3_TARGETS_EXPORT_NAME} 
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
@@ -106,6 +108,9 @@ if(ENABLE_STATIC_LIB)
     VERSION ${LT_VERSION} SOVERSION ${LT_SOVERSION}
     ARCHIVE_OUTPUT_NAME nghttp3${STATIC_LIB_SUFFIX}
     )
+
+  target_include_directories(nghttp3_static INTERFACE $<INSTALL_INTERFACE:include>)
+
   target_compile_definitions(nghttp3_static PUBLIC "-DNGHTTP3_STATICLIB")
 
   install(TARGETS nghttp3_static
