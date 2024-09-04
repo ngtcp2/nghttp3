@@ -1094,11 +1094,9 @@ static void qpack_encoder_remove_stream(nghttp3_qpack_encoder *encoder,
 }
 
 /*
- * reserve_buf_internal ensures that |buf| contains at least
- * |extra_size| of free space.  In other words, if this function
- * succeeds, nghttp3_buf_left(buf) >= extra_size holds.  |min_size| is
- * the minimum size of buffer.  The allocated buffer has at least
- * |min_size| bytes.
+ * reserve_buf ensures that |buf| contains at least |extra_size| of
+ * free space.  In other words, if this function succeeds,
+ * nghttp3_buf_left(buf) >= extra_size holds.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -1106,31 +1104,37 @@ static void qpack_encoder_remove_stream(nghttp3_qpack_encoder *encoder,
  * NGHTTP3_ERR_NOMEM
  *     Out of memory.
  */
-static int reserve_buf_internal(nghttp3_buf *buf, size_t extra_size,
-                                size_t min_size, const nghttp3_mem *mem) {
+static int reserve_buf(nghttp3_buf *buf, size_t extra_size,
+                       const nghttp3_mem *mem) {
   size_t left = nghttp3_buf_left(buf);
-  size_t n = min_size, need;
+  size_t n = 32;
 
   if (left >= extra_size) {
     return 0;
   }
 
-  need = nghttp3_buf_cap(buf) + extra_size - left;
+  n = nghttp3_max_size(n, nghttp3_buf_cap(buf) + extra_size - left);
 
-  for (; n < need; n *= 2)
-    ;
+  /* Check whether we are requesting too much memory */
+  if (n > UINT32_MAX) {
+    return NGHTTP3_ERR_NOMEM;
+  }
+
+#ifndef WIN32
+  n = 1 << (32 - __builtin_clz((uint32_t)n - 1));
+#else  /* WIN32 */
+  /* Round up to the next highest power of 2 from Bit Twiddling
+     Hacks */
+  --n;
+  n |= n >> 1;
+  n |= n >> 2;
+  n |= n >> 4;
+  n |= n >> 8;
+  n |= n >> 16;
+  ++n;
+#endif /* WIN32 */
 
   return nghttp3_buf_reserve(buf, n, mem);
-}
-
-static int reserve_buf_small(nghttp3_buf *buf, size_t extra_size,
-                             const nghttp3_mem *mem) {
-  return reserve_buf_internal(buf, extra_size, 32, mem);
-}
-
-static int reserve_buf(nghttp3_buf *buf, size_t extra_size,
-                       const nghttp3_mem *mem) {
-  return reserve_buf_internal(buf, extra_size, 32, mem);
 }
 
 int nghttp3_qpack_encoder_encode(nghttp3_qpack_encoder *encoder,
@@ -3715,9 +3719,9 @@ int nghttp3_qpack_decoder_write_section_ack(
     return NGHTTP3_ERR_QPACK_FATAL;
   }
 
-  rv = reserve_buf_small(
-    dbuf, nghttp3_qpack_put_varint_len((uint64_t)sctx->stream_id, 7),
-    decoder->ctx.mem);
+  rv = reserve_buf(dbuf,
+                   nghttp3_qpack_put_varint_len((uint64_t)sctx->stream_id, 7),
+                   decoder->ctx.mem);
   if (rv != 0) {
     return rv;
   }
