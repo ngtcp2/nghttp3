@@ -1116,12 +1116,12 @@ static int reserve_buf(nghttp3_buf *buf, size_t extra_size,
   n = nghttp3_max_size(n, nghttp3_buf_cap(buf) + extra_size - left);
 
   /* Check whether we are requesting too much memory */
-  if (n > UINT32_MAX) {
+  if (n > (1u << 31)) {
     return NGHTTP3_ERR_NOMEM;
   }
 
 #ifndef WIN32
-  n = 1 << (32 - __builtin_clz((uint32_t)n - 1));
+  n = 1u << (32 - __builtin_clz((uint32_t)n - 1));
 #else  /* WIN32 */
   /* Round up to the next highest power of 2 from Bit Twiddling
      Hacks */
