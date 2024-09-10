@@ -40,7 +40,6 @@
 typedef uint64_t nghttp3_map_key_type;
 
 typedef struct nghttp3_map_bucket {
-  uint32_t hash;
   uint32_t psl;
   nghttp3_map_key_type key;
   void *data;
@@ -50,7 +49,7 @@ typedef struct nghttp3_map {
   nghttp3_map_bucket *table;
   const nghttp3_mem *mem;
   size_t size;
-  size_t tablelenbits;
+  size_t hashbits;
 } nghttp3_map;
 
 /*
