@@ -498,7 +498,7 @@ static nghttp3_ssize conn_read_type(nghttp3_conn *conn, nghttp3_stream *stream,
 
   assert(srclen);
 
-  nread = nghttp3_read_varint(rvint, src, srclen, fin);
+  nread = nghttp3_read_varint(rvint, src, src + srclen, fin);
   if (nread < 0) {
     return NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR;
   }
@@ -650,7 +650,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
     switch (rstate->state) {
     case NGHTTP3_CTRL_STREAM_STATE_FRAME_TYPE:
       assert(end - p > 0);
-      nread = nghttp3_read_varint(rvint, p, (size_t)(end - p), /* fin = */ 0);
+      nread = nghttp3_read_varint(rvint, p, end, /* fin = */ 0);
       if (nread < 0) {
         return NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR;
       }
@@ -670,7 +670,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
       /* Fall through */
     case NGHTTP3_CTRL_STREAM_STATE_FRAME_LENGTH:
       assert(end - p > 0);
-      nread = nghttp3_read_varint(rvint, p, (size_t)(end - p), /* fin = */ 0);
+      nread = nghttp3_read_varint(rvint, p, end, /* fin = */ 0);
       if (nread < 0) {
         return NGHTTP3_ERR_H3_FRAME_ERROR;
       }
@@ -769,7 +769,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
         /* Read Identifier */
         len = (size_t)nghttp3_min_int64(rstate->left, (int64_t)(end - p));
         assert(len > 0);
-        nread = nghttp3_read_varint(rvint, p, len, frame_fin(rstate, len));
+        nread = nghttp3_read_varint(rvint, p, p + len, frame_fin(rstate, len));
         if (nread < 0) {
           return NGHTTP3_ERR_H3_FRAME_ERROR;
         }
@@ -795,7 +795,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
           break;
         }
 
-        nread = nghttp3_read_varint(rvint, p, len, frame_fin(rstate, len));
+        nread = nghttp3_read_varint(rvint, p, p + len, frame_fin(rstate, len));
         if (nread < 0) {
           return NGHTTP3_ERR_H3_FRAME_ERROR;
         }
@@ -820,7 +820,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
     case NGHTTP3_CTRL_STREAM_STATE_SETTINGS_ID:
       len = (size_t)nghttp3_min_int64(rstate->left, (int64_t)(end - p));
       assert(len > 0);
-      nread = nghttp3_read_varint(rvint, p, len, frame_fin(rstate, len));
+      nread = nghttp3_read_varint(rvint, p, p + len, frame_fin(rstate, len));
       if (nread < 0) {
         return NGHTTP3_ERR_H3_FRAME_ERROR;
       }
@@ -847,7 +847,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
     case NGHTTP3_CTRL_STREAM_STATE_SETTINGS_VALUE:
       len = (size_t)nghttp3_min_int64(rstate->left, (int64_t)(end - p));
       assert(len > 0);
-      nread = nghttp3_read_varint(rvint, p, len, frame_fin(rstate, len));
+      nread = nghttp3_read_varint(rvint, p, p + len, frame_fin(rstate, len));
       if (nread < 0) {
         return NGHTTP3_ERR_H3_FRAME_ERROR;
       }
@@ -881,7 +881,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
     case NGHTTP3_CTRL_STREAM_STATE_GOAWAY:
       len = (size_t)nghttp3_min_int64(rstate->left, (int64_t)(end - p));
       assert(len > 0);
-      nread = nghttp3_read_varint(rvint, p, len, frame_fin(rstate, len));
+      nread = nghttp3_read_varint(rvint, p, p + len, frame_fin(rstate, len));
       if (nread < 0) {
         return NGHTTP3_ERR_H3_FRAME_ERROR;
       }
@@ -918,7 +918,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
       /* server side only */
       len = (size_t)nghttp3_min_int64(rstate->left, (int64_t)(end - p));
       assert(len > 0);
-      nread = nghttp3_read_varint(rvint, p, len, frame_fin(rstate, len));
+      nread = nghttp3_read_varint(rvint, p, p + len, frame_fin(rstate, len));
       if (nread < 0) {
         return NGHTTP3_ERR_H3_FRAME_ERROR;
       }
@@ -943,7 +943,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
       /* server side only */
       len = (size_t)nghttp3_min_int64(rstate->left, (int64_t)(end - p));
       assert(len > 0);
-      nread = nghttp3_read_varint(rvint, p, len, frame_fin(rstate, len));
+      nread = nghttp3_read_varint(rvint, p, p + len, frame_fin(rstate, len));
       if (nread < 0) {
         return NGHTTP3_ERR_H3_FRAME_ERROR;
       }
@@ -1240,7 +1240,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
     switch (rstate->state) {
     case NGHTTP3_REQ_STREAM_STATE_FRAME_TYPE:
       assert(end - p > 0);
-      nread = nghttp3_read_varint(rvint, p, (size_t)(end - p), fin);
+      nread = nghttp3_read_varint(rvint, p, end, fin);
       if (nread < 0) {
         return NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR;
       }
@@ -1260,7 +1260,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       /* Fall through */
     case NGHTTP3_REQ_STREAM_STATE_FRAME_LENGTH:
       assert(end - p > 0);
-      nread = nghttp3_read_varint(rvint, p, (size_t)(end - p), fin);
+      nread = nghttp3_read_varint(rvint, p, end, fin);
       if (nread < 0) {
         return NGHTTP3_ERR_H3_FRAME_ERROR;
       }

@@ -179,48 +179,44 @@ void nghttp3_stream_read_state_reset(nghttp3_stream_read_state *rstate) {
 }
 
 nghttp3_ssize nghttp3_read_varint(nghttp3_varint_read_state *rvint,
-                                  const uint8_t *src, size_t srclen, int fin) {
-  size_t nread = 0;
-  size_t n;
-  size_t i;
+                                  const uint8_t *begin, const uint8_t *end,
+                                  int fin) {
+  const uint8_t *orig_begin = begin;
+  size_t len;
 
-  assert(srclen > 0);
+  assert(begin != end);
 
   if (rvint->left == 0) {
     assert(rvint->acc == 0);
 
-    rvint->left = nghttp3_get_varintlen(src);
-    if (rvint->left <= srclen) {
-      rvint->acc = nghttp3_get_varint(&nread, src);
-      rvint->left = 0;
-      return (nghttp3_ssize)nread;
+    len = nghttp3_get_varintlen(begin);
+    if (len <= (size_t)(end - begin)) {
+      nghttp3_get_varint(&rvint->acc, begin);
+      return (nghttp3_ssize)len;
     }
 
     if (fin) {
       return NGHTTP3_ERR_INVALID_ARGUMENT;
     }
 
-    rvint->acc = nghttp3_get_varint_fb(src);
-    nread = 1;
-    ++src;
-    --srclen;
-    --rvint->left;
+    rvint->acc = nghttp3_get_varint_fb(begin++);
+    rvint->left = len - 1;
   }
 
-  n = nghttp3_min_size(rvint->left, srclen);
+  len = nghttp3_min_size(rvint->left, (size_t)(end - begin));
+  end = begin + len;
 
-  for (i = 0; i < n; ++i) {
-    rvint->acc = (rvint->acc << 8) + src[i];
+  for (; begin != end;) {
+    rvint->acc = (rvint->acc << 8) + *begin++;
   }
 
-  rvint->left -= n;
-  nread += n;
+  rvint->left -= len;
 
   if (fin && rvint->left) {
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
-  return (nghttp3_ssize)nread;
+  return (nghttp3_ssize)(begin - orig_begin);
 }
 
 int nghttp3_stream_frq_add(nghttp3_stream *stream,

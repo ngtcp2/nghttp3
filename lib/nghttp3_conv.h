@@ -131,11 +131,11 @@ STIN uint16_t ntohs(uint16_t netshort) {
 #endif /* WIN32 */
 
 /*
- * nghttp3_get_varint reads variable-length integer from |p|, and
- * returns it in host byte order.  The number of bytes read is stored
- * in |*plen|.
+ * nghttp3_get_varint reads variable-length unsigned integer from |p|,
+ * and stores it in the buffer pointed by |dest| in host byte order.
+ * It returns |p| plus the number of bytes read from |p|.
  */
-int64_t nghttp3_get_varint(size_t *plen, const uint8_t *p);
+const uint8_t *nghttp3_get_varint(int64_t *dest, const uint8_t *p);
 
 /*
  * nghttp3_get_varint_fb reads first byte of encoded variable-length
