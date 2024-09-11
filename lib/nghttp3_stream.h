@@ -282,7 +282,8 @@ void nghttp3_varint_read_state_reset(nghttp3_varint_read_state *rvint);
 void nghttp3_stream_read_state_reset(nghttp3_stream_read_state *rstate);
 
 nghttp3_ssize nghttp3_read_varint(nghttp3_varint_read_state *rvint,
-                                  const uint8_t *src, size_t srclen, int fin);
+                                  const uint8_t *begin, const uint8_t *end,
+                                  int fin);
 
 int nghttp3_stream_frq_add(nghttp3_stream *stream,
                            const nghttp3_frame_entry *frent);
