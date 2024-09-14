@@ -42,4 +42,4 @@ clang-format:
 	CLANGFORMAT=`git config --get clangformat.binary`; \
 	test -z $${CLANGFORMAT} && CLANGFORMAT="clang-format"; \
 	$${CLANGFORMAT} -i lib/*.{c,h} tests/*.{c,h} lib/includes/nghttp3/*.h \
-	examples/*.{cc,h}
+	examples/*.{cc,h} fuzz/*.cc

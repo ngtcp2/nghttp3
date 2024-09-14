@@ -52,13 +52,13 @@ private:
   std::priority_queue<std::shared_ptr<Request>,
                       std::vector<std::shared_ptr<Request>>,
                       std::greater<std::shared_ptr<Request>>>
-      blocked_reqs_;
+    blocked_reqs_;
   size_t max_dtable_size_;
   size_t max_blocked_;
 };
 
 Request::Request(int64_t stream_id, const nghttp3_buf *buf)
-    : buf(*buf), stream_id(stream_id) {
+  : buf(*buf), stream_id(stream_id) {
   auto mem = nghttp3_mem_default();
   nghttp3_qpack_stream_context_new(&sctx, stream_id, mem);
 }
@@ -66,16 +66,16 @@ Request::Request(int64_t stream_id, const nghttp3_buf *buf)
 Request::~Request() { nghttp3_qpack_stream_context_del(sctx); }
 
 Decoder::Decoder(size_t max_dtable_size, size_t max_blocked)
-    : mem_(nghttp3_mem_default()),
-      dec_(nullptr),
-      max_dtable_size_(max_dtable_size),
-      max_blocked_(max_blocked) {}
+  : mem_(nghttp3_mem_default()),
+    dec_(nullptr),
+    max_dtable_size_(max_dtable_size),
+    max_blocked_(max_blocked) {}
 
 Decoder::~Decoder() { nghttp3_qpack_decoder_del(dec_); }
 
 int Decoder::init() {
-  if (auto rv = nghttp3_qpack_decoder_new(&dec_, max_dtable_size_, max_blocked_,
-                                          mem_);
+  if (auto rv =
+        nghttp3_qpack_decoder_new(&dec_, max_dtable_size_, max_blocked_, mem_);
       rv != 0) {
     return -1;
   }
@@ -87,7 +87,7 @@ int Decoder::init() {
 
 int Decoder::read_encoder(nghttp3_buf *buf) {
   auto nread =
-      nghttp3_qpack_decoder_read_encoder(dec_, buf->pos, nghttp3_buf_len(buf));
+    nghttp3_qpack_decoder_read_encoder(dec_, buf->pos, nghttp3_buf_len(buf));
   if (nread < 0) {
     return -1;
   }
@@ -122,7 +122,7 @@ std::tuple<Headers, int> Decoder::read_request(Request &req) {
 
   for (;;) {
     auto nread = nghttp3_qpack_decoder_read_request(
-        dec_, req.sctx, &nv, &flags, req.buf.pos, nghttp3_buf_len(&req.buf), 1);
+      dec_, req.sctx, &nv, &flags, req.buf.pos, nghttp3_buf_len(&req.buf), 1);
     if (nread < 0) {
       return {Headers{}, -1};
     }
