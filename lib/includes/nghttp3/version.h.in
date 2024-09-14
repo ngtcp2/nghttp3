@@ -43,4 +43,4 @@
  */
 #define NGHTTP3_VERSION_NUM @PACKAGE_VERSION_NUM@
 
-#endif /* NGHTTP3_VERSION_H */
+#endif /* !defined(NGHTTP3_VERSION_H) */

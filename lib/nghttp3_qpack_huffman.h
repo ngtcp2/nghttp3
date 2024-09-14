@@ -28,7 +28,7 @@
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
-#endif /* HAVE_CONFIG_H */
+#endif /* defined(HAVE_CONFIG_H) */
 
 #include <nghttp3/nghttp3.h>
 
@@ -105,4 +105,4 @@ nghttp3_qpack_huffman_decode(nghttp3_qpack_huffman_decode_context *ctx,
 int nghttp3_qpack_huffman_decode_failure_state(
   nghttp3_qpack_huffman_decode_context *ctx);
 
-#endif /* NGHTTP3_QPACK_HUFFMAN_H */
+#endif /* !defined(NGHTTP3_QPACK_HUFFMAN_H) */

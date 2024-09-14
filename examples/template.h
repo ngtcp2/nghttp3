@@ -73,4 +73,4 @@ constexpr unsigned long long operator"" _g(unsigned long long g) {
 
 } // namespace nghttp3
 
-#endif // TEMPLATE_H
+#endif // !defined(TEMPLATE_H)

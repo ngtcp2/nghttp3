@@ -115,7 +115,7 @@ void nghttp3_map_print_distance(const nghttp3_map *map) {
             hash(bkt->key, map->hashbits), bkt->key, idx, bkt->psl);
   }
 }
-#endif /* !WIN32 */
+#endif /* !defined(WIN32) */
 
 static int insert(nghttp3_map_bucket *table, size_t hashbits,
                   nghttp3_map_key_type key, void *data) {

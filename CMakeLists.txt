@@ -88,13 +88,13 @@ endif()
 # Checks for symbols.
 include(CheckSymbolExists)
 if(HAVE_ENDIAN_H)
-  check_symbol_exists(be64toh "endian.h" HAVE_BE64TOH)
+  check_symbol_exists(be64toh "endian.h" HAVE_DECL_BE64TOH)
 endif()
-if(HAVE_SYS_ENDIAN_H)
-  check_symbol_exists(be64toh "sys/endian.h" HAVE_BE64TOH)
+if(NOT HAVE_DECL_BE64TOH AND HAVE_SYS_ENDIAN_H)
+  check_symbol_exists(be64toh "sys/endian.h" HAVE_DECL_BE64TOH)
 endif()
 
-check_symbol_exists(bswap_64 "byteswap.h" HAVE_BSWAP_64)
+check_symbol_exists(bswap_64 "byteswap.h" HAVE_DECL_BSWAP_64)
 
 if(${CMAKE_C_BYTE_ORDER} STREQUAL "BIG_ENDIAN")
   set(WORDS_BIGENDIAN 1)
