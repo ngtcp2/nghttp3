@@ -1122,7 +1122,7 @@ static int reserve_buf(nghttp3_buf *buf, size_t extra_size,
 
 #ifndef WIN32
   n = 1u << (32 - __builtin_clz((uint32_t)n - 1));
-#else  /* WIN32 */
+#else  /* defined(WIN32) */
   /* Round up to the next highest power of 2 from Bit Twiddling
      Hacks */
   --n;
@@ -1132,7 +1132,7 @@ static int reserve_buf(nghttp3_buf *buf, size_t extra_size,
   n |= n >> 8;
   n |= n >> 16;
   ++n;
-#endif /* WIN32 */
+#endif /* defined(WIN32) */
 
   return nghttp3_buf_reserve(buf, n, mem);
 }

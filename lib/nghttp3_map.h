@@ -29,7 +29,7 @@
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
-#endif /* HAVE_CONFIG_H */
+#endif /* defined(HAVE_CONFIG_H) */
 
 #include <nghttp3/nghttp3.h>
 
@@ -124,6 +124,6 @@ int nghttp3_map_each(const nghttp3_map *map, int (*func)(void *data, void *ptr),
 
 #ifndef WIN32
 void nghttp3_map_print_distance(const nghttp3_map *map);
-#endif /* !WIN32 */
+#endif /* !defined(WIN32) */
 
-#endif /* NGHTTP3_MAP_H */
+#endif /* !defined(NGHTTP3_MAP_H) */

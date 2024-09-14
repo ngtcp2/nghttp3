@@ -28,7 +28,7 @@
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
-#endif /* HAVE_CONFIG_H */
+#endif /* defined(HAVE_CONFIG_H) */
 
 #include <nghttp3/nghttp3.h>
 
@@ -1007,4 +1007,4 @@ void nghttp3_qpack_decoder_emit_literal(nghttp3_qpack_decoder *decoder,
 int nghttp3_qpack_decoder_write_section_ack(
   nghttp3_qpack_decoder *decoder, const nghttp3_qpack_stream_context *sctx);
 
-#endif /* NGHTTP3_QPACK_H */
+#endif /* !defined(NGHTTP3_QPACK_H) */

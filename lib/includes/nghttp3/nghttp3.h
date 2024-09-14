@@ -31,11 +31,11 @@
    libcurl) */
 #if (defined(_WIN32) || defined(__WIN32__)) && !defined(WIN32)
 #  define WIN32
-#endif
+#endif /* (defined(_WIN32) || defined(__WIN32__)) && !defined(WIN32) */
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif /* defined(__cplusplus) */
 
 #include <stdlib.h>
 #if defined(_MSC_VER) && (_MSC_VER < 1800)
@@ -43,9 +43,9 @@ extern "C" {
    compliant.  See compiler macros and version number in
    https://sourceforge.net/p/predef/wiki/Compilers/ */
 #  include <stdint.h>
-#else /* !defined(_MSC_VER) || (_MSC_VER >= 1800) */
+#else /* !(defined(_MSC_VER) && (_MSC_VER < 1800)) */
 #  include <inttypes.h>
-#endif /* !defined(_MSC_VER) || (_MSC_VER >= 1800) */
+#endif /* !(defined(_MSC_VER) && (_MSC_VER < 1800)) */
 #include <sys/types.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -57,22 +57,22 @@ extern "C" {
 #elif defined(WIN32)
 #  ifdef BUILDING_NGHTTP3
 #    define NGHTTP3_EXTERN __declspec(dllexport)
-#  else /* !BUILDING_NGHTTP3 */
+#  else /* !defined(BUILDING_NGHTTP3) */
 #    define NGHTTP3_EXTERN __declspec(dllimport)
-#  endif /* !BUILDING_NGHTTP3 */
-#else    /* !defined(WIN32) */
+#  endif /* !defined(BUILDING_NGHTTP3) */
+#else    /* !(defined(NGHTTP3_STATICLIB) || defined(WIN32)) */
 #  ifdef BUILDING_NGHTTP3
 #    define NGHTTP3_EXTERN __attribute__((visibility("default")))
-#  else /* !BUILDING_NGHTTP3 */
+#  else /* !defined(BUILDING_NGHTTP3) */
 #    define NGHTTP3_EXTERN
-#  endif /* !BUILDING_NGHTTP3 */
-#endif   /* !defined(WIN32) */
+#  endif /* !defined(BUILDING_NGHTTP3) */
+#endif   /* !(defined(NGHTTP3_STATICLIB) || defined(WIN32)) */
 
 #ifdef _MSC_VER
 #  define NGHTTP3_ALIGN(N) __declspec(align(N))
-#else /* !_MSC_VER */
+#else /* !defined(_MSC_VER) */
 #  define NGHTTP3_ALIGN(N) __attribute__((aligned(N)))
-#endif /* !_MSC_VER */
+#endif /* !defined(_MSC_VER) */
 
 /**
  * @typedef
@@ -2936,6 +2936,6 @@ NGHTTP3_EXTERN int nghttp3_err_is_fatal(int liberr);
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* defined(__cplusplus) */
 
-#endif /* NGHTTP3_H */
+#endif /* !defined(NGHTTP3_H) */

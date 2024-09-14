@@ -28,7 +28,7 @@
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
-#endif /* HAVE_CONFIG_H */
+#endif /* defined(HAVE_CONFIG_H) */
 
 #include <nghttp3/nghttp3.h>
 
@@ -119,7 +119,7 @@ void nghttp3_objalloc_clear(nghttp3_objalloc *objalloc);
                                                                                \
       return nghttp3_struct_of(oplent, TYPE, OPLENTFIELD);                     \
     }
-#else /* NOMEMPOOL */
+#else /* defined(NOMEMPOOL) */
 #  define nghttp3_objalloc_decl(NAME, TYPE, OPLENTFIELD)                       \
     inline static void nghttp3_objalloc_##NAME##_init(                         \
       nghttp3_objalloc *objalloc, size_t nmemb, const nghttp3_mem *mem) {      \
@@ -143,6 +143,6 @@ void nghttp3_objalloc_clear(nghttp3_objalloc *objalloc);
     }
 
 #  define nghttp3_objalloc_def(NAME, TYPE, OPLENTFIELD)
-#endif /* NOMEMPOOL */
+#endif /* defined(NOMEMPOOL) */
 
-#endif /* NGHTTP3_OBJALLOC_H */
+#endif /* !defined(NGHTTP3_OBJALLOC_H) */

@@ -27,7 +27,7 @@
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
-#endif /* HAVE_CONFIG_H */
+#endif /* defined(HAVE_CONFIG_H) */
 
 #define MUNIT_ENABLE_ASSERT_ALIASES
 
@@ -37,4 +37,4 @@ extern const MunitSuite tnode_suite;
 
 munit_void_test_decl(test_nghttp3_tnode_schedule);
 
-#endif /* NGHTTP3_TNODE_TEST_H */
+#endif /* !defined(NGHTTP3_TNODE_TEST_H) */

@@ -29,7 +29,7 @@
 #include <string.h>
 #ifdef WIN32
 #  include <intrin.h>
-#endif
+#endif /* defined(WIN32) */
 
 #include "nghttp3_macro.h"
 
@@ -42,16 +42,17 @@ unsigned int __popcnt(unsigned int x) {
   }
   return c;
 }
-#endif
+#endif /* defined(_MSC_VER) && !defined(__clang__) && (defined(_M_ARM) ||      \
+          (defined(_M_ARM64) && _MSC_VER < 1941)) */
 
 int nghttp3_ringbuf_init(nghttp3_ringbuf *rb, size_t nmemb, size_t size,
                          const nghttp3_mem *mem) {
   if (nmemb) {
 #ifdef WIN32
     assert(1 == __popcnt((unsigned int)nmemb));
-#else
+#else  /* !defined(WIN32) */
     assert(1 == __builtin_popcount((unsigned int)nmemb));
-#endif
+#endif /* !defined(WIN32) */
 
     rb->buf = nghttp3_mem_malloc(mem, nmemb * size);
     if (rb->buf == NULL) {
@@ -129,9 +130,9 @@ int nghttp3_ringbuf_reserve(nghttp3_ringbuf *rb, size_t nmemb) {
 
 #ifdef WIN32
   assert(1 == __popcnt((unsigned int)nmemb));
-#else
+#else  /* !defined(WIN32) */
   assert(1 == __builtin_popcount((unsigned int)nmemb));
-#endif
+#endif /* !defined(WIN32) */
 
   buf = nghttp3_mem_malloc(rb->mem, nmemb * rb->size);
   if (buf == NULL) {

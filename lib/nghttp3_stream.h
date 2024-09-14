@@ -27,7 +27,7 @@
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
-#endif /* HAVE_CONFIG_H */
+#endif /* defined(HAVE_CONFIG_H) */
 
 #include <nghttp3/nghttp3.h>
 
@@ -394,4 +394,4 @@ int nghttp3_client_stream_uni(int64_t stream_id);
  */
 int nghttp3_server_stream_uni(int64_t stream_id);
 
-#endif /* NGHTTP3_STREAM_H */
+#endif /* !defined(NGHTTP3_STREAM_H) */

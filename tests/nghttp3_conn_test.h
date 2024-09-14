@@ -27,7 +27,7 @@
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
-#endif /* HAVE_CONFIG_H */
+#endif /* defined(HAVE_CONFIG_H) */
 
 #define MUNIT_ENABLE_ASSERT_ALIASES
 
@@ -63,4 +63,4 @@ munit_void_test_decl(test_nghttp3_conn_stream_data_overflow);
 munit_void_test_decl(test_nghttp3_conn_get_frame_payload_left);
 munit_void_test_decl(test_nghttp3_conn_update_ack_offset);
 
-#endif /* NGHTTP3_CONN_TEST_H */
+#endif /* !defined(NGHTTP3_CONN_TEST_H) */
