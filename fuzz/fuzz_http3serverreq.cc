@@ -38,7 +38,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
   nghttp3_conn *conn;
   auto rv =
-      nghttp3_conn_server_new(&conn, &callbacks, &settings, nullptr, nullptr);
+    nghttp3_conn_server_new(&conn, &callbacks, &settings, nullptr, nullptr);
   if (rv != 0) {
     return 0;
   }
