@@ -499,11 +499,8 @@ static int http_request_on_header(nghttp3_http_state *http,
     }
     break;
   case NGHTTP3_QPACK_TOKEN__PROTOCOL:
-    if (!connect_protocol) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-
-    if (!nghttp3_check_header_value(nv->value->base, nv->value->len) ||
+    if (!connect_protocol ||
+        !nghttp3_check_header_value(nv->value->base, nv->value->len) ||
         !check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__PROTOCOL)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
@@ -549,17 +546,23 @@ static int http_request_on_header(nghttp3_http_state *http,
     if (!nghttp3_check_header_value(nv->value->base, nv->value->len)) {
       return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
     }
-    if (!trailers && !(http->flags & NGHTTP3_HTTP_FLAG_BAD_PRIORITY)) {
-      pri = http->pri;
-      if (nghttp3_http_parse_priority(&pri, nv->value->base, nv->value->len) ==
-          0) {
-        http->pri = pri;
-        http->flags |= NGHTTP3_HTTP_FLAG_PRIORITY;
-      } else {
-        http->flags &= ~NGHTTP3_HTTP_FLAG_PRIORITY;
-        http->flags |= NGHTTP3_HTTP_FLAG_BAD_PRIORITY;
-      }
+
+    if (trailers || (http->flags & NGHTTP3_HTTP_FLAG_BAD_PRIORITY)) {
+      break;
     }
+
+    pri = http->pri;
+
+    if (nghttp3_http_parse_priority(&pri, nv->value->base, nv->value->len) ==
+        0) {
+      http->pri = pri;
+      http->flags |= NGHTTP3_HTTP_FLAG_PRIORITY;
+      break;
+    }
+
+    http->flags &= ~NGHTTP3_HTTP_FLAG_PRIORITY;
+    http->flags |= NGHTTP3_HTTP_FLAG_BAD_PRIORITY;
+
     break;
   default:
     if (nv->name->base[0] == ':') {
@@ -578,10 +581,8 @@ static int http_response_on_header(nghttp3_http_state *http,
                                    nghttp3_qpack_nv *nv, int trailers) {
   switch (nv->token) {
   case NGHTTP3_QPACK_TOKEN__STATUS: {
-    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__STATUS)) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    if (nv->value->len != 3) {
+    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__STATUS) ||
+        nv->value->len != 3) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     http->status_code = (int16_t)parse_uint(nv->value->base, nv->value->len);
@@ -602,22 +603,18 @@ static int http_response_on_header(nghttp3_http_state *http,
       /* content-length header field in 204 response is prohibited by
          RFC 7230.  But some widely used servers send content-length:
          0.  Until they get fixed, we ignore it. */
-      if (http->content_length != -1) {
-        /* Found multiple content-length field */
-        return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-      }
-      if (!lstrieq("0", nv->value->base, nv->value->len)) {
+      if (/* Found multiple content-length field */
+          http->content_length != -1 ||
+          !lstrieq("0", nv->value->base, nv->value->len)) {
         return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
       }
       http->content_length = 0;
       return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
     }
-    if (http->status_code / 100 == 1) {
-      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
-    }
-    /* https://tools.ietf.org/html/rfc7230#section-3.3.3 */
-    if (http->status_code / 100 == 2 &&
-        (http->flags & NGHTTP3_HTTP_FLAG_METH_CONNECT)) {
+    if (http->status_code / 100 == 1 ||
+        /* https://tools.ietf.org/html/rfc7230#section-3.3.3 */
+        (http->status_code / 100 == 2 &&
+         (http->flags & NGHTTP3_HTTP_FLAG_METH_CONNECT))) {
       return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
     }
     if (http->content_length != -1) {
