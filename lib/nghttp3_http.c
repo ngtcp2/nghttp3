@@ -175,219 +175,6 @@ int nghttp3_pri_parse_priority_versioned(int pri_version, nghttp3_pri *dest,
   return nghttp3_http_parse_priority(dest, value, valuelen);
 }
 
-static int http_request_on_header(nghttp3_http_state *http,
-                                  nghttp3_qpack_nv *nv, int trailers,
-                                  int connect_protocol) {
-  nghttp3_pri pri;
-
-  if (nv->name->base[0] == ':') {
-    if (trailers ||
-        (http->flags & NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED)) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-  }
-
-  switch (nv->token) {
-  case NGHTTP3_QPACK_TOKEN__AUTHORITY:
-    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__AUTHORITY)) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    break;
-  case NGHTTP3_QPACK_TOKEN__METHOD:
-    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__METHOD)) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    switch (nv->value->len) {
-    case 4:
-      if (lstreq("HEAD", nv->value->base, nv->value->len)) {
-        http->flags |= NGHTTP3_HTTP_FLAG_METH_HEAD;
-      }
-      break;
-    case 7:
-      switch (nv->value->base[6]) {
-      case 'T':
-        if (lstreq("CONNECT", nv->value->base, nv->value->len)) {
-          http->flags |= NGHTTP3_HTTP_FLAG_METH_CONNECT;
-        }
-        break;
-      case 'S':
-        if (lstreq("OPTIONS", nv->value->base, nv->value->len)) {
-          http->flags |= NGHTTP3_HTTP_FLAG_METH_OPTIONS;
-        }
-        break;
-      }
-      break;
-    }
-    break;
-  case NGHTTP3_QPACK_TOKEN__PATH:
-    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__PATH)) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    if (nv->value->base[0] == '/') {
-      http->flags |= NGHTTP3_HTTP_FLAG_PATH_REGULAR;
-    } else if (nv->value->len == 1 && nv->value->base[0] == '*') {
-      http->flags |= NGHTTP3_HTTP_FLAG_PATH_ASTERISK;
-    }
-    break;
-  case NGHTTP3_QPACK_TOKEN__SCHEME:
-    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__SCHEME)) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    /* scheme is case-insensitive:
-       https://datatracker.ietf.org/doc/html/rfc3986#section-3.1 */
-    if (lstrieq("http", nv->value->base, nv->value->len) ||
-        lstrieq("https", nv->value->base, nv->value->len)) {
-      http->flags |= NGHTTP3_HTTP_FLAG_SCHEME_HTTP;
-    }
-    break;
-  case NGHTTP3_QPACK_TOKEN__PROTOCOL:
-    if (!connect_protocol) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-
-    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__PROTOCOL)) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    break;
-  case NGHTTP3_QPACK_TOKEN_HOST:
-    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG_HOST)) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    break;
-  case NGHTTP3_QPACK_TOKEN_CONTENT_LENGTH: {
-    /* https://tools.ietf.org/html/rfc7230#section-4.1.2: A sender
-       MUST NOT generate a trailer that contains a field necessary for
-       message framing (e.g., Transfer-Encoding and Content-Length),
-       ... */
-    if (trailers) {
-      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
-    }
-    if (http->content_length != -1) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    http->content_length = parse_uint(nv->value->base, nv->value->len);
-    if (http->content_length == -1) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    break;
-  }
-  /* disallowed header fields */
-  case NGHTTP3_QPACK_TOKEN_CONNECTION:
-  case NGHTTP3_QPACK_TOKEN_KEEP_ALIVE:
-  case NGHTTP3_QPACK_TOKEN_PROXY_CONNECTION:
-  case NGHTTP3_QPACK_TOKEN_TRANSFER_ENCODING:
-  case NGHTTP3_QPACK_TOKEN_UPGRADE:
-    return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-  case NGHTTP3_QPACK_TOKEN_TE:
-    if (!lstrieq("trailers", nv->value->base, nv->value->len)) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    break;
-  case NGHTTP3_QPACK_TOKEN_PRIORITY:
-    if (!trailers && !(http->flags & NGHTTP3_HTTP_FLAG_BAD_PRIORITY)) {
-      pri = http->pri;
-      if (nghttp3_http_parse_priority(&pri, nv->value->base, nv->value->len) ==
-          0) {
-        http->pri = pri;
-        http->flags |= NGHTTP3_HTTP_FLAG_PRIORITY;
-      } else {
-        http->flags &= ~NGHTTP3_HTTP_FLAG_PRIORITY;
-        http->flags |= NGHTTP3_HTTP_FLAG_BAD_PRIORITY;
-      }
-    }
-    break;
-  default:
-    if (nv->name->base[0] == ':') {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-  }
-
-  return 0;
-}
-
-static int http_response_on_header(nghttp3_http_state *http,
-                                   nghttp3_qpack_nv *nv, int trailers) {
-  if (nv->name->base[0] == ':') {
-    if (trailers ||
-        (http->flags & NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED)) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-  }
-
-  switch (nv->token) {
-  case NGHTTP3_QPACK_TOKEN__STATUS: {
-    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__STATUS)) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    if (nv->value->len != 3) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    http->status_code = (int16_t)parse_uint(nv->value->base, nv->value->len);
-    if (http->status_code < 100 || http->status_code == 101) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    break;
-  }
-  case NGHTTP3_QPACK_TOKEN_CONTENT_LENGTH: {
-    /* https://tools.ietf.org/html/rfc7230#section-4.1.2: A sender
-       MUST NOT generate a trailer that contains a field necessary for
-       message framing (e.g., Transfer-Encoding and Content-Length),
-       ... */
-    if (trailers) {
-      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
-    }
-    if (http->status_code == 204) {
-      /* content-length header field in 204 response is prohibited by
-         RFC 7230.  But some widely used servers send content-length:
-         0.  Until they get fixed, we ignore it. */
-      if (http->content_length != -1) {
-        /* Found multiple content-length field */
-        return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-      }
-      if (!lstrieq("0", nv->value->base, nv->value->len)) {
-        return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-      }
-      http->content_length = 0;
-      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
-    }
-    if (http->status_code / 100 == 1) {
-      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
-    }
-    /* https://tools.ietf.org/html/rfc7230#section-3.3.3 */
-    if (http->status_code / 100 == 2 &&
-        (http->flags & NGHTTP3_HTTP_FLAG_METH_CONNECT)) {
-      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
-    }
-    if (http->content_length != -1) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    http->content_length = parse_uint(nv->value->base, nv->value->len);
-    if (http->content_length == -1) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    break;
-  }
-  /* disallowed header fields */
-  case NGHTTP3_QPACK_TOKEN_CONNECTION:
-  case NGHTTP3_QPACK_TOKEN_KEEP_ALIVE:
-  case NGHTTP3_QPACK_TOKEN_PROXY_CONNECTION:
-  case NGHTTP3_QPACK_TOKEN_TRANSFER_ENCODING:
-  case NGHTTP3_QPACK_TOKEN_UPGRADE:
-    return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-  case NGHTTP3_QPACK_TOKEN_TE:
-    if (!lstrieq("trailers", nv->value->base, nv->value->len)) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    break;
-  default:
-    if (nv->name->base[0] == ':') {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-  }
-
-  return 0;
-}
-
 /* Generated by genauthroitychartbl.py */
 static char VALID_AUTHORITY_CHARS[] = {
   0 /* NUL  */, 0 /* SOH  */, 0 /* STX  */, 0 /* ETX  */,
@@ -649,83 +436,259 @@ static int check_path(const uint8_t *value, size_t len) {
   return 1;
 }
 
-int nghttp3_http_on_header(nghttp3_http_state *http, nghttp3_qpack_nv *nv,
-                           int request, int trailers, int connect_protocol) {
-  int rv;
-  size_t i;
-  uint8_t c;
+static int http_request_on_header(nghttp3_http_state *http,
+                                  nghttp3_qpack_nv *nv, int trailers,
+                                  int connect_protocol) {
+  nghttp3_pri pri;
 
-  if (!nghttp3_check_header_name(nv->name->base, nv->name->len)) {
-    if (nv->name->len > 0 && nv->name->base[0] == ':') {
+  switch (nv->token) {
+  case NGHTTP3_QPACK_TOKEN__AUTHORITY:
+    if (!check_authority(nv->value->base, nv->value->len) ||
+        !check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__AUTHORITY)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    /* header field name must be lower-cased without exception */
-    for (i = 0; i < nv->name->len; ++i) {
-      c = nv->name->base[i];
-      if ('A' <= c && c <= 'Z') {
-        return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    break;
+  case NGHTTP3_QPACK_TOKEN__METHOD:
+    if (!check_method(nv->value->base, nv->value->len) ||
+        !check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__METHOD)) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    switch (nv->value->len) {
+    case 4:
+      if (lstreq("HEAD", nv->value->base, nv->value->len)) {
+        http->flags |= NGHTTP3_HTTP_FLAG_METH_HEAD;
+      }
+      break;
+    case 7:
+      switch (nv->value->base[6]) {
+      case 'T':
+        if (lstreq("CONNECT", nv->value->base, nv->value->len)) {
+          http->flags |= NGHTTP3_HTTP_FLAG_METH_CONNECT;
+        }
+        break;
+      case 'S':
+        if (lstreq("OPTIONS", nv->value->base, nv->value->len)) {
+          http->flags |= NGHTTP3_HTTP_FLAG_METH_OPTIONS;
+        }
+        break;
+      }
+      break;
+    }
+    break;
+  case NGHTTP3_QPACK_TOKEN__PATH:
+    if (!check_path(nv->value->base, nv->value->len) ||
+        !check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__PATH)) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    if (nv->value->base[0] == '/') {
+      http->flags |= NGHTTP3_HTTP_FLAG_PATH_REGULAR;
+    } else if (nv->value->len == 1 && nv->value->base[0] == '*') {
+      http->flags |= NGHTTP3_HTTP_FLAG_PATH_ASTERISK;
+    }
+    break;
+  case NGHTTP3_QPACK_TOKEN__SCHEME:
+    if (!check_scheme(nv->value->base, nv->value->len) ||
+        !check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__SCHEME)) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    /* scheme is case-insensitive:
+       https://datatracker.ietf.org/doc/html/rfc3986#section-3.1 */
+    if (lstrieq("http", nv->value->base, nv->value->len) ||
+        lstrieq("https", nv->value->base, nv->value->len)) {
+      http->flags |= NGHTTP3_HTTP_FLAG_SCHEME_HTTP;
+    }
+    break;
+  case NGHTTP3_QPACK_TOKEN__PROTOCOL:
+    if (!connect_protocol) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+
+    if (!nghttp3_check_header_value(nv->value->base, nv->value->len) ||
+        !check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__PROTOCOL)) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    break;
+  case NGHTTP3_QPACK_TOKEN_HOST:
+    if (!check_authority(nv->value->base, nv->value->len)) {
+      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
+    }
+    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG_HOST)) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    break;
+  case NGHTTP3_QPACK_TOKEN_CONTENT_LENGTH: {
+    /* https://tools.ietf.org/html/rfc7230#section-4.1.2: A sender
+       MUST NOT generate a trailer that contains a field necessary for
+       message framing (e.g., Transfer-Encoding and Content-Length),
+       ... */
+    if (trailers) {
+      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
+    }
+    if (http->content_length != -1) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    http->content_length = parse_uint(nv->value->base, nv->value->len);
+    if (http->content_length == -1) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    break;
+  }
+  /* disallowed header fields */
+  case NGHTTP3_QPACK_TOKEN_CONNECTION:
+  case NGHTTP3_QPACK_TOKEN_KEEP_ALIVE:
+  case NGHTTP3_QPACK_TOKEN_PROXY_CONNECTION:
+  case NGHTTP3_QPACK_TOKEN_TRANSFER_ENCODING:
+  case NGHTTP3_QPACK_TOKEN_UPGRADE:
+    return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+  case NGHTTP3_QPACK_TOKEN_TE:
+    if (!lstrieq("trailers", nv->value->base, nv->value->len)) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    break;
+  case NGHTTP3_QPACK_TOKEN_PRIORITY:
+    if (!nghttp3_check_header_value(nv->value->base, nv->value->len)) {
+      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
+    }
+    if (!trailers && !(http->flags & NGHTTP3_HTTP_FLAG_BAD_PRIORITY)) {
+      pri = http->pri;
+      if (nghttp3_http_parse_priority(&pri, nv->value->base, nv->value->len) ==
+          0) {
+        http->pri = pri;
+        http->flags |= NGHTTP3_HTTP_FLAG_PRIORITY;
+      } else {
+        http->flags &= ~NGHTTP3_HTTP_FLAG_PRIORITY;
+        http->flags |= NGHTTP3_HTTP_FLAG_BAD_PRIORITY;
       }
     }
-    /* When ignoring regular header fields, we set this flag so that
-       we still enforce header field ordering rule for pseudo header
-       fields. */
+    break;
+  default:
+    if (nv->name->base[0] == ':') {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+
+    if (!nghttp3_check_header_value(nv->value->base, nv->value->len)) {
+      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
+    }
+  }
+
+  return 0;
+}
+
+static int http_response_on_header(nghttp3_http_state *http,
+                                   nghttp3_qpack_nv *nv, int trailers) {
+  switch (nv->token) {
+  case NGHTTP3_QPACK_TOKEN__STATUS: {
+    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__STATUS)) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    if (nv->value->len != 3) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    http->status_code = (int16_t)parse_uint(nv->value->base, nv->value->len);
+    if (http->status_code < 100 || http->status_code == 101) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    break;
+  }
+  case NGHTTP3_QPACK_TOKEN_CONTENT_LENGTH: {
+    /* https://tools.ietf.org/html/rfc7230#section-4.1.2: A sender
+       MUST NOT generate a trailer that contains a field necessary for
+       message framing (e.g., Transfer-Encoding and Content-Length),
+       ... */
+    if (trailers) {
+      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
+    }
+    if (http->status_code == 204) {
+      /* content-length header field in 204 response is prohibited by
+         RFC 7230.  But some widely used servers send content-length:
+         0.  Until they get fixed, we ignore it. */
+      if (http->content_length != -1) {
+        /* Found multiple content-length field */
+        return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+      }
+      if (!lstrieq("0", nv->value->base, nv->value->len)) {
+        return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+      }
+      http->content_length = 0;
+      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
+    }
+    if (http->status_code / 100 == 1) {
+      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
+    }
+    /* https://tools.ietf.org/html/rfc7230#section-3.3.3 */
+    if (http->status_code / 100 == 2 &&
+        (http->flags & NGHTTP3_HTTP_FLAG_METH_CONNECT)) {
+      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
+    }
+    if (http->content_length != -1) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    http->content_length = parse_uint(nv->value->base, nv->value->len);
+    if (http->content_length == -1) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    break;
+  }
+  /* disallowed header fields */
+  case NGHTTP3_QPACK_TOKEN_CONNECTION:
+  case NGHTTP3_QPACK_TOKEN_KEEP_ALIVE:
+  case NGHTTP3_QPACK_TOKEN_PROXY_CONNECTION:
+  case NGHTTP3_QPACK_TOKEN_TRANSFER_ENCODING:
+  case NGHTTP3_QPACK_TOKEN_UPGRADE:
+    return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+  case NGHTTP3_QPACK_TOKEN_TE:
+    if (!lstrieq("trailers", nv->value->base, nv->value->len)) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+    break;
+  default:
+    if (nv->name->base[0] == ':') {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+
+    if (!nghttp3_check_header_value(nv->value->base, nv->value->len)) {
+      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
+    }
+  }
+
+  return 0;
+}
+
+static int http_check_nonempty_header_name(const uint8_t *name, size_t len);
+
+int nghttp3_http_on_header(nghttp3_http_state *http, nghttp3_qpack_nv *nv,
+                           int request, int trailers, int connect_protocol) {
+  if (nv->name->len == 0) {
     http->flags |= NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED;
+
     return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
+  }
+
+  if (nv->name->base[0] == ':') {
+    /* pseudo header must have a valid token. */
+    if (nv->token == -1 || trailers ||
+        (http->flags & NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED)) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
+  } else {
+    http->flags |= NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED;
+
+    switch (http_check_nonempty_header_name(nv->name->base, nv->name->len)) {
+    case 0:
+      return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
+    case -1:
+      /* header field name must be lower-cased without exception */
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    }
   }
 
   assert(nv->name->len > 0);
 
-  switch (nv->token) {
-  case NGHTTP3_QPACK_TOKEN__METHOD:
-    rv = check_method(nv->value->base, nv->value->len);
-    break;
-  case NGHTTP3_QPACK_TOKEN__SCHEME:
-    rv = check_scheme(nv->value->base, nv->value->len);
-    break;
-  case NGHTTP3_QPACK_TOKEN__AUTHORITY:
-  case NGHTTP3_QPACK_TOKEN_HOST:
-    if (request) {
-      rv = check_authority(nv->value->base, nv->value->len);
-    } else {
-      /* The use of host field in response field section is
-         undefined. */
-      rv = nghttp3_check_header_value(nv->value->base, nv->value->len);
-    }
-    break;
-  case NGHTTP3_QPACK_TOKEN__PATH:
-    rv = check_path(nv->value->base, nv->value->len);
-    break;
-  default:
-    rv = nghttp3_check_header_value(nv->value->base, nv->value->len);
-  }
-
-  if (rv == 0) {
-    if (nv->name->base[0] == ':') {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-    }
-    /* When ignoring regular header fields, we set this flag so that
-       we still enforce header field ordering rule for pseudo header
-       fields. */
-    http->flags |= NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED;
-    return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
-  }
-
   if (request) {
-    rv = http_request_on_header(http, nv, trailers, connect_protocol);
-  } else {
-    rv = http_response_on_header(http, nv, trailers);
+    return http_request_on_header(http, nv, trailers, connect_protocol);
   }
 
-  if (nv->name->base[0] != ':') {
-    switch (rv) {
-    case 0:
-    case NGHTTP3_ERR_REMOVE_HTTP_HEADER:
-      http->flags |= NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED;
-      break;
-    }
-  }
-
-  return rv;
+  return http_response_on_header(http, nv, trailers);
 }
 
 int nghttp3_http_on_request_headers(nghttp3_http_state *http) {
@@ -829,70 +792,58 @@ void nghttp3_http_record_request_method(nghttp3_stream *stream,
 
 /* Generated by gennmchartbl.py */
 static const int VALID_HD_NAME_CHARS[] = {
-  0 /* NUL  */, 0 /* SOH  */, 0 /* STX  */, 0 /* ETX  */,
-  0 /* EOT  */, 0 /* ENQ  */, 0 /* ACK  */, 0 /* BEL  */,
-  0 /* BS   */, 0 /* HT   */, 0 /* LF   */, 0 /* VT   */,
-  0 /* FF   */, 0 /* CR   */, 0 /* SO   */, 0 /* SI   */,
-  0 /* DLE  */, 0 /* DC1  */, 0 /* DC2  */, 0 /* DC3  */,
-  0 /* DC4  */, 0 /* NAK  */, 0 /* SYN  */, 0 /* ETB  */,
-  0 /* CAN  */, 0 /* EM   */, 0 /* SUB  */, 0 /* ESC  */,
-  0 /* FS   */, 0 /* GS   */, 0 /* RS   */, 0 /* US   */,
-  0 /* SPC  */, 1 /* !    */, 0 /* "    */, 1 /* #    */,
-  1 /* $    */, 1 /* %    */, 1 /* &    */, 1 /* '    */,
-  0 /* (    */, 0 /* )    */, 1 /* *    */, 1 /* +    */,
-  0 /* ,    */, 1 /* -    */, 1 /* .    */, 0 /* /    */,
-  1 /* 0    */, 1 /* 1    */, 1 /* 2    */, 1 /* 3    */,
-  1 /* 4    */, 1 /* 5    */, 1 /* 6    */, 1 /* 7    */,
-  1 /* 8    */, 1 /* 9    */, 0 /* :    */, 0 /* ;    */,
-  0 /* <    */, 0 /* =    */, 0 /* >    */, 0 /* ?    */,
-  0 /* @    */, 0 /* A    */, 0 /* B    */, 0 /* C    */,
-  0 /* D    */, 0 /* E    */, 0 /* F    */, 0 /* G    */,
-  0 /* H    */, 0 /* I    */, 0 /* J    */, 0 /* K    */,
-  0 /* L    */, 0 /* M    */, 0 /* N    */, 0 /* O    */,
-  0 /* P    */, 0 /* Q    */, 0 /* R    */, 0 /* S    */,
-  0 /* T    */, 0 /* U    */, 0 /* V    */, 0 /* W    */,
-  0 /* X    */, 0 /* Y    */, 0 /* Z    */, 0 /* [    */,
-  0 /* \    */, 0 /* ]    */, 1 /* ^    */, 1 /* _    */,
-  1 /* `    */, 1 /* a    */, 1 /* b    */, 1 /* c    */,
-  1 /* d    */, 1 /* e    */, 1 /* f    */, 1 /* g    */,
-  1 /* h    */, 1 /* i    */, 1 /* j    */, 1 /* k    */,
-  1 /* l    */, 1 /* m    */, 1 /* n    */, 1 /* o    */,
-  1 /* p    */, 1 /* q    */, 1 /* r    */, 1 /* s    */,
-  1 /* t    */, 1 /* u    */, 1 /* v    */, 1 /* w    */,
-  1 /* x    */, 1 /* y    */, 1 /* z    */, 0 /* {    */,
-  1 /* |    */, 0 /* }    */, 1 /* ~    */, 0 /* DEL  */,
-  0 /* 0x80 */, 0 /* 0x81 */, 0 /* 0x82 */, 0 /* 0x83 */,
-  0 /* 0x84 */, 0 /* 0x85 */, 0 /* 0x86 */, 0 /* 0x87 */,
-  0 /* 0x88 */, 0 /* 0x89 */, 0 /* 0x8a */, 0 /* 0x8b */,
-  0 /* 0x8c */, 0 /* 0x8d */, 0 /* 0x8e */, 0 /* 0x8f */,
-  0 /* 0x90 */, 0 /* 0x91 */, 0 /* 0x92 */, 0 /* 0x93 */,
-  0 /* 0x94 */, 0 /* 0x95 */, 0 /* 0x96 */, 0 /* 0x97 */,
-  0 /* 0x98 */, 0 /* 0x99 */, 0 /* 0x9a */, 0 /* 0x9b */,
-  0 /* 0x9c */, 0 /* 0x9d */, 0 /* 0x9e */, 0 /* 0x9f */,
-  0 /* 0xa0 */, 0 /* 0xa1 */, 0 /* 0xa2 */, 0 /* 0xa3 */,
-  0 /* 0xa4 */, 0 /* 0xa5 */, 0 /* 0xa6 */, 0 /* 0xa7 */,
-  0 /* 0xa8 */, 0 /* 0xa9 */, 0 /* 0xaa */, 0 /* 0xab */,
-  0 /* 0xac */, 0 /* 0xad */, 0 /* 0xae */, 0 /* 0xaf */,
-  0 /* 0xb0 */, 0 /* 0xb1 */, 0 /* 0xb2 */, 0 /* 0xb3 */,
-  0 /* 0xb4 */, 0 /* 0xb5 */, 0 /* 0xb6 */, 0 /* 0xb7 */,
-  0 /* 0xb8 */, 0 /* 0xb9 */, 0 /* 0xba */, 0 /* 0xbb */,
-  0 /* 0xbc */, 0 /* 0xbd */, 0 /* 0xbe */, 0 /* 0xbf */,
-  0 /* 0xc0 */, 0 /* 0xc1 */, 0 /* 0xc2 */, 0 /* 0xc3 */,
-  0 /* 0xc4 */, 0 /* 0xc5 */, 0 /* 0xc6 */, 0 /* 0xc7 */,
-  0 /* 0xc8 */, 0 /* 0xc9 */, 0 /* 0xca */, 0 /* 0xcb */,
-  0 /* 0xcc */, 0 /* 0xcd */, 0 /* 0xce */, 0 /* 0xcf */,
-  0 /* 0xd0 */, 0 /* 0xd1 */, 0 /* 0xd2 */, 0 /* 0xd3 */,
-  0 /* 0xd4 */, 0 /* 0xd5 */, 0 /* 0xd6 */, 0 /* 0xd7 */,
-  0 /* 0xd8 */, 0 /* 0xd9 */, 0 /* 0xda */, 0 /* 0xdb */,
-  0 /* 0xdc */, 0 /* 0xdd */, 0 /* 0xde */, 0 /* 0xdf */,
-  0 /* 0xe0 */, 0 /* 0xe1 */, 0 /* 0xe2 */, 0 /* 0xe3 */,
-  0 /* 0xe4 */, 0 /* 0xe5 */, 0 /* 0xe6 */, 0 /* 0xe7 */,
-  0 /* 0xe8 */, 0 /* 0xe9 */, 0 /* 0xea */, 0 /* 0xeb */,
-  0 /* 0xec */, 0 /* 0xed */, 0 /* 0xee */, 0 /* 0xef */,
-  0 /* 0xf0 */, 0 /* 0xf1 */, 0 /* 0xf2 */, 0 /* 0xf3 */,
-  0 /* 0xf4 */, 0 /* 0xf5 */, 0 /* 0xf6 */, 0 /* 0xf7 */,
-  0 /* 0xf8 */, 0 /* 0xf9 */, 0 /* 0xfa */, 0 /* 0xfb */,
-  0 /* 0xfc */, 0 /* 0xfd */, 0 /* 0xfe */, 0 /* 0xff */
+  0 /* NUL  */, 0 /* SOH  */, 0 /* STX  */, 0 /* ETX  */, 0 /* EOT  */,
+  0 /* ENQ  */, 0 /* ACK  */, 0 /* BEL  */, 0 /* BS   */, 0 /* HT   */,
+  0 /* LF   */, 0 /* VT   */, 0 /* FF   */, 0 /* CR   */, 0 /* SO   */,
+  0 /* SI   */, 0 /* DLE  */, 0 /* DC1  */, 0 /* DC2  */, 0 /* DC3  */,
+  0 /* DC4  */, 0 /* NAK  */, 0 /* SYN  */, 0 /* ETB  */, 0 /* CAN  */,
+  0 /* EM   */, 0 /* SUB  */, 0 /* ESC  */, 0 /* FS   */, 0 /* GS   */,
+  0 /* RS   */, 0 /* US   */, 0 /* SPC  */, 1 /* !    */, 0 /* "    */,
+  1 /* #    */, 1 /* $    */, 1 /* %    */, 1 /* &    */, 1 /* '    */,
+  0 /* (    */, 0 /* )    */, 1 /* *    */, 1 /* +    */, 0 /* ,    */,
+  1 /* -    */, 1 /* .    */, 0 /* /    */, 1 /* 0    */, 1 /* 1    */,
+  1 /* 2    */, 1 /* 3    */, 1 /* 4    */, 1 /* 5    */, 1 /* 6    */,
+  1 /* 7    */, 1 /* 8    */, 1 /* 9    */, 0 /* :    */, 0 /* ;    */,
+  0 /* <    */, 0 /* =    */, 0 /* >    */, 0 /* ?    */, 0 /* @    */,
+  -1 /* A   */, -1 /* B   */, -1 /* C   */, -1 /* D   */, -1 /* E   */,
+  -1 /* F   */, -1 /* G   */, -1 /* H   */, -1 /* I   */, -1 /* J   */,
+  -1 /* K   */, -1 /* L   */, -1 /* M   */, -1 /* N   */, -1 /* O   */,
+  -1 /* P   */, -1 /* Q   */, -1 /* R   */, -1 /* S   */, -1 /* T   */,
+  -1 /* U   */, -1 /* V   */, -1 /* W   */, -1 /* X   */, -1 /* Y   */,
+  -1 /* Z   */, 0 /* [    */, 0 /* \    */, 0 /* ]    */, 1 /* ^    */,
+  1 /* _    */, 1 /* `    */, 1 /* a    */, 1 /* b    */, 1 /* c    */,
+  1 /* d    */, 1 /* e    */, 1 /* f    */, 1 /* g    */, 1 /* h    */,
+  1 /* i    */, 1 /* j    */, 1 /* k    */, 1 /* l    */, 1 /* m    */,
+  1 /* n    */, 1 /* o    */, 1 /* p    */, 1 /* q    */, 1 /* r    */,
+  1 /* s    */, 1 /* t    */, 1 /* u    */, 1 /* v    */, 1 /* w    */,
+  1 /* x    */, 1 /* y    */, 1 /* z    */, 0 /* {    */, 1 /* |    */,
+  0 /* }    */, 1 /* ~    */, 0 /* DEL  */, 0 /* 0x80 */, 0 /* 0x81 */,
+  0 /* 0x82 */, 0 /* 0x83 */, 0 /* 0x84 */, 0 /* 0x85 */, 0 /* 0x86 */,
+  0 /* 0x87 */, 0 /* 0x88 */, 0 /* 0x89 */, 0 /* 0x8a */, 0 /* 0x8b */,
+  0 /* 0x8c */, 0 /* 0x8d */, 0 /* 0x8e */, 0 /* 0x8f */, 0 /* 0x90 */,
+  0 /* 0x91 */, 0 /* 0x92 */, 0 /* 0x93 */, 0 /* 0x94 */, 0 /* 0x95 */,
+  0 /* 0x96 */, 0 /* 0x97 */, 0 /* 0x98 */, 0 /* 0x99 */, 0 /* 0x9a */,
+  0 /* 0x9b */, 0 /* 0x9c */, 0 /* 0x9d */, 0 /* 0x9e */, 0 /* 0x9f */,
+  0 /* 0xa0 */, 0 /* 0xa1 */, 0 /* 0xa2 */, 0 /* 0xa3 */, 0 /* 0xa4 */,
+  0 /* 0xa5 */, 0 /* 0xa6 */, 0 /* 0xa7 */, 0 /* 0xa8 */, 0 /* 0xa9 */,
+  0 /* 0xaa */, 0 /* 0xab */, 0 /* 0xac */, 0 /* 0xad */, 0 /* 0xae */,
+  0 /* 0xaf */, 0 /* 0xb0 */, 0 /* 0xb1 */, 0 /* 0xb2 */, 0 /* 0xb3 */,
+  0 /* 0xb4 */, 0 /* 0xb5 */, 0 /* 0xb6 */, 0 /* 0xb7 */, 0 /* 0xb8 */,
+  0 /* 0xb9 */, 0 /* 0xba */, 0 /* 0xbb */, 0 /* 0xbc */, 0 /* 0xbd */,
+  0 /* 0xbe */, 0 /* 0xbf */, 0 /* 0xc0 */, 0 /* 0xc1 */, 0 /* 0xc2 */,
+  0 /* 0xc3 */, 0 /* 0xc4 */, 0 /* 0xc5 */, 0 /* 0xc6 */, 0 /* 0xc7 */,
+  0 /* 0xc8 */, 0 /* 0xc9 */, 0 /* 0xca */, 0 /* 0xcb */, 0 /* 0xcc */,
+  0 /* 0xcd */, 0 /* 0xce */, 0 /* 0xcf */, 0 /* 0xd0 */, 0 /* 0xd1 */,
+  0 /* 0xd2 */, 0 /* 0xd3 */, 0 /* 0xd4 */, 0 /* 0xd5 */, 0 /* 0xd6 */,
+  0 /* 0xd7 */, 0 /* 0xd8 */, 0 /* 0xd9 */, 0 /* 0xda */, 0 /* 0xdb */,
+  0 /* 0xdc */, 0 /* 0xdd */, 0 /* 0xde */, 0 /* 0xdf */, 0 /* 0xe0 */,
+  0 /* 0xe1 */, 0 /* 0xe2 */, 0 /* 0xe3 */, 0 /* 0xe4 */, 0 /* 0xe5 */,
+  0 /* 0xe6 */, 0 /* 0xe7 */, 0 /* 0xe8 */, 0 /* 0xe9 */, 0 /* 0xea */,
+  0 /* 0xeb */, 0 /* 0xec */, 0 /* 0xed */, 0 /* 0xee */, 0 /* 0xef */,
+  0 /* 0xf0 */, 0 /* 0xf1 */, 0 /* 0xf2 */, 0 /* 0xf3 */, 0 /* 0xf4 */,
+  0 /* 0xf5 */, 0 /* 0xf6 */, 0 /* 0xf7 */, 0 /* 0xf8 */, 0 /* 0xf9 */,
+  0 /* 0xfa */, 0 /* 0xfb */, 0 /* 0xfc */, 0 /* 0xfd */, 0 /* 0xfe */,
+  0 /* 0xff */,
 };
 
 int nghttp3_check_header_name(const uint8_t *name, size_t len) {
@@ -912,6 +863,24 @@ int nghttp3_check_header_name(const uint8_t *name, size_t len) {
       return 0;
     }
   }
+  return 1;
+}
+
+/* http_check_nonempty_header_name validates regular header name
+   pointed by |name| of length |len|.  |len| must be greater than
+   zero.  This function returns 1 if it succeeds, or -1 if the name
+   contains a character in [A-Z], otherwise 0. */
+static int http_check_nonempty_header_name(const uint8_t *name, size_t len) {
+  const uint8_t *last;
+  int rv;
+
+  for (last = name + len; name != last; ++name) {
+    rv = VALID_HD_NAME_CHARS[*name];
+    if (rv != 1) {
+      return rv;
+    }
+  }
+
   return 1;
 }
 
