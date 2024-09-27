@@ -2535,15 +2535,21 @@ nghttp3_ssize nghttp3_qpack_encoder_read_decoder(nghttp3_qpack_encoder *encoder,
   for (; p != end;) {
     switch (encoder->state) {
     case NGHTTP3_QPACK_DS_STATE_OPCODE:
-      if ((*p) & 0x80) {
+      switch ((*p) & 0xc0) {
+      case 0x80:
+      case 0xc0:
         DEBUGF("qpack::encode: OPCODE_SECTION_ACK\n");
         encoder->opcode = NGHTTP3_QPACK_DS_OPCODE_SECTION_ACK;
         encoder->rstate.prefix = 7;
-      } else if ((*p) & 0x40) {
+
+        break;
+      case 0x40:
         DEBUGF("qpack::encode: OPCODE_STREAM_CANCEL\n");
         encoder->opcode = NGHTTP3_QPACK_DS_OPCODE_STREAM_CANCEL;
         encoder->rstate.prefix = 6;
-      } else {
+
+        break;
+      default:
         DEBUGF("qpack::encode: OPCODE_ICNT_INCREMENT\n");
         encoder->opcode = NGHTTP3_QPACK_DS_OPCODE_ICNT_INCREMENT;
         encoder->rstate.prefix = 6;
@@ -2808,33 +2814,40 @@ nghttp3_ssize nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
     busy = 0;
     switch (decoder->state) {
     case NGHTTP3_QPACK_ES_STATE_OPCODE:
-      if ((*p) & 0x80) {
+      switch ((*p) & 0xe0) {
+      case 0x80:
+      case 0xa0:
+      case 0xc0:
+      case 0xe0:
         DEBUGF("qpack::decode: OPCODE_INSERT_INDEXED\n");
         decoder->opcode = NGHTTP3_QPACK_ES_OPCODE_INSERT_INDEXED;
         decoder->rstate.dynamic = !((*p) & 0x40);
         decoder->rstate.prefix = 6;
         decoder->state = NGHTTP3_QPACK_ES_STATE_READ_INDEX;
-      } else if ((*p) & 0x40) {
+
+        break;
+      case 0x40:
+      case 0x60:
         DEBUGF("qpack::decode: OPCODE_INSERT\n");
         decoder->opcode = NGHTTP3_QPACK_ES_OPCODE_INSERT;
         decoder->rstate.dynamic = 0;
         decoder->rstate.prefix = 5;
         decoder->state = NGHTTP3_QPACK_ES_STATE_CHECK_NAME_HUFFMAN;
-      } else if ((*p) & 0x20) {
+
+        break;
+      case 0x20:
         DEBUGF("qpack::decode: OPCODE_SET_DTABLE_TABLE_CAP\n");
         decoder->opcode = NGHTTP3_QPACK_ES_OPCODE_SET_DTABLE_CAP;
         decoder->rstate.prefix = 5;
         decoder->state = NGHTTP3_QPACK_ES_STATE_READ_INDEX;
-      } else if (!((*p) & 0x20)) {
+
+        break;
+      default:
         DEBUGF("qpack::decode: OPCODE_DUPLICATE\n");
         decoder->opcode = NGHTTP3_QPACK_ES_OPCODE_DUPLICATE;
         decoder->rstate.dynamic = 1;
         decoder->rstate.prefix = 5;
         decoder->state = NGHTTP3_QPACK_ES_STATE_READ_INDEX;
-      } else {
-        DEBUGF("qpack::decode: unknown opcode %02x\n", *p);
-        rv = NGHTTP3_ERR_QPACK_ENCODER_STREAM_ERROR;
-        goto fail;
       }
       break;
     case NGHTTP3_QPACK_ES_STATE_READ_INDEX:
@@ -3370,33 +3383,53 @@ nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
     case NGHTTP3_QPACK_RS_STATE_OPCODE:
       assert(sctx->rstate.left == 0);
       assert(sctx->rstate.shift == 0);
-      if ((*p) & 0x80) {
+      switch ((*p) & 0xf0) {
+      case 0x80:
+      case 0x90:
+      case 0xa0:
+      case 0xb0:
+      case 0xc0:
+      case 0xd0:
+      case 0xe0:
+      case 0xf0:
         DEBUGF("qpack::decode: OPCODE_INDEXED\n");
         sctx->opcode = NGHTTP3_QPACK_RS_OPCODE_INDEXED;
         sctx->rstate.dynamic = !((*p) & 0x40);
         sctx->rstate.prefix = 6;
         sctx->state = NGHTTP3_QPACK_RS_STATE_READ_INDEX;
-      } else if ((*p) & 0x40) {
+
+        break;
+      case 0x40:
+      case 0x50:
+      case 0x60:
+      case 0x70:
         DEBUGF("qpack::decode: OPCODE_INDEXED_NAME\n");
         sctx->opcode = NGHTTP3_QPACK_RS_OPCODE_INDEXED_NAME;
         sctx->rstate.never = (*p) & 0x20;
         sctx->rstate.dynamic = !((*p) & 0x10);
         sctx->rstate.prefix = 4;
         sctx->state = NGHTTP3_QPACK_RS_STATE_READ_INDEX;
-      } else if ((*p) & 0x20) {
+
+        break;
+      case 0x20:
+      case 0x30:
         DEBUGF("qpack::decode: OPCODE_LITERAL\n");
         sctx->opcode = NGHTTP3_QPACK_RS_OPCODE_LITERAL;
         sctx->rstate.never = (*p) & 0x10;
         sctx->rstate.dynamic = 0;
         sctx->rstate.prefix = 3;
         sctx->state = NGHTTP3_QPACK_RS_STATE_CHECK_NAME_HUFFMAN;
-      } else if ((*p) & 0x10) {
+
+        break;
+      case 0x10:
         DEBUGF("qpack::decode: OPCODE_INDEXED_PB\n");
         sctx->opcode = NGHTTP3_QPACK_RS_OPCODE_INDEXED_PB;
         sctx->rstate.dynamic = 1;
         sctx->rstate.prefix = 4;
         sctx->state = NGHTTP3_QPACK_RS_STATE_READ_INDEX;
-      } else {
+
+        break;
+      default:
         DEBUGF("qpack::decode: OPCODE_INDEXED_NAME_PB\n");
         sctx->opcode = NGHTTP3_QPACK_RS_OPCODE_INDEXED_NAME_PB;
         sctx->rstate.never = (*p) & 0x08;
