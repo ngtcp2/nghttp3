@@ -28,10 +28,15 @@
 #include <string.h>
 #include <assert.h>
 
+#ifdef __SSE4_2__
+#  include <nmmintrin.h>
+#endif /* __SSE4_2__ */
+
 #include "nghttp3_stream.h"
 #include "nghttp3_macro.h"
 #include "nghttp3_conv.h"
 #include "nghttp3_unreachable.h"
+#include "nghttp3_str.h"
 #include "sfparse/sfparse.h"
 
 static uint8_t downcase(uint8_t c) {
@@ -950,6 +955,11 @@ static const int VALID_HD_VALUE_CHARS[] = {
 };
 
 int nghttp3_check_header_value(const uint8_t *value, size_t len) {
+#ifdef __SSE4_2__
+  static const uint8_t NGHTTP3_ALIGN(16) token_ranges[16] =
+    "\x00\x08\x0a\x1f\x7f\x7f";
+  const uint8_t *v;
+#endif /* __SSE4_2__ */
   const uint8_t *last;
 
   switch (len) {
@@ -963,7 +973,23 @@ int nghttp3_check_header_value(const uint8_t *value, size_t len) {
     }
   }
 
-  for (last = value + len; value != last; ++value) {
+#ifdef __SSE4_2__
+  if (len >= 16) {
+    last = value + (len & ~0xfu);
+    v = nghttp3_find_first_of_sse42(value, last, token_ranges, 6);
+    if (v != last) {
+      return 0;
+    }
+
+    last = value + len;
+    value = v;
+  } else
+#endif /* __SSE4_2__ */
+  {
+    last = value + len;
+  }
+
+  for (; value != last; ++value) {
     if (!VALID_HD_VALUE_CHARS[*value]) {
       return 0;
     }

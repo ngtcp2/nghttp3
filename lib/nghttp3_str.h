@@ -37,4 +37,22 @@ uint8_t *nghttp3_cpymem(uint8_t *dest, const uint8_t *src, size_t n);
 
 void nghttp3_downcase(uint8_t *s, size_t len);
 
+#ifdef __SSE4_2__
+/*
+ * nghttp3_find_first_of_sse42 returns the pointer to the first
+ * position in [|first|, |last|) where its byte value is included in
+ * |ranges| of length |rangeslen|, otherwise returns |last|.  |ranges|
+ * must be a sequence of ranges without delimiters, and the range is
+ * inclusive (e.g., \x01\x0a).  |rangeslen| must be equal or less than
+ * 16.  While |rangeslen| can be less than 16, the memory region
+ * [|ranges|, |ranges| + 16) must be accessible.  The distance between
+ * |first| and |last| must be divisible by 16.  This function uses
+ * SSE4.2 intrinsics.
+ */
+const uint8_t *nghttp3_find_first_of_sse42(const uint8_t *first,
+                                           const uint8_t *last,
+                                           const uint8_t *ranges,
+                                           size_t rangeslen);
+#endif /* __SSE4_2__ */
+
 #endif /* !defined(NGHTTP3_STR_H) */

@@ -1,9 +1,7 @@
 /*
  * nghttp3
  *
- * Copyright (c) 2019 nghttp3 contributors
- * Copyright (c) 2016 ngtcp2 contributors
- * Copyright (c) 2012 nghttp2 contributors
+ * Copyright (c) 2024 nghttp3 contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -24,28 +22,19 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+#ifndef NGHTTP3_STR_TEST_H
+#define NGHTTP3_STR_TEST_H
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif /* defined(HAVE_CONFIG_H) */
 
+#define MUNIT_ENABLE_ASSERT_ALIASES
+
 #include "munit.h"
 
-/* include test cases' include files here */
-#include "nghttp3_qpack_test.h"
-#include "nghttp3_conn_test.h"
-#include "nghttp3_tnode_test.h"
-#include "nghttp3_http_test.h"
-#include "nghttp3_conv_test.h"
-#include "nghttp3_str_test.h"
+extern const MunitSuite str_suite;
 
-int main(int argc, char **argv) {
-  const MunitSuite suites[] = {
-    qpack_suite, conn_suite, tnode_suite,
-    http_suite,  str_suite,  {NULL, NULL, NULL, 0, MUNIT_SUITE_OPTION_NONE},
-  };
-  const MunitSuite suite = {
-    "", NULL, suites, 1, MUNIT_SUITE_OPTION_NONE,
-  };
+munit_void_test_decl(test_nghttp3_find_first_of_sse42);
 
-  return munit_suite_main(&suite, NULL, argc, argv);
-}
+#endif /* !defined(NGHTTP3_STR_TEST_H) */

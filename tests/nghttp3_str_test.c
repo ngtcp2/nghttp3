@@ -1,9 +1,7 @@
 /*
  * nghttp3
  *
- * Copyright (c) 2019 nghttp3 contributors
- * Copyright (c) 2016 ngtcp2 contributors
- * Copyright (c) 2012 nghttp2 contributors
+ * Copyright (c) 2024 nghttp3 contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -24,28 +22,47 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif /* defined(HAVE_CONFIG_H) */
-
-#include "munit.h"
-
-/* include test cases' include files here */
-#include "nghttp3_qpack_test.h"
-#include "nghttp3_conn_test.h"
-#include "nghttp3_tnode_test.h"
-#include "nghttp3_http_test.h"
-#include "nghttp3_conv_test.h"
 #include "nghttp3_str_test.h"
 
-int main(int argc, char **argv) {
-  const MunitSuite suites[] = {
-    qpack_suite, conn_suite, tnode_suite,
-    http_suite,  str_suite,  {NULL, NULL, NULL, 0, MUNIT_SUITE_OPTION_NONE},
-  };
-  const MunitSuite suite = {
-    "", NULL, suites, 1, MUNIT_SUITE_OPTION_NONE,
-  };
+#include <stdio.h>
+#include <assert.h>
 
-  return munit_suite_main(&suite, NULL, argc, argv);
+#include "nghttp3_str.h"
+#include "nghttp3_test_helper.h"
+
+static const MunitTest tests[] = {
+  munit_void_test(test_nghttp3_find_first_of_sse42),
+  munit_test_end(),
+};
+
+const MunitSuite str_suite = {
+  "/str", tests, NULL, 1, MUNIT_SUITE_OPTION_NONE,
+};
+
+void test_nghttp3_find_first_of_sse42(void) {
+#ifdef __SSE4_2__
+  {
+    const uint8_t s[] = "...............C";
+    const uint8_t r[16] = "AZ";
+    const uint8_t *o = nghttp3_find_first_of_sse42(s, s + sizeof(s) - 1, r, 2);
+
+    assert_ptr_equal(o, s + 15);
+  }
+
+  {
+    const uint8_t s[] = "......a..........C..............";
+    const uint8_t r[16] = "AZ";
+    const uint8_t *o = nghttp3_find_first_of_sse42(s, s + sizeof(s) - 1, r, 2);
+
+    assert_ptr_equal(o, s + 17);
+  }
+
+  {
+    const uint8_t s[] = "................";
+    const uint8_t r[16] = "AZ";
+    const uint8_t *o = nghttp3_find_first_of_sse42(s, s + sizeof(s) - 1, r, 2);
+
+    assert_ptr_equal(o, s + 16);
+  }
+#endif /* __SSE4_2__ */
 }
