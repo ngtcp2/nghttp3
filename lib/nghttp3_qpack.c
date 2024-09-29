@@ -1834,7 +1834,7 @@ static int qpack_encoder_write_indexed_name(nghttp3_qpack_encoder *encoder,
   int h = 0;
 
   hlen = nghttp3_qpack_huffman_encode_count(nv->value, nv->valuelen);
-  if (hlen < nv->valuelen) {
+  if (hlen * 4 < nv->valuelen * 3) {
     h = 1;
     len += nghttp3_qpack_put_varint_len(hlen, 7) + hlen;
   } else {
@@ -1925,7 +1925,7 @@ static int qpack_encoder_write_literal(nghttp3_qpack_encoder *encoder,
   int nh = 0, vh = 0;
 
   nhlen = nghttp3_qpack_huffman_encode_count(nv->name, nv->namelen);
-  if (nhlen < nv->namelen) {
+  if (nhlen * 4 < nv->namelen * 3) {
     nh = 1;
     len = nghttp3_qpack_put_varint_len(nhlen, prefix) + nhlen;
   } else {
@@ -1933,7 +1933,7 @@ static int qpack_encoder_write_literal(nghttp3_qpack_encoder *encoder,
   }
 
   vhlen = nghttp3_qpack_huffman_encode_count(nv->value, nv->valuelen);
-  if (vhlen < nv->valuelen) {
+  if (vhlen * 4 < nv->valuelen * 3) {
     vh = 1;
     len += nghttp3_qpack_put_varint_len(vhlen, 7) + vhlen;
   } else {
