@@ -33,7 +33,6 @@ OBJECTS = \
 	nghttp3_tnode_test.c \
 	nghttp3_http_test.c \
 	nghttp3_conv_test.c \
-	nghttp3_str_test.c \
 	nghttp3_test_helper.c \
 	munit/munit.c
 HFILES = \
@@ -42,7 +41,6 @@ HFILES = \
 	nghttp3_tnode_test.h \
 	nghttp3_http_test.h \
 	nghttp3_conv_test.h \
-	nghttp3_str_test.h \
 	nghttp3_test_helper.h \
 	munit/munit.h
 

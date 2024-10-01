@@ -36,12 +36,14 @@
 #include "nghttp3_tnode_test.h"
 #include "nghttp3_http_test.h"
 #include "nghttp3_conv_test.h"
-#include "nghttp3_str_test.h"
 
 int main(int argc, char **argv) {
   const MunitSuite suites[] = {
-    qpack_suite, conn_suite, tnode_suite,
-    http_suite,  str_suite,  {NULL, NULL, NULL, 0, MUNIT_SUITE_OPTION_NONE},
+    qpack_suite,
+    conn_suite,
+    tnode_suite,
+    http_suite,
+    {NULL, NULL, NULL, 0, MUNIT_SUITE_OPTION_NONE},
   };
   const MunitSuite suite = {
     "", NULL, suites, 1, MUNIT_SUITE_OPTION_NONE,
