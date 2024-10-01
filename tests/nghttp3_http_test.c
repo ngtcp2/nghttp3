@@ -264,12 +264,6 @@ void test_nghttp3_check_header_value(void) {
   uint8_t goodval[] = {'a', 'b', 0x80u, 'c', 0xffu, 'd'};
   uint8_t badval1[] = {'a', 0x1fu, 'b'};
   uint8_t badval2[] = {'a', 0x7fu, 'b'};
-  const uint8_t tmpl[] = {'_', '_', '_', '_', '_', '_', '_', '_', '_',
-                          '_', '_', '_', '_', '_', '_', '_', '_', '_',
-                          '_', '_', '_', '_', '_', '_', '_', '_', '_',
-                          '_', '_', '_', '_', '_', '_'};
-  uint8_t t[sizeof(tmpl)];
-  uint8_t b;
 
   assert_true(check_header_value("!|}~"));
   assert_false(check_header_value(" !|}~"));
@@ -282,34 +276,4 @@ void test_nghttp3_check_header_value(void) {
   assert_true(check_header_value(""));
   assert_false(check_header_value(" "));
   assert_false(check_header_value("\t"));
-  assert_true(check_header_value("a       \t       b"));
-
-  for (b = 0; b < 0x09; ++b) {
-    memcpy(t, tmpl, sizeof(t));
-    t[15] = b;
-
-    assert_false(nghttp3_check_header_value(t, sizeof(t)));
-
-    memcpy(t, tmpl, sizeof(t));
-    t[16] = b;;
-
-    assert_false(nghttp3_check_header_value(t, sizeof(t)));
-
-    memcpy(t, tmpl, sizeof(t));
-    t[32] = b;;
-
-    assert_false(nghttp3_check_header_value(t, sizeof(t)));
-  }
-
-  for (b = 0x0a; b < 0x20; ++b) {
-    memcpy(t, tmpl, sizeof(t));
-    t[16] = b;
-
-    assert_false(nghttp3_check_header_value(t, sizeof(t)));
-  }
-
-  memcpy(t, tmpl, sizeof(t));
-  t[16] = 0x7f;
-
-  assert_false(nghttp3_check_header_value(t, sizeof(t)));
 }

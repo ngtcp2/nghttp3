@@ -29,10 +29,6 @@
 #include <string.h>
 #include <assert.h>
 
-#ifdef __SSE4_2__
-#  include <nmmintrin.h>
-#endif /* __SSE4_2__ */
-
 uint8_t *nghttp3_cpymem(uint8_t *dest, const uint8_t *src, size_t n) {
   memcpy(dest, src, n);
   return dest + n;
@@ -112,26 +108,3 @@ void nghttp3_downcase(uint8_t *s, size_t len) {
     s[i] = DOWNCASE_TBL[s[i]];
   }
 }
-
-#ifdef __SSE4_2__
-const uint8_t *nghttp3_find_first_of_sse42(const uint8_t *first,
-                                           const uint8_t *last,
-                                           const uint8_t *ranges,
-                                           size_t rangeslen) {
-  const __m128i r = _mm_loadu_si128((const __m128i *)(void *)ranges);
-  __m128i v;
-  int rv;
-
-  for (; first != last; first += 16) {
-    v = _mm_loadu_si128((const __m128i *)(const void *)first);
-    rv = _mm_cmpestri(r, rangeslen, v, 16,
-                      _SIDD_LEAST_SIGNIFICANT | _SIDD_CMP_RANGES |
-                        _SIDD_UBYTE_OPS);
-    if (rv != 16) {
-      return first + rv;
-    }
-  }
-
-  return first;
-}
-#endif /* __SSE4_2__ */
