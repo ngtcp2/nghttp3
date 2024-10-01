@@ -28,6 +28,10 @@
 #include <string.h>
 #include <assert.h>
 
+#ifdef __AVX2__
+#  include <immintrin.h>
+#endif /* __AVX2__ */
+
 #include "nghttp3_stream.h"
 #include "nghttp3_macro.h"
 #include "nghttp3_conv.h"
@@ -949,8 +953,39 @@ static const int VALID_HD_VALUE_CHARS[] = {
   1 /* 0xfc */, 1 /* 0xfd */, 1 /* 0xfe */, 1 /* 0xff */
 };
 
+#ifdef __AVX2__
+static int contains_bad_header_value_char_avx2(const uint8_t *first,
+                                               const uint8_t *last) {
+  const __m256i ctll = _mm256_set1_epi8(0x00 - 1);
+  const __m256i ctlr = _mm256_set1_epi8(0x1f + 1);
+  const __m256i ht = _mm256_set1_epi8('\t');
+  const __m256i del = _mm256_set1_epi8(0x7f);
+  __m256i s, x;
+  uint32_t m;
+
+  for (; first != last; first += 32) {
+    s = _mm256_loadu_si256((void *)first);
+
+    x = _mm256_andnot_si256(
+      _mm256_cmpeq_epi8(s, ht),
+      _mm256_and_si256(_mm256_cmpgt_epi8(s, ctll), _mm256_cmpgt_epi8(ctlr, s)));
+    x = _mm256_or_si256(_mm256_cmpeq_epi8(s, del), x);
+
+    m = (uint32_t)_mm256_movemask_epi8(x);
+    if (m) {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+#endif /* __AVX2__ */
+
 int nghttp3_check_header_value(const uint8_t *value, size_t len) {
   const uint8_t *last;
+#ifdef __AVX2__
+  const uint8_t *last32;
+#endif /* __AVX2__ */
 
   switch (len) {
   case 0:
@@ -963,7 +998,20 @@ int nghttp3_check_header_value(const uint8_t *value, size_t len) {
     }
   }
 
-  for (last = value + len; value != last; ++value) {
+  last = value + len;
+
+#ifdef __AVX2__
+  if (len >= 32) {
+    last32 = value + (len & ~0x1fu);
+    if (contains_bad_header_value_char_avx2(value, last32)) {
+      return 0;
+    }
+
+    value = last32;
+  }
+#endif /* __AVX2__ */
+
+  for (; value != last; ++value) {
     if (!VALID_HD_VALUE_CHARS[*value]) {
       return 0;
     }
