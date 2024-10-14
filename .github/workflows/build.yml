@@ -8,7 +8,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-13, macos-14]
+        os: [ubuntu-24.04, macos-13, macos-14]
         compiler: [gcc, clang]
         buildtool: [autotools, distcheck, cmake]
         exclude:
@@ -26,8 +26,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install \
-          g++-12 \
-          clang-15 \
+          g++-14 \
+          clang-18 \
           autoconf \
           automake \
           autotools-dev \
@@ -48,8 +48,8 @@ jobs:
     - name: Setup clang (Linux)
       if: runner.os == 'Linux' && matrix.compiler == 'clang'
       run: |
-        echo 'CC=clang-15' >> $GITHUB_ENV
-        echo 'CXX=clang++-15' >> $GITHUB_ENV
+        echo 'CC=clang-18' >> $GITHUB_ENV
+        echo 'CXX=clang++-18' >> $GITHUB_ENV
     - name: Setup clang (MacOS)
       if: runner.os == 'macOS' && matrix.compiler == 'clang'
       run: |
@@ -58,8 +58,8 @@ jobs:
     - name: Setup gcc (Linux)
       if: runner.os == 'Linux' && matrix.compiler == 'gcc'
       run: |
-        echo 'CC=gcc-12' >> $GITHUB_ENV
-        echo 'CXX=g++-12' >> $GITHUB_ENV
+        echo 'CC=gcc-14' >> $GITHUB_ENV
+        echo 'CXX=g++-14' >> $GITHUB_ENV
     - name: Setup gcc (MacOS)
       if: runner.os == 'macOS' && matrix.compiler == 'gcc'
       run: |
@@ -108,16 +108,19 @@ jobs:
       matrix:
         host: [x86_64-w64-mingw32, i686-w64-mingw32]
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     env:
       HOST: ${{ matrix.host }}
 
     steps:
     - uses: actions/checkout@v4
-    - name: Linux setup
+    - name: Prepare for i386
+      if: matrix.host == 'i686-w64-mingw32'
       run: |
         sudo dpkg --add-architecture i386
+    - name: Linux setup
+      run: |
         sudo apt-get update
         sudo apt-get install \
           gcc-mingw-w64 \
@@ -181,7 +184,7 @@ jobs:
     permissions:
       contents: write
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v4
