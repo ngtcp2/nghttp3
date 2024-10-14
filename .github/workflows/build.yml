@@ -12,7 +12,9 @@ jobs:
         compiler: [gcc, clang]
         buildtool: [autotools, distcheck, cmake]
         exclude:
-        - os: macos-12
+        - os: macos-13
+          buildtool: distcheck
+        - os: macos-14
           buildtool: distcheck
         - compiler: gcc
           buildtool: distcheck
