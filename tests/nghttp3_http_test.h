@@ -35,7 +35,7 @@
 
 extern const MunitSuite http_suite;
 
-munit_void_test_decl(test_nghttp3_http_parse_priority);
-munit_void_test_decl(test_nghttp3_check_header_value);
+munit_void_test_decl(test_nghttp3_http_parse_priority)
+munit_void_test_decl(test_nghttp3_check_header_value)
 
 #endif /* !defined(NGHTTP3_HTTP_TEST_H) */
