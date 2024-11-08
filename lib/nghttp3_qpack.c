@@ -898,6 +898,8 @@ static int max_cnt_greater(const nghttp3_ksl_key *lhs,
   return a->max_cnt > b->max_cnt || (a->max_cnt == b->max_cnt && a->id < b->id);
 }
 
+nghttp3_ksl_search_def(max_cnt_greater, max_cnt_greater)
+
 int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
                                size_t hard_max_dtable_capacity,
                                const nghttp3_mem *mem) {
@@ -911,6 +913,7 @@ int nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
   nghttp3_map_init(&encoder->streams, mem);
 
   nghttp3_ksl_init(&encoder->blocked_streams, max_cnt_greater,
+                   ksl_max_cnt_greater_search,
                    sizeof(nghttp3_blocked_streams_key), mem);
 
   qpack_map_init(&encoder->dtable_map);
