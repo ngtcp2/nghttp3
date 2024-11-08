@@ -233,6 +233,7 @@ StatementMacros:
   - Q_UNUSED
   - QT_REQUIRE_VERSION
   - munit_void_test_decl
+  - nghttp3_ksl_search_def
   - nghttp3_max_def
   - nghttp3_min_def
   - nghttp3_objalloc_decl
