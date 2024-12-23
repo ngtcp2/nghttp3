@@ -36,7 +36,8 @@ static const MunitTest tests[] = {
 };
 
 const MunitSuite tnode_suite = {
-  "/tnode", tests, NULL, 1, MUNIT_SUITE_OPTION_NONE,
+  .prefix = "/tnode",
+  .tests = tests,
 };
 
 static int cycle_less(const nghttp3_pq_entry *lhsx,

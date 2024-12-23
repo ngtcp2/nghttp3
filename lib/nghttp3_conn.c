@@ -1836,7 +1836,7 @@ int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
   nghttp3_stream *stream;
   int rv;
   nghttp3_stream_callbacks callbacks = {
-    conn_stream_acked_data,
+    .acked_data = conn_stream_acked_data,
   };
 
   rv = nghttp3_stream_new(&stream, stream_id, &callbacks,
