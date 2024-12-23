@@ -47,7 +47,8 @@ static const MunitTest tests[] = {
 };
 
 const MunitSuite qpack_suite = {
-  "/qpack", tests, NULL, 1, MUNIT_SUITE_OPTION_NONE,
+  .prefix = "/qpack",
+  .tests = tests,
 };
 
 static void check_decode_header(nghttp3_qpack_decoder *dec, nghttp3_buf *pbuf,

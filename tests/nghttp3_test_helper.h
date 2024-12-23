@@ -35,8 +35,10 @@
 
 #define MAKE_NV(NAME, VALUE)                                                   \
   {                                                                            \
-    (uint8_t *)(NAME),   (uint8_t *)(VALUE),   sizeof((NAME)) - 1,             \
-    sizeof((VALUE)) - 1, NGHTTP3_NV_FLAG_NONE,                                 \
+    .name = (uint8_t *)(NAME),                                                 \
+    .value = (uint8_t *)(VALUE),                                               \
+    .namelen = sizeof((NAME)) - 1,                                             \
+    .valuelen = sizeof((VALUE)) - 1,                                           \
   }
 
 /*

@@ -128,10 +128,13 @@ void nghttp3_write_frame_qpack_dyn(nghttp3_buf *dest, nghttp3_buf *ebuf,
 }
 
 void nghttp3_write_frame_data(nghttp3_buf *dest, size_t len) {
-  nghttp3_frame_data fr;
-
-  fr.hd.type = NGHTTP3_FRAME_DATA;
-  fr.hd.length = (int64_t)len;
+  nghttp3_frame_data fr = {
+    .hd =
+      {
+        .type = NGHTTP3_FRAME_DATA,
+        .length = (int64_t)len,
+      },
+  };
 
   dest->last = nghttp3_frame_write_hd(dest->last, &fr.hd);
   memset(dest->last, 0, len);
