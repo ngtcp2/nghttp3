@@ -2,6 +2,16 @@
 
 #include <fuzzer/FuzzedDataProvider.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif // defined(__cplusplus)
+
+#include "nghttp3_conn.h"
+
+#ifdef __cplusplus
+}
+#endif // defined(__cplusplus)
+
 #include <nghttp3/nghttp3.h>
 
 static int send_data(nghttp3_conn *conn) {
@@ -35,9 +45,23 @@ static int send_data(nghttp3_conn *conn) {
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   FuzzedDataProvider fuzzed_data_provider(data, size);
   nghttp3_callbacks callbacks{};
-  nghttp3_settings settings;
 
-  nghttp3_settings_default(&settings);
+  nghttp3_settings settings = {
+    .max_field_section_size =
+      fuzzed_data_provider.ConsumeIntegralInRange<uint64_t>(0,
+                                                            NGHTTP3_VARINT_MAX),
+    .qpack_max_dtable_capacity =
+      fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0,
+                                                          NGHTTP3_VARINT_MAX),
+    .qpack_encoder_max_dtable_capacity =
+      fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0,
+                                                          NGHTTP3_VARINT_MAX),
+    .qpack_blocked_streams =
+      fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0,
+                                                          NGHTTP3_VARINT_MAX),
+    .enable_connect_protocol = fuzzed_data_provider.ConsumeIntegral<uint8_t>(),
+    .h3_datagram = fuzzed_data_provider.ConsumeIntegral<uint8_t>(),
+  };
 
   nghttp3_conn *conn;
   auto rv =
