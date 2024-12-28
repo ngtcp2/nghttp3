@@ -1,5 +1,7 @@
 #include <array>
 
+#include <fuzzer/FuzzedDataProvider.h>
+
 #include <nghttp3/nghttp3.h>
 
 static int send_data(nghttp3_conn *conn) {
@@ -31,6 +33,7 @@ static int send_data(nghttp3_conn *conn) {
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+  FuzzedDataProvider fuzzed_data_provider(data, size);
   nghttp3_callbacks callbacks{};
   nghttp3_settings settings;
 
@@ -51,13 +54,21 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     goto fin;
   }
 
-  nread = nghttp3_conn_read_stream(conn, 0, data, size, 0);
-  if (nread < 0) {
-    goto fin;
-  }
+  while (fuzzed_data_provider.remaining_bytes() > 0) {
+    auto stream_id = fuzzed_data_provider.ConsumeIntegral<int64_t>();
+    auto chunk_size = fuzzed_data_provider.ConsumeIntegral<size_t>();
+    auto chunk = fuzzed_data_provider.ConsumeBytes<uint8_t>(chunk_size);
+    auto fin = fuzzed_data_provider.ConsumeBool();
 
-  if (send_data(conn) != 0) {
-    goto fin;
+    nread = nghttp3_conn_read_stream(conn, stream_id, chunk.data(),
+                                     chunk.size(), fin);
+    if (nread < 0) {
+      goto fin;
+    }
+
+    if (send_data(conn) != 0) {
+      goto fin;
+    }
   }
 
 fin:
