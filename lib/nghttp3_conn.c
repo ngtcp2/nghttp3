@@ -239,6 +239,11 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
   (void)callbacks_version;
   (void)settings_version;
 
+  assert(settings->max_field_section_size <= NGHTTP3_VARINT_MAX);
+  assert(settings->qpack_max_dtable_capacity <= NGHTTP3_VARINT_MAX);
+  assert(settings->qpack_encoder_max_dtable_capacity <= NGHTTP3_VARINT_MAX);
+  assert(settings->qpack_blocked_streams <= NGHTTP3_VARINT_MAX);
+
   if (mem == NULL) {
     mem = nghttp3_mem_default();
   }
