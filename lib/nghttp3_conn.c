@@ -439,7 +439,7 @@ nghttp3_ssize nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
             return rv;
           }
         }
-      } else if(!nghttp3_stream_uni(stream_id)) {
+      } else if (!nghttp3_stream_uni(stream_id)) {
         /* server does not expect to receive new server initiated
            bidirectional stream from client. */
         return NGHTTP3_ERR_H3_STREAM_CREATION_ERROR;
