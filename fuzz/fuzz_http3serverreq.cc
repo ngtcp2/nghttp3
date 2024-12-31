@@ -45,9 +45,21 @@ static int send_data(nghttp3_conn *conn) {
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   FuzzedDataProvider fuzzed_data_provider(data, size);
   nghttp3_callbacks callbacks{};
-  nghttp3_settings settings;
 
+  nghttp3_settings settings;
   nghttp3_settings_default(&settings);
+  settings.max_field_section_size =
+    fuzzed_data_provider.ConsumeIntegralInRange<uint64_t>(0,
+                                                          NGHTTP3_MAX_VARINT);
+  settings.qpack_max_dtable_capacity =
+    fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, NGHTTP3_MAX_VARINT);
+  settings.qpack_encoder_max_dtable_capacity =
+    fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, NGHTTP3_MAX_VARINT);
+  settings.qpack_blocked_streams =
+    fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, NGHTTP3_MAX_VARINT);
+  settings.enable_connect_protocol =
+    fuzzed_data_provider.ConsumeIntegral<uint8_t>();
+  settings.h3_datagram = fuzzed_data_provider.ConsumeIntegral<uint8_t>();
 
   nghttp3_conn *conn;
   auto rv =
