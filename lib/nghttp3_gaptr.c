@@ -152,6 +152,9 @@ int nghttp3_gaptr_is_pushed(nghttp3_gaptr *gaptr, uint64_t offset,
 
   it = nghttp3_ksl_lower_bound_search(&gaptr->gap, &q,
                                       nghttp3_ksl_range_exclusive_search);
+
+  assert(!nghttp3_ksl_it_end(&it));
+
   m = nghttp3_range_intersect(&q, (nghttp3_range *)nghttp3_ksl_it_key(&it));
 
   return nghttp3_range_len(&m) == 0;
