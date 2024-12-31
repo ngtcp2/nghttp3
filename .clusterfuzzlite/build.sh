@@ -4,7 +4,7 @@ autoreconf -i
 ./configure --disable-dependency-tracking
 make -j$(nproc)
 
-$CXX $CXXFLAGS -std=c++17 -Ilib/includes \
+$CXX $CXXFLAGS -std=c++17 -Ilib/includes -Ilib \
      fuzz/fuzz_http3serverreq.cc -o $OUT/fuzz_http3serverreq \
      $LIB_FUZZING_ENGINE lib/.libs/libnghttp3.a
 
