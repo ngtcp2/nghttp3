@@ -4,16 +4,6 @@
 
 #include <nghttp3/nghttp3.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif // defined(__cplusplus)
-
-#include "nghttp3_macro.h"
-
-#ifdef __cplusplus
-}
-#endif // defined(__cplusplus)
-
 static int send_data(nghttp3_conn *conn) {
   std::array<nghttp3_vec, 16> vec;
   int64_t stream_id;
