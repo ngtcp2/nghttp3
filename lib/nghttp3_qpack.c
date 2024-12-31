@@ -1167,6 +1167,9 @@ int nghttp3_qpack_encoder_encode(nghttp3_qpack_encoder *encoder,
   int blocked_stream;
   nghttp3_qpack_stream *stream;
 
+  assert(stream_id >= 0);
+  assert(stream_id <= (int64_t)NGHTTP3_MAX_VARINT);
+
   if (encoder->ctx.bad) {
     return NGHTTP3_ERR_QPACK_FATAL;
   }
@@ -3852,6 +3855,9 @@ int nghttp3_qpack_decoder_cancel_stream(nghttp3_qpack_decoder *decoder,
   uint8_t *p;
   int rv;
 
+  assert(stream_id >= 0);
+  assert(stream_id <= (int64_t)NGHTTP3_MAX_VARINT);
+
   if (qpack_decoder_dbuf_overflow(decoder)) {
     return NGHTTP3_ERR_QPACK_FATAL;
   }
@@ -4131,6 +4137,9 @@ int nghttp3_qpack_stream_context_new(nghttp3_qpack_stream_context **psctx,
                                      int64_t stream_id,
                                      const nghttp3_mem *mem) {
   nghttp3_qpack_stream_context *p;
+
+  assert(stream_id >= 0);
+  assert(stream_id <= (int64_t)NGHTTP3_MAX_VARINT);
 
   p = nghttp3_mem_malloc(mem, sizeof(nghttp3_qpack_stream_context));
   if (p == NULL) {
