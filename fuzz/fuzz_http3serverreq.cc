@@ -46,22 +46,20 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   FuzzedDataProvider fuzzed_data_provider(data, size);
   nghttp3_callbacks callbacks{};
 
-  nghttp3_settings settings = {
-    .max_field_section_size =
-      fuzzed_data_provider.ConsumeIntegralInRange<uint64_t>(0,
-                                                            NGHTTP3_VARINT_MAX),
-    .qpack_max_dtable_capacity =
-      fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0,
-                                                          NGHTTP3_VARINT_MAX),
-    .qpack_encoder_max_dtable_capacity =
-      fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0,
-                                                          NGHTTP3_VARINT_MAX),
-    .qpack_blocked_streams =
-      fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0,
-                                                          NGHTTP3_VARINT_MAX),
-    .enable_connect_protocol = fuzzed_data_provider.ConsumeIntegral<uint8_t>(),
-    .h3_datagram = fuzzed_data_provider.ConsumeIntegral<uint8_t>(),
-  };
+  nghttp3_settings settings;
+  nghttp3_settings_default(&settings);
+  settings.max_field_section_size =
+    fuzzed_data_provider.ConsumeIntegralInRange<uint64_t>(0,
+                                                          NGHTTP3_VARINT_MAX);
+  settings.qpack_max_dtable_capacity =
+    fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, NGHTTP3_VARINT_MAX);
+  settings.qpack_encoder_max_dtable_capacity =
+    fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, NGHTTP3_VARINT_MAX);
+  settings.qpack_blocked_streams =
+    fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, NGHTTP3_VARINT_MAX);
+  settings.enable_connect_protocol =
+    fuzzed_data_provider.ConsumeIntegral<uint8_t>();
+  settings.h3_datagram = fuzzed_data_provider.ConsumeIntegral<uint8_t>();
 
   nghttp3_conn *conn;
   auto rv =
