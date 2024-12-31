@@ -4,6 +4,16 @@
 
 #include <nghttp3/nghttp3.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif // defined(__cplusplus)
+
+#include "nghttp3_macro.h"
+
+#ifdef __cplusplus
+}
+#endif // defined(__cplusplus)
+
 static int send_data(nghttp3_conn *conn) {
   std::array<nghttp3_vec, 16> vec;
   int64_t stream_id;
@@ -55,7 +65,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   }
 
   while (fuzzed_data_provider.remaining_bytes() > 0) {
-    auto stream_id = fuzzed_data_provider.ConsumeIntegral<int64_t>();
+    auto stream_id = fuzzed_data_provider.ConsumeIntegralInRange<int64_t>(
+      0, NGHTTP3_MAX_VARINT);
     auto chunk_size = fuzzed_data_provider.ConsumeIntegral<size_t>();
     auto chunk = fuzzed_data_provider.ConsumeBytes<uint8_t>(chunk_size);
     auto fin = fuzzed_data_provider.ConsumeBool();
