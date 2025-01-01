@@ -9,7 +9,19 @@
 #include <memory>
 #include <string>
 
+#include <fuzzer/FuzzedDataProvider.h>
+
 #include <nghttp3/nghttp3.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif // defined(__cplusplus)
+
+#include "nghttp3_macro.h"
+
+#ifdef __cplusplus
+}
+#endif // defined(__cplusplus)
 
 #define nghttp3_ntohl64(N) be64toh(N)
 
@@ -170,47 +182,40 @@ std::tuple<int64_t, Headers, int> Decoder::process_blocked() {
   return {-1, {}, 0};
 }
 
-size_t Decoder::get_num_blocked() const { return blocked_reqs_.size(); }
-
 int decode(const uint8_t *data, size_t datalen) {
-  auto dec = Decoder(256, 100);
+  FuzzedDataProvider fuzzed_data_provider(data, datalen);
+
+  auto max_dtable_size =
+    fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, NGHTTP3_MAX_VARINT);
+  auto max_blocked =
+    fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, NGHTTP3_MAX_VARINT);
+
+  auto dec = Decoder(max_dtable_size, max_blocked);
   if (auto rv = dec.init(); rv != 0) {
     return rv;
   }
 
-  for (auto p = data, end = data + datalen; p != end;) {
-    int64_t stream_id;
-    uint32_t size;
+  const auto encoder_stream_id =
+    fuzzed_data_provider.ConsumeIntegralInRange<int64_t>(0, NGHTTP3_MAX_VARINT);
 
-    if (static_cast<size_t>(end - p) < sizeof(stream_id) + sizeof(size)) {
-      return -1;
-    }
+  for (; fuzzed_data_provider.remaining_bytes();) {
+    auto stream_id = fuzzed_data_provider.ConsumeIntegralInRange<int64_t>(
+      0, NGHTTP3_MAX_VARINT);
+    auto chunk_size = fuzzed_data_provider.ConsumeIntegral<size_t>();
+    auto chunk = fuzzed_data_provider.ConsumeBytes<uint8_t>(chunk_size);
 
-    memcpy(&stream_id, p, sizeof(stream_id));
-    stream_id = nghttp3_ntohl64(stream_id);
-    p += sizeof(stream_id);
+    nghttp3_buf buf{
+      .begin = chunk.data(),
+      .end = chunk.data() + chunk.size(),
+    };
 
-    memcpy(&size, p, sizeof(size));
-    size = ntohl(size);
-    p += sizeof(size);
-
-    if ((size_t)(end - p) < size) {
-      return -1;
-    }
-
-    nghttp3_buf buf;
-    buf.begin = buf.pos = const_cast<uint8_t *>(p);
-    buf.end = buf.last = const_cast<uint8_t *>(p) + size;
-
-    p += size;
-
-    if (stream_id == 0) {
+    if (stream_id == encoder_stream_id) {
       if (auto rv = dec.read_encoder(&buf); rv != 0) {
         return rv;
       }
 
       for (;;) {
-        auto [stream_id, headers, rv] = dec.process_blocked();
+        auto [stream_id, _, rv] = dec.process_blocked();
         if (rv != 0) {
           return rv;
         }
@@ -218,27 +223,15 @@ int decode(const uint8_t *data, size_t datalen) {
         if (stream_id == -1) {
           break;
         }
-
-        (void)headers;
       }
 
       continue;
     }
 
-    auto [headers, rv] = dec.read_request(&buf, stream_id);
+    auto [_, rv] = dec.read_request(&buf, stream_id);
     if (rv == -1) {
       return rv;
     }
-    if (rv == 1) {
-      // Stream blocked
-      continue;
-    }
-
-    (void)headers;
-  }
-
-  if (auto n = dec.get_num_blocked(); n) {
-    return -1;
   }
 
   return 0;
