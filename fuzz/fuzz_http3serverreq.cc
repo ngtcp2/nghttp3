@@ -14,6 +14,119 @@ extern "C" {
 }
 #endif // defined(__cplusplus)
 
+static int acked_stream_data(nghttp3_conn *conn, int64_t stream_id,
+                             uint64_t datalen, void *conn_user_data,
+                             void *stream_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+
+static int stream_close(nghttp3_conn *conn, int64_t stream_id,
+                        uint64_t app_error_code, void *conn_user_data,
+                        void *stream_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+
+static int recv_data(nghttp3_conn *conn, int64_t stream_id, const uint8_t *data,
+                     size_t datalen, void *conn_user_data,
+                     void *stream_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+
+static int deferred_consume(nghttp3_conn *conn, int64_t stream_id,
+                            size_t consumed, void *conn_user_data,
+                            void *stream_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+
+static int begin_headers(nghttp3_conn *conn, int64_t stream_id,
+                         void *conn_user_data, void *stream_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+
+static int recv_header(nghttp3_conn *conn, int64_t stream_id, int32_t token,
+                       nghttp3_rcbuf *name, nghttp3_rcbuf *value, uint8_t flags,
+                       void *conn_user_data, void *stream_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+
+static int end_headers(nghttp3_conn *conn, int64_t stream_id, int fin,
+                       void *conn_user_data, void *stream_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+
+static int begin_trailers(nghttp3_conn *conn, int64_t stream_id,
+                          void *conn_user_data, void *stream_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+
+static int recv_trailer(nghttp3_conn *conn, int64_t stream_id, int32_t token,
+                        nghttp3_rcbuf *name, nghttp3_rcbuf *value,
+                        uint8_t flags, void *conn_user_data,
+                        void *stream_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+
+static int end_trailers(nghttp3_conn *conn, int64_t stream_id, int fin,
+                        void *conn_user_data, void *stream_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+
+static int stop_sending(nghttp3_conn *conn, int64_t stream_id,
+                        uint64_t app_error_code, void *conn_user_data,
+                        void *stream_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+
+static int end_stream(nghttp3_conn *conn, int64_t stream_id,
+                      void *conn_user_data, void *stream_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+
+static int reset_stream(nghttp3_conn *conn, int64_t stream_id,
+                        uint64_t app_error_code, void *conn_user_data,
+                        void *stream_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+
+static int shutdown(nghttp3_conn *conn, int64_t id, void *conn_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+
+static int recv_settings(nghttp3_conn *conn, const nghttp3_settings *settings,
+                         void *conn_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+
 static int send_data(nghttp3_conn *conn) {
   std::array<nghttp3_vec, 16> vec;
   int64_t stream_id;
@@ -44,7 +157,24 @@ static int send_data(nghttp3_conn *conn) {
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   FuzzedDataProvider fuzzed_data_provider(data, size);
-  nghttp3_callbacks callbacks{};
+
+  nghttp3_callbacks callbacks{
+    .acked_stream_data = acked_stream_data,
+    .stream_close = stream_close,
+    .recv_data = recv_data,
+    .deferred_consume = deferred_consume,
+    .begin_headers = begin_headers,
+    .recv_header = recv_header,
+    .end_headers = end_headers,
+    .begin_trailers = begin_trailers,
+    .recv_trailer = recv_trailer,
+    .end_trailers = end_trailers,
+    .stop_sending = stop_sending,
+    .end_stream = end_stream,
+    .reset_stream = reset_stream,
+    .shutdown = shutdown,
+    .recv_settings = recv_settings,
+  };
 
   nghttp3_settings settings;
   nghttp3_settings_default(&settings);
@@ -62,8 +192,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   settings.h3_datagram = fuzzed_data_provider.ConsumeIntegral<uint8_t>();
 
   nghttp3_conn *conn;
-  auto rv =
-    nghttp3_conn_server_new(&conn, &callbacks, &settings, nullptr, nullptr);
+  auto rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, nullptr,
+                                    &fuzzed_data_provider);
   if (rv != 0) {
     return 0;
   }
