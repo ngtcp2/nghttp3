@@ -3208,6 +3208,7 @@ int nghttp3_qpack_decoder_dtable_static_add(nghttp3_qpack_decoder *decoder) {
   rv = nghttp3_qpack_context_dtable_add(&decoder->ctx, &qnv, NULL, 0);
 
   nghttp3_rcbuf_decref(qnv.value);
+  decoder->rstate.value = NULL;
 
   return rv;
 }
@@ -3234,6 +3235,7 @@ int nghttp3_qpack_decoder_dtable_dynamic_add(nghttp3_qpack_decoder *decoder) {
   rv = nghttp3_qpack_context_dtable_add(&decoder->ctx, &qnv, NULL, 0);
 
   nghttp3_rcbuf_decref(qnv.value);
+  decoder->rstate.value = NULL;
   nghttp3_rcbuf_decref(qnv.name);
 
   return rv;
@@ -3287,7 +3289,9 @@ int nghttp3_qpack_decoder_dtable_literal_add(nghttp3_qpack_decoder *decoder) {
   rv = nghttp3_qpack_context_dtable_add(&decoder->ctx, &qnv, NULL, 0);
 
   nghttp3_rcbuf_decref(qnv.value);
+  decoder->rstate.value = NULL;
   nghttp3_rcbuf_decref(qnv.name);
+  decoder->rstate.name = NULL;
 
   return rv;
 }
