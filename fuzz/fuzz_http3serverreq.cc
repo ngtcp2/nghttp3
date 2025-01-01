@@ -103,7 +103,28 @@ static int end_stream(nghttp3_conn *conn, int64_t stream_id,
                       void *conn_user_data, void *stream_user_data) {
   auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
 
-  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+  if (fuzzed_data_provider->ConsumeBool()) {
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
+  if (fuzzed_data_provider->ConsumeBool()) {
+    return 0;
+  }
+
+  auto name = fuzzed_data_provider->ConsumeRandomLengthString();
+  auto value = fuzzed_data_provider->ConsumeRandomLengthString();
+
+  const nghttp3_nv nva[] = {
+    {
+      .name = (uint8_t *)name.c_str(),
+      .value = (uint8_t *)value.c_str(),
+      .namelen = name.size(),
+      .valuelen = value.size(),
+    },
+  };
+
+  return nghttp3_conn_submit_response(conn, stream_id, nva,
+                                      nghttp3_arraylen(nva), nullptr);
 }
 
 static int reset_stream(nghttp3_conn *conn, int64_t stream_id,
@@ -199,6 +220,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   }
 
   nghttp3_conn_set_max_client_streams_bidi(conn, 100);
+
+  nghttp3_conn_bind_qpack_streams(conn, 7, 11);
 
   nghttp3_ssize nread;
 
