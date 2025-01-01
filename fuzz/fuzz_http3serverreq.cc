@@ -14,14 +14,6 @@ extern "C" {
 }
 #endif // defined(__cplusplus)
 
-#define MAKE_NV(NAME, VALUE)                                                   \
-  {                                                                            \
-    .name = (uint8_t *)(NAME),                                                 \
-    .value = (uint8_t *)(VALUE),                                               \
-    .namelen = sizeof((NAME)) - 1,                                             \
-    .valuelen = sizeof((VALUE)) - 1,                                           \
-  }
-
 static int acked_stream_data(nghttp3_conn *conn, int64_t stream_id,
                              uint64_t datalen, void *conn_user_data,
                              void *stream_user_data) {
@@ -123,7 +115,12 @@ static int end_stream(nghttp3_conn *conn, int64_t stream_id,
   auto value = fuzzed_data_provider->ConsumeRandomLengthString();
 
   const nghttp3_nv nva[] = {
-    MAKE_NV(name.c_str(), value.c_str()),
+    {
+      .name = (uint8_t *)name.c_str(),
+      .value = (uint8_t *)value.c_str(),
+      .namelen = name.size(),
+      .valuelen = value.size(),
+    },
   };
 
   return nghttp3_conn_submit_response(conn, stream_id, nva,
