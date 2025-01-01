@@ -148,6 +148,24 @@ static int recv_settings(nghttp3_conn *conn, const nghttp3_settings *settings,
   return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
 }
 
+static void *fuzzed_malloc(size_t size, void *user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? nullptr : malloc(size);
+}
+
+static void *fuzzed_calloc(size_t nmemb, size_t size, void *user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? nullptr : calloc(nmemb, size);
+}
+
+static void *fuzzed_realloc(void *ptr, size_t size, void *user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? nullptr : realloc(ptr, size);
+}
+
 static int send_data(nghttp3_conn *conn) {
   std::array<nghttp3_vec, 16> vec;
   int64_t stream_id;
@@ -157,7 +175,7 @@ static int send_data(nghttp3_conn *conn) {
     auto veccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec.data(),
                                              vec.size());
     if (veccnt < 0) {
-      return 0;
+      return veccnt;
     }
 
     if (veccnt || fin) {
@@ -212,8 +230,14 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     fuzzed_data_provider.ConsumeIntegral<uint8_t>();
   settings.h3_datagram = fuzzed_data_provider.ConsumeIntegral<uint8_t>();
 
+  nghttp3_mem mem = *nghttp3_mem_default();
+  mem.user_data = &fuzzed_data_provider;
+  mem.malloc = fuzzed_malloc;
+  mem.calloc = fuzzed_calloc;
+  mem.realloc = fuzzed_realloc;
+
   nghttp3_conn *conn;
-  auto rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, nullptr,
+  auto rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, &mem,
                                     &fuzzed_data_provider);
   if (rv != 0) {
     return 0;
@@ -221,7 +245,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
   nghttp3_conn_set_max_client_streams_bidi(conn, 100);
 
-  nghttp3_conn_bind_qpack_streams(conn, 7, 11);
+  rv = nghttp3_conn_bind_qpack_streams(conn, 7, 11);
+  if (rv != 0) {
+    goto fin;
+  }
 
   nghttp3_ssize nread;
 
