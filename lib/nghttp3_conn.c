@@ -233,7 +233,6 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
                     const nghttp3_callbacks *callbacks, int settings_version,
                     const nghttp3_settings *settings, const nghttp3_mem *mem,
                     void *user_data) {
-  int rv;
   nghttp3_conn *conn;
   size_t i;
   (void)callbacks_version;
@@ -259,18 +258,11 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
 
   nghttp3_map_init(&conn->streams, mem);
 
-  rv =
-    nghttp3_qpack_decoder_init(&conn->qdec, settings->qpack_max_dtable_capacity,
-                               settings->qpack_blocked_streams, mem);
-  if (rv != 0) {
-    goto qdec_init_fail;
-  }
+  nghttp3_qpack_decoder_init(&conn->qdec, settings->qpack_max_dtable_capacity,
+                             settings->qpack_blocked_streams, mem);
 
-  rv = nghttp3_qpack_encoder_init(
+  nghttp3_qpack_encoder_init(
     &conn->qenc, settings->qpack_encoder_max_dtable_capacity, mem);
-  if (rv != 0) {
-    goto qenc_init_fail;
-  }
 
   nghttp3_pq_init(&conn->qpack_blocked_streams, ricnt_less, mem);
 
@@ -296,16 +288,6 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
   *pconn = conn;
 
   return 0;
-
-qenc_init_fail:
-  nghttp3_qpack_decoder_free(&conn->qdec);
-qdec_init_fail:
-  nghttp3_map_free(&conn->streams);
-  nghttp3_objalloc_free(&conn->stream_objalloc);
-  nghttp3_objalloc_free(&conn->out_chunk_objalloc);
-  nghttp3_mem_free(mem, conn);
-
-  return rv;
 }
 
 int nghttp3_conn_client_new_versioned(nghttp3_conn **pconn,
