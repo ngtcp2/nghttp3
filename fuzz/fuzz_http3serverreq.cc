@@ -243,7 +243,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     return 0;
   }
 
-  nghttp3_conn_set_max_client_streams_bidi(conn, 100);
+  nghttp3_conn_set_max_client_streams_bidi(
+    conn, fuzzed_data_provider.ConsumeIntegral<uint64_t>());
 
   rv = nghttp3_conn_bind_qpack_streams(conn, 7, 11);
   if (rv != 0) {
