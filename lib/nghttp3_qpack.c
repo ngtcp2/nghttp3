@@ -4185,6 +4185,7 @@ int nghttp3_qpack_decoder_new(nghttp3_qpack_decoder **pdecoder,
   rv = nghttp3_qpack_decoder_init(p, hard_max_dtable_capacity,
                                   max_blocked_streams, mem);
   if (rv != 0) {
+    nghttp3_mem_free(mem, p);
     return rv;
   }
 
