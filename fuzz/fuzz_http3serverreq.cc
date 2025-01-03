@@ -278,7 +278,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     goto fin;
   }
 
-  while (fuzzed_data_provider.remaining_bytes() > 0) {
+  for (; fuzzed_data_provider.remaining_bytes() > 0;) {
     auto stream_id = fuzzed_data_provider.ConsumeIntegralInRange<int64_t>(
       0, NGHTTP3_MAX_VARINT);
     auto chunk_size = fuzzed_data_provider.ConsumeIntegral<size_t>();
