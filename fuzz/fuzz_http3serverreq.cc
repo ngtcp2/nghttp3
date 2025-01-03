@@ -194,6 +194,27 @@ static int send_data(nghttp3_conn *conn) {
   }
 }
 
+static int set_stream_priorities(nghttp3_conn *conn,
+                                 FuzzedDataProvider *fuzzed_data_provider) {
+  for (; fuzzed_data_provider->ConsumeBool();) {
+    auto stream_id = fuzzed_data_provider->ConsumeIntegralInRange<int64_t>(
+      0, NGHTTP3_MAX_VARINT);
+
+    nghttp3_pri pri{
+      .urgency = fuzzed_data_provider->ConsumeIntegralInRange<uint32_t>(
+        0, NGHTTP3_URGENCY_LEVELS - 1),
+      .inc = fuzzed_data_provider->ConsumeIntegralInRange<uint8_t>(0, 1),
+    };
+
+    auto rv = nghttp3_conn_set_server_stream_priority(conn, stream_id, &pri);
+    if (rv != 0) {
+      return rv;
+    }
+  }
+
+  return 0;
+}
+
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   FuzzedDataProvider fuzzed_data_provider(data, size);
 
@@ -267,6 +288,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     nread = nghttp3_conn_read_stream(conn, stream_id, chunk.data(),
                                      chunk.size(), fin);
     if (nread < 0) {
+      goto fin;
+    }
+
+    if (set_stream_priorities(conn, &fuzzed_data_provider) != 0) {
       goto fin;
     }
 
