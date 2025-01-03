@@ -261,8 +261,8 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
   nghttp3_qpack_decoder_init(&conn->qdec, settings->qpack_max_dtable_capacity,
                              settings->qpack_blocked_streams, mem);
 
-  nghttp3_qpack_encoder_init(
-    &conn->qenc, settings->qpack_encoder_max_dtable_capacity, mem);
+  nghttp3_qpack_encoder_init(&conn->qenc,
+                             settings->qpack_encoder_max_dtable_capacity, mem);
 
   nghttp3_pq_init(&conn->qpack_blocked_streams, ricnt_less, mem);
 
