@@ -278,17 +278,20 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     goto fin;
   }
 
-  while (fuzzed_data_provider.remaining_bytes() > 0) {
-    auto stream_id = fuzzed_data_provider.ConsumeIntegralInRange<int64_t>(
-      0, NGHTTP3_MAX_VARINT);
-    auto chunk_size = fuzzed_data_provider.ConsumeIntegral<size_t>();
-    auto chunk = fuzzed_data_provider.ConsumeBytes<uint8_t>(chunk_size);
-    auto fin = fuzzed_data_provider.ConsumeBool();
+  for (; fuzzed_data_provider.remaining_bytes() > 0;) {
+    for (; fuzzed_data_provider.remaining_bytes() > 0 &&
+           fuzzed_data_provider.ConsumeBool();) {
+      auto stream_id = fuzzed_data_provider.ConsumeIntegralInRange<int64_t>(
+        0, NGHTTP3_MAX_VARINT);
+      auto chunk_size = fuzzed_data_provider.ConsumeIntegral<size_t>();
+      auto chunk = fuzzed_data_provider.ConsumeBytes<uint8_t>(chunk_size);
+      auto fin = fuzzed_data_provider.ConsumeBool();
 
-    nread = nghttp3_conn_read_stream(conn, stream_id, chunk.data(),
-                                     chunk.size(), fin);
-    if (nread < 0) {
-      goto fin;
+      nread = nghttp3_conn_read_stream(conn, stream_id, chunk.data(),
+                                       chunk.size(), fin);
+      if (nread < 0) {
+        goto fin;
+      }
     }
 
     if (set_stream_priorities(conn, &fuzzed_data_provider) != 0) {
