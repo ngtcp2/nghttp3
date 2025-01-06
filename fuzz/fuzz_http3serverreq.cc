@@ -9,6 +9,7 @@ extern "C" {
 #endif // defined(__cplusplus)
 
 #include "nghttp3_macro.h"
+#include "nghttp3_stream.h"
 
 #ifdef __cplusplus
 }
@@ -283,6 +284,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
            fuzzed_data_provider.ConsumeBool();) {
       auto stream_id = fuzzed_data_provider.ConsumeIntegralInRange<int64_t>(
         0, NGHTTP3_MAX_VARINT);
+      if (nghttp3_server_stream_uni(stream_id)) {
+        goto fin;
+      }
+
       auto chunk_size = fuzzed_data_provider.ConsumeIntegral<size_t>();
       auto chunk = fuzzed_data_provider.ConsumeBytes<uint8_t>(chunk_size);
       auto fin = fuzzed_data_provider.ConsumeBool();
