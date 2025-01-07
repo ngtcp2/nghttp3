@@ -424,9 +424,9 @@ nghttp3_ssize nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
             return rv;
           }
         }
-      } else if (!nghttp3_stream_uni(stream_id)) {
+      } else if (!nghttp3_client_stream_uni(stream_id)) {
         /* server does not expect to receive new server initiated
-           bidirectional stream from client. */
+           bidirectional or unidirectional stream from client. */
         return NGHTTP3_ERR_H3_STREAM_CREATION_ERROR;
       } else {
         /* unidirectional stream */
@@ -442,7 +442,7 @@ nghttp3_ssize nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
 
       stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
       stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
-    } else if (nghttp3_stream_uni(stream_id)) {
+    } else if (nghttp3_server_stream_uni(stream_id)) {
       if (srclen == 0 && fin) {
         return 0;
       }
@@ -455,8 +455,8 @@ nghttp3_ssize nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
       stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
       stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
     } else {
-      /* client doesn't expect to receive new bidirectional stream
-         from server. */
+      /* client doesn't expect to receive new bidirectional stream or
+         client initiated unidirectional stream from server. */
       return NGHTTP3_ERR_H3_STREAM_CREATION_ERROR;
     }
   } else if (conn->server) {
@@ -465,7 +465,12 @@ nghttp3_ssize nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
         stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
         stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
       }
+    } else {
+      assert(nghttp3_client_stream_uni(stream_id));
     }
+  } else {
+    assert(nghttp3_client_stream_bidi(stream_id) ||
+           nghttp3_server_stream_uni(stream_id));
   }
 
   if (srclen == 0 && !fin) {

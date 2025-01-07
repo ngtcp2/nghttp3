@@ -2334,12 +2334,12 @@ void test_nghttp3_conn_http_error(void) {
   nghttp3_buf_reset(&buf);
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_QPACK_ENCODER);
 
-  sconsumed = nghttp3_conn_read_stream(conn, 7, buf.pos, nghttp3_buf_len(&buf),
+  sconsumed = nghttp3_conn_read_stream(conn, 6, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
   assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
 
-  sconsumed = nghttp3_conn_read_stream(conn, 7, ebuf.pos,
+  sconsumed = nghttp3_conn_read_stream(conn, 6, ebuf.pos,
                                        nghttp3_buf_len(&ebuf), /* fin = */ 0);
 
   assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&ebuf), ==, sconsumed);
