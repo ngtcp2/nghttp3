@@ -298,6 +298,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     return 0;
   }
 
+  auto shutdown_started = false;
+
+  rv = nghttp3_conn_bind_control_stream(conn, 3);
+  if (rv != 0) {
+    goto fin;
+  }
+
   nghttp3_conn_set_max_client_streams_bidi(
     conn, fuzzed_data_provider.ConsumeIntegral<uint64_t>());
 
@@ -330,7 +337,21 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
       }
     }
 
-    if (set_stream_priorities(conn, &fuzzed_data_provider) != 0) {
+    if (!shutdown_started && fuzzed_data_provider.ConsumeBool()) {
+      if (nghttp3_conn_submit_shutdown_notice(conn) != 0) {
+        goto fin;
+      }
+    }
+
+    if (!shutdown_started && fuzzed_data_provider.ConsumeBool()) {
+      shutdown_started = true;
+
+      if (nghttp3_conn_shutdown(conn) != 0) {
+        goto fin;
+      }
+    }
+
+    if (set_stream_priorities(conn, fuzzed_data_provider) != 0) {
       goto fin;
     }
 
