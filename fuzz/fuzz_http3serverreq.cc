@@ -228,15 +228,15 @@ int send_data(nghttp3_conn *conn) {
 
 namespace {
 int set_stream_priorities(nghttp3_conn *conn,
-                          FuzzedDataProvider *fuzzed_data_provider) {
-  for (; fuzzed_data_provider->ConsumeBool();) {
-    auto stream_id = fuzzed_data_provider->ConsumeIntegralInRange<int64_t>(
+                          FuzzedDataProvider &fuzzed_data_provider) {
+  for (; fuzzed_data_provider.ConsumeBool();) {
+    auto stream_id = fuzzed_data_provider.ConsumeIntegralInRange<int64_t>(
       0, NGHTTP3_MAX_VARINT);
 
     nghttp3_pri pri{
-      .urgency = fuzzed_data_provider->ConsumeIntegralInRange<uint32_t>(
+      .urgency = fuzzed_data_provider.ConsumeIntegralInRange<uint32_t>(
         0, NGHTTP3_URGENCY_LEVELS - 1),
-      .inc = fuzzed_data_provider->ConsumeIntegralInRange<uint8_t>(0, 1),
+      .inc = fuzzed_data_provider.ConsumeIntegralInRange<uint8_t>(0, 1),
     };
 
     auto rv = nghttp3_conn_set_server_stream_priority(conn, stream_id, &pri);
