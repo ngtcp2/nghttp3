@@ -227,6 +227,27 @@ int send_data(nghttp3_conn *conn) {
 }; // namespace
 
 namespace {
+int shutdown_streams(nghttp3_conn *conn,
+                     FuzzedDataProvider &fuzzed_data_provider) {
+  for (; fuzzed_data_provider.ConsumeBool();) {
+    auto stream_id = fuzzed_data_provider.ConsumeIntegralInRange<int64_t>(
+      0, NGHTTP3_MAX_VARINT);
+
+    if (fuzzed_data_provider.ConsumeBool()) {
+      auto rv = nghttp3_conn_shutdown_stream_read(conn, stream_id);
+      if (rv != 0) {
+        return rv;
+      }
+    } else {
+      nghttp3_conn_shutdown_stream_write(conn, stream_id);
+    }
+  }
+
+  return 0;
+}
+}; // namespace
+
+namespace {
 int set_stream_priorities(nghttp3_conn *conn,
                           FuzzedDataProvider &fuzzed_data_provider) {
   for (; fuzzed_data_provider.ConsumeBool();) {
@@ -341,6 +362,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
       if (nghttp3_conn_submit_shutdown_notice(conn) != 0) {
         goto fin;
       }
+    }
+
+    if (shutdown_streams(conn, fuzzed_data_provider) != 0) {
+      goto fin;
     }
 
     if (!shutdown_started && fuzzed_data_provider.ConsumeBool()) {
