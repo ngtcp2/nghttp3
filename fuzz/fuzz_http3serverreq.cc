@@ -227,6 +227,39 @@ int send_data(nghttp3_conn *conn) {
 }; // namespace
 
 namespace {
+int send_requests(nghttp3_conn *conn,
+                  FuzzedDataProvider &fuzzed_data_provider) {
+  for (; fuzzed_data_provider.ConsumeBool();) {
+    auto stream_id = fuzzed_data_provider.ConsumeIntegralInRange<int64_t>(
+      0, NGHTTP3_MAX_VARINT);
+    if (!nghttp3_client_stream_bidi(stream_id)) {
+      continue;
+    }
+
+    auto name = fuzzed_data_provider.ConsumeRandomLengthString();
+    auto value = fuzzed_data_provider.ConsumeRandomLengthString();
+
+    const nghttp3_nv nva[] = {
+      {
+        .name = reinterpret_cast<uint8_t *>(const_cast<char *>(name.c_str())),
+        .value = reinterpret_cast<uint8_t *>(const_cast<char *>(value.c_str())),
+        .namelen = name.size(),
+        .valuelen = value.size(),
+      },
+    };
+
+    auto rv = nghttp3_conn_submit_request(
+      conn, stream_id, nva, nghttp3_arraylen(nva), nullptr, nullptr);
+    if (rv != 0) {
+      return rv;
+    }
+  }
+
+  return 0;
+}
+}; // namespace
+
+namespace {
 int shutdown_streams(nghttp3_conn *conn,
                      FuzzedDataProvider &fuzzed_data_provider) {
   for (; fuzzed_data_provider.ConsumeBool();) {
@@ -365,6 +398,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
       if ((server && nghttp3_server_stream_uni(stream_id)) ||
           (!server && nghttp3_client_stream_uni(stream_id))) {
         goto fin;
+      }
+
+      if (!server) {
+        auto rv = send_requests(conn, fuzzed_data_provider);
+        if (rv != 0) {
+          goto fin;
+        }
       }
 
       auto chunk_size = fuzzed_data_provider.ConsumeIntegral<size_t>();
