@@ -2480,8 +2480,6 @@ typedef struct nghttp3_data_reader {
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
- * :macro:`NGHTTP3_ERR_INVALID_ARGUMENT`
- *     |stream_id| identifies unidirectional stream.
  * :macro:`NGHTTP3_ERR_CONN_CLOSING`
  *     Connection is shutting down, and no new stream is allowed.
  * :macro:`NGHTTP3_ERR_STREAM_IN_USE`
