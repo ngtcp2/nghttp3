@@ -362,8 +362,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
            fuzzed_data_provider.ConsumeBool();) {
       auto stream_id = fuzzed_data_provider.ConsumeIntegralInRange<int64_t>(
         0, NGHTTP3_MAX_VARINT);
-      if (server && nghttp3_server_stream_uni(stream_id) ||
-          !server && nghttp3_client_stream_uni(stream_id)) {
+      if ((server && nghttp3_server_stream_uni(stream_id)) ||
+          (!server && nghttp3_client_stream_uni(stream_id))) {
         goto fin;
       }
 
