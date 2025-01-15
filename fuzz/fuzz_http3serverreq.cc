@@ -396,10 +396,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
       }
     }
 
-    if (server) {
-      if (set_stream_priorities(conn, fuzzed_data_provider) != 0) {
-        goto fin;
-      }
+    if (server && set_stream_priorities(conn, fuzzed_data_provider) != 0) {
+      goto fin;
     }
 
     if (send_data(conn) != 0) {
