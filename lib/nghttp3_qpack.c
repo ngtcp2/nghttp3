@@ -1769,10 +1769,15 @@ int nghttp3_qpack_stream_add_ref(nghttp3_qpack_stream *stream,
     }
   }
 
+  rv = nghttp3_pq_push(&stream->max_cnts, &ref->max_cnts_pe);
+  if (rv != 0) {
+    return rv;
+  }
+
   dest = nghttp3_ringbuf_push_back(&stream->refs);
   *dest = ref;
 
-  return nghttp3_pq_push(&stream->max_cnts, &ref->max_cnts_pe);
+  return 0;
 }
 
 void nghttp3_qpack_stream_pop_ref(nghttp3_qpack_stream *stream) {
