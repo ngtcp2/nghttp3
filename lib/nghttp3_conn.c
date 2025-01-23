@@ -607,6 +607,9 @@ nghttp3_ssize nghttp3_conn_read_uni(nghttp3_conn *conn, nghttp3_stream *stream,
     break;
   case NGHTTP3_STREAM_TYPE_UNKNOWN:
     nconsumed = (nghttp3_ssize)srclen;
+    if (fin) {
+      break;
+    }
 
     rv = conn_call_stop_sending(conn, stream, NGHTTP3_H3_STREAM_CREATION_ERROR);
     if (rv != 0) {
