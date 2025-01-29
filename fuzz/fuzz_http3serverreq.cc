@@ -10,6 +10,7 @@ extern "C" {
 
 #include "nghttp3_macro.h"
 #include "nghttp3_stream.h"
+#include "nghttp3_conn.h"
 
 #ifdef __cplusplus
 }
@@ -141,8 +142,12 @@ int end_stream(nghttp3_conn *conn, int64_t stream_id, void *conn_user_data,
     },
   };
 
-  return nghttp3_conn_submit_response(conn, stream_id, nva,
-                                      nghttp3_arraylen(nva), nullptr);
+  if (conn->server) {
+    return nghttp3_conn_submit_response(conn, stream_id, nva,
+                                        nghttp3_arraylen(nva), nullptr);
+  }
+
+  return 0;
 }
 }; // namespace
 
