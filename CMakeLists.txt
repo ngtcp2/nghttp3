@@ -179,8 +179,6 @@ foreach(name
   configure_file("${name}.in" "${name}" @ONLY)
 endforeach()
 
-option(ENABLE_POPCNT "Enable popcnt instruction" ON)
-
 if(NOT ENABLE_POPCNT)
   add_definitions(-DDISABLE_POPCNT)
 endif()
