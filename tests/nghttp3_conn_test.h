@@ -62,5 +62,6 @@ munit_void_test_decl(test_nghttp3_conn_shutdown_stream_read)
 munit_void_test_decl(test_nghttp3_conn_stream_data_overflow)
 munit_void_test_decl(test_nghttp3_conn_get_frame_payload_left)
 munit_void_test_decl(test_nghttp3_conn_update_ack_offset)
+munit_void_test_decl(test_nghttp3_conn_set_client_stream_priority)
 
 #endif /* !defined(NGHTTP3_CONN_TEST_H) */
