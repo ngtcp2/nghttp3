@@ -42,6 +42,11 @@
   }
 
 /*
+ * strsize macro returns the length of string literal |S|.
+ */
+#define strsize(S) (sizeof(S) - 1)
+
+/*
  * nghttp3_write_frame writes |fr| to |dest|.  This function
  * calculates the payload length and assigns it to fr->hd.length;
  */
@@ -70,5 +75,22 @@ void nghttp3_write_frame_qpack_dyn(nghttp3_buf *dest, nghttp3_buf *ebuf,
  * payload.
  */
 void nghttp3_write_frame_data(nghttp3_buf *dest, size_t len);
+
+/*
+ * nghttp3_decode_frame_hd decodes frame header out of |vec| of length
+ * |veccnt|.  It returns the number of bytes read if it succeeds, or
+ * negative error code.
+ */
+nghttp3_ssize nghttp3_decode_frame_hd(nghttp3_frame_hd *hd,
+                                      const nghttp3_vec *vec, size_t veccnt);
+
+/*
+ * nghttp3_decode_priority_update_frame decodes PRIORITY_UPDATE frame
+ * out of |vec| of length |veccnt|.  It returns the number of bytes
+ * read if it succeeds, or a negative error code.
+ */
+nghttp3_ssize
+nghttp3_decode_priority_update_frame(nghttp3_frame_priority_update *fr,
+                                     const nghttp3_vec *vec, size_t veccnt);
 
 #endif /* !defined(NGHTTP3_TEST_HELPER) */

@@ -140,3 +140,63 @@ void nghttp3_write_frame_data(nghttp3_buf *dest, size_t len) {
   memset(dest->last, 0, len);
   dest->last += len;
 }
+
+nghttp3_ssize nghttp3_decode_frame_hd(nghttp3_frame_hd *hd,
+                                      const nghttp3_vec *vec, size_t veccnt) {
+  const uint8_t *p = vec->base;
+  size_t len = 2;
+  size_t vlen;
+
+  if (veccnt == 0 || vec->len < len) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  vlen = nghttp3_get_varintlen(p);
+  len += vlen;
+  if (len > vec->len) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  p = nghttp3_get_varint(&hd->type, p);
+
+  vlen = nghttp3_get_varintlen(p);
+  len += vlen;
+  if (len > vec->len) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  p = nghttp3_get_varint(&hd->length, p);
+
+  return p - vec->base;
+}
+
+nghttp3_ssize
+nghttp3_decode_priority_update_frame(nghttp3_frame_priority_update *fr,
+                                     const nghttp3_vec *vec, size_t veccnt) {
+  const uint8_t *p = vec->base;
+  size_t vlen;
+  nghttp3_ssize hdlen;
+
+  hdlen = nghttp3_decode_frame_hd(&fr->hd, vec, veccnt);
+  if (hdlen < 0) {
+    return hdlen;
+  }
+
+  if (fr->hd.length == 0 || (size_t)hdlen + (size_t)fr->hd.length > vec->len) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  p += hdlen;
+
+  vlen = nghttp3_get_varintlen(p);
+  if (vlen > (size_t)fr->hd.length) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  p = nghttp3_get_varint(&fr->pri_elem_id, p);
+
+  fr->data = (uint8_t *)p;
+  fr->datalen = (size_t)fr->hd.length - vlen;
+
+  return hdlen + (nghttp3_ssize)fr->hd.length;
+}

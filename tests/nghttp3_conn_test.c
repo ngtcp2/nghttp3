@@ -63,6 +63,7 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_conn_stream_data_overflow),
   munit_void_test(test_nghttp3_conn_get_frame_payload_left),
   munit_void_test(test_nghttp3_conn_update_ack_offset),
+  munit_void_test(test_nghttp3_conn_set_client_stream_priority),
   munit_test_end(),
 };
 
@@ -317,6 +318,109 @@ static int recv_settings(nghttp3_conn *conn, const nghttp3_settings *settings,
   ud->recv_settings_cb.settings = *settings;
 
   return 0;
+}
+
+typedef struct conn_options {
+  nghttp3_callbacks *callbacks;
+  nghttp3_settings *settings;
+  int64_t control_stream_id;
+  int64_t qenc_stream_id;
+  int64_t qdec_stream_id;
+  void *user_data;
+} conn_options;
+
+static void setup_default_client_with_options(nghttp3_conn **pconn,
+                                              conn_options opts) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_callbacks callbacks;
+  nghttp3_settings settings;
+  int rv;
+
+  if (opts.callbacks == NULL) {
+    memset(&callbacks, 0, sizeof(callbacks));
+    opts.callbacks = &callbacks;
+  }
+
+  if (opts.settings == NULL) {
+    nghttp3_settings_default(&settings);
+    opts.settings = &settings;
+  }
+
+  if (opts.control_stream_id == 0) {
+    opts.control_stream_id = 2;
+  }
+
+  if (opts.qenc_stream_id == 0) {
+    opts.qenc_stream_id = 6;
+  }
+
+  if (opts.qdec_stream_id == 0) {
+    opts.qdec_stream_id = 10;
+  }
+
+  rv = nghttp3_conn_client_new(pconn, opts.callbacks, opts.settings, mem,
+                               opts.user_data);
+
+  assert_int(0, ==, rv);
+
+  nghttp3_conn_bind_control_stream(*pconn, opts.control_stream_id);
+  nghttp3_conn_bind_qpack_streams(*pconn, opts.qenc_stream_id,
+                                  opts.qdec_stream_id);
+}
+
+static void setup_default_client(nghttp3_conn **pconn) {
+  conn_options opts = {0};
+
+  setup_default_client_with_options(pconn, opts);
+}
+
+static void conn_write_initial_streams(nghttp3_conn *conn) {
+  nghttp3_vec vec[256];
+  nghttp3_ssize sveccnt;
+  int64_t stream_id;
+  int fin;
+  int rv;
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(conn->tx.ctrl->node.id, ==, stream_id);
+  assert_false(fin);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(conn->tx.qdec->node.id, ==, stream_id);
+  assert_false(fin);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(conn->tx.qenc->node.id, ==, stream_id);
+  assert_false(fin);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, ==, sveccnt);
 }
 
 void test_nghttp3_conn_read_control(void) {
@@ -3843,6 +3947,62 @@ void test_nghttp3_conn_update_ack_offset(void) {
 
   assert_int(NGHTTP3_ERR_INVALID_ARGUMENT, ==, rv);
   assert_uint64(ack_offset, ==, stream->ack_offset);
+
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_set_client_stream_priority(void) {
+  nghttp3_conn *conn;
+  static const nghttp3_nv nva[] = {
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
+  };
+  static const uint8_t prihd[] = "u=0";
+  nghttp3_vec vec[256];
+  nghttp3_ssize sveccnt;
+  int64_t stream_id;
+  nghttp3_ssize nread;
+  nghttp3_frame_priority_update fr;
+  int fin;
+  int rv;
+
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), NULL,
+                                   NULL);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_set_client_stream_priority(conn, 0, prihd, strsize(prihd));
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(2, ==, stream_id);
+
+  nread = nghttp3_decode_priority_update_frame(&fr, vec, (size_t)sveccnt);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_vec_len(vec, (size_t)sveccnt), ==,
+                 nread);
+  assert_int64(NGHTTP3_FRAME_PRIORITY_UPDATE, ==, fr.hd.type);
+  assert_memn_equal(prihd, strsize(prihd), fr.data, fr.datalen);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(0, ==, stream_id);
 
   nghttp3_conn_del(conn);
 }
