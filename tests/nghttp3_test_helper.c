@@ -198,5 +198,5 @@ nghttp3_decode_priority_update_frame(nghttp3_frame_priority_update *fr,
   fr->data = (uint8_t *)p;
   fr->datalen = (size_t)fr->hd.length - vlen;
 
-  return hdlen + fr->hd.length;
+  return hdlen + (nghttp3_ssize)fr->hd.length;
 }

@@ -42,6 +42,11 @@
   }
 
 /*
+ * strsize macro returns the length of string literal |S|.
+ */
+#define strsize(S) (sizeof(S) - 1)
+
+/*
  * nghttp3_write_frame writes |fr| to |dest|.  This function
  * calculates the payload length and assigns it to fr->hd.length;
  */
