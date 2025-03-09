@@ -329,8 +329,12 @@ typedef struct conn_options {
   void *user_data;
 } conn_options;
 
-static void setup_default_client_with_options(nghttp3_conn **pconn,
-                                              conn_options opts) {
+static void conn_options_clear(conn_options *opts) {
+  memset(opts, 0, sizeof(*opts));
+}
+
+static void setup_conn_with_options(nghttp3_conn **pconn, int server,
+                                    conn_options opts) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_callbacks callbacks;
   nghttp3_settings settings;
@@ -346,6 +350,34 @@ static void setup_default_client_with_options(nghttp3_conn **pconn,
     opts.settings = &settings;
   }
 
+  if (server) {
+    rv = nghttp3_conn_server_new(pconn, opts.callbacks, opts.settings, mem,
+                                 opts.user_data);
+  } else {
+    rv = nghttp3_conn_client_new(pconn, opts.callbacks, opts.settings, mem,
+                                 opts.user_data);
+  }
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_bind_control_stream(*pconn, opts.control_stream_id);
+
+  assert_int(0, ==, rv);
+  assert_not_null((*pconn)->tx.ctrl);
+  assert_uint64(NGHTTP3_STREAM_TYPE_CONTROL, ==, (*pconn)->tx.ctrl->type);
+
+  rv = nghttp3_conn_bind_qpack_streams(*pconn, opts.qenc_stream_id,
+                                       opts.qdec_stream_id);
+
+  assert_int(0, ==, rv);
+  assert_not_null((*pconn)->tx.qenc);
+  assert_uint64(NGHTTP3_STREAM_TYPE_QPACK_ENCODER, ==, (*pconn)->tx.qenc->type);
+  assert_not_null((*pconn)->tx.qdec);
+  assert_uint64(NGHTTP3_STREAM_TYPE_QPACK_DECODER, ==, (*pconn)->tx.qdec->type);
+}
+
+static void setup_default_client_with_options(nghttp3_conn **pconn,
+                                              conn_options opts) {
   if (opts.control_stream_id == 0) {
     opts.control_stream_id = 2;
   }
@@ -358,14 +390,7 @@ static void setup_default_client_with_options(nghttp3_conn **pconn,
     opts.qdec_stream_id = 10;
   }
 
-  rv = nghttp3_conn_client_new(pconn, opts.callbacks, opts.settings, mem,
-                               opts.user_data);
-
-  assert_int(0, ==, rv);
-
-  nghttp3_conn_bind_control_stream(*pconn, opts.control_stream_id);
-  nghttp3_conn_bind_qpack_streams(*pconn, opts.qenc_stream_id,
-                                  opts.qdec_stream_id);
+  setup_conn_with_options(pconn, 0, opts);
 }
 
 static void setup_default_client(nghttp3_conn **pconn) {
@@ -374,13 +399,38 @@ static void setup_default_client(nghttp3_conn **pconn) {
   setup_default_client_with_options(pconn, opts);
 }
 
+static void setup_default_server_with_options(nghttp3_conn **pconn,
+                                              conn_options opts) {
+  if (opts.control_stream_id == 0) {
+    opts.control_stream_id = 3;
+  }
+
+  if (opts.qenc_stream_id == 0) {
+    opts.qenc_stream_id = 7;
+  }
+
+  if (opts.qdec_stream_id == 0) {
+    opts.qdec_stream_id = 11;
+  }
+
+  setup_conn_with_options(pconn, 1, opts);
+}
+
+static void setup_default_server(nghttp3_conn **pconn) {
+  conn_options opts = {0};
+
+  setup_default_server_with_options(pconn, opts);
+}
+
 static void conn_write_initial_streams(nghttp3_conn *conn) {
   nghttp3_vec vec[256];
   nghttp3_ssize sveccnt;
   int64_t stream_id;
+  size_t len;
   int fin;
   int rv;
 
+  /* control stream */
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
@@ -388,11 +438,17 @@ static void conn_write_initial_streams(nghttp3_conn *conn) {
   assert_int64(conn->tx.ctrl->node.id, ==, stream_id);
   assert_false(fin);
 
-  rv = nghttp3_conn_add_write_offset(
-    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+  len = (size_t)nghttp3_vec_len(vec, (size_t)sveccnt);
+  rv = nghttp3_conn_add_write_offset(conn, stream_id, len);
 
   assert_int(0, ==, rv);
 
+  rv = nghttp3_conn_add_ack_offset(conn, stream_id, len);
+
+  assert_int(0, ==, rv);
+  assert_uint64(len, ==, conn->tx.ctrl->ack_offset);
+
+  /* QPACK decoder stream */
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
@@ -400,11 +456,17 @@ static void conn_write_initial_streams(nghttp3_conn *conn) {
   assert_int64(conn->tx.qdec->node.id, ==, stream_id);
   assert_false(fin);
 
-  rv = nghttp3_conn_add_write_offset(
-    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+  len = (size_t)nghttp3_vec_len(vec, (size_t)sveccnt);
+  rv = nghttp3_conn_add_write_offset(conn, stream_id, len);
 
   assert_int(0, ==, rv);
 
+  rv = nghttp3_conn_add_ack_offset(conn, stream_id, len);
+
+  assert_int(0, ==, rv);
+  assert_uint64(len, ==, conn->tx.qdec->ack_offset);
+
+  /* QPACK encoder stream */
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
@@ -412,11 +474,17 @@ static void conn_write_initial_streams(nghttp3_conn *conn) {
   assert_int64(conn->tx.qenc->node.id, ==, stream_id);
   assert_false(fin);
 
-  rv = nghttp3_conn_add_write_offset(
-    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+  len = (size_t)nghttp3_vec_len(vec, (size_t)sveccnt);
+  rv = nghttp3_conn_add_write_offset(conn, stream_id, len);
 
   assert_int(0, ==, rv);
 
+  rv = nghttp3_conn_add_ack_offset(conn, stream_id, len);
+
+  assert_int(0, ==, rv);
+  assert_uint64(len, ==, conn->tx.qenc->ack_offset);
+
+  /* Assert that client does not write more. */
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
                                        nghttp3_arraylen(vec));
 
@@ -424,13 +492,10 @@ static void conn_write_initial_streams(nghttp3_conn *conn) {
 }
 
 void test_nghttp3_conn_read_control(void) {
-  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
   nghttp3_callbacks callbacks = {
     .recv_settings = recv_settings,
   };
-  nghttp3_settings settings;
-  int rv;
   uint8_t rawbuf[2048];
   nghttp3_buf buf;
   struct {
@@ -441,8 +506,8 @@ void test_nghttp3_conn_read_control(void) {
   nghttp3_settings_entry *iv;
   size_t i;
   userdata ud;
+  conn_options opts;
 
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
@@ -461,9 +526,11 @@ void test_nghttp3_conn_read_control(void) {
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
-  rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
 
-  assert_int(0, ==, rv);
+  setup_default_server_with_options(&conn, opts);
 
   memset(&ud, 0, sizeof(ud));
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
@@ -484,9 +551,11 @@ void test_nghttp3_conn_read_control(void) {
   nghttp3_conn_del(conn);
 
   /* Feed 1 byte at a time to verify that state machine works */
-  rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
 
-  assert_int(0, ==, rv);
+  setup_default_server_with_options(&conn, opts);
 
   for (i = 0; i < nghttp3_buf_len(&buf); ++i) {
     nconsumed =
@@ -502,7 +571,6 @@ void test_nghttp3_conn_read_control(void) {
   nghttp3_conn_del(conn);
 
   /* Receive empty SETTINGS */
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
@@ -512,9 +580,11 @@ void test_nghttp3_conn_read_control(void) {
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
-  rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
 
-  assert_int(0, ==, rv);
+  setup_default_server_with_options(&conn, opts);
 
   memset(&ud, 0, sizeof(ud));
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
@@ -530,7 +600,6 @@ void test_nghttp3_conn_read_control(void) {
   nghttp3_conn_del(conn);
 
   /* Receiver should enforce its own limits for QPACK parameters. */
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
@@ -545,9 +614,11 @@ void test_nghttp3_conn_read_control(void) {
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
-  rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
 
-  assert_int(0, ==, rv);
+  setup_default_server_with_options(&conn, opts);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
@@ -563,7 +634,6 @@ void test_nghttp3_conn_read_control(void) {
 
   /* Receiving multiple nonzero SETTINGS_QPACK_MAX_TABLE_CAPACITY is
      treated as error. */
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
@@ -578,9 +648,11 @@ void test_nghttp3_conn_read_control(void) {
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
-  rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
 
-  assert_int(0, ==, rv);
+  setup_default_server_with_options(&conn, opts);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
@@ -591,7 +663,6 @@ void test_nghttp3_conn_read_control(void) {
 
   /* Receiving multiple nonzero SETTINGS_QPACK_BLOCKED_STREAMS is
      treated as error. */
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
@@ -606,9 +677,11 @@ void test_nghttp3_conn_read_control(void) {
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
-  rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
 
-  assert_int(0, ==, rv);
+  setup_default_server_with_options(&conn, opts);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
@@ -618,7 +691,6 @@ void test_nghttp3_conn_read_control(void) {
   nghttp3_conn_del(conn);
 
   /* Receive ENABLE_CONNECT_PROTOCOL = 1 */
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
@@ -631,9 +703,11 @@ void test_nghttp3_conn_read_control(void) {
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
-  rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
 
-  assert_int(0, ==, rv);
+  setup_default_server_with_options(&conn, opts);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
@@ -645,7 +719,6 @@ void test_nghttp3_conn_read_control(void) {
 
   /* Receiving ENABLE_CONNECT_PROTOCOL = 0 after seeing
      ENABLE_CONNECT_PROTOCOL = 1 */
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
@@ -660,9 +733,11 @@ void test_nghttp3_conn_read_control(void) {
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
-  rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
 
-  assert_int(0, ==, rv);
+  setup_default_server_with_options(&conn, opts);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
@@ -672,7 +747,6 @@ void test_nghttp3_conn_read_control(void) {
   nghttp3_conn_del(conn);
 
   /* Receive H3_DATAGRAM = 1 */
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
@@ -685,9 +759,11 @@ void test_nghttp3_conn_read_control(void) {
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
-  rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
 
-  assert_int(0, ==, rv);
+  setup_default_server_with_options(&conn, opts);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
@@ -698,7 +774,6 @@ void test_nghttp3_conn_read_control(void) {
   nghttp3_conn_del(conn);
 
   /* Receive H3_DATAGRAM = 0 */
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
@@ -711,9 +786,11 @@ void test_nghttp3_conn_read_control(void) {
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
-  rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
 
-  assert_int(0, ==, rv);
+  setup_default_server_with_options(&conn, opts);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
@@ -724,7 +801,6 @@ void test_nghttp3_conn_read_control(void) {
   nghttp3_conn_del(conn);
 
   /* Receive H3_DATAGRAM which is neither 0 nor 1 */
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
@@ -737,9 +813,11 @@ void test_nghttp3_conn_read_control(void) {
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
 
-  rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
 
-  assert_int(0, ==, rv);
+  setup_default_server_with_options(&conn, opts);
 
   nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
@@ -750,25 +828,14 @@ void test_nghttp3_conn_read_control(void) {
 }
 
 void test_nghttp3_conn_write_control(void) {
-  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
-  nghttp3_settings settings;
   nghttp3_vec vec[256];
   nghttp3_ssize sveccnt;
-  int rv;
   int64_t stream_id;
   int fin;
 
-  nghttp3_settings_default(&settings);
+  setup_default_server(&conn);
 
-  rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
-
-  assert_int(0, ==, rv);
-
-  rv = nghttp3_conn_bind_control_stream(conn, 3);
-
-  assert_int(0, ==, rv);
   assert_not_null(conn->tx.ctrl);
   assert_uint64(NGHTTP3_STREAM_TYPE_CONTROL, ==, conn->tx.ctrl->type);
 
@@ -784,12 +851,10 @@ void test_nghttp3_conn_write_control(void) {
 }
 
 void test_nghttp3_conn_submit_request(void) {
-  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
   nghttp3_callbacks callbacks = {
     .acked_stream_data = acked_stream_data,
   };
-  nghttp3_settings settings;
   nghttp3_vec vec[256];
   nghttp3_ssize sveccnt;
   int rv;
@@ -806,29 +871,48 @@ void test_nghttp3_conn_submit_request(void) {
   userdata ud = {0};
   nghttp3_data_reader dr;
   int fin;
-
-  nghttp3_settings_default(&settings);
+  conn_options opts;
 
   ud.data.left = 2000;
   ud.data.step = 1200;
 
-  rv = nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
 
-  assert_int(0, ==, rv);
-
-  rv = nghttp3_conn_bind_qpack_streams(conn, 6, 10);
-
-  assert_int(0, ==, rv);
-  assert_not_null(conn->tx.qenc);
-  assert_uint64(NGHTTP3_STREAM_TYPE_QPACK_ENCODER, ==, conn->tx.qenc->type);
-  assert_not_null(conn->tx.qdec);
-  assert_uint64(NGHTTP3_STREAM_TYPE_QPACK_DECODER, ==, conn->tx.qdec->type);
+  setup_default_client_with_options(&conn, opts);
 
   dr.read_data = step_read_data;
   rv =
     nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr, NULL);
 
   assert_int(0, ==, rv);
+
+  /* This will write control stream */
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(2, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_uint64(0, <, nghttp3_vec_len(vec, (size_t)sveccnt));
+  assert_size(1, ==, nghttp3_ringbuf_len(&conn->tx.qdec->outq));
+  assert_size(0, ==, conn->tx.ctrl->outq_idx);
+  assert_uint64(0, ==, conn->tx.ctrl->outq_offset);
+
+  rv = nghttp3_conn_add_write_offset(conn, 2, vec[0].len);
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, nghttp3_ringbuf_len(&conn->tx.ctrl->outq));
+  assert_size(1, ==, conn->tx.ctrl->outq_idx);
+  assert_uint64(0, ==, conn->tx.ctrl->outq_offset);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 2, vec[0].len);
+
+  assert_int(0, ==, rv);
+  assert_size(0, ==, nghttp3_ringbuf_len(&conn->tx.ctrl->outq));
+  assert_size(0, ==, conn->tx.ctrl->outq_idx);
+  assert_uint64(0, ==, conn->tx.ctrl->outq_offset);
+  assert_uint64(vec[0].len, ==, conn->tx.ctrl->ack_offset);
 
   /* This will write QPACK decoder stream; just stream type */
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
@@ -927,7 +1011,6 @@ void test_nghttp3_conn_submit_request(void) {
 }
 
 void test_nghttp3_conn_http_request(void) {
-  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *cl, *sv;
   nghttp3_callbacks callbacks = {
     .begin_headers = begin_headers,
@@ -957,6 +1040,7 @@ void test_nghttp3_conn_http_request(void) {
   size_t i;
   size_t nconsumed;
   size_t nread;
+  conn_options opts;
 
   nghttp3_settings_default(&settings);
 
@@ -969,14 +1053,17 @@ void test_nghttp3_conn_http_request(void) {
   svud.data.left = 1999;
   svud.data.step = 1000;
 
-  nghttp3_conn_client_new(&cl, &callbacks, &settings, mem, &clud);
-  nghttp3_conn_server_new(&sv, &callbacks, &settings, mem, &svud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.settings = &settings;
 
-  nghttp3_conn_bind_control_stream(cl, 2);
-  nghttp3_conn_bind_control_stream(sv, 3);
+  opts.user_data = &clud;
 
-  nghttp3_conn_bind_qpack_streams(cl, 6, 10);
-  nghttp3_conn_bind_qpack_streams(sv, 7, 11);
+  setup_default_client_with_options(&cl, opts);
+
+  opts.user_data = &svud;
+
+  setup_default_server_with_options(&sv, opts);
 
   dr.read_data = step_read_data;
   rv = nghttp3_conn_submit_request(cl, 0, reqnva, nghttp3_arraylen(reqnva), &dr,
@@ -1071,12 +1158,12 @@ static void check_http_header(const nghttp3_nv *nva, size_t nvlen, int request,
   nghttp3_buf buf;
   nghttp3_frame_headers fr;
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
   nghttp3_settings settings;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
   nghttp3_stream *stream;
+  conn_options opts;
 
   nghttp3_settings_default(&settings);
   settings.enable_connect_protocol = 1;
@@ -1090,11 +1177,14 @@ static void check_http_header(const nghttp3_nv *nva, size_t nvlen, int request,
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
+  conn_options_clear(&opts);
+  opts.settings = &settings;
+
   if (request) {
-    nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+    setup_default_server_with_options(&conn, opts);
     nghttp3_conn_set_max_client_streams_bidi(conn, 1);
   } else {
-    nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+    setup_default_client_with_options(&conn, opts);
     nghttp3_conn_create_stream(conn, &stream, 0);
     stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
   }
@@ -1417,8 +1507,6 @@ void test_nghttp3_conn_http_content_length(void) {
   nghttp3_buf buf;
   nghttp3_frame_headers fr;
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
-  nghttp3_settings settings;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
@@ -1434,8 +1522,6 @@ void test_nghttp3_conn_http_content_length(void) {
     MAKE_NV("content-length", "9000000000"),
   };
 
-  nghttp3_settings_default(&settings);
-
   /* client */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, mem);
@@ -1446,7 +1532,7 @@ void test_nghttp3_conn_http_content_length(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
 
@@ -1470,7 +1556,7 @@ void test_nghttp3_conn_http_content_length(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
@@ -1491,8 +1577,6 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   nghttp3_buf buf;
   nghttp3_frame_headers fr;
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
-  nghttp3_settings settings;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
@@ -1510,8 +1594,6 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   int rv;
   nghttp3_stream *stream;
 
-  nghttp3_settings_default(&settings);
-
   /* content-length is 20, but no DATA is present and see fin */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, mem);
@@ -1522,7 +1604,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
@@ -1544,7 +1626,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
@@ -1574,7 +1656,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
   nghttp3_write_frame_data(&buf, 21);
 
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
@@ -1597,7 +1679,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
 
@@ -1620,7 +1702,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
 
@@ -1651,7 +1733,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
   nghttp3_write_frame_data(&buf, 21);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
 
@@ -1669,8 +1751,6 @@ void test_nghttp3_conn_http_non_final_response(void) {
   nghttp3_buf buf;
   nghttp3_frame_headers fr;
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
-  nghttp3_settings settings;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
@@ -1685,8 +1765,6 @@ void test_nghttp3_conn_http_non_final_response(void) {
   };
   nghttp3_stream *stream;
 
-  nghttp3_settings_default(&settings);
-
   /* non-final followed by DATA is illegal.  */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, mem);
@@ -1698,7 +1776,7 @@ void test_nghttp3_conn_http_non_final_response(void) {
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
   nghttp3_write_frame_data(&buf, 0);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
 
@@ -1727,7 +1805,7 @@ void test_nghttp3_conn_http_non_final_response(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
 
@@ -1757,7 +1835,7 @@ void test_nghttp3_conn_http_non_final_response(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
 
@@ -1779,8 +1857,6 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_buf buf;
   nghttp3_frame_headers fr;
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
-  nghttp3_settings settings;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
@@ -1802,8 +1878,6 @@ void test_nghttp3_conn_http_trailers(void) {
   };
   nghttp3_stream *stream;
 
-  nghttp3_settings_default(&settings);
-
   /* final response followed by trailers */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, mem);
@@ -1820,7 +1894,7 @@ void test_nghttp3_conn_http_trailers(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
 
@@ -1848,7 +1922,7 @@ void test_nghttp3_conn_http_trailers(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
 
@@ -1881,7 +1955,7 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
 
@@ -1910,7 +1984,7 @@ void test_nghttp3_conn_http_trailers(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
   nghttp3_http_record_request_method(stream, connect_reqnv,
@@ -1942,7 +2016,7 @@ void test_nghttp3_conn_http_trailers(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
   nghttp3_http_record_request_method(stream, connect_reqnv,
@@ -1972,7 +2046,7 @@ void test_nghttp3_conn_http_trailers(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
@@ -1994,7 +2068,7 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
@@ -2026,7 +2100,7 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
@@ -2053,7 +2127,7 @@ void test_nghttp3_conn_http_trailers(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
@@ -2081,7 +2155,7 @@ void test_nghttp3_conn_http_trailers(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
@@ -2098,8 +2172,6 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
   nghttp3_buf buf;
   nghttp3_frame_headers fr;
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
-  nghttp3_settings settings;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
@@ -2119,8 +2191,6 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
   int rv;
   nghttp3_stream *stream;
 
-  nghttp3_settings_default(&settings);
-
   /* If status code is 304, content-length must be ignored. */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, mem);
@@ -2131,7 +2201,7 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
 
@@ -2158,7 +2228,7 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
@@ -2187,7 +2257,7 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
   stream->rx.http.flags |= NGHTTP3_HTTP_FLAG_METH_CONNECT;
@@ -2211,8 +2281,6 @@ void test_nghttp3_conn_http_record_request_method(void) {
   nghttp3_buf buf;
   nghttp3_frame_headers fr;
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
-  nghttp3_settings settings;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
@@ -2232,8 +2300,6 @@ void test_nghttp3_conn_http_record_request_method(void) {
   };
   nghttp3_stream *stream;
 
-  nghttp3_settings_default(&settings);
-
   /* content-length is not allowed with 200 status code in response to
      CONNECT request.  Just ignore it. */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
@@ -2245,7 +2311,7 @@ void test_nghttp3_conn_http_record_request_method(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
   nghttp3_http_record_request_method(stream, connect_reqnv,
@@ -2271,7 +2337,7 @@ void test_nghttp3_conn_http_record_request_method(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
   nghttp3_http_record_request_method(stream, head_reqnv,
@@ -2314,6 +2380,7 @@ void test_nghttp3_conn_http_error(void) {
   };
   userdata ud = {0};
   nghttp3_stream *stream;
+  conn_options opts;
 
   nghttp3_settings_default(&settings);
   settings.qpack_max_dtable_capacity = 4096;
@@ -2329,7 +2396,12 @@ void test_nghttp3_conn_http_error(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.settings = &settings;
+  opts.user_data = &ud;
+
+  setup_default_server_with_options(&conn, opts);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
@@ -2371,7 +2443,12 @@ void test_nghttp3_conn_http_error(void) {
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.settings = &settings;
+  opts.user_data = &ud;
+
+  setup_default_server_with_options(&conn, opts);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
@@ -2419,7 +2496,12 @@ void test_nghttp3_conn_http_error(void) {
 
   nghttp3_write_frame_qpack_dyn(&buf, &ebuf, &qenc, 0, (nghttp3_frame *)&fr);
 
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.settings = &settings;
+  opts.user_data = &ud;
+
+  setup_default_server_with_options(&conn, opts);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
@@ -2474,7 +2556,6 @@ void test_nghttp3_conn_http_error(void) {
 void test_nghttp3_conn_qpack_blocked_stream(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
   nghttp3_settings settings;
   nghttp3_qpack_encoder qenc;
   int rv;
@@ -2494,6 +2575,7 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   nghttp3_frame fr;
   nghttp3_ssize sconsumed;
   nghttp3_stream *stream;
+  conn_options opts;
 
   nghttp3_settings_default(&settings);
   settings.qpack_max_dtable_capacity = 4096;
@@ -2510,7 +2592,10 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   nghttp3_qpack_encoder_set_max_dtable_capacity(
     &qenc, settings.qpack_max_dtable_capacity);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  conn_options_clear(&opts);
+  opts.settings = &settings;
+
+  setup_default_client_with_options(&conn, opts);
   nghttp3_conn_bind_qpack_streams(conn, 2, 6);
 
   rv = nghttp3_conn_submit_request(conn, 0, reqnv, nghttp3_arraylen(reqnv),
@@ -2568,7 +2653,10 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   nghttp3_qpack_encoder_set_max_dtable_capacity(
     &qenc, settings.qpack_max_dtable_capacity);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  conn_options_clear(&opts);
+  opts.settings = &settings;
+
+  setup_default_client_with_options(&conn, opts);
   nghttp3_conn_bind_qpack_streams(conn, 2, 6);
 
   rv = nghttp3_conn_submit_request(conn, 0, reqnv, nghttp3_arraylen(reqnv),
@@ -2625,10 +2713,7 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
 }
 
 void test_nghttp3_conn_just_fin(void) {
-  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
-  nghttp3_settings settings;
   nghttp3_vec vec[256];
   nghttp3_ssize sveccnt;
   int rv;
@@ -2642,30 +2727,13 @@ void test_nghttp3_conn_just_fin(void) {
   nghttp3_data_reader dr;
   int fin;
   userdata ud = {0};
+  conn_options opts;
 
-  nghttp3_settings_default(&settings);
+  conn_options_clear(&opts);
+  opts.user_data = &ud;
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
-
-  nghttp3_conn_bind_control_stream(conn, 2);
-  nghttp3_conn_bind_qpack_streams(conn, 6, 10);
-
-  /* Write control streams */
-  for (;;) {
-    sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
-                                         nghttp3_arraylen(vec));
-
-    assert_true(sveccnt >= 0);
-
-    if (sveccnt == 0) {
-      break;
-    }
-
-    rv = nghttp3_conn_add_write_offset(
-      conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
-
-    assert_int(0, ==, rv);
-  }
+  setup_default_client_with_options(&conn, opts);
+  conn_write_initial_streams(conn);
 
   /* No DATA frame header */
   dr.read_data = step_read_data;
@@ -2733,10 +2801,7 @@ void test_nghttp3_conn_just_fin(void) {
 }
 
 void test_nghttp3_conn_submit_response_read_blocked(void) {
-  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
-  nghttp3_settings settings;
   const nghttp3_nv nva[] = {
     MAKE_NV(":status", "200"),
   };
@@ -2748,15 +2813,17 @@ void test_nghttp3_conn_submit_response_read_blocked(void) {
   nghttp3_ssize sveccnt;
   nghttp3_data_reader dr = {step_then_block_read_data};
   userdata ud;
-
-  nghttp3_settings_default(&settings);
+  conn_options opts;
 
   /* Make sure that flushing serialized data while
      NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED is set does not cause any
      error */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.user_data = &ud;
+
+  setup_default_server_with_options(&conn, opts);
+  conn_write_initial_streams(conn);
   conn->remote.bidi.max_client_streams = 1;
-  nghttp3_conn_bind_qpack_streams(conn, 7, 11);
 
   nghttp3_conn_create_stream(conn, &stream, 0);
 
@@ -2785,17 +2852,12 @@ void test_nghttp3_conn_submit_response_read_blocked(void) {
 }
 
 void test_nghttp3_conn_recv_uni(void) {
-  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
-  nghttp3_settings settings;
   nghttp3_ssize nread;
   uint8_t buf[256];
 
-  nghttp3_settings_default(&settings);
-
   /* 0 length unidirectional stream must be ignored */
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
 
   nread = nghttp3_conn_read_stream(conn, 3, NULL, 0, /* fin = */ 1);
 
@@ -2806,7 +2868,7 @@ void test_nghttp3_conn_recv_uni(void) {
 
   /* 0 length unidirectional stream; first get 0 length without fin,
      and then get 0 length with fin. */
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
 
   nread = nghttp3_conn_read_stream(conn, 3, NULL, 0, /* fin = */ 0);
 
@@ -2821,7 +2883,7 @@ void test_nghttp3_conn_recv_uni(void) {
   nghttp3_conn_del(conn);
 
   /* Fin while reading stream header is treated as error. */
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_client(&conn);
 
   /* 4 bytes integer */
   buf[0] = 0xc0;
@@ -2838,12 +2900,10 @@ void test_nghttp3_conn_recv_uni(void) {
 }
 
 void test_nghttp3_conn_recv_goaway(void) {
-  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
   nghttp3_callbacks callbacks = {
     .shutdown = conn_shutdown,
   };
-  nghttp3_settings settings;
   nghttp3_frame fr;
   uint8_t rawbuf[1024];
   nghttp3_buf buf;
@@ -2856,14 +2916,16 @@ void test_nghttp3_conn_recv_goaway(void) {
   };
   int rv;
   userdata ud = {0};
+  conn_options opts;
 
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   /* Client receives GOAWAY */
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
-  nghttp3_conn_bind_control_stream(conn, 2);
-  nghttp3_conn_bind_qpack_streams(conn, 6, 10);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
+
+  setup_default_client_with_options(&conn, opts);
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
@@ -2899,9 +2961,11 @@ void test_nghttp3_conn_recv_goaway(void) {
   nghttp3_buf_reset(&buf);
 
   /* Receiving GOAWAY with increased ID is treated as error */
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
-  nghttp3_conn_bind_control_stream(conn, 2);
-  nghttp3_conn_bind_qpack_streams(conn, 6, 10);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
+
+  setup_default_client_with_options(&conn, opts);
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
@@ -2936,9 +3000,11 @@ void test_nghttp3_conn_recv_goaway(void) {
   nghttp3_buf_reset(&buf);
 
   /* Server receives GOAWAY */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
-  nghttp3_conn_bind_control_stream(conn, 3);
-  nghttp3_conn_bind_qpack_streams(conn, 7, 11);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
+
+  setup_default_server_with_options(&conn, opts);
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
@@ -2973,7 +3039,6 @@ void test_nghttp3_conn_shutdown_server(void) {
     .stop_sending = stop_sending,
     .reset_stream = reset_stream,
   };
-  nghttp3_settings settings;
   nghttp3_frame fr;
   uint8_t rawbuf[1024];
   nghttp3_buf buf;
@@ -2992,15 +3057,18 @@ void test_nghttp3_conn_shutdown_server(void) {
   nghttp3_vec vec[256];
   int64_t stream_id;
   int fin;
+  conn_options opts;
 
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   /* Server sends GOAWAY and rejects stream whose ID is greater than
      or equal to the ID in GOAWAY. */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
-  nghttp3_conn_bind_control_stream(conn, 3);
-  nghttp3_conn_bind_qpack_streams(conn, 7, 11);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
+
+  setup_default_server_with_options(&conn, opts);
+  conn_write_initial_streams(conn);
   nghttp3_qpack_encoder_init(&qenc, 0, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
@@ -3059,13 +3127,11 @@ void test_nghttp3_conn_shutdown_server(void) {
 }
 
 void test_nghttp3_conn_shutdown_client(void) {
-  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
   nghttp3_callbacks callbacks = {
     .stop_sending = stop_sending,
     .reset_stream = reset_stream,
   };
-  nghttp3_settings settings;
   uint8_t rawbuf[1024];
   nghttp3_buf buf;
   const nghttp3_nv nva[] = {
@@ -3080,15 +3146,18 @@ void test_nghttp3_conn_shutdown_client(void) {
   nghttp3_vec vec[256];
   int64_t stream_id;
   int fin;
+  conn_options opts;
 
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   /* Client sends GOAWAY and rejects PUSH_PROMISE whose ID is greater
      than or equal to the ID in GOAWAY. */
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
-  nghttp3_conn_bind_control_stream(conn, 2);
-  nghttp3_conn_bind_qpack_streams(conn, 6, 10);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
+
+  setup_default_client_with_options(&conn, opts);
+  conn_write_initial_streams(conn);
 
   rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), NULL,
                                    NULL);
@@ -3116,15 +3185,12 @@ void test_nghttp3_conn_shutdown_client(void) {
 void test_nghttp3_conn_priority_update(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
-  nghttp3_settings settings;
   nghttp3_frame fr;
   nghttp3_ssize nconsumed;
   uint8_t rawbuf[2048];
   nghttp3_buf buf;
   nghttp3_stream *stream;
   int rv;
-  userdata ud = {0};
   nghttp3_qpack_encoder qenc;
   const nghttp3_nv nva[] = {
     MAKE_NV(":path", "/"),         MAKE_NV(":authority", "example.com"),
@@ -3132,13 +3198,10 @@ void test_nghttp3_conn_priority_update(void) {
     MAKE_NV("priority", "u=5, i"),
   };
 
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   /* Receive PRIORITY_UPDATE and stream has not been created yet */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
-  nghttp3_conn_bind_control_stream(conn, 3);
-  nghttp3_conn_bind_qpack_streams(conn, 7, 11);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
   nghttp3_qpack_encoder_init(&qenc, 0, mem);
 
@@ -3191,8 +3254,7 @@ void test_nghttp3_conn_priority_update(void) {
   nghttp3_buf_reset(&buf);
 
   /* Receive PRIORITY_UPDATE and stream has been created */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
-  nghttp3_conn_bind_control_stream(conn, 3);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   rv = nghttp3_conn_create_stream(conn, &stream, 0);
@@ -3225,8 +3287,7 @@ void test_nghttp3_conn_priority_update(void) {
   nghttp3_buf_reset(&buf);
 
   /* Receive PRIORITY_UPDATE against non-existent push_promise */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
-  nghttp3_conn_bind_control_stream(conn, 3);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
@@ -3253,8 +3314,7 @@ void test_nghttp3_conn_priority_update(void) {
 
   /* Receive PRIORITY_UPDATE and its Priority Field Value is larger
      than buffer */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, &ud);
-  nghttp3_conn_bind_control_stream(conn, 3);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
@@ -3298,8 +3358,6 @@ void test_nghttp3_conn_priority_update(void) {
 void test_nghttp3_conn_request_priority(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
-  nghttp3_settings settings;
   nghttp3_frame fr;
   nghttp3_ssize nconsumed;
   uint8_t rawbuf[2048];
@@ -3317,13 +3375,10 @@ void test_nghttp3_conn_request_priority(void) {
     MAKE_NV("priority", "u=5, i"), MAKE_NV("priority", "i, u=x"),
   };
 
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   /* Priority in request */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
-  nghttp3_conn_bind_control_stream(conn, 3);
-  nghttp3_conn_bind_qpack_streams(conn, 7, 11);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
   nghttp3_qpack_encoder_init(&qenc, 0, mem);
 
@@ -3361,9 +3416,7 @@ void test_nghttp3_conn_request_priority(void) {
   nghttp3_buf_reset(&buf);
 
   /* Bad priority in request */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
-  nghttp3_conn_bind_control_stream(conn, 3);
-  nghttp3_conn_bind_qpack_streams(conn, 7, 11);
+  setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
   nghttp3_qpack_encoder_init(&qenc, 0, mem);
 
@@ -3402,10 +3455,7 @@ void test_nghttp3_conn_request_priority(void) {
 }
 
 void test_nghttp3_conn_set_stream_priority(void) {
-  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
-  nghttp3_settings settings;
   const nghttp3_nv nva[] = {
     MAKE_NV(":path", "/"),
     MAKE_NV(":authority", "example.com"),
@@ -3418,12 +3468,8 @@ void test_nghttp3_conn_set_stream_priority(void) {
   nghttp3_stream *stream;
   size_t i;
 
-  nghttp3_settings_default(&settings);
-
   /* Update stream priority by client */
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
-  nghttp3_conn_bind_control_stream(conn, 2);
-  nghttp3_conn_bind_qpack_streams(conn, 6, 10);
+  setup_default_client(&conn);
 
   rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), NULL,
                                    NULL);
@@ -3460,9 +3506,7 @@ void test_nghttp3_conn_set_stream_priority(void) {
   nghttp3_conn_del(conn);
 
   /* Updating priority of stream which does not exist is an error */
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
-  nghttp3_conn_bind_control_stream(conn, 2);
-  nghttp3_conn_bind_qpack_streams(conn, 6, 10);
+  setup_default_client(&conn);
 
   pri.urgency = 2;
   pri.inc = 1;
@@ -3477,8 +3521,7 @@ void test_nghttp3_conn_set_stream_priority(void) {
   nghttp3_conn_del(conn);
 
   /* Update stream priority by server */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
-  nghttp3_conn_bind_control_stream(conn, 3);
+  setup_default_server(&conn);
 
   rv = nghttp3_conn_create_stream(conn, &stream, 0);
 
@@ -3526,6 +3569,7 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   size_t consumed_total;
   userdata ud;
   size_t indatalen;
+  conn_options opts;
 
   nghttp3_settings_default(&settings);
   settings.qpack_max_dtable_capacity = 4096;
@@ -3542,8 +3586,12 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   nghttp3_qpack_encoder_set_max_dtable_capacity(
     &qenc, settings.qpack_max_dtable_capacity);
 
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
-  nghttp3_conn_bind_qpack_streams(conn, 2, 6);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.settings = &settings;
+  opts.user_data = &ud;
+
+  setup_default_client_with_options(&conn, opts);
 
   rv = nghttp3_conn_submit_request(conn, 0, reqnv, nghttp3_arraylen(reqnv),
                                    NULL, NULL);
@@ -3611,10 +3659,7 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
 
 void test_nghttp3_conn_stream_data_overflow(void) {
 #if SIZE_MAX > UINT32_MAX
-  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
-  nghttp3_settings settings;
   const nghttp3_nv nva[] = {
     MAKE_NV(":path", "/"),
     MAKE_NV(":authority", "example.com"),
@@ -3628,37 +3673,17 @@ void test_nghttp3_conn_stream_data_overflow(void) {
   nghttp3_data_reader dr;
   int fin;
 
-  nghttp3_settings_default(&settings);
-
   /* Specify NGHTTP3_MAX_VARINT + 1 bytes data in
      nghttp3_read_data_callback. */
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
-  nghttp3_conn_bind_qpack_streams(conn, 6, 10);
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
 
   dr.read_data = stream_data_overflow_read_data;
 
-  /* QPACK decoder stream */
   rv =
     nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr, NULL);
 
   assert_int(0, ==, rv);
-
-  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
-                                       nghttp3_arraylen(vec));
-
-  assert_int64(10, ==, stream_id);
-  assert_ptrdiff(1, ==, sveccnt);
-
-  nghttp3_conn_add_write_offset(conn, 10, vec[0].len);
-
-  /* QPACK encoder stream */
-  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
-                                       nghttp3_arraylen(vec));
-
-  assert_int64(6, ==, stream_id);
-  assert_ptrdiff(1, ==, sveccnt);
-
-  nghttp3_conn_add_write_offset(conn, 6, vec[0].len);
 
   /* Write request stream */
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
@@ -3669,33 +3694,15 @@ void test_nghttp3_conn_stream_data_overflow(void) {
   nghttp3_conn_del(conn);
 
   /* nghttp3_stream_outq_add detects stream data overflow */
-  nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, NULL);
-  nghttp3_conn_bind_qpack_streams(conn, 6, 10);
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
 
   dr.read_data = stream_data_almost_overflow_read_data;
 
-  /* QPACK decoder stream */
   rv =
     nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr, NULL);
 
   assert_int(0, ==, rv);
-
-  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
-                                       nghttp3_arraylen(vec));
-
-  assert_int64(10, ==, stream_id);
-  assert_ptrdiff(1, ==, sveccnt);
-
-  nghttp3_conn_add_write_offset(conn, 10, vec[0].len);
-
-  /* QPACK encoder stream */
-  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
-                                       nghttp3_arraylen(vec));
-
-  assert_int64(6, ==, stream_id);
-  assert_ptrdiff(1, ==, sveccnt);
-
-  nghttp3_conn_add_write_offset(conn, 6, vec[0].len);
 
   /* Write request stream */
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
@@ -3710,8 +3717,6 @@ void test_nghttp3_conn_stream_data_overflow(void) {
 void test_nghttp3_conn_get_frame_payload_left(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {0};
-  nghttp3_settings settings;
   struct {
     nghttp3_frame_settings settings;
     nghttp3_settings_entry iv[3];
@@ -3728,11 +3733,10 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
   };
   nghttp3_qpack_encoder qenc;
 
-  nghttp3_settings_default(&settings);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
   /* Control stream */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_server(&conn);
 
   assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left(conn, 2));
 
@@ -3773,7 +3777,7 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
   nghttp3_buf_reset(&buf);
 
   /* Client bidi stream */
-  nghttp3_conn_server_new(&conn, &callbacks, &settings, mem, NULL);
+  setup_default_server(&conn);
 
   assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left(conn, 0));
 
@@ -3802,12 +3806,10 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
 }
 
 void test_nghttp3_conn_update_ack_offset(void) {
-  const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
   nghttp3_callbacks callbacks = {
     .acked_stream_data = acked_stream_data,
   };
-  nghttp3_settings settings;
   nghttp3_vec vec[256];
   nghttp3_ssize sveccnt;
   int rv;
@@ -3824,61 +3826,23 @@ void test_nghttp3_conn_update_ack_offset(void) {
   nghttp3_data_reader dr;
   int fin;
   uint64_t ack_offset;
-
-  nghttp3_settings_default(&settings);
+  conn_options opts;
 
   ud.data.left = 2000;
   ud.data.step = 1333;
 
-  rv = nghttp3_conn_client_new(&conn, &callbacks, &settings, mem, &ud);
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
 
-  assert_int(0, ==, rv);
-
-  rv = nghttp3_conn_bind_qpack_streams(conn, 6, 10);
-
-  assert_int(0, ==, rv);
-  assert_not_null(conn->tx.qenc);
-  assert_uint64(NGHTTP3_STREAM_TYPE_QPACK_ENCODER, ==, conn->tx.qenc->type);
-  assert_not_null(conn->tx.qdec);
-  assert_uint64(NGHTTP3_STREAM_TYPE_QPACK_DECODER, ==, conn->tx.qdec->type);
+  setup_default_client_with_options(&conn, opts);
+  conn_write_initial_streams(conn);
 
   dr.read_data = step_read_data;
   rv =
     nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr, NULL);
 
   assert_int(0, ==, rv);
-
-  /* This will write QPACK decoder stream; just stream type */
-  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
-                                       nghttp3_arraylen(vec));
-
-  assert_int64(10, ==, stream_id);
-  assert_ptrdiff(1, ==, sveccnt);
-
-  rv = nghttp3_conn_add_write_offset(conn, 10, vec[0].len);
-
-  assert_int(0, ==, rv);
-
-  rv = nghttp3_conn_update_ack_offset(conn, 10, vec[0].len);
-
-  assert_int(0, ==, rv);
-  assert_uint64(vec[0].len, ==, conn->tx.qdec->ack_offset);
-
-  /* This will write QPACK encoder stream; just stream type */
-  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
-                                       nghttp3_arraylen(vec));
-
-  assert_int64(6, ==, stream_id);
-  assert_ptrdiff(1, ==, sveccnt);
-
-  rv = nghttp3_conn_add_write_offset(conn, 6, vec[0].len);
-
-  assert_int(0, ==, rv);
-
-  rv = nghttp3_conn_update_ack_offset(conn, 6, vec[0].len);
-
-  assert_int(0, ==, rv);
-  assert_uint64(vec[0].len, ==, conn->tx.qenc->ack_offset);
 
   /* This will write request stream */
   sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
