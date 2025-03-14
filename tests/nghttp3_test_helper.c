@@ -182,14 +182,19 @@ nghttp3_decode_priority_update_frame(nghttp3_frame_priority_update *fr,
     return hdlen;
   }
 
-  if (fr->hd.length == 0 || (size_t)hdlen + (size_t)fr->hd.length > vec->len) {
+  if (fr->hd.type != NGHTTP3_FRAME_PRIORITY_UPDATE) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  if (fr->hd.length == 0 ||
+      (int64_t)hdlen + fr->hd.length > (int64_t)vec->len) {
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
   p += hdlen;
 
   vlen = nghttp3_get_varintlen(p);
-  if (vlen > (size_t)fr->hd.length) {
+  if ((int64_t)vlen > fr->hd.length) {
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
