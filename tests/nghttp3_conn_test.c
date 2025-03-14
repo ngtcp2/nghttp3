@@ -833,6 +833,16 @@ void test_nghttp3_conn_write_control(void) {
   nghttp3_ssize sveccnt;
   int64_t stream_id;
   int fin;
+  nghttp3_settings settings;
+  conn_options opts;
+  nghttp3_ssize nread;
+  union {
+    nghttp3_frame fr;
+    struct {
+      nghttp3_frame_settings settings;
+      nghttp3_settings pad[15];
+    };
+  } fr;
 
   setup_default_server(&conn);
 
@@ -846,6 +856,53 @@ void test_nghttp3_conn_write_control(void) {
   assert_ptrdiff(1, ==, sveccnt);
   assert_true(vec[0].len > 1);
   assert_uint8(NGHTTP3_STREAM_TYPE_CONTROL, ==, vec[0].base[0]);
+
+  nghttp3_conn_del(conn);
+
+  /* Enable H3 DATAGRAM and CONNECT protocol */
+  nghttp3_settings_default(&settings);
+  settings.h3_datagram = 1;
+  settings.enable_connect_protocol = 1;
+
+  conn_options_clear(&opts);
+  opts.settings = &settings;
+
+  setup_default_server_with_options(&conn, opts);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(3, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_true(vec[0].len > 1);
+  assert_uint8(NGHTTP3_STREAM_TYPE_CONTROL, ==, vec[0].base[0]);
+
+  ++vec[0].base;
+  --vec[0].len;
+
+  nread = nghttp3_decode_settings_frame(&fr.fr.settings, vec, 1);
+
+  assert_ptrdiff((nghttp3_ssize)vec[0].len, ==, nread);
+  assert_size(5, ==, fr.fr.settings.niv);
+
+  assert_uint64(NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE, ==,
+                fr.fr.settings.iv[0].id);
+  assert_uint64(NGHTTP3_VARINT_MAX, ==, fr.fr.settings.iv[0].value);
+
+  assert_uint64(NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY, ==,
+                fr.fr.settings.iv[1].id);
+  assert_uint64(0, ==, fr.fr.settings.iv[1].value);
+
+  assert_uint64(NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS, ==,
+                fr.fr.settings.iv[2].id);
+  assert_uint64(0, ==, fr.fr.settings.iv[2].value);
+
+  assert_uint64(NGHTTP3_SETTINGS_ID_H3_DATAGRAM, ==, fr.fr.settings.iv[3].id);
+  assert_uint64(1, ==, fr.fr.settings.iv[3].value);
+
+  assert_uint64(NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL, ==,
+                fr.fr.settings.iv[4].id);
+  assert_uint64(1, ==, fr.fr.settings.iv[4].value);
 
   nghttp3_conn_del(conn);
 }

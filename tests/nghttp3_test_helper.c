@@ -205,3 +205,74 @@ nghttp3_decode_priority_update_frame(nghttp3_frame_priority_update *fr,
 
   return hdlen + (nghttp3_ssize)fr->hd.length;
 }
+
+nghttp3_ssize nghttp3_decode_settings_frame(nghttp3_frame_settings *fr,
+                                            const nghttp3_vec *vec,
+                                            size_t veccnt) {
+  const uint8_t *p = vec->base;
+  uint64_t len;
+  size_t vlen;
+  size_t i;
+  nghttp3_ssize hdlen;
+
+  hdlen = nghttp3_decode_frame_hd(&fr->hd, vec, veccnt);
+  if (hdlen < 0) {
+    return hdlen;
+  }
+
+  if (fr->hd.type != NGHTTP3_FRAME_SETTINGS) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  if (fr->hd.length == 0) {
+    fr->niv = 0;
+    return hdlen;
+  }
+
+  if ((int64_t)hdlen + fr->hd.length > (int64_t)vec->len) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  p += hdlen;
+
+  len = 0;
+
+  for (i = 0; len < (uint64_t)fr->hd.length; ++i) {
+    if (i > 16) {
+      return NGHTTP3_ERR_INVALID_ARGUMENT;
+    }
+
+    len += 2;
+    if (len > (uint64_t)fr->hd.length) {
+      return NGHTTP3_ERR_INVALID_ARGUMENT;
+    }
+
+    vlen = nghttp3_get_varintlen(p);
+    len += vlen - 1;
+
+    if (len > (uint64_t)fr->hd.length) {
+      return NGHTTP3_ERR_INVALID_ARGUMENT;
+    }
+
+    p += vlen;
+    vlen = nghttp3_get_varintlen(p);
+    len += vlen - 1;
+
+    if (len > (uint64_t)fr->hd.length) {
+      return NGHTTP3_ERR_INVALID_ARGUMENT;
+    }
+
+    p += vlen;
+  }
+
+  p = vec->base + hdlen;
+
+  fr->niv = i;
+
+  for (i = 0; i < fr->niv; ++i) {
+    p = nghttp3_get_varint((int64_t *)&fr->iv[i].id, p);
+    p = nghttp3_get_varint((int64_t *)&fr->iv[i].value, p);
+  }
+
+  return hdlen + (nghttp3_ssize)fr->hd.length;
+}
