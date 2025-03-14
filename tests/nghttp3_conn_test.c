@@ -491,6 +491,24 @@ static void conn_write_initial_streams(nghttp3_conn *conn) {
   assert_ptrdiff(0, ==, sveccnt);
 }
 
+static void conn_read_control_stream(nghttp3_conn *conn, int64_t stream_id,
+                                     nghttp3_frame *fr) {
+  uint8_t rawbuf[1024];
+  nghttp3_buf buf;
+  nghttp3_ssize nconsumed;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  nghttp3_write_frame(&buf, fr);
+
+  nconsumed = nghttp3_conn_read_stream(conn, stream_id, buf.pos,
+                                       nghttp3_buf_len(&buf), /* fin = */ 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+}
+
 void test_nghttp3_conn_read_control(void) {
   nghttp3_conn *conn;
   nghttp3_callbacks callbacks = {
@@ -922,11 +940,31 @@ void test_nghttp3_conn_submit_request(void) {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":method", "GET"),
   };
+  const nghttp3_nv large_nva[] = {
+    MAKE_NV(":path", "/alpha/bravo/charlie/delta/echo/foxtrot/golf/hotel"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV("priority", "u=0,i"),
+    MAKE_NV("user-agent",
+            "alpha=bravo; charlie=delta; echo=foxtrot; golf=hotel; "
+            "india=juliett; kilo=lima; mike=november; oscar=papa; "
+            "quebec=romeo; sierra=tango; uniform=vector; whiskey=xray; "
+            "yankee=zulu"),
+  };
   uint64_t len;
   size_t i;
   nghttp3_stream *stream;
   userdata ud = {0};
   nghttp3_data_reader dr;
+  union {
+    nghttp3_frame fr;
+    struct {
+      nghttp3_frame_settings settings;
+      nghttp3_settings_entry iv[15];
+    };
+  } fr;
+  nghttp3_settings_entry *iv;
   nghttp3_typed_buf *tbuf;
   int fin;
   conn_options opts;
@@ -1069,6 +1107,74 @@ void test_nghttp3_conn_submit_request(void) {
   assert_size(0, ==, stream->outq_idx);
   assert_uint64(2023, ==, stream->ack_offset);
   assert_uint64(2000, ==, ud.ack.acc);
+
+  nghttp3_conn_del(conn);
+
+  /* QPACK request buffer exceeds NGHTTP3_STREAM_MAX_COPY_THRES */
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  rv = nghttp3_conn_submit_request(conn, 0, large_nva,
+                                   nghttp3_arraylen(large_nva), NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(0, ==, stream_id);
+  /* Extra vector */
+  assert_int64(2, ==, sveccnt);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  nghttp3_conn_del(conn);
+
+  /* QPACK encoder buffer exceeds NGHTTP3_STREAM_MAX_COPY_THRES */
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  fr.settings.hd.type = NGHTTP3_FRAME_SETTINGS;
+  fr.settings.niv = 1;
+  iv = fr.settings.iv;
+  iv[0].id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY;
+  iv[0].value = 4096;
+
+  conn_read_control_stream(conn, 3, &fr.fr);
+
+  rv = nghttp3_conn_submit_request(conn, 0, large_nva,
+                                   nghttp3_arraylen(large_nva), NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(conn->tx.qenc->node.id, ==, stream_id);
+  assert_int64(1, ==, sveccnt);
+
+  tbuf = nghttp3_ringbuf_get(&conn->tx.qenc->outq,
+                             nghttp3_ringbuf_len(&conn->tx.qenc->outq) - 1);
+
+  assert_enum(nghttp3_buf_type, NGHTTP3_BUF_TYPE_PRIVATE, ==, tbuf->type);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
 
   nghttp3_conn_del(conn);
 }
