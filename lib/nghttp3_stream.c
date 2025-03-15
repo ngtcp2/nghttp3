@@ -963,10 +963,7 @@ int nghttp3_stream_update_ack_offset(nghttp3_stream *stream, uint64_t offset) {
       stream->ack_offset = stream->ack_base;
       ++npopped;
 
-      if (stream->outq_idx + 1 == npopped) {
-        stream->outq_offset = 0;
-        break;
-      }
+      assert(stream->outq_idx >= npopped);
 
       continue;
     }
@@ -974,13 +971,9 @@ int nghttp3_stream_update_ack_offset(nghttp3_stream *stream, uint64_t offset) {
     break;
   }
 
-  assert(stream->outq_idx + 1 >= npopped);
-  if (stream->outq_idx >= npopped) {
-    stream->outq_idx -= npopped;
-  } else {
-    stream->outq_idx = 0;
-  }
+  assert(stream->outq_idx >= npopped);
 
+  stream->outq_idx -= npopped;
   stream->ack_offset = offset;
 
   return 0;
