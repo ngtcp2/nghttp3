@@ -179,6 +179,10 @@ foreach(name
   configure_file("${name}.in" "${name}" @ONLY)
 endforeach()
 
+if(NOT ENABLE_POPCNT)
+  add_definitions(-DDISABLE_POPCNT)
+endif()
+
 if(ENABLE_SHARED_LIB AND ENABLE_STATIC_LIB AND MSVC AND NOT STATIC_LIB_SUFFIX)
   set(STATIC_LIB_SUFFIX "_static")
 endif()
@@ -213,6 +217,8 @@ message(STATUS "summary of build options:
       CXXFLAGS:       ${CMAKE_CXX_FLAGS_${_build_type}} ${CMAKE_CXX_FLAGS}
       WARNCFLAGS:     ${WARNCFLAGS}
       WARNCXXFLAGS:   ${WARNCXXFLAGS}
+    SIMD instruction:
+      Enable popcnt:  ${ENABLE_POPCNT}
     Library:
       Shared:         ${ENABLE_SHARED_LIB}
       Static:         ${ENABLE_STATIC_LIB}

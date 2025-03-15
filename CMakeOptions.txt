@@ -7,6 +7,7 @@ option(ENABLE_LIB_ONLY   "Build libnghttp3 only" OFF)
 option(ENABLE_STATIC_LIB "Build libnghttp3 as a static library" ON)
 option(ENABLE_SHARED_LIB "Build libnghttp3 as a shared library" ON)
 option(ENABLE_STATIC_CRT "Build libnghttp3 against the MS LIBCMT[d]")
+option(ENABLE_POPCNT "Enable popcnt instruction" ON)
 cmake_dependent_option(BUILD_TESTING "Enable tests" ON "ENABLE_STATIC_LIB" OFF)
 
 # vim: ft=cmake:
