@@ -155,6 +155,22 @@ static int end_headers(nghttp3_conn *conn, int64_t stream_id, int fin,
   return 0;
 }
 
+static nghttp3_ssize empty_read_data(nghttp3_conn *conn, int64_t stream_id,
+                                     nghttp3_vec *vec, size_t veccnt,
+                                     uint32_t *pflags, void *user_data,
+                                     void *stream_user_data) {
+  (void)conn;
+  (void)stream_id;
+  (void)vec;
+  (void)veccnt;
+  (void)user_data;
+  (void)stream_user_data;
+
+  *pflags = NGHTTP3_DATA_FLAG_EOF | NGHTTP3_DATA_FLAG_NO_END_STREAM;
+
+  return 0;
+}
+
 static nghttp3_ssize step_read_data(nghttp3_conn *conn, int64_t stream_id,
                                     nghttp3_vec *vec, size_t veccnt,
                                     uint32_t *pflags, void *user_data,
@@ -952,6 +968,9 @@ void test_nghttp3_conn_submit_request(void) {
             "quebec=romeo; sierra=tango; uniform=vector; whiskey=xray; "
             "yankee=zulu"),
   };
+  const nghttp3_nv trailer_nva[] = {
+    MAKE_NV("digest", "foo"),
+  };
   uint64_t len;
   size_t i;
   nghttp3_stream *stream;
@@ -967,6 +986,7 @@ void test_nghttp3_conn_submit_request(void) {
   nghttp3_settings_entry *iv;
   nghttp3_typed_buf *tbuf;
   int fin;
+  size_t outq_idx;
   conn_options opts;
 
   ud.data.left = 2000;
@@ -1175,6 +1195,44 @@ void test_nghttp3_conn_submit_request(void) {
     conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
   assert_int(0, ==, rv);
+
+  nghttp3_conn_del(conn);
+
+  /* Extend the last shared buffer after it is written out */
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  dr.read_data = empty_read_data;
+  rv =
+    nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr, NULL);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(0, ==, stream_id);
+  assert_int64(1, ==, sveccnt);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  stream = nghttp3_conn_find_stream(conn, stream_id);
+  outq_idx = stream->outq_idx;
+
+  rv = nghttp3_conn_submit_trailers(conn, 0, trailer_nva,
+                                    nghttp3_arraylen(trailer_nva));
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(0, ==, stream_id);
+  assert_int64(1, ==, sveccnt);
+  assert_size(outq_idx - 1, ==, stream->outq_idx);
 
   nghttp3_conn_del(conn);
 }
