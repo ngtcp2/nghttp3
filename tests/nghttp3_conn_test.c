@@ -2802,6 +2802,7 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   };
   nghttp3_frame fr;
   nghttp3_ssize sconsumed;
+  size_t buffered_datalen;
   nghttp3_stream *stream;
   conn_options opts;
 
@@ -2838,16 +2839,30 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   nghttp3_write_frame_qpack_dyn(&buf, &ebuf, &qenc, 0, &fr);
 
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
-                                       /* fin = */ 1);
+                                       /* fin = */ 0);
 
   assert_true(sconsumed > 0);
   assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), !=, sconsumed);
 
+  buffered_datalen = nghttp3_buf_len(&buf) - (size_t)sconsumed;
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_data(&buf, 1111);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 1);
+
+  assert_ptrdiff(0, ==, sconsumed);
+
+  buffered_datalen += nghttp3_buf_len(&buf);
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_size(buffered_datalen, ==,
+              nghttp3_stream_get_buffered_datalen(stream));
+
   rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
   assert_int(0, ==, rv);
-
-  stream = nghttp3_conn_find_stream(conn, 0);
 
   assert_true(stream->flags & NGHTTP3_STREAM_FLAG_CLOSED);
 
