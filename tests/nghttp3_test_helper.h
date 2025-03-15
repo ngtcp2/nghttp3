@@ -93,4 +93,16 @@ nghttp3_ssize
 nghttp3_decode_priority_update_frame(nghttp3_frame_priority_update *fr,
                                      const nghttp3_vec *vec, size_t veccnt);
 
+/*
+ * nghttp3_decode_settings_frame decodes SETTINGS frame out of |vec|
+ * of length |veccnt|.  |fr| should have enough space to store
+ * settings.  This function does not produce more than 16 settings.
+ * If the given buffer contains more than 16 settings, this function
+ * returns NGHTTP3_ERR_INVALID_ARGUMENT.  It returns the number of
+ * bytes read if it succeeds, or a negative error code.
+ */
+nghttp3_ssize nghttp3_decode_settings_frame(nghttp3_frame_settings *fr,
+                                            const nghttp3_vec *vec,
+                                            size_t veccnt);
+
 #endif /* !defined(NGHTTP3_TEST_HELPER) */
