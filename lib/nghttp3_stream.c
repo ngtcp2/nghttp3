@@ -869,12 +869,11 @@ void nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n) {
   for (i = stream->outq_idx; i < len; ++i) {
     tbuf = nghttp3_ringbuf_get(outq, i);
     buflen = nghttp3_buf_len(&tbuf->buf);
-    if (offset >= buflen) {
-      offset -= buflen;
-      continue;
+    if (offset < buflen) {
+      break;
     }
 
-    break;
+    offset -= buflen;
   }
 
   assert(i < len || offset == 0);
