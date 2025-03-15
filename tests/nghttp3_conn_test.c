@@ -50,6 +50,7 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_conn_http_record_request_method),
   munit_void_test(test_nghttp3_conn_http_error),
   munit_void_test(test_nghttp3_conn_qpack_blocked_stream),
+  munit_void_test(test_nghttp3_conn_qpack_decoder_cancel_stream),
   munit_void_test(test_nghttp3_conn_just_fin),
   munit_void_test(test_nghttp3_conn_submit_response_read_blocked),
   munit_void_test(test_nghttp3_conn_recv_uni),
@@ -2937,6 +2938,51 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
   nghttp3_buf_free(&ebuf, mem);
+}
+
+void test_nghttp3_conn_qpack_decoder_cancel_stream(void) {
+  nghttp3_conn *conn;
+  nghttp3_vec vec[256];
+  nghttp3_ssize sveccnt;
+  nghttp3_buf *buf;
+  int64_t stream_id;
+  int fin;
+  size_t i;
+  int rv;
+
+  /* Cancel streams and make QPACK decoder buffer grow, which makes
+     conn use custom sized shared buffer. */
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  for (i = 0; i < NGHTTP3_STREAM_MIN_CHUNK_SIZE; ++i) {
+    rv = nghttp3_qpack_decoder_cancel_stream(&conn->qdec, (int64_t)i);
+
+    assert_int(0, ==, rv);
+  }
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(conn->tx.qdec->node.id, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
+
+  buf = nghttp3_ringbuf_get(&conn->tx.qdec->chunks,
+                            nghttp3_ringbuf_len(&conn->tx.qdec->chunks) - 1);
+
+  assert_size(NGHTTP3_STREAM_MIN_CHUNK_SIZE, <, nghttp3_buf_cap(buf));
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  nghttp3_conn_del(conn);
 }
 
 void test_nghttp3_conn_just_fin(void) {
