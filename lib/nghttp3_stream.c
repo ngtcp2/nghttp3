@@ -729,8 +729,8 @@ int nghttp3_stream_outq_add(nghttp3_stream *stream,
       }
 
       dest->buf.last = tbuf->buf.last;
-      /* TODO Is this required? */
-      dest->buf.end = tbuf->buf.end;
+
+      assert(dest->buf.end == tbuf->buf.end);
 
       return 0;
     }
