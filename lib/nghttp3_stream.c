@@ -471,7 +471,7 @@ int nghttp3_stream_write_header_block(nghttp3_stream *stream,
   rv = nghttp3_qpack_encoder_encode(qenc, &pbuf, rbuf, ebuf, stream->node.id,
                                     nva, nvlen);
   if (rv != 0) {
-    goto fail;
+    return rv;
   }
 
   pbuflen = nghttp3_buf_len(&pbuf);
@@ -489,7 +489,7 @@ int nghttp3_stream_write_header_block(nghttp3_stream *stream,
 
   rv = nghttp3_stream_ensure_chunk(stream, len);
   if (rv != 0) {
-    goto fail;
+    return rv;
   }
 
   chunk = nghttp3_stream_get_chunk(stream);
@@ -505,13 +505,13 @@ int nghttp3_stream_write_header_block(nghttp3_stream *stream,
 
     rv = nghttp3_stream_outq_add(stream, &tbuf);
     if (rv != 0) {
-      goto fail;
+      return rv;
     }
 
     nghttp3_typed_buf_init(&tbuf, rbuf, NGHTTP3_BUF_TYPE_PRIVATE);
     rv = nghttp3_stream_outq_add(stream, &tbuf);
     if (rv != 0) {
-      goto fail;
+      return rv;
     }
     nghttp3_buf_init(rbuf);
   } else if (rbuflen) {
@@ -520,7 +520,7 @@ int nghttp3_stream_write_header_block(nghttp3_stream *stream,
 
     rv = nghttp3_stream_outq_add(stream, &tbuf);
     if (rv != 0) {
-      goto fail;
+      return rv;
     }
     nghttp3_buf_reset(rbuf);
   }
@@ -539,7 +539,7 @@ int nghttp3_stream_write_header_block(nghttp3_stream *stream,
 
     rv = nghttp3_stream_ensure_chunk(qenc_stream, ebuflen);
     if (rv != 0) {
-      goto fail;
+      return rv;
     }
 
     chunk = nghttp3_stream_get_chunk(qenc_stream);
@@ -550,7 +550,7 @@ int nghttp3_stream_write_header_block(nghttp3_stream *stream,
 
     rv = nghttp3_stream_outq_add(qenc_stream, &tbuf);
     if (rv != 0) {
-      goto fail;
+      return rv;
     }
     nghttp3_buf_reset(ebuf);
   }
@@ -560,10 +560,6 @@ int nghttp3_stream_write_header_block(nghttp3_stream *stream,
   assert(0 == nghttp3_buf_len(ebuf));
 
   return 0;
-
-fail:
-
-  return rv;
 }
 
 int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
@@ -733,8 +729,8 @@ int nghttp3_stream_outq_add(nghttp3_stream *stream,
       }
 
       dest->buf.last = tbuf->buf.last;
-      /* TODO Is this required? */
-      dest->buf.end = tbuf->buf.end;
+
+      assert(dest->buf.end == tbuf->buf.end);
 
       return 0;
     }
@@ -873,12 +869,11 @@ void nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n) {
   for (i = stream->outq_idx; i < len; ++i) {
     tbuf = nghttp3_ringbuf_get(outq, i);
     buflen = nghttp3_buf_len(&tbuf->buf);
-    if (offset >= buflen) {
-      offset -= buflen;
-      continue;
+    if (offset < buflen) {
+      break;
     }
 
-    break;
+    offset -= buflen;
   }
 
   assert(i < len || offset == 0);
