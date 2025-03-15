@@ -1152,8 +1152,8 @@ void test_nghttp3_conn_submit_request(void) {
 
   assert_int(0, ==, rv);
 
-  rv = nghttp3_conn_add_ack_offset(
-    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+  rv = nghttp3_conn_add_ack_offset(conn, stream_id,
+                                   nghttp3_vec_len(vec, (size_t)sveccnt));
 
   assert_int(0, ==, rv);
 
@@ -1192,8 +1192,8 @@ void test_nghttp3_conn_submit_request(void) {
 
   assert_int(0, ==, rv);
 
-  rv = nghttp3_conn_add_ack_offset(
-    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+  rv = nghttp3_conn_add_ack_offset(conn, stream_id,
+                                   nghttp3_vec_len(vec, (size_t)sveccnt));
 
   assert_int(0, ==, rv);
 
@@ -2992,8 +2992,8 @@ void test_nghttp3_conn_qpack_decoder_cancel_stream(void) {
 
   assert_int(0, ==, rv);
 
-  rv = nghttp3_conn_add_ack_offset(
-    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+  rv = nghttp3_conn_add_ack_offset(conn, stream_id,
+                                   nghttp3_vec_len(vec, (size_t)sveccnt));
 
   assert_int(0, ==, rv);
 
