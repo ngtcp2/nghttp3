@@ -3764,6 +3764,8 @@ void test_nghttp3_conn_request_priority(void) {
   nconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 1);
 
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
   stream = nghttp3_conn_find_stream(conn, 0);
 
   assert_not_null(stream);
@@ -3801,6 +3803,8 @@ void test_nghttp3_conn_request_priority(void) {
 
   nconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 1);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
