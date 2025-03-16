@@ -1097,7 +1097,7 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
     stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_END;
     return 0;
   case NGHTTP3_HTTP_STATE_REQ_END:
-    nghttp3_unreachable();
+    return NGHTTP3_ERR_H3_FRAME_UNEXPECTED;
   case NGHTTP3_HTTP_STATE_RESP_INITIAL:
     if (event != NGHTTP3_HTTP_EVENT_HEADERS_BEGIN) {
       return NGHTTP3_ERR_H3_FRAME_UNEXPECTED;
@@ -1178,7 +1178,7 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
     stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_END;
     return 0;
   case NGHTTP3_HTTP_STATE_RESP_END:
-    nghttp3_unreachable();
+    return NGHTTP3_ERR_H3_FRAME_UNEXPECTED;
   default:
     nghttp3_unreachable();
   }
