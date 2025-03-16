@@ -1260,7 +1260,7 @@ void test_nghttp3_conn_submit_request(void) {
 
   assert_int64(0, ==, stream_id);
   assert_ptrdiff(1, ==, sveccnt);
-  assert_int(0, ==, fin);
+  assert_false(fin);
 
   len = nghttp3_vec_len(vec, (size_t)sveccnt);
 
@@ -1277,7 +1277,7 @@ void test_nghttp3_conn_submit_request(void) {
 
   assert_int64(0, ==, stream_id);
   assert_ptrdiff(0, ==, sveccnt);
-  assert_int(1, ==, fin);
+  assert_true(fin);
 
   /* This should not acknowledge fin which has not yet been handed out
      to network. */
@@ -1290,7 +1290,7 @@ void test_nghttp3_conn_submit_request(void) {
 
   assert_int64(0, ==, stream_id);
   assert_ptrdiff(0, ==, sveccnt);
-  assert_int(1, ==, fin);
+  assert_true(fin);
 
   rv = nghttp3_conn_add_write_offset(conn, stream_id, 0);
 
@@ -3106,7 +3106,7 @@ void test_nghttp3_conn_just_fin(void) {
 
   assert_ptrdiff(1, ==, sveccnt);
   assert_int64(0, ==, stream_id);
-  assert_int(1, ==, fin);
+  assert_true(fin);
 
   rv = nghttp3_conn_add_write_offset(
     conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
@@ -3127,7 +3127,7 @@ void test_nghttp3_conn_just_fin(void) {
 
   assert_ptrdiff(1, ==, sveccnt);
   assert_int64(4, ==, stream_id);
-  assert_int(0, ==, fin);
+  assert_false(fin);
 
   rv = nghttp3_conn_add_write_offset(
     conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
@@ -3142,7 +3142,7 @@ void test_nghttp3_conn_just_fin(void) {
 
   assert_ptrdiff(0, ==, sveccnt);
   assert_int64(4, ==, stream_id);
-  assert_int(1, ==, fin);
+  assert_true(fin);
 
   rv = nghttp3_conn_add_write_offset(
     conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
@@ -3154,7 +3154,7 @@ void test_nghttp3_conn_just_fin(void) {
 
   assert_ptrdiff(0, ==, sveccnt);
   assert_int64(-1, ==, stream_id);
-  assert_int(0, ==, fin);
+  assert_false(fin);
 
   nghttp3_conn_del(conn);
 }
