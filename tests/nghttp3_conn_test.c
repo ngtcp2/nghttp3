@@ -65,6 +65,7 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_conn_get_frame_payload_left),
   munit_void_test(test_nghttp3_conn_update_ack_offset),
   munit_void_test(test_nghttp3_conn_set_client_stream_priority),
+  munit_void_test(test_nghttp3_conn_rx_http_state),
   munit_test_end(),
 };
 
@@ -2260,7 +2261,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  assert_ptrdiff(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING, ==, sconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_UNEXPECTED, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -4326,4 +4327,345 @@ void test_nghttp3_conn_set_client_stream_priority(void) {
   assert_int64(0, ==, stream_id);
 
   nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_rx_http_state(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  const nghttp3_nv nva[] = {
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":path", "/"),
+  };
+  const nghttp3_nv req_connect_nva[] = {
+    MAKE_NV(":method", "CONNECT"),
+    MAKE_NV(":authority", "localhost:4433"),
+  };
+  const nghttp3_nv resp_not_found_nva[] = {
+    MAKE_NV(":status", "404"),
+  };
+  const nghttp3_nv trailer_nva[] = {
+    MAKE_NV("alpha", "bravo"),
+  };
+  nghttp3_conn *conn;
+  uint8_t rawbuf[4096];
+  nghttp3_buf buf;
+  nghttp3_ssize sconsumed;
+  nghttp3_qpack_encoder qenc;
+  nghttp3_frame fr;
+  nghttp3_vec vec[256];
+  nghttp3_ssize sveccnt;
+  nghttp3_stream *stream;
+  int64_t stream_id;
+  int fin;
+  int rv;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  /* Server receives DATA before HEADERS */
+  setup_default_server(&conn);
+
+  nghttp3_write_frame_data(&buf, 7);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_UNEXPECTED, ==, sconsumed);
+
+  nghttp3_conn_del(conn);
+  nghttp3_buf_reset(&buf);
+
+  /* Server receives fin without completing HEADERS */
+  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+
+  setup_default_server(&conn);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.headers.nva = (nghttp3_nv *)nva;
+  fr.headers.nvlen = nghttp3_arraylen(nva);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  sconsumed =
+    nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf) - 1,
+                             /* fin = */ 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf) - 1, ==, sconsumed);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, NULL, 0,
+                                       /* fin = */ 1);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_ERROR, ==, sconsumed);
+
+  nghttp3_conn_del(conn);
+  nghttp3_buf_reset(&buf);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* Client sends CONNECT request, and gets non-2xx response with
+     trailers. */
+  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  rv = nghttp3_conn_submit_request(
+    conn, 0, req_connect_nva, nghttp3_arraylen(req_connect_nva), NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(0, ==, stream_id);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.headers.nva = (nghttp3_nv *)resp_not_found_nva;
+  fr.headers.nvlen = nghttp3_arraylen(resp_not_found_nva);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.headers.nva = (nghttp3_nv *)trailer_nva;
+  fr.headers.nvlen = nghttp3_arraylen(trailer_nva);
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 1);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_enum(nghttp3_stream_http_state, NGHTTP3_HTTP_STATE_RESP_END, ==,
+              stream->rx.hstate);
+
+  nghttp3_conn_del(conn);
+  nghttp3_buf_reset(&buf);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* Server receives headers, data, and then trailers */
+  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+
+  setup_default_server(&conn);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.headers.nva = (nghttp3_nv *)nva;
+  fr.headers.nvlen = nghttp3_arraylen(nva);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+  nghttp3_write_frame_data(&buf, 11);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf) - 11, ==, sconsumed);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.headers.nva = (nghttp3_nv *)trailer_nva;
+  fr.headers.nvlen = nghttp3_arraylen(trailer_nva);
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 1);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_enum(nghttp3_stream_http_state, NGHTTP3_HTTP_STATE_REQ_END, ==,
+              stream->rx.hstate);
+
+  nghttp3_conn_del(conn);
+  nghttp3_buf_reset(&buf);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* Client receives headers and fin. */
+  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), NULL,
+                                   NULL);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(0, ==, stream_id);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.headers.nva = (nghttp3_nv *)resp_not_found_nva;
+  fr.headers.nvlen = nghttp3_arraylen(resp_not_found_nva);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 1);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_enum(nghttp3_stream_http_state, NGHTTP3_HTTP_STATE_RESP_END, ==,
+              stream->rx.hstate);
+
+  nghttp3_conn_del(conn);
+  nghttp3_buf_reset(&buf);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* Client receives DATA before HEADERS. */
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), NULL,
+                                   NULL);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(0, ==, stream_id);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  nghttp3_write_frame_data(&buf, 119);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_UNEXPECTED, ==, sconsumed);
+
+  nghttp3_conn_del(conn);
+  nghttp3_buf_reset(&buf);
+
+  /* Client receives headers, data, and then trailers. */
+  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), NULL,
+                                   NULL);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(0, ==, stream_id);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.headers.nva = (nghttp3_nv *)resp_not_found_nva;
+  fr.headers.nvlen = nghttp3_arraylen(resp_not_found_nva);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+  nghttp3_write_frame_data(&buf, 73);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf) - 73, ==, sconsumed);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.headers.nva = (nghttp3_nv *)trailer_nva;
+  fr.headers.nvlen = nghttp3_arraylen(trailer_nva);
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 1);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_enum(nghttp3_stream_http_state, NGHTTP3_HTTP_STATE_RESP_END, ==,
+              stream->rx.hstate);
+
+  nghttp3_conn_del(conn);
+  nghttp3_buf_reset(&buf);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* Server receives empty headers */
+  setup_default_server(&conn);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.hd.length = 0;
+
+  buf.last = nghttp3_frame_write_hd(buf.last, &fr.hd);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  assert_ptrdiff(NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING, ==, sconsumed);
+
+  nghttp3_conn_del(conn);
+  nghttp3_buf_reset(&buf);
+
+  /* Server receives headers, data, and then empty trailers */
+  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+
+  setup_default_server(&conn);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.headers.nva = (nghttp3_nv *)nva;
+  fr.headers.nvlen = nghttp3_arraylen(nva);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+  nghttp3_write_frame_data(&buf, 999);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf) - 999, ==, sconsumed);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.hd.length = 0;
+
+  nghttp3_buf_reset(&buf);
+  buf.last = nghttp3_frame_write_hd(buf.last, &fr.hd);
+
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 1);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_enum(nghttp3_stream_http_state, NGHTTP3_HTTP_STATE_REQ_END, ==,
+              stream->rx.hstate);
+
+  nghttp3_conn_del(conn);
+  nghttp3_buf_reset(&buf);
+  nghttp3_qpack_encoder_free(&qenc);
 }
