@@ -78,7 +78,7 @@ static void check_decode_header(nghttp3_qpack_decoder *dec, nghttp3_buf *pbuf,
     nread = nghttp3_qpack_decoder_read_request(
       dec, &sctx, &qnv, &flags, rbuf->pos, nghttp3_buf_len(rbuf), 1);
 
-    assert_true(nread > 0);
+    assert_ptrdiff(0, <, nread);
 
     if (nread < 0) {
       break;
@@ -128,7 +128,7 @@ static void decode_header_block(nghttp3_qpack_decoder *dec, nghttp3_buf *pbuf,
     nread = nghttp3_qpack_decoder_read_request(
       dec, &sctx, &qnv, &flags, rbuf->pos, nghttp3_buf_len(rbuf), 1);
 
-    assert_true(nread >= 0);
+    assert_ptrdiff(0, <=, nread);
 
     if (nread < 0) {
       break;
@@ -142,7 +142,7 @@ static void decode_header_block(nghttp3_qpack_decoder *dec, nghttp3_buf *pbuf,
       break;
     }
 
-    assert_true(nread > 0);
+    assert_ptrdiff(0, <, nread);
     assert_true(flags & NGHTTP3_QPACK_DECODE_FLAG_EMIT);
 
     nghttp3_rcbuf_decref(qnv.name);
@@ -387,7 +387,7 @@ void test_nghttp3_qpack_encoder_still_blocked(void) {
   ref =
     *(nghttp3_qpack_header_block_ref **)nghttp3_ringbuf_get(&stream->refs, 0);
 
-  assert_true(nghttp3_ringbuf_len(&stream->refs) > 1);
+  assert_size(1, <, nghttp3_ringbuf_len(&stream->refs));
   assert_uint64(ref->max_cnt, !=, nghttp3_qpack_stream_get_max_cnt(stream));
 
   ref =
@@ -754,7 +754,7 @@ void test_nghttp3_qpack_decoder_feedback(void) {
   nghttp3_buf_reset(&dbuf);
   nghttp3_qpack_decoder_write_decoder(&dec, &dbuf);
 
-  assert_true(nghttp3_buf_len(&dbuf) > 0);
+  assert_size(0, <, nghttp3_buf_len(&dbuf));
   assert_uint64(3, ==, dec.written_icnt);
 
   nread =
@@ -773,7 +773,7 @@ void test_nghttp3_qpack_decoder_feedback(void) {
   nghttp3_buf_reset(&dbuf);
   nghttp3_qpack_decoder_write_decoder(&dec, &dbuf);
 
-  assert_true(nghttp3_buf_len(&dbuf) > 0);
+  assert_size(0, <, nghttp3_buf_len(&dbuf));
 
   nread =
     nghttp3_qpack_encoder_read_decoder(&enc, dbuf.pos, nghttp3_buf_len(&dbuf));
@@ -833,7 +833,7 @@ void test_nghttp3_qpack_huffman(void) {
     nwrite =
       nghttp3_qpack_huffman_decode(&ctx, dbuf, ebuf, (size_t)(end - ebuf), 1);
     if (nwrite <= 0) {
-      assert_true(nwrite > 0);
+      assert_ptrdiff(0, <, nwrite);
       continue;
     }
     assert_size(sizeof(raw), ==, (size_t)nwrite);
