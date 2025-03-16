@@ -1236,6 +1236,76 @@ void test_nghttp3_conn_submit_request(void) {
   assert_size(outq_idx - 1, ==, stream->outq_idx);
 
   nghttp3_conn_del(conn);
+
+  /* Make sure that just sending fin works. */
+  conn_options_clear(&opts);
+  opts.user_data = &ud;
+
+  setup_default_client_with_options(&conn, opts);
+  conn_write_initial_streams(conn);
+
+  dr.read_data = block_then_step_read_data;
+  rv =
+    nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), &dr, NULL);
+
+  assert_int(0, ==, rv);
+
+  ud.data.nblock = 1;
+  ud.data.left = 0;
+  ud.data.step = 0;
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(0, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int(0, ==, fin);
+
+  len = nghttp3_vec_len(vec, (size_t)sveccnt);
+
+  rv = nghttp3_conn_add_write_offset(conn, stream_id, (size_t)len);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_resume_stream(conn, stream_id);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(0, ==, stream_id);
+  assert_ptrdiff(0, ==, sveccnt);
+  assert_int(1, ==, fin);
+
+  /* This should not acknowledge fin which has not yet been handed out
+     to network. */
+  rv = nghttp3_conn_add_ack_offset(conn, stream_id, len);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(0, ==, stream_id);
+  assert_ptrdiff(0, ==, sveccnt);
+  assert_int(1, ==, fin);
+
+  rv = nghttp3_conn_add_write_offset(conn, stream_id, 0);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(-1, ==, stream_id);
+  assert_ptrdiff(0, ==, sveccnt);
+
+  rv = nghttp3_conn_add_ack_offset(conn, stream_id, 0);
+
+  assert_int(0, ==, rv);
+
+  nghttp3_conn_del(conn);
 }
 
 void test_nghttp3_conn_http_request(void) {

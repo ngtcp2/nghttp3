@@ -913,7 +913,6 @@ static void stream_pop_outq_entry(nghttp3_stream *stream,
 int nghttp3_stream_update_ack_offset(nghttp3_stream *stream, uint64_t offset) {
   nghttp3_ringbuf *outq = &stream->outq;
   size_t buflen;
-  size_t npopped = 0;
   uint64_t nack;
   nghttp3_typed_buf *tbuf;
   int rv;
@@ -935,14 +934,13 @@ int nghttp3_stream_update_ack_offset(nghttp3_stream *stream, uint64_t offset) {
       }
     }
 
-    if (offset >= stream->ack_base + buflen) {
+    if (stream->outq_idx > 0 && offset >= stream->ack_base + buflen) {
       stream_pop_outq_entry(stream, tbuf);
 
       stream->ack_base += buflen;
       stream->ack_offset = stream->ack_base;
-      ++npopped;
 
-      assert(stream->outq_idx >= npopped);
+      --stream->outq_idx;
 
       continue;
     }
@@ -950,9 +948,6 @@ int nghttp3_stream_update_ack_offset(nghttp3_stream *stream, uint64_t offset) {
     break;
   }
 
-  assert(stream->outq_idx >= npopped);
-
-  stream->outq_idx -= npopped;
   stream->ack_offset = offset;
 
   return 0;
