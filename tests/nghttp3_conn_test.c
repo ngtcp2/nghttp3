@@ -1146,7 +1146,7 @@ void test_nghttp3_conn_submit_request(void) {
 
   assert_int64(0, ==, stream_id);
   /* Extra vector */
-  assert_int64(2, ==, sveccnt);
+  assert_ptrdiff(2, ==, sveccnt);
 
   rv = nghttp3_conn_add_write_offset(
     conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
@@ -1181,7 +1181,7 @@ void test_nghttp3_conn_submit_request(void) {
                                        nghttp3_arraylen(vec));
 
   assert_int64(conn->tx.qenc->node.id, ==, stream_id);
-  assert_int64(1, ==, sveccnt);
+  assert_ptrdiff(1, ==, sveccnt);
 
   tbuf = nghttp3_ringbuf_get(&conn->tx.qenc->outq,
                              nghttp3_ringbuf_len(&conn->tx.qenc->outq) - 1);
@@ -1214,7 +1214,7 @@ void test_nghttp3_conn_submit_request(void) {
                                        nghttp3_arraylen(vec));
 
   assert_int64(0, ==, stream_id);
-  assert_int64(1, ==, sveccnt);
+  assert_ptrdiff(1, ==, sveccnt);
 
   rv = nghttp3_conn_add_write_offset(
     conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
@@ -1233,7 +1233,7 @@ void test_nghttp3_conn_submit_request(void) {
                                        nghttp3_arraylen(vec));
 
   assert_int64(0, ==, stream_id);
-  assert_int64(1, ==, sveccnt);
+  assert_ptrdiff(1, ==, sveccnt);
   assert_size(outq_idx - 1, ==, stream->outq_idx);
 
   nghttp3_conn_del(conn);
