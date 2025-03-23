@@ -107,6 +107,9 @@ typedef struct {
     size_t ncalled;
     nghttp3_settings settings;
   } recv_settings_cb;
+  struct {
+    size_t ncalled;
+  } recv_trailer_cb;
 } userdata;
 
 static int acked_stream_data(nghttp3_conn *conn, int64_t stream_id,
@@ -154,6 +157,24 @@ static int end_headers(nghttp3_conn *conn, int64_t stream_id, int fin,
   (void)fin;
   (void)stream_user_data;
   (void)user_data;
+  return 0;
+}
+
+static int recv_trailer(nghttp3_conn *conn, int64_t stream_id, int32_t token,
+                        nghttp3_rcbuf *name, nghttp3_rcbuf *value,
+                        uint8_t flags, void *user_data,
+                        void *stream_user_data) {
+  userdata *ud = user_data;
+  (void)conn;
+  (void)stream_id;
+  (void)token;
+  (void)name;
+  (void)value;
+  (void)flags;
+  (void)stream_user_data;
+
+  ++ud->recv_trailer_cb.ncalled;
+
   return 0;
 }
 
@@ -1581,6 +1602,33 @@ void test_nghttp3_conn_http_resp_header(void) {
   const nghttp3_nv status101_resnv[] = {
     MAKE_NV(":status", "101"),
   };
+  /* response header has te header field that contains invalid
+     value. */
+  const nghttp3_nv invalidte_resnv[] = {
+    MAKE_NV(":status", "200"),
+    MAKE_NV("te", "trailer2"),
+  };
+  /* response header has te header field that contains TRAiLERS. */
+  const nghttp3_nv te_resnv[] = {
+    MAKE_NV(":status", "200"),
+    MAKE_NV("te", "TRAiLERS"),
+  };
+  /* response header has a bad header value. */
+  const nghttp3_nv badvalue_resnv[] = {
+    MAKE_NV(":status", "200"),
+    MAKE_NV("foo", "\x7f"),
+  };
+  /* response header has empty header name followed by a pseudo
+     header. */
+  const nghttp3_nv emptynamepseudo_resnv[] = {
+    MAKE_NV("", "foo"),
+    MAKE_NV(":status", "200"),
+  };
+  /* response header contains a upper-cased header name. */
+  const nghttp3_nv upcasename_resnv[] = {
+    MAKE_NV(":status", "200"),
+    MAKE_NV("Cookie", "foo=bar"),
+  };
 
   check_http_resp_header(nostatus_resnv, nghttp3_arraylen(nostatus_resnv),
                          NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
@@ -1606,6 +1654,15 @@ void test_nghttp3_conn_http_resp_header(void) {
                          nghttp3_arraylen(clnonzero204_resnv),
                          NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
   check_http_resp_header(status101_resnv, nghttp3_arraylen(status101_resnv),
+                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_resp_header(invalidte_resnv, nghttp3_arraylen(invalidte_resnv),
+                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_resp_header(te_resnv, nghttp3_arraylen(te_resnv), 0);
+  check_http_resp_header(badvalue_resnv, nghttp3_arraylen(badvalue_resnv), 0);
+  check_http_resp_header(emptynamepseudo_resnv,
+                         nghttp3_arraylen(emptynamepseudo_resnv),
+                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_resp_header(upcasename_resnv, nghttp3_arraylen(upcasename_resnv),
                          NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
 }
 
@@ -1650,6 +1707,39 @@ void test_nghttp3_conn_http_req_header(void) {
     MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "POST"),
     MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
     MAKE_NV("content-length", "0"),     MAKE_NV("content-length", "0"),
+  };
+  /* request header has content-length that is empty string */
+  const nghttp3_nv emptycl_reqnv[] = {
+    MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "POST"),
+    MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
+    MAKE_NV("content-length", ""),
+  };
+  /* request header has content-length that is greater than
+     NGHTTP3_MAX_VARINT */
+  const nghttp3_nv toolargecl_reqnv[] = {
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "POST"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV("content-length", "4611686018427387904"),
+  };
+  /* request header has content-length that is much greater than
+     NGHTTP3_MAX_VARINT */
+  const nghttp3_nv fartoolargecl_reqnv[] = {
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "POST"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV("content-length", "5611686018427387904"),
+  };
+  /* request header has content-length that is equal to
+     NGHTTP3_MAX_VARINT */
+  const nghttp3_nv largestcl_reqnv[] = {
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "POST"),
+    MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV("content-length", "4611686018427387903"),
   };
   /* request header has disallowed header field */
   const nghttp3_nv badhd_reqnv[] = {
@@ -1750,6 +1840,136 @@ void test_nghttp3_conn_http_req_header(void) {
     MAKE_NV(":method", "CONNECT"),
     MAKE_NV(":authority", "localhost"),
   };
+  /* scheme is an empty string. */
+  const nghttp3_nv emptyscheme_reqnv[] = {
+    MAKE_NV(":scheme", ""),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"),
+  };
+  /* scheme contains a string that starts with a character that is not
+     in [a-zA-Z]. */
+  const nghttp3_nv badprefixscheme_reqnv[] = {
+    MAKE_NV(":scheme", "@"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"),
+  };
+  /* scheme contains a bad character. */
+  const nghttp3_nv badcharscheme_reqnv[] = {
+    MAKE_NV(":scheme", "http*"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"),
+  };
+  /* scheme contains all allowed characters. */
+  const nghttp3_nv allcharscheme_reqnv[] = {
+    MAKE_NV(
+      ":scheme",
+      "aabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-."),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"),
+  };
+  /* method is an empty string. */
+  const nghttp3_nv emptymethod_reqnv[] = {
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":method", ""),
+    MAKE_NV(":authority", "localhost"),
+  };
+  /* method contains a bad character. */
+  const nghttp3_nv badcharmethod_reqnv[] = {
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "GET\xb2"),
+    MAKE_NV(":authority", "localhost"),
+  };
+  /* empty :path for https URI. */
+  const nghttp3_nv emptyhttpspath_reqnv[] = {
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":path", ""),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"),
+  };
+  /* empty :path for http URI. */
+  const nghttp3_nv emptyhttppath_reqnv[] = {
+    MAKE_NV(":scheme", "http"),
+    MAKE_NV(":path", ""),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"),
+  };
+  /* empty :path for non-https/http URI. */
+  const nghttp3_nv emptypath_reqnv[] = {
+    MAKE_NV(":scheme", "something"),
+    MAKE_NV(":path", ""),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"),
+  };
+  /* :path contains a bad character. */
+  const nghttp3_nv badcharpath_reqnv[] = {
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":path", "/\x01"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV(":authority", "localhost"),
+  };
+  /* HEAD method is used. */
+  const nghttp3_nv headmethod_reqnv[] = {
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "HEAD"),
+    MAKE_NV(":authority", "localhost"),
+  };
+  /* :protocol is given twice. */
+  const nghttp3_nv dupproto_reqnv[] = {
+    MAKE_NV(":scheme", "https"),       MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "CONNECT"),     MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":protocol", "websocket"), MAKE_NV(":protocol", "websocket"),
+  };
+  /* host contains a bad character. */
+  const nghttp3_nv badcharhost_reqnv[] = {
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "HEAD"),
+    MAKE_NV("host", "localhost\x99"),
+  };
+  /* host is given twice. */
+  const nghttp3_nv duphost_reqnv[] = {
+    MAKE_NV(":scheme", "https"),  MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "HEAD"),   MAKE_NV("host", "localhost"),
+    MAKE_NV("host", "localhost"),
+  };
+  /* request header has te header field that contains invalid
+     value. */
+  const nghttp3_nv invalidte_reqnv[] = {
+    MAKE_NV(":scheme", "https"), MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "GET"),   MAKE_NV(":authority", "localhost"),
+    MAKE_NV("te", "trailer2"),
+  };
+  /* request header has te header field that contains TRAiLERS. */
+  const nghttp3_nv te_reqnv[] = {
+    MAKE_NV(":scheme", "https"), MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "GET"),   MAKE_NV(":authority", "localhost"),
+    MAKE_NV("te", "TRAiLERS"),
+  };
+  /* priority header has a bad character. */
+  const nghttp3_nv badcharpriority_reqnv[] = {
+    MAKE_NV(":scheme", "https"), MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "GET"),   MAKE_NV(":authority", "localhost"),
+    MAKE_NV("priority", "\x7f"),
+  };
+  /* priority header is followed by bad priority header. */
+  const nghttp3_nv dupbadcharpriority_reqnv[] = {
+    MAKE_NV(":scheme", "https"), MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "GET"),   MAKE_NV(":authority", "localhost"),
+    MAKE_NV("priority", "\x7f"), MAKE_NV("priority", "i"),
+  };
+  /* request header has :status header. */
+  const nghttp3_nv unknownpseudohd_reqnv[] = {
+    MAKE_NV(":scheme", "https"),     MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "GET"),       MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":status", "localhost"),
+  };
 
   /* request header has no :path */
   check_http_req_header(nopath_reqnv, nghttp3_arraylen(nopath_reqnv),
@@ -1764,6 +1984,14 @@ void test_nghttp3_conn_http_req_header(void) {
   check_http_req_header(badcl_reqnv, nghttp3_arraylen(badcl_reqnv),
                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
   check_http_req_header(dupcl_reqnv, nghttp3_arraylen(dupcl_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(emptycl_reqnv, nghttp3_arraylen(emptycl_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(largestcl_reqnv, nghttp3_arraylen(largestcl_reqnv), 0);
+  check_http_req_header(toolargecl_reqnv, nghttp3_arraylen(toolargecl_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(fartoolargecl_reqnv,
+                        nghttp3_arraylen(fartoolargecl_reqnv),
                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
   check_http_req_header(badhd_reqnv, nghttp3_arraylen(badhd_reqnv),
                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
@@ -1799,6 +2027,48 @@ void test_nghttp3_conn_http_req_header(void) {
                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
   check_http_req_header(regularconnect_reqnv,
                         nghttp3_arraylen(regularconnect_reqnv), 0);
+  check_http_req_header(emptyscheme_reqnv, nghttp3_arraylen(emptyscheme_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(badprefixscheme_reqnv,
+                        nghttp3_arraylen(badprefixscheme_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(badcharscheme_reqnv,
+                        nghttp3_arraylen(badcharscheme_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(allcharscheme_reqnv,
+                        nghttp3_arraylen(allcharscheme_reqnv), 0);
+  check_http_req_header(emptymethod_reqnv, nghttp3_arraylen(emptymethod_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(badcharmethod_reqnv,
+                        nghttp3_arraylen(badcharmethod_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(emptyhttpspath_reqnv,
+                        nghttp3_arraylen(emptyhttpspath_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(emptyhttppath_reqnv,
+                        nghttp3_arraylen(emptyhttppath_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(emptypath_reqnv, nghttp3_arraylen(emptypath_reqnv), 0);
+  check_http_req_header(badcharpath_reqnv, nghttp3_arraylen(badcharpath_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(headmethod_reqnv, nghttp3_arraylen(headmethod_reqnv),
+                        0);
+  check_http_req_header(dupproto_reqnv, nghttp3_arraylen(dupproto_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(badcharhost_reqnv, nghttp3_arraylen(badcharhost_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(duphost_reqnv, nghttp3_arraylen(duphost_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(invalidte_reqnv, nghttp3_arraylen(invalidte_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(te_reqnv, nghttp3_arraylen(te_reqnv), 0);
+  check_http_req_header(badcharpriority_reqnv,
+                        nghttp3_arraylen(badcharpriority_reqnv), 0);
+  check_http_req_header(dupbadcharpriority_reqnv,
+                        nghttp3_arraylen(dupbadcharpriority_reqnv), 0);
+  check_http_req_header(unknownpseudohd_reqnv,
+                        nghttp3_arraylen(unknownpseudohd_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
 }
 
 void test_nghttp3_conn_http_content_length(void) {
@@ -2175,7 +2445,13 @@ void test_nghttp3_conn_http_trailers(void) {
   const nghttp3_nv trnv[] = {
     MAKE_NV("foo", "bar"),
   };
+  const nghttp3_nv clnv[] = {
+    MAKE_NV("content-length", "0"),
+  };
   nghttp3_stream *stream;
+  userdata ud;
+  nghttp3_callbacks callbacks;
+  conn_options opts;
 
   /* final response followed by trailers */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
@@ -2461,6 +2737,88 @@ void test_nghttp3_conn_http_trailers(void) {
                                        /* fin = */ 0);
 
   assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_UNEXPECTED, ==, sconsumed);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* server: content-length in request trailers is ignored and
+     removed. */
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.nva = (nghttp3_nv *)reqnv;
+  fr.nvlen = nghttp3_arraylen(reqnv);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.nva = (nghttp3_nv *)clnv;
+  fr.nvlen = nghttp3_arraylen(clnv);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  callbacks.recv_trailer = recv_trailer;
+
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
+
+  setup_default_server_with_options(&conn, opts);
+
+  ud.recv_trailer_cb.ncalled = 0;
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_size(0, ==, ud.recv_trailer_cb.ncalled);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_false(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* client: content-length in request trailers is ignored and
+     removed. */
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.nva = (nghttp3_nv *)resnv;
+  fr.nvlen = nghttp3_arraylen(resnv);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+
+  fr.hd.type = NGHTTP3_FRAME_HEADERS;
+  fr.nva = (nghttp3_nv *)clnv;
+  fr.nvlen = nghttp3_arraylen(clnv);
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+
+  memset(&callbacks, 0, sizeof(callbacks));
+  callbacks.recv_trailer = recv_trailer;
+
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
+
+  setup_default_client_with_options(&conn, opts);
+  nghttp3_conn_create_stream(conn, &stream, 0);
+  stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
+
+  ud.recv_trailer_cb.ncalled = 0;
+  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_size(0, ==, ud.recv_trailer_cb.ncalled);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_false(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);

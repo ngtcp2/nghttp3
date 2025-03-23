@@ -34,6 +34,7 @@
 static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_http_parse_priority),
   munit_void_test(test_nghttp3_check_header_value),
+  munit_void_test(test_nghttp3_check_header_name),
   munit_test_end(),
 };
 
@@ -319,10 +320,36 @@ void test_nghttp3_http_parse_priority(void) {
 
     assert_int(NGHTTP3_ERR_INVALID_ARGUMENT, ==, rv);
   }
+
+  {
+    nghttp3_pri pri = {
+      .urgency = (uint32_t)-1,
+      .inc = UINT8_MAX,
+    };
+    const uint8_t v[] = "i=1";
+
+    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+
+    assert_int(NGHTTP3_ERR_INVALID_ARGUMENT, ==, rv);
+  }
+
+  {
+    nghttp3_pri pri = {
+      .urgency = (uint32_t)-1,
+      .inc = UINT8_MAX,
+    };
+    const uint8_t v[] = "ii=1, u=7";
+
+    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+
+    assert_int(0, ==, rv);
+    assert_uint32((uint32_t)7, ==, pri.urgency);
+    assert_uint8(UINT8_MAX, ==, pri.inc);
+  }
 }
 
 #define check_header_value(S)                                                  \
-  nghttp3_check_header_value((const uint8_t *)S, sizeof(S) - 1)
+  nghttp3_check_header_value((const uint8_t *)(S), sizeof(S) - 1)
 
 void test_nghttp3_check_header_value(void) {
   uint8_t goodval[] = {'a', 'b', 0x80u, 'c', 0xffu, 'd'};
@@ -336,12 +363,13 @@ void test_nghttp3_check_header_value(void) {
   assert_false(check_header_value("!|}~ "));
   assert_false(check_header_value("\t!|}~"));
   assert_false(check_header_value("!|}~\t"));
-  assert_true(check_header_value(goodval));
-  assert_false(check_header_value(badval1));
-  assert_false(check_header_value(badval2));
+  assert_true(nghttp3_check_header_value(goodval, sizeof(goodval)));
+  assert_false(nghttp3_check_header_value(badval1, sizeof(badval1)));
+  assert_false(nghttp3_check_header_value(badval2, sizeof(badval2)));
   assert_true(check_header_value(""));
   assert_false(check_header_value(" "));
   assert_false(check_header_value("\t"));
+  assert_false(check_header_value("\x00"));
 
   memset(tmpl, '_', sizeof(tmpl));
 
@@ -378,4 +406,17 @@ void test_nghttp3_check_header_value(void) {
   t[32] = 0x7f;
 
   assert_false(nghttp3_check_header_value(t, sizeof(t)));
+}
+
+#define check_header_name(S)                                                   \
+  nghttp3_check_header_name((const uint8_t *)(S), sizeof(S) - 1)
+
+void test_nghttp3_check_header_name(void) {
+  assert_false(check_header_name(""));
+  assert_false(check_header_name(":"));
+  assert_true(check_header_name("a"));
+  assert_true(check_header_name(":a"));
+  assert_false(check_header_name("000\xfc"));
+  assert_false(check_header_name(":\xfc"));
+  assert_false(check_header_name(":000\xfc"));
 }
