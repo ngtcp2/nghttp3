@@ -66,4 +66,4 @@ namespace nghttp3 {
 
 } // namespace nghttp3
 
-#endif // UTIL_H
+#endif // !defined(UTIL_H)
