@@ -66,6 +66,7 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_conn_update_ack_offset),
   munit_void_test(test_nghttp3_conn_set_client_stream_priority),
   munit_void_test(test_nghttp3_conn_rx_http_state),
+  munit_void_test(test_nghttp3_conn_push),
   munit_test_end(),
 };
 
@@ -3614,6 +3615,16 @@ void test_nghttp3_conn_recv_uni(void) {
   assert_ptrdiff(NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR, ==, nread);
 
   nghttp3_conn_del(conn);
+
+  /* Receiving a push stream is treated as error. */
+  setup_default_client(&conn);
+
+  buf[0] = NGHTTP3_STREAM_TYPE_PUSH;
+  nread = nghttp3_conn_read_stream(conn, 3, buf, 1, /* fin = */ 0);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_STREAM_CREATION_ERROR, ==, nread);
+
+  nghttp3_conn_del(conn);
 }
 
 void test_nghttp3_conn_recv_goaway(void) {
@@ -5030,4 +5041,162 @@ void test_nghttp3_conn_rx_http_state(void) {
   nghttp3_conn_del(conn);
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_free(&qenc);
+}
+
+void test_nghttp3_conn_push(void) {
+  nghttp3_conn *conn;
+  uint8_t rawbuf[4096];
+  nghttp3_buf buf;
+  nghttp3_ssize nconsumed;
+  nghttp3_stream *stream;
+  nghttp3_frame fr = {
+    .settings =
+      {
+        .hd =
+          {
+            .type = NGHTTP3_FRAME_SETTINGS,
+          },
+        .niv = 0,
+      },
+  };
+  const nghttp3_nv nva[] = {
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
+  };
+  int fin;
+  nghttp3_vec vec[256];
+  nghttp3_ssize sveccnt;
+  int rv;
+  int64_t stream_id;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  /* MAX_PUSH_ID from client is ignored. */
+  setup_default_server(&conn);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  nghttp3_write_frame(&buf, &fr);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
+  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(64));
+  buf.last = nghttp3_put_varint(buf.last, 64);
+
+  nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 3);
+
+  assert_int(NGHTTP3_CTRL_STREAM_STATE_FRAME_TYPE, ==, stream->rstate.state);
+
+  nghttp3_conn_del(conn);
+
+  /* Receiving smaller MAX_PUSH_ID from client is treated as error. */
+  nghttp3_buf_reset(&buf);
+  setup_default_server(&conn);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  nghttp3_write_frame(&buf, &fr);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
+  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(64));
+  buf.last = nghttp3_put_varint(buf.last, 64);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
+  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(63));
+  buf.last = nghttp3_put_varint(buf.last, 63);
+
+  nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_ERROR, ==, nconsumed);
+
+  nghttp3_conn_del(conn);
+
+  /* Receiving invalid MAX_PUSH_ID from client is treated as error. */
+  nghttp3_buf_reset(&buf);
+  setup_default_server(&conn);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  nghttp3_write_frame(&buf, &fr);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
+  buf.last = nghttp3_put_varint(buf.last, 0);
+
+  nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_ERROR, ==, nconsumed);
+
+  nghttp3_conn_del(conn);
+
+  /* Receiving MAX_PUSH_ID from server is treated as error. */
+  nghttp3_buf_reset(&buf);
+  setup_default_client(&conn);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  nghttp3_write_frame(&buf, &fr);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
+  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(64));
+  buf.last = nghttp3_put_varint(buf.last, 64);
+
+  nconsumed = nghttp3_conn_read_stream(conn, 3, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_UNEXPECTED, ==, nconsumed);
+
+  nghttp3_conn_del(conn);
+
+  /* Receiving invalid CANCEL_PUSH from client is treated as error. */
+  nghttp3_buf_reset(&buf);
+  setup_default_server(&conn);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  nghttp3_write_frame(&buf, &fr);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_CANCEL_PUSH);
+  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(0));
+  buf.last = nghttp3_put_varint(buf.last, 0);
+
+  nconsumed = nghttp3_conn_read_stream(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_UNEXPECTED, ==, nconsumed);
+
+  nghttp3_conn_del(conn);
+
+  /* Receiving PUSH_PROMISE from server is treated as error. */
+  nghttp3_buf_reset(&buf);
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  rv = nghttp3_conn_submit_request(conn, 0, nva, nghttp3_arraylen(nva), NULL,
+                                   NULL);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(0, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_PUSH_PROMISE);
+  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(107));
+
+  nconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                       /* fin = */ 0);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_UNEXPECTED, ==, nconsumed);
+
+  nghttp3_conn_del(conn);
 }
