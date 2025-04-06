@@ -3502,9 +3502,6 @@ void test_nghttp3_conn_just_fin(void) {
 
 void test_nghttp3_conn_submit_response_read_blocked(void) {
   nghttp3_conn *conn;
-  const nghttp3_nv nva[] = {
-    MAKE_NV(":status", "200"),
-  };
   nghttp3_stream *stream;
   int rv;
   nghttp3_vec vec[256];
@@ -3529,7 +3526,8 @@ void test_nghttp3_conn_submit_response_read_blocked(void) {
 
   ud.data.left = 1000;
   ud.data.step = 1000;
-  rv = nghttp3_conn_submit_response(conn, 0, nva, nghttp3_arraylen(nva), &dr);
+  rv = nghttp3_conn_submit_response(conn, 0, resp_nva,
+                                    nghttp3_arraylen(resp_nva), &dr);
 
   assert_int(0, ==, rv);
 
