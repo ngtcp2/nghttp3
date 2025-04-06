@@ -53,6 +53,7 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_conn_qpack_decoder_cancel_stream),
   munit_void_test(test_nghttp3_conn_just_fin),
   munit_void_test(test_nghttp3_conn_submit_response_read_blocked),
+  munit_void_test(test_nghttp3_conn_submit_info),
   munit_void_test(test_nghttp3_conn_recv_uni),
   munit_void_test(test_nghttp3_conn_recv_goaway),
   munit_void_test(test_nghttp3_conn_shutdown_server),
@@ -3546,6 +3547,45 @@ void test_nghttp3_conn_submit_response_read_blocked(void) {
 
     assert_int(0, ==, rv);
   }
+
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_submit_info(void) {
+  nghttp3_conn *conn;
+  const nghttp3_nv nva[] = {
+    MAKE_NV("foo", "bar"),
+  };
+  nghttp3_stream *stream;
+  int rv;
+  nghttp3_vec vec[256];
+  int fin;
+  int64_t stream_id;
+  nghttp3_ssize sveccnt;
+
+  setup_default_server(&conn);
+  conn_write_initial_streams(conn);
+
+  nghttp3_conn_create_stream(conn, &stream, 0);
+
+  rv = nghttp3_conn_submit_info(conn, 0, nva, nghttp3_arraylen(nva));
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, <, sveccnt);
+
+  nghttp3_conn_del(conn);
+
+  /* Submitting non-final response against non-existing stream is
+     treated as error. */
+  setup_default_server(&conn);
+
+  rv = nghttp3_conn_submit_info(conn, 0, nva, nghttp3_arraylen(nva));
+
+  assert_int(NGHTTP3_ERR_STREAM_NOT_FOUND, ==, rv);
 
   nghttp3_conn_del(conn);
 }
