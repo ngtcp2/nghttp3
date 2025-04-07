@@ -30,6 +30,7 @@ OBJECTS = \
 	main.c \
 	nghttp3_qpack_test.c \
 	nghttp3_conn_test.c \
+	nghttp3_stream_test.c \
 	nghttp3_tnode_test.c \
 	nghttp3_http_test.c \
 	nghttp3_conv_test.c \
@@ -38,6 +39,7 @@ OBJECTS = \
 HFILES = \
 	nghttp3_qpack_test.h \
 	nghttp3_conn_test.h \
+	nghttp3_stream_test.h \
 	nghttp3_tnode_test.h \
 	nghttp3_http_test.h \
 	nghttp3_conv_test.h \

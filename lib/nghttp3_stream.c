@@ -181,42 +181,45 @@ void nghttp3_stream_read_state_reset(nghttp3_stream_read_state *rstate) {
 nghttp3_ssize nghttp3_read_varint(nghttp3_varint_read_state *rvint,
                                   const uint8_t *begin, const uint8_t *end,
                                   int fin) {
-  const uint8_t *orig_begin = begin;
-  size_t len;
+  size_t len, vlen;
+  uint8_t *p;
 
   assert(begin != end);
 
   if (rvint->left == 0) {
     assert(rvint->acc == 0);
 
-    len = nghttp3_get_varintlen(begin);
-    if (len <= (size_t)(end - begin)) {
+    vlen = nghttp3_get_varintlen(begin);
+    len = nghttp3_min_size(vlen, (size_t)(end - begin));
+    if (vlen <= len) {
       nghttp3_get_varint(&rvint->acc, begin);
-      return (nghttp3_ssize)len;
+      return (nghttp3_ssize)vlen;
     }
 
     if (fin) {
       return NGHTTP3_ERR_INVALID_ARGUMENT;
     }
 
-    rvint->acc = nghttp3_get_varint_fb(begin++);
-    rvint->left = len - 1;
+    p = (uint8_t *)&rvint->acc + (sizeof(rvint->acc) - vlen);
+    memcpy(p, begin, len);
+    *p &= 0x3f;
+    rvint->left = vlen - len;
+
+    return (nghttp3_ssize)len;
   }
 
   len = nghttp3_min_size(rvint->left, (size_t)(end - begin));
-  end = begin + len;
-
-  for (; begin != end;) {
-    rvint->acc = (rvint->acc << 8) + *begin++;
-  }
-
+  p = (uint8_t *)&rvint->acc + (sizeof(rvint->acc) - rvint->left);
+  memcpy(p, begin, len);
   rvint->left -= len;
 
-  if (fin && rvint->left) {
+  if (rvint->left == 0) {
+    rvint->acc = (int64_t)nghttp3_ntohl64((uint64_t)rvint->acc);
+  } else if (fin) {
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
-  return (nghttp3_ssize)(begin - orig_begin);
+  return (nghttp3_ssize)len;
 }
 
 int nghttp3_stream_frq_add(nghttp3_stream *stream,
