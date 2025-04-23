@@ -1,4 +1,5 @@
 #include <array>
+#include <span>
 
 #include <fuzzer/FuzzedDataProvider.h>
 
@@ -308,7 +309,8 @@ int set_stream_priorities(nghttp3_conn *conn,
 }
 }; // namespace
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+namespace {
+void run_fuzzer(const uint8_t *data, size_t size, size_t step) {
   FuzzedDataProvider fuzzed_data_provider(data, size);
 
   nghttp3_callbacks callbacks{
@@ -358,7 +360,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     auto rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, &mem,
                                       &fuzzed_data_provider);
     if (rv != 0) {
-      return 0;
+      return;
     }
 
     rv = nghttp3_conn_bind_control_stream(conn, 3);
@@ -377,7 +379,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     auto rv = nghttp3_conn_client_new(&conn, &callbacks, &settings, &mem,
                                       &fuzzed_data_provider);
     if (rv != 0) {
-      return 0;
+      return;
     }
 
     rv = nghttp3_conn_bind_control_stream(conn, 2);
@@ -414,12 +416,18 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
       auto chunk_size = fuzzed_data_provider.ConsumeIntegral<size_t>();
       auto chunk = fuzzed_data_provider.ConsumeBytes<uint8_t>(chunk_size);
+      auto v = std::span{chunk};
       auto fin = fuzzed_data_provider.ConsumeBool();
 
-      auto nread = nghttp3_conn_read_stream(conn, stream_id, chunk.data(),
-                                            chunk.size(), fin);
-      if (nread < 0) {
-        goto fin;
+      for (; !v.empty();) {
+        auto len = std::min(v.size(), step);
+        auto nread = nghttp3_conn_read_stream(conn, stream_id, v.data(), len,
+                                              v.size() == len && fin);
+        if (nread < 0) {
+          goto fin;
+        }
+
+        v = v.subspan(1);
       }
     }
 
@@ -452,6 +460,12 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
 fin:
   nghttp3_conn_del(conn);
+}
+} // namespace
+
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+  run_fuzzer(data, size, size);
+  run_fuzzer(data, size, 1);
 
   return 0;
 }
