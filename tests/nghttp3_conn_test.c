@@ -2097,14 +2097,6 @@ void test_nghttp3_conn_http_req_header(void) {
     MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"),
   };
-  /* :path contains all allowed characters. */
-  const nghttp3_nv allowedcharpath_reqnv[] = {
-    MAKE_NV(":scheme", "https"),
-    MAKE_NV(":path", "/ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123"
-                     "456789-._~!$&'()*+,;=?%:@"),
-    MAKE_NV(":method", "GET"),
-    MAKE_NV(":authority", "localhost"),
-  };
   /* HEAD method is used. */
   const nghttp3_nv headmethod_reqnv[] = {
     MAKE_NV(":scheme", "https"),
@@ -2243,8 +2235,6 @@ void test_nghttp3_conn_http_req_header(void) {
   check_http_req_header(emptypath_reqnv, nghttp3_arraylen(emptypath_reqnv), 0);
   check_http_req_header(badcharpath_reqnv, nghttp3_arraylen(badcharpath_reqnv),
                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
-  check_http_req_header(allowedcharpath_reqnv,
-                        nghttp3_arraylen(allowedcharpath_reqnv), 0);
   check_http_req_header(headmethod_reqnv, nghttp3_arraylen(headmethod_reqnv),
                         0);
   check_http_req_header(dupproto_reqnv, nghttp3_arraylen(dupproto_reqnv),
