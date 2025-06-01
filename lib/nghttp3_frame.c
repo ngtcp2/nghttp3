@@ -111,6 +111,26 @@ size_t nghttp3_frame_write_priority_update_len(
          nghttp3_put_varintlen((int64_t)payloadlen) + payloadlen;
 }
 
+uint8_t *nghttp3_frame_write_origin(uint8_t *p,
+                                    const nghttp3_frame_origin *fr) {
+  p = nghttp3_frame_write_hd(p, &fr->hd);
+  if (fr->origin_list.len) {
+    p = nghttp3_cpymem(p, fr->origin_list.base, fr->origin_list.len);
+  }
+
+  return p;
+}
+
+size_t nghttp3_frame_write_origin_len(int64_t *ppayloadlen,
+                                      const nghttp3_frame_origin *fr) {
+  size_t payloadlen = fr->origin_list.len;
+
+  *ppayloadlen = (int64_t)payloadlen;
+
+  return nghttp3_put_varintlen(fr->hd.type) +
+         nghttp3_put_varintlen((int64_t)payloadlen) + payloadlen;
+}
+
 int nghttp3_nva_copy(nghttp3_nv **pnva, const nghttp3_nv *nva, size_t nvlen,
                      const nghttp3_mem *mem) {
   size_t i;

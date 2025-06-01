@@ -566,6 +566,24 @@ typedef struct nghttp3_vec {
 /**
  * @struct
  *
+ * :type:`nghttp3_cvec` is like :type:`nghttp3_vec`, but its
+ * :member:`base` is const qualifed.
+ */
+typedef struct nghttp3_cvec {
+  /**
+   * :member:`base` points to the data.
+   */
+  const uint8_t *base;
+  /**
+   * :member:`len` is the number of bytes which the buffer pointed by
+   * :member:`base` contains.
+   */
+  size_t len;
+} nghttp3_cvec;
+
+/**
+ * @struct
+ *
  * :type:`nghttp3_rcbuf` is the object representing reference counted
  * buffer.  The details of this structure are intentionally hidden
  * from the public API.
@@ -1605,7 +1623,8 @@ NGHTTP3_EXTERN void nghttp3_set_debug_vprintf_callback(
 typedef struct nghttp3_conn nghttp3_conn;
 
 #define NGHTTP3_SETTINGS_V1 1
-#define NGHTTP3_SETTINGS_VERSION NGHTTP3_SETTINGS_V1
+#define NGHTTP3_SETTINGS_V2 2
+#define NGHTTP3_SETTINGS_VERSION NGHTTP3_SETTINGS_V2
 
 /**
  * @struct
@@ -1652,6 +1671,20 @@ typedef struct nghttp3_settings {
    * Datagrams (see :rfc:`9297`).
    */
   uint8_t h3_datagram;
+  /* The following fields have been added since NGHTTP3_SETTINGS_V2. */
+  /**
+   * :member:`origin_list`, if set, must contain a serialized HTTP/3
+   * ORIGIN frame (see :rfc:`9412`) payload.  The ORIGIN frame payload
+   * is a sequence of zero or more of a length prefixed byte string.
+   * The length is encoded in 2 bytes in network byte order.  If
+   * :member:`origin_list->len <nghttp3_cvec.len>` is zero, an empty
+   * ORIGIN frame is sent.  An application must keep the buffer
+   * pointed by :member:`origin_list->base <nghttp3_cvec.base>` alive
+   * until a :type:`nghttp3_conn` that is passed this field to is
+   * freed by `nghttp3_conn_del`.  Only server uses this field.  This
+   * field is available since v1.11.0.
+   */
+  const nghttp3_cvec *origin_list;
 } nghttp3_settings;
 
 /**
@@ -1891,8 +1924,39 @@ typedef int (*nghttp3_recv_settings)(nghttp3_conn *conn,
                                      const nghttp3_settings *settings,
                                      void *conn_user_data);
 
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_recv_origin` is a callback function which is invoked
+ * when a single origin in ORIGIN frame is received.  |origin| is a
+ * received origin.  |origin| never be NULL, and :member:`origin->len
+ * <nghttp3_cvec.len>` never be 0.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
+typedef int (*nghttp3_recv_origin)(nghttp3_conn *conn,
+                                   const nghttp3_cvec *origin,
+                                   void *conn_user_data);
+
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_end_origin` is a callback function which is invoked
+ * when an ORIGIN frame has been completely processed.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ */
+typedef int (*nghttp3_end_origin)(nghttp3_conn *conn, void *conn_user_data);
+
 #define NGHTTP3_CALLBACKS_V1 1
-#define NGHTTP3_CALLBACKS_VERSION NGHTTP3_CALLBACKS_V1
+#define NGHTTP3_CALLBACKS_V2 2
+#define NGHTTP3_CALLBACKS_VERSION NGHTTP3_CALLBACKS_V2
 
 /**
  * @struct
@@ -1986,6 +2050,19 @@ typedef struct nghttp3_callbacks {
    * when SETTINGS frame is received.
    */
   nghttp3_recv_settings recv_settings;
+  /* The following fields have been added since NGHTTP3_CALLBACKS_V2. */
+  /**
+   * :member:`recv_origin` is a callback function which is invoked
+   * when a single origin in an ORIGIN frame is received.  This field
+   * is available since v1.11.0.
+   */
+  nghttp3_recv_origin recv_origin;
+  /**
+   * :member:`end_origin` is a callback function which is invoked when
+   * an ORIGIN frame has been completely processed.  This field is
+   * available since v1.11.0.
+   */
+  nghttp3_end_origin end_origin;
 } nghttp3_callbacks;
 
 /**

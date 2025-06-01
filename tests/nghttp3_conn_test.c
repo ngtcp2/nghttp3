@@ -69,6 +69,8 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_conn_set_client_stream_priority),
   munit_void_test(test_nghttp3_conn_rx_http_state),
   munit_void_test(test_nghttp3_conn_push),
+  munit_void_test(test_nghttp3_conn_recv_origin),
+  munit_void_test(test_nghttp3_conn_write_origin),
   munit_test_end(),
 };
 
@@ -125,6 +127,11 @@ typedef struct {
   struct {
     size_t ncalled;
   } recv_trailer_cb;
+  struct {
+    const nghttp3_cvec *origin_list;
+    size_t origin_listlen;
+    size_t offset;
+  } recv_origin_cb;
 } userdata;
 
 static int acked_stream_data(nghttp3_conn *conn, int64_t stream_id,
@@ -370,6 +377,23 @@ static int recv_settings(nghttp3_conn *conn, const nghttp3_settings *settings,
 
   ++ud->recv_settings_cb.ncalled;
   ud->recv_settings_cb.settings = *settings;
+
+  return 0;
+}
+
+static int recv_origin(nghttp3_conn *conn, const nghttp3_cvec *origin,
+                       void *user_data) {
+  userdata *ud = user_data;
+  const nghttp3_cvec *expected;
+  (void)conn;
+
+  assert_size(ud->recv_origin_cb.origin_listlen, >, ud->recv_origin_cb.offset);
+
+  expected = &ud->recv_origin_cb.origin_list[ud->recv_origin_cb.offset];
+
+  assert_memn_equal(expected->base, expected->len, origin->base, origin->len);
+
+  ++ud->recv_origin_cb.offset;
 
   return 0;
 }
@@ -5696,6 +5720,453 @@ void test_nghttp3_conn_push(void) {
                                        /* fin = */ 0);
 
   assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_UNEXPECTED, ==, nconsumed);
+
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_recv_origin(void) {
+  nghttp3_conn *conn;
+  nghttp3_frame settings = {
+    .settings =
+      {
+        .hd =
+          {
+            .type = NGHTTP3_FRAME_SETTINGS,
+          },
+      },
+  };
+  nghttp3_frame fr = {
+    .origin =
+      {
+        .hd =
+          {
+            .type = NGHTTP3_FRAME_ORIGIN,
+          },
+      },
+  };
+  uint8_t rawbuf[80 * 1024];
+  nghttp3_buf buf;
+  nghttp3_ssize nconsumed;
+  nghttp3_stream *stream;
+  size_t i;
+  nghttp3_callbacks callbacks;
+  conn_options opts;
+  userdata ud = {0};
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  memset(&callbacks, 0, sizeof(callbacks));
+  callbacks.recv_origin = recv_origin;
+
+  conn_options_clear(&opts);
+  opts.callbacks = &callbacks;
+  opts.user_data = &ud;
+
+  {
+    /* Receive ORIGIN frame */
+    const uint8_t origin_list[] = "\x0\x13"
+                                  "https://example.com"
+                                  "\x0\x17"
+                                  "https://www.example.com"
+                                  "\x0\x18"
+                                  "https://www2.example.com";
+    nghttp3_cvec expected[] = {
+      {
+        .base = (const uint8_t *)"https://example.com",
+        .len = 0x13,
+      },
+      {
+        .base = (const uint8_t *)"https://www.example.com",
+        .len = 0x17,
+      },
+      {
+        .base = (const uint8_t *)"https://www2.example.com",
+        .len = 0x18,
+      },
+    };
+
+    ud.recv_origin_cb.origin_list = expected;
+    ud.recv_origin_cb.origin_listlen = nghttp3_arraylen(expected);
+    ud.recv_origin_cb.offset = 0;
+
+    setup_default_client_with_options(&conn, opts);
+    conn_read_control_stream(conn, 3, &settings);
+
+    fr.origin.origin_list.base = origin_list;
+    fr.origin.origin_list.len = strsize(origin_list);
+
+    nghttp3_write_frame(&buf, &fr);
+
+    nconsumed =
+      nghttp3_conn_read_stream(conn, 3, buf.pos, nghttp3_buf_len(&buf),
+                               /* fin = */ 0);
+
+    assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+    assert_size(ud.recv_origin_cb.origin_listlen, ==, ud.recv_origin_cb.offset);
+
+    stream = nghttp3_conn_find_stream(conn, 3);
+
+    assert_int(NGHTTP3_CTRL_STREAM_STATE_FRAME_TYPE, ==, stream->rstate.state);
+
+    nghttp3_conn_del(conn);
+
+    /* Receive ORIGIN frame when callback is not set */
+    nghttp3_buf_reset(&buf);
+    setup_default_client(&conn);
+    conn_read_control_stream(conn, 3, &settings);
+
+    fr.origin.origin_list.base = origin_list;
+    fr.origin.origin_list.len = strsize(origin_list);
+
+    nghttp3_write_frame(&buf, &fr);
+
+    nconsumed =
+      nghttp3_conn_read_stream(conn, 3, buf.pos, nghttp3_buf_len(&buf),
+                               /* fin = */ 0);
+
+    assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+    stream = nghttp3_conn_find_stream(conn, 3);
+
+    assert_int(NGHTTP3_CTRL_STREAM_STATE_FRAME_TYPE, ==, stream->rstate.state);
+
+    nghttp3_conn_del(conn);
+
+    /* Feed frame 1 byte at at time */
+    nghttp3_buf_reset(&buf);
+    setup_default_client_with_options(&conn, opts);
+    conn_read_control_stream(conn, 3, &settings);
+
+    fr.origin.origin_list.base = origin_list;
+    fr.origin.origin_list.len = strsize(origin_list);
+
+    nghttp3_write_frame(&buf, &fr);
+
+    ud.recv_origin_cb.origin_list = expected;
+    ud.recv_origin_cb.origin_listlen = nghttp3_arraylen(expected);
+    ud.recv_origin_cb.offset = 0;
+
+    for (i = 0; i < nghttp3_buf_len(&buf); ++i) {
+      nconsumed = nghttp3_conn_read_stream(conn, 3, buf.pos + i, 1,
+                                           /* fin = */ 0);
+
+      assert_ptrdiff(1, ==, nconsumed);
+    }
+
+    assert_size(ud.recv_origin_cb.origin_listlen, ==, ud.recv_origin_cb.offset);
+
+    stream = nghttp3_conn_find_stream(conn, 3);
+
+    assert_int(NGHTTP3_CTRL_STREAM_STATE_FRAME_TYPE, ==, stream->rstate.state);
+
+    nghttp3_conn_del(conn);
+
+    /* Check boundaries */
+    for (i = 0; i <= strsize(origin_list); ++i) {
+      nghttp3_buf_reset(&buf);
+      setup_default_client_with_options(&conn, opts);
+      conn_read_control_stream(conn, 3, &settings);
+
+      fr.origin.origin_list.base = origin_list;
+      fr.origin.origin_list.len = i;
+
+      nghttp3_write_frame(&buf, &fr);
+
+      ud.recv_origin_cb.origin_list = expected;
+
+      switch (i) {
+      case 0:
+        ud.recv_origin_cb.origin_listlen = 0;
+        break;
+      case 2 + 0x13:
+        ud.recv_origin_cb.origin_listlen = 1;
+        break;
+      case 2 + 0x13 + 2 + 0x17:
+        ud.recv_origin_cb.origin_listlen = 2;
+        break;
+      case strsize(origin_list):
+        ud.recv_origin_cb.origin_listlen = 3;
+        break;
+      }
+
+      ud.recv_origin_cb.offset = 0;
+
+      nconsumed = nghttp3_conn_read_stream(
+        conn, 3, buf.pos, nghttp3_buf_len(&buf), /* fin = */ 0);
+
+      if (i == 0 || i == 2 + 0x13 || i == 2 + 0x13 + 2 + 0x17 ||
+          i == strsize(origin_list)) {
+        assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+        stream = nghttp3_conn_find_stream(conn, 3);
+
+        assert_int(NGHTTP3_CTRL_STREAM_STATE_FRAME_TYPE, ==,
+                   stream->rstate.state);
+        assert_size(ud.recv_origin_cb.origin_listlen, ==,
+                    ud.recv_origin_cb.offset);
+      } else {
+        assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_ERROR, ==, nconsumed);
+      }
+
+      nghttp3_conn_del(conn);
+    }
+
+    /* Receive ORIGIN at exact boundary, and then receive the rest. */
+    nghttp3_buf_reset(&buf);
+    setup_default_client_with_options(&conn, opts);
+    conn_read_control_stream(conn, 3, &settings);
+
+    fr.origin.origin_list.base = origin_list;
+    fr.origin.origin_list.len = strsize(origin_list);
+
+    nghttp3_write_frame(&buf, &fr);
+
+    ud.recv_origin_cb.origin_list = expected;
+    ud.recv_origin_cb.origin_listlen = nghttp3_arraylen(expected);
+    ud.recv_origin_cb.offset = 0;
+
+    nconsumed = nghttp3_conn_read_stream(
+      conn, 3, buf.pos, /* frame header = */ 3 + 2 + 0x13, /* fin = */ 0);
+
+    assert_ptrdiff(3 + 2 + 0x13, ==, nconsumed);
+
+    stream = nghttp3_conn_find_stream(conn, 3);
+
+    assert_int(NGHTTP3_CTRL_STREAM_STATE_ORIGIN_ORIGIN_LEN, ==,
+               stream->rstate.state);
+
+    buf.pos += nconsumed;
+
+    nconsumed = nghttp3_conn_read_stream(conn, 3, buf.pos,
+                                         nghttp3_buf_len(&buf), /* fin = */ 0);
+
+    assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+    assert_size(ud.recv_origin_cb.origin_listlen, ==, ud.recv_origin_cb.offset);
+
+    stream = nghttp3_conn_find_stream(conn, 3);
+
+    assert_int(NGHTTP3_CTRL_STREAM_STATE_FRAME_TYPE, ==, stream->rstate.state);
+
+    nghttp3_conn_del(conn);
+  }
+
+  {
+    /* Receive 0 length ASCII-ORIGIN */
+    const uint8_t origin_list[] = "\x0\x0";
+
+    nghttp3_buf_reset(&buf);
+    setup_default_client_with_options(&conn, opts);
+    conn_read_control_stream(conn, 3, &settings);
+
+    fr.origin.origin_list.base = origin_list;
+    fr.origin.origin_list.len = strsize(origin_list);
+
+    nghttp3_write_frame(&buf, &fr);
+
+    ud.recv_origin_cb.origin_list = NULL;
+    ud.recv_origin_cb.origin_listlen = 0;
+    ud.recv_origin_cb.offset = 0;
+
+    nconsumed =
+      nghttp3_conn_read_stream(conn, 3, buf.pos, nghttp3_buf_len(&buf),
+                               /* fin = */ 0);
+
+    assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_ERROR, ==, nconsumed);
+
+    nghttp3_conn_del(conn);
+
+    /* Error is not emitted if callback is not set */
+    nghttp3_buf_reset(&buf);
+    setup_default_client(&conn);
+    conn_read_control_stream(conn, 3, &settings);
+
+    fr.origin.origin_list.base = origin_list;
+    fr.origin.origin_list.len = strsize(origin_list);
+
+    nghttp3_write_frame(&buf, &fr);
+
+    nconsumed =
+      nghttp3_conn_read_stream(conn, 3, buf.pos, nghttp3_buf_len(&buf),
+                               /* fin = */ 0);
+
+    assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+    nghttp3_conn_del(conn);
+  }
+
+  {
+    /* Maximum length ASCII-ORIGIN */
+    uint8_t
+      long_origin[sizeof(uint16_t) + UINT16_MAX + sizeof(uint16_t) + 0x13];
+    nghttp3_cvec expected[2];
+
+    memset(long_origin, 'w', sizeof(long_origin));
+    long_origin[0] = 0xff;
+    long_origin[1] = 0xff;
+
+    long_origin[sizeof(long_origin) - 2 - 0x13] = 0;
+    long_origin[sizeof(long_origin) - 1 - 0x13] = 0x13;
+    memcpy(&long_origin[sizeof(long_origin) - 0x13], "https://example.com",
+           0x13);
+
+    expected[0].base = &long_origin[2];
+    expected[0].len = UINT16_MAX;
+    expected[1].base = (const uint8_t *)"https://example.com";
+    expected[1].len = 0x13;
+
+    nghttp3_buf_reset(&buf);
+    setup_default_client_with_options(&conn, opts);
+    conn_read_control_stream(conn, 3, &settings);
+
+    fr.origin.origin_list.base = long_origin;
+    fr.origin.origin_list.len = sizeof(long_origin);
+
+    nghttp3_write_frame(&buf, &fr);
+
+    ud.recv_origin_cb.origin_list = expected;
+    ud.recv_origin_cb.origin_listlen = nghttp3_arraylen(expected);
+    ud.recv_origin_cb.offset = 0;
+
+    nconsumed =
+      nghttp3_conn_read_stream(conn, 3, buf.pos, nghttp3_buf_len(&buf),
+                               /* fin = */ 0);
+
+    assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+    assert_size(ud.recv_origin_cb.origin_listlen, ==, ud.recv_origin_cb.offset);
+
+    stream = nghttp3_conn_find_stream(conn, 3);
+
+    assert_int(NGHTTP3_CTRL_STREAM_STATE_FRAME_TYPE, ==, stream->rstate.state);
+
+    nghttp3_conn_del(conn);
+  }
+}
+
+void test_nghttp3_conn_write_origin(void) {
+  nghttp3_conn *conn;
+  nghttp3_settings settings;
+  const uint8_t origins[] = "\x0\x13https://example.com";
+  uint8_t long_origin[sizeof(uint16_t) + UINT16_MAX] = {0};
+  nghttp3_cvec origin_list;
+  conn_options opts;
+  nghttp3_ssize sveccnt;
+  nghttp3_ssize nread;
+  nghttp3_vec vec[2];
+  union {
+    nghttp3_frame fr;
+    struct {
+      nghttp3_frame_settings settings;
+      nghttp3_settings pad[15];
+    };
+  } fr;
+  int64_t stream_id;
+  int fin;
+
+  long_origin[0] = 0xff;
+  long_origin[1] = 0xff;
+
+  /* Write ORIGIN frame */
+  nghttp3_settings_default(&settings);
+  origin_list.base = origins;
+  origin_list.len = strsize(origins);
+  settings.origin_list = &origin_list;
+
+  conn_options_clear(&opts);
+  opts.settings = &settings;
+
+  setup_default_server_with_options(&conn, opts);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(3, ==, stream_id);
+  assert_ptrdiff(2, ==, sveccnt);
+  assert_uint8(NGHTTP3_STREAM_TYPE_CONTROL, ==, vec[0].base[0]);
+
+  ++vec[0].base;
+  --vec[0].len;
+
+  nread = nghttp3_decode_settings_frame(&fr.fr.settings, vec, 1);
+
+  vec[0].base += nread;
+  vec[0].len -= (size_t)nread;
+
+  nread = nghttp3_decode_origin_frame(&fr.fr.origin, vec, 2);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_vec_len(vec, 2), ==, nread);
+  assert_memn_equal(origins, strsize(origins), fr.fr.origin.origin_list.base,
+                    fr.fr.origin.origin_list.len);
+
+  nghttp3_conn_del(conn);
+
+  /* Write empty ORIGIN frame */
+  nghttp3_settings_default(&settings);
+  origin_list.base = NULL;
+  origin_list.len = 0;
+  settings.origin_list = &origin_list;
+
+  conn_options_clear(&opts);
+  opts.settings = &settings;
+
+  setup_default_server_with_options(&conn, opts);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(3, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_uint8(NGHTTP3_STREAM_TYPE_CONTROL, ==, vec[0].base[0]);
+
+  ++vec[0].base;
+  --vec[0].len;
+
+  nread = nghttp3_decode_settings_frame(&fr.fr.settings, vec, 1);
+
+  assert_ptrdiff(0, <, nread);
+
+  vec[0].base += nread;
+  vec[0].len -= (size_t)nread;
+
+  nread = nghttp3_decode_origin_frame(&fr.fr.origin, vec, 1);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_vec_len(vec, 1), ==, nread);
+  assert_size(0, ==, fr.fr.origin.origin_list.len);
+
+  nghttp3_conn_del(conn);
+
+  /* Write long ORIGIN frame */
+  nghttp3_settings_default(&settings);
+  origin_list.base = long_origin;
+  origin_list.len = sizeof(long_origin);
+  settings.origin_list = &origin_list;
+
+  conn_options_clear(&opts);
+  opts.settings = &settings;
+
+  setup_default_server_with_options(&conn, opts);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(3, ==, stream_id);
+  assert_ptrdiff(2, ==, sveccnt);
+  assert_uint8(NGHTTP3_STREAM_TYPE_CONTROL, ==, vec[0].base[0]);
+
+  ++vec[0].base;
+  --vec[0].len;
+
+  nread = nghttp3_decode_settings_frame(&fr.fr.settings, vec, 1);
+
+  assert_ptrdiff(0, <, nread);
+
+  vec[0].base += nread;
+  vec[0].len -= (size_t)nread;
+
+  nread = nghttp3_decode_origin_frame(&fr.fr.origin, vec, 2);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_vec_len(vec, 2), ==, nread);
+  assert_memn_equal(long_origin, sizeof(long_origin),
+                    fr.fr.origin.origin_list.base,
+                    fr.fr.origin.origin_list.len);
 
   nghttp3_conn_del(conn);
 }

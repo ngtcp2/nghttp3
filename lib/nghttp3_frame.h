@@ -44,6 +44,8 @@
 /* PRIORITY_UPDATE: https://datatracker.ietf.org/doc/html/rfc9218 */
 #define NGHTTP3_FRAME_PRIORITY_UPDATE 0x0f0700
 #define NGHTTP3_FRAME_PRIORITY_UPDATE_PUSH_ID 0x0f0701
+/* ORIGIN: https://datatracker.ietf.org/doc/html/rfc9412 */
+#define NGHTTP3_FRAME_ORIGIN 0x0c
 
 /* Frame types that are reserved for HTTP/2, and must not be used in
    HTTP/3. */
@@ -114,6 +116,13 @@ typedef struct nghttp3_frame_priority_update {
   };
 } nghttp3_frame_priority_update;
 
+typedef struct nghttp3_frame_origin {
+  nghttp3_frame_hd hd;
+  /* These fields are only used by server to send ORIGIN frame.
+     Client never use them. */
+  nghttp3_cvec origin_list;
+} nghttp3_frame_origin;
+
 typedef union nghttp3_frame {
   nghttp3_frame_hd hd;
   nghttp3_frame_data data;
@@ -121,6 +130,7 @@ typedef union nghttp3_frame {
   nghttp3_frame_settings settings;
   nghttp3_frame_goaway goaway;
   nghttp3_frame_priority_update priority_update;
+  nghttp3_frame_origin origin;
 } nghttp3_frame;
 
 /*
@@ -189,6 +199,23 @@ nghttp3_frame_write_priority_update(uint8_t *dest,
  */
 size_t nghttp3_frame_write_priority_update_len(
   int64_t *ppayloadlen, const nghttp3_frame_priority_update *fr);
+
+/*
+ * nghttp3_frame_write_origin writes ORIGIN frame |fr| to |dest|.
+ * This function assumes that |dest| has enough space to write |fr|.
+ *
+ * This function returns |dest| plus the number of bytes written;
+ */
+uint8_t *nghttp3_frame_write_origin(uint8_t *dest,
+                                    const nghttp3_frame_origin *fr);
+
+/*
+ * nghttp3_frame_write_origin_len returns the number of bytes required
+ * to write |fr|.  fr->hd.length is ignored.  This function stores
+ * payload length in |*ppayloadlen|.
+ */
+size_t nghttp3_frame_write_origin_len(int64_t *ppayloadlen,
+                                      const nghttp3_frame_origin *fr);
 
 /*
  * nghttp3_nva_copy copies name/value pairs from |nva|, which contains

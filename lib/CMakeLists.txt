@@ -60,6 +60,8 @@ set(nghttp3_SOURCES
   nghttp3_opl.c
   nghttp3_objalloc.c
   nghttp3_unreachable.c
+  nghttp3_settings.c
+  nghttp3_callbacks.c
   sfparse/sfparse.c
 )
 

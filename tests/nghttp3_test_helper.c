@@ -47,6 +47,10 @@ void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr) {
     dest->last =
       nghttp3_frame_write_priority_update(dest->last, &fr->priority_update);
     break;
+  case NGHTTP3_FRAME_ORIGIN:
+    nghttp3_frame_write_origin_len(&fr->hd.length, &fr->origin);
+    dest->last = nghttp3_frame_write_origin(dest->last, &fr->origin);
+    break;
   default:
     assert(0);
   }
@@ -152,7 +156,7 @@ nghttp3_ssize nghttp3_decode_frame_hd(nghttp3_frame_hd *hd,
   }
 
   vlen = nghttp3_get_varintlen(p);
-  len += vlen;
+  len += vlen - 1;
   if (len > vec->len) {
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
@@ -160,7 +164,7 @@ nghttp3_ssize nghttp3_decode_frame_hd(nghttp3_frame_hd *hd,
   p = nghttp3_get_varint(&hd->type, p);
 
   vlen = nghttp3_get_varintlen(p);
-  len += vlen;
+  len += vlen - 1;
   if (len > vec->len) {
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
@@ -273,6 +277,43 @@ nghttp3_ssize nghttp3_decode_settings_frame(nghttp3_frame_settings *fr,
     p = nghttp3_get_varint((int64_t *)&fr->iv[i].id, p);
     p = nghttp3_get_varint((int64_t *)&fr->iv[i].value, p);
   }
+
+  return hdlen + (nghttp3_ssize)fr->hd.length;
+}
+
+nghttp3_ssize nghttp3_decode_origin_frame(nghttp3_frame_origin *fr,
+                                          const nghttp3_vec *vec,
+                                          size_t veccnt) {
+  nghttp3_ssize hdlen;
+
+  hdlen = nghttp3_decode_frame_hd(&fr->hd, vec, veccnt);
+  if (hdlen < 0) {
+    return hdlen;
+  }
+
+  if (fr->hd.type != NGHTTP3_FRAME_ORIGIN || vec->len != (size_t)hdlen) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  if (fr->hd.length == 0) {
+    fr->origin_list.base = NULL;
+    fr->origin_list.len = 0;
+
+    return hdlen;
+  }
+
+  if (veccnt < 2) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  ++vec;
+
+  if (fr->hd.length > (int64_t)vec->len) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  fr->origin_list.base = vec->base;
+  fr->origin_list.len = (size_t)fr->hd.length;
 
   return hdlen + (nghttp3_ssize)fr->hd.length;
 }
