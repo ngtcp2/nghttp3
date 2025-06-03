@@ -1,9 +1,7 @@
 /*
  * nghttp3
  *
- * Copyright (c) 2019 nghttp3 contributors
- * Copyright (c) 2016 ngtcp2 contributors
- * Copyright (c) 2012 nghttp2 contributors
+ * Copyright (c) 2025 nghttp3 contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -24,32 +22,20 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+#ifndef NGHTTP3_CALLBACKS_TEST_H
+#define NGHTTP3_CALLBACKS_TEST_H
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif /* defined(HAVE_CONFIG_H) */
 
+#define MUNIT_ENABLE_ASSERT_ALIASES
+
 #include "munit.h"
 
-/* include test cases' include files here */
-#include "nghttp3_qpack_test.h"
-#include "nghttp3_conn_test.h"
-#include "nghttp3_stream_test.h"
-#include "nghttp3_tnode_test.h"
-#include "nghttp3_http_test.h"
-#include "nghttp3_conv_test.h"
-#include "nghttp3_settings_test.h"
-#include "nghttp3_callbacks_test.h"
+extern const MunitSuite callbacks_suite;
 
-int main(int argc, char **argv) {
-  const MunitSuite suites[] = {
-    qpack_suite, conn_suite,     stream_suite,    tnode_suite,
-    http_suite,  settings_suite, callbacks_suite, {0},
-  };
-  const MunitSuite suite = {
-    .prefix = "",
-    .suites = suites,
-    .iterations = 1,
-  };
+munit_void_test_decl(test_nghttp3_callbacks_convert_to_latest)
+munit_void_test_decl(test_nghttp3_callbacks_convert_to_old)
 
-  return munit_suite_main(&suite, NULL, argc, argv);
-}
+#endif /* !defined(NGHTTP3_CALLBACKS_TEST_H) */

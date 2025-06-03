@@ -293,6 +293,13 @@ int nghttp3_stream_fill_outq(nghttp3_stream *stream) {
       nghttp3_frame_priority_update_free(&frent->fr.priority_update,
                                          stream->mem);
       break;
+    case NGHTTP3_FRAME_ORIGIN:
+      rv = nghttp3_stream_write_origin(stream, frent);
+      if (rv != 0) {
+        return rv;
+      }
+
+      break;
     default:
       /* TODO Not implemented */
       break;
@@ -432,6 +439,45 @@ int nghttp3_stream_write_priority_update(nghttp3_stream *stream,
   chunk->last = nghttp3_frame_write_priority_update(chunk->last, fr);
 
   tbuf.buf.last = chunk->last;
+
+  return nghttp3_stream_outq_add(stream, &tbuf);
+}
+
+int nghttp3_stream_write_origin(nghttp3_stream *stream,
+                                nghttp3_frame_entry *frent) {
+  nghttp3_frame_origin *fr = &frent->fr.origin;
+  nghttp3_buf *chunk;
+  nghttp3_buf buf;
+  nghttp3_typed_buf tbuf;
+  int rv;
+
+  fr->hd.length = (int64_t)fr->origin_list.len;
+
+  rv = nghttp3_stream_ensure_chunk(stream, nghttp3_frame_write_hd_len(&fr->hd));
+  if (rv != 0) {
+    return rv;
+  }
+
+  chunk = nghttp3_stream_get_chunk(stream);
+  nghttp3_typed_buf_shared_init(&tbuf, chunk);
+
+  chunk->last = nghttp3_frame_write_hd(chunk->last, &fr->hd);
+
+  tbuf.buf.last = chunk->last;
+
+  rv = nghttp3_stream_outq_add(stream, &tbuf);
+  if (rv != 0) {
+    return rv;
+  }
+
+  if (fr->origin_list.len == 0) {
+    return 0;
+  }
+
+  nghttp3_buf_wrap_init(&buf, (uint8_t *)fr->origin_list.base,
+                        fr->origin_list.len);
+  buf.last = buf.end;
+  nghttp3_typed_buf_init(&tbuf, &buf, NGHTTP3_BUF_TYPE_ALIEN_NO_ACK);
 
   return nghttp3_stream_outq_add(stream, &tbuf);
 }
@@ -888,6 +934,7 @@ static void stream_pop_outq_entry(nghttp3_stream *stream,
     nghttp3_buf_free(&tbuf->buf, stream->mem);
     break;
   case NGHTTP3_BUF_TYPE_ALIEN:
+  case NGHTTP3_BUF_TYPE_ALIEN_NO_ACK:
     break;
   case NGHTTP3_BUF_TYPE_SHARED:
     assert(nghttp3_ringbuf_len(chunks));

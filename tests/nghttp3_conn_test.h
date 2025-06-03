@@ -67,5 +67,7 @@ munit_void_test_decl(test_nghttp3_conn_update_ack_offset)
 munit_void_test_decl(test_nghttp3_conn_set_client_stream_priority)
 munit_void_test_decl(test_nghttp3_conn_rx_http_state)
 munit_void_test_decl(test_nghttp3_conn_push)
+munit_void_test_decl(test_nghttp3_conn_recv_origin)
+munit_void_test_decl(test_nghttp3_conn_write_origin)
 
 #endif /* !defined(NGHTTP3_CONN_TEST_H) */

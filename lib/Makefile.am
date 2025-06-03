@@ -63,6 +63,8 @@ OBJECTS = \
 	nghttp3_opl.c \
 	nghttp3_objalloc.c \
 	nghttp3_unreachable.c \
+	nghttp3_settings.c \
+	nghttp3_callbacks.c \
 	sfparse/sfparse.c
 HFILES = \
 	nghttp3_rcbuf.h \
@@ -91,6 +93,8 @@ HFILES = \
 	nghttp3_opl.h \
 	nghttp3_objalloc.h \
 	nghttp3_unreachable.h \
+	nghttp3_settings.h \
+	nghttp3_callbacks.h \
 	sfparse/sfparse.h \
 	nghttp3_macro.h
 

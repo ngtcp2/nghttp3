@@ -105,4 +105,13 @@ nghttp3_ssize nghttp3_decode_settings_frame(nghttp3_frame_settings *fr,
                                             const nghttp3_vec *vec,
                                             size_t veccnt);
 
+/*
+ * nghttp3_decode_origin_frame decodes ORIGIN frame out of |vec| of
+ * length |veccnt|.  It returns the number of bytes read if it
+ * succeeds, or a negative error code.
+ */
+nghttp3_ssize nghttp3_decode_origin_frame(nghttp3_frame_origin *fr,
+                                          const nghttp3_vec *vec,
+                                          size_t veccnt);
+
 #endif /* !defined(NGHTTP3_TEST_HELPER) */
