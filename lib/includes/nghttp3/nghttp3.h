@@ -1680,9 +1680,10 @@ typedef struct nghttp3_settings {
    * :member:`origin_list->len <nghttp3_cvec.len>` is zero, an empty
    * ORIGIN frame is sent.  An application must keep the buffer
    * pointed by :member:`origin_list->base <nghttp3_cvec.base>` alive
-   * until a :type:`nghttp3_conn` that is passed this field to is
-   * freed by `nghttp3_conn_del`.  Only server uses this field.  This
-   * field is available since v1.11.0.
+   * until the :type:`nghttp3_conn` to which this field was passed is
+   * freed by `nghttp3_conn_del`.  The object pointed to by this field
+   * is copied internally, and does not need to be kept alive.  Only
+   * server uses this field.  This field is available since v1.11.0.
    */
   const nghttp3_cvec *origin_list;
 } nghttp3_settings;
