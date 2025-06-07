@@ -42,9 +42,8 @@
  *
  * If |callbacks_version| == NGHTTP3_CALLBACKS_VERSION, no conversion
  * is made, and |src| is returned.  Otherwise, first |dest| is
- * initialized via nghttp3_callbacks_default, and then all valid
- * fields in |src| are copied into |dest|.  Finally, |dest| is
- * returned.
+ * zero-initialized, and then all valid fields in |src| are copied
+ * into |dest|.  Finally, |dest| is returned.
  */
 const nghttp3_callbacks *nghttp3_callbacks_convert_to_latest(
   nghttp3_callbacks *dest, int callbacks_version, const nghttp3_callbacks *src);
