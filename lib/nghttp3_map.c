@@ -32,7 +32,7 @@
 
 #include "nghttp3_conv.h"
 
-#define NGHTTP3_INITIAL_TABLE_LENBITS 4
+#define NGHTTP3_INITIAL_HASHBITS 4
 
 void nghttp3_map_init(nghttp3_map *map, const nghttp3_mem *mem) {
   map->mem = mem;
@@ -79,6 +79,11 @@ int nghttp3_map_each(const nghttp3_map *map, int (*func)(void *data, void *ptr),
 }
 
 static size_t hash(nghttp3_map_key_type key, size_t bits) {
+  /* hasher from
+     https://github.com/rust-lang/rustc-hash/blob/dc5c33f1283de2da64d8d7a06401d91aded03ad4/src/lib.rs
+     We do not perform finalization here because we use top bits
+     anyway. */
+  key *= 0xf1357aea2e62a9c5ull;
   return (size_t)((key * 11400714819323198485llu) >> (64 - bits));
 }
 
@@ -201,7 +206,7 @@ int nghttp3_map_insert(nghttp3_map *map, nghttp3_map_key_type key, void *data) {
         return rv;
       }
     } else {
-      rv = map_resize(map, NGHTTP3_INITIAL_TABLE_LENBITS);
+      rv = map_resize(map, NGHTTP3_INITIAL_HASHBITS);
       if (rv != 0) {
         return rv;
       }
