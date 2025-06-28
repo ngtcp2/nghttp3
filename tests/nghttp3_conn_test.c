@@ -1721,15 +1721,7 @@ static void check_http_header(const nghttp3_nv *nva, size_t nvlen, int request,
                                        /* fin = */ 0);
 
   if (want_lib_error) {
-    if (want_lib_error == NGHTTP3_ERR_MALFORMED_HTTP_HEADER) {
-      assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
-
-      stream = nghttp3_conn_find_stream(conn, 0);
-
-      assert_true(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
-    } else {
-      assert_ptrdiff(want_lib_error, ==, sconsumed);
-    }
+    assert_ptrdiff(want_lib_error, ==, sconsumed);
   } else {
     assert_ptrdiff(0, <, sconsumed);
   }
@@ -2256,7 +2248,8 @@ void test_nghttp3_conn_http_req_header(void) {
   check_http_req_header(emptyhttppath_reqnv,
                         nghttp3_arraylen(emptyhttppath_reqnv),
                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
-  check_http_req_header(emptypath_reqnv, nghttp3_arraylen(emptypath_reqnv), 0);
+  check_http_req_header(emptypath_reqnv, nghttp3_arraylen(emptypath_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
   check_http_req_header(badcharpath_reqnv, nghttp3_arraylen(badcharpath_reqnv),
                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
   check_http_req_header(headmethod_reqnv, nghttp3_arraylen(headmethod_reqnv),
@@ -2619,11 +2612,7 @@ void test_nghttp3_conn_http_non_final_response(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
-
-  stream = nghttp3_conn_find_stream(conn, 0);
-
-  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
+  assert_ptrdiff(NGHTTP3_ERR_MALFORMED_HTTP_HEADER, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2709,11 +2698,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
-
-  stream = nghttp3_conn_find_stream(conn, 0);
-
-  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
+  assert_ptrdiff(NGHTTP3_ERR_MALFORMED_HTTP_HEADER, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2854,11 +2839,7 @@ void test_nghttp3_conn_http_trailers(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
-
-  stream = nghttp3_conn_find_stream(conn, 0);
-
-  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
+  assert_ptrdiff(NGHTTP3_ERR_MALFORMED_HTTP_HEADER, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -2981,8 +2962,6 @@ void test_nghttp3_conn_http_trailers(void) {
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  assert_false(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
-
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
 
@@ -3022,8 +3001,6 @@ void test_nghttp3_conn_http_trailers(void) {
   assert_size(0, ==, ud.recv_trailer_cb.ncalled);
 
   stream = nghttp3_conn_find_stream(conn, 0);
-
-  assert_false(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -3240,7 +3217,6 @@ void test_nghttp3_conn_http_error(void) {
     MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"),
   };
-  userdata ud = {0};
   nghttp3_stream *stream;
   conn_options opts;
 
@@ -3261,7 +3237,6 @@ void test_nghttp3_conn_http_error(void) {
   conn_options_clear(&opts);
   opts.callbacks = &callbacks;
   opts.settings = &settings;
-  opts.user_data = &ud;
 
   setup_default_server_with_options(&conn, opts);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
@@ -3269,27 +3244,7 @@ void test_nghttp3_conn_http_error(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
-  assert_size(1, ==, ud.stop_sending_cb.ncalled);
-  assert_int64(0, ==, ud.stop_sending_cb.stream_id);
-  assert_uint64(NGHTTP3_H3_MESSAGE_ERROR, ==,
-                ud.stop_sending_cb.app_error_code);
-  assert_size(1, ==, ud.reset_stream_cb.ncalled);
-  assert_int64(0, ==, ud.reset_stream_cb.stream_id);
-  assert_uint64(NGHTTP3_H3_MESSAGE_ERROR, ==,
-                ud.reset_stream_cb.app_error_code);
-
-  stream = nghttp3_conn_find_stream(conn, 0);
-
-  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
-
-  /* After the error, everything is just discarded. */
-  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
-                                       /* fin = */ 0);
-
-  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
-  assert_size(1, ==, ud.stop_sending_cb.ncalled);
-  assert_size(1, ==, ud.reset_stream_cb.ncalled);
+  assert_ptrdiff(NGHTTP3_ERR_MALFORMED_HTTP_HEADER, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -3297,7 +3252,6 @@ void test_nghttp3_conn_http_error(void) {
   /* without :scheme */
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, mem);
-  memset(&ud, 0, sizeof(ud));
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)noschemenv;
@@ -3308,7 +3262,6 @@ void test_nghttp3_conn_http_error(void) {
   conn_options_clear(&opts);
   opts.callbacks = &callbacks;
   opts.settings = &settings;
-  opts.user_data = &ud;
 
   setup_default_server_with_options(&conn, opts);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
@@ -3316,27 +3269,7 @@ void test_nghttp3_conn_http_error(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                        /* fin = */ 0);
 
-  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
-  assert_size(1, ==, ud.stop_sending_cb.ncalled);
-  assert_int64(0, ==, ud.stop_sending_cb.stream_id);
-  assert_uint64(NGHTTP3_H3_MESSAGE_ERROR, ==,
-                ud.stop_sending_cb.app_error_code);
-  assert_size(1, ==, ud.reset_stream_cb.ncalled);
-  assert_int64(0, ==, ud.reset_stream_cb.stream_id);
-  assert_uint64(NGHTTP3_H3_MESSAGE_ERROR, ==,
-                ud.reset_stream_cb.app_error_code);
-
-  stream = nghttp3_conn_find_stream(conn, 0);
-
-  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
-
-  /* After the error, everything is just discarded. */
-  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
-                                       /* fin = */ 0);
-
-  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
-  assert_size(1, ==, ud.stop_sending_cb.ncalled);
-  assert_size(1, ==, ud.reset_stream_cb.ncalled);
+  assert_ptrdiff(NGHTTP3_ERR_MALFORMED_HTTP_HEADER, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -3348,7 +3281,6 @@ void test_nghttp3_conn_http_error(void) {
                                                 settings.qpack_blocked_streams);
   nghttp3_qpack_encoder_set_max_dtable_capacity(
     &qenc, settings.qpack_max_dtable_capacity);
-  memset(&ud, 0, sizeof(ud));
 
   nghttp3_buf_init(&ebuf);
 
@@ -3361,7 +3293,6 @@ void test_nghttp3_conn_http_error(void) {
   conn_options_clear(&opts);
   opts.callbacks = &callbacks;
   opts.settings = &settings;
-  opts.user_data = &ud;
 
   setup_default_server_with_options(&conn, opts);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
@@ -3371,12 +3302,9 @@ void test_nghttp3_conn_http_error(void) {
 
   assert_ptrdiff(0, <, sconsumed);
   assert_ptrdiff(sconsumed, !=, (nghttp3_ssize)nghttp3_buf_len(&buf));
-  assert_size(0, ==, ud.stop_sending_cb.ncalled);
-  assert_size(0, ==, ud.reset_stream_cb.ncalled);
 
   stream = nghttp3_conn_find_stream(conn, 0);
 
-  assert_false(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
   assert_size(0, !=, nghttp3_ringbuf_len(&stream->inq));
 
   nghttp3_buf_reset(&buf);
@@ -3390,25 +3318,7 @@ void test_nghttp3_conn_http_error(void) {
   sconsumed = nghttp3_conn_read_stream(conn, 6, ebuf.pos,
                                        nghttp3_buf_len(&ebuf), /* fin = */ 0);
 
-  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&ebuf), ==, sconsumed);
-  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_HTTP_ERROR);
-  assert_size(0, ==, nghttp3_ringbuf_len(&stream->inq));
-  assert_size(1, ==, ud.stop_sending_cb.ncalled);
-  assert_int64(0, ==, ud.stop_sending_cb.stream_id);
-  assert_uint64(NGHTTP3_H3_MESSAGE_ERROR, ==,
-                ud.stop_sending_cb.app_error_code);
-  assert_size(1, ==, ud.reset_stream_cb.ncalled);
-  assert_int64(0, ==, ud.reset_stream_cb.stream_id);
-  assert_uint64(NGHTTP3_H3_MESSAGE_ERROR, ==,
-                ud.reset_stream_cb.app_error_code);
-
-  /* After the error, everything is just discarded. */
-  sconsumed = nghttp3_conn_read_stream(conn, 0, buf.pos, nghttp3_buf_len(&buf),
-                                       /* fin = */ 0);
-
-  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
-  assert_size(1, ==, ud.stop_sending_cb.ncalled);
-  assert_size(1, ==, ud.reset_stream_cb.ncalled);
+  assert_ptrdiff(NGHTTP3_ERR_MALFORMED_HTTP_HEADER, ==, sconsumed);
 
   nghttp3_buf_free(&ebuf, mem);
   nghttp3_conn_del(conn);
