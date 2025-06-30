@@ -1134,10 +1134,42 @@ typedef struct nghttp3_qpack_encoder nghttp3_qpack_encoder;
  *
  * :macro:`NGHTTP3_ERR_NOMEM`
  *     Out of memory.
+ *
+ * See also `nghttp3_qpack_encoder_new2`.  This function calls
+ * `nghttp3_qpack_encoder_new2` with the given parameters and 0 as
+ * seed.
  */
 NGHTTP3_EXTERN int nghttp3_qpack_encoder_new(nghttp3_qpack_encoder **pencoder,
                                              size_t hard_max_dtable_capacity,
                                              const nghttp3_mem *mem);
+
+/**
+ * @function
+ *
+ * `nghttp3_qpack_encoder_new2` initializes QPACK encoder.  |pencoder|
+ * must be non-NULL pointer.  |hard_max_dtable_capacity| is the upper
+ * bound of the dynamic table capacity.  |seed| must be unpredictable
+ * value, and is used to seed the internal data structure.  |mem| is a
+ * memory allocator.  This function allocates memory for
+ * :type:`nghttp3_qpack_encoder` itself, and assigns its pointer to
+ * |*pencoder| if it succeeds.
+ *
+ * The maximum dynamic table capacity is still 0.  In order to change
+ * the maximum dynamic table capacity, call
+ * `nghttp3_qpack_encoder_set_max_dtable_capacity`.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :macro:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
+ *
+ * This function is available since v1.11.0.
+ */
+NGHTTP3_EXTERN int nghttp3_qpack_encoder_new2(nghttp3_qpack_encoder **pencoder,
+                                              size_t hard_max_dtable_capacity,
+                                              uint64_t seed,
+                                              const nghttp3_mem *mem);
 
 /**
  * @function
