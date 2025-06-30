@@ -47,6 +47,11 @@
 #define strsize(S) (sizeof(S) - 1)
 
 /*
+ * NGHTTP3_TEST_MAP_SEED is the seed passed to nghttp3_map_init.
+ */
+#define NGHTTP3_TEST_MAP_SEED 0
+
+/*
  * nghttp3_write_frame writes |fr| to |dest|.  This function
  * calculates the payload length and assigns it to fr->hd.length;
  */

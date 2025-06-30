@@ -181,7 +181,7 @@ void test_nghttp3_qpack_encoder_encode(void) {
   nghttp3_buf_init(&pbuf);
   nghttp3_buf_init(&rbuf);
   nghttp3_buf_init(&ebuf);
-  nghttp3_qpack_encoder_init(&enc, 4096, mem);
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
 
   nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 1);
 
@@ -266,7 +266,7 @@ void test_nghttp3_qpack_encoder_encode_try_encode(void) {
   nghttp3_buf_init(&pbuf);
   nghttp3_buf_init(&rbuf);
   nghttp3_buf_init(&ebuf);
-  nghttp3_qpack_encoder_init(&enc, 4096, mem);
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
 
   nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 1);
 
@@ -302,7 +302,7 @@ void test_nghttp3_qpack_encoder_encode_try_encode(void) {
     nva[i].flags = NGHTTP3_NV_FLAG_TRY_INDEX;
   }
 
-  nghttp3_qpack_encoder_init(&enc, 4096, mem);
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
 
   nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 1);
 
@@ -364,7 +364,7 @@ void test_nghttp3_qpack_encoder_still_blocked(void) {
   nghttp3_buf_init(&pbuf);
   nghttp3_buf_init(&rbuf);
   nghttp3_buf_init(&ebuf);
-  nghttp3_qpack_encoder_init(&enc, 4096, mem);
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
 
   nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 1);
 
@@ -438,7 +438,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   nghttp3_buf_init(&rbuf);
   nghttp3_buf_init(&ebuf);
 
-  nghttp3_qpack_encoder_init(&enc, 4096, mem);
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
 
   nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 3);
 
@@ -582,7 +582,7 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   nghttp3_qpack_encoder_free(&enc);
 
   /* Check that minimum size is emitted */
-  nghttp3_qpack_encoder_init(&enc, 4096, mem);
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
   nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 1);
   nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 4096);
   nghttp3_qpack_decoder_init(&dec, 4096, 1, mem);
@@ -680,7 +680,7 @@ void test_nghttp3_qpack_decoder_feedback(void) {
 
   nghttp3_buf_reserve(&dbuf, 4096, mem);
 
-  nghttp3_qpack_encoder_init(&enc, 4096, mem);
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
 
   nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 2);
 
@@ -911,7 +911,7 @@ void test_nghttp3_qpack_decoder_read_encoder(void) {
   nghttp3_buf_init(&rbuf);
   nghttp3_buf_init(&ebuf);
 
-  nghttp3_qpack_encoder_init(&enc, 0, mem);
+  nghttp3_qpack_encoder_init(&enc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   nghttp3_qpack_decoder_init(&dec, 4096, 1, mem);
 
@@ -957,7 +957,7 @@ void test_nghttp3_qpack_encoder_read_decoder(void) {
   nghttp3_buf pbuf, rbuf, ebuf;
 
   /* Ensure limits */
-  nghttp3_qpack_encoder_init(&enc, 4096, mem);
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
 
   for (i = 0; i < NGHTTP3_QPACK_MAX_DECODERLEN; ++i) {
     nread = nghttp3_qpack_encoder_read_decoder(&enc, &b, 1);
@@ -977,7 +977,7 @@ void test_nghttp3_qpack_encoder_read_decoder(void) {
   nghttp3_buf_init(&rbuf);
   nghttp3_buf_init(&ebuf);
 
-  nghttp3_qpack_encoder_init(&enc, 4096, mem);
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
 
   for (i = 0; i < NGHTTP3_QPACK_MAX_DECODERLEN; ++i) {
     nread = nghttp3_qpack_encoder_read_decoder(&enc, &b, 1);
