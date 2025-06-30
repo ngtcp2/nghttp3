@@ -1955,6 +1955,16 @@ typedef int (*nghttp3_recv_origin)(nghttp3_conn *conn,
  */
 typedef int (*nghttp3_end_origin)(nghttp3_conn *conn, void *conn_user_data);
 
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_rand` is a callback function which is invoked when
+ * unpredictable data of |destlen| bytes are needed.  The
+ * implementation must write unpredictable data of |destlen| bytes
+ * into the buffer pointed by |dest|.
+ */
+typedef void (*nghttp3_rand)(void *dest, size_t destlen);
+
 #define NGHTTP3_CALLBACKS_V1 1
 #define NGHTTP3_CALLBACKS_V2 2
 #define NGHTTP3_CALLBACKS_VERSION NGHTTP3_CALLBACKS_V2
@@ -2064,6 +2074,15 @@ typedef struct nghttp3_callbacks {
    * available since v1.11.0.
    */
   nghttp3_end_origin end_origin;
+  /**
+   * :member:`rand` is a callback function which is invoked when
+   * unpredictable data are needed.  Although this field is optional
+   * due to the backward compatibility, it is recommended to specify
+   * this field to harden the runtime behavior against suspicious
+   * activities of a remote endpoint.  This field is available since
+   * v1.11.0.
+   */
+  nghttp3_rand rand;
 } nghttp3_callbacks;
 
 /**

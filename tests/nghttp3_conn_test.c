@@ -398,6 +398,8 @@ static int recv_origin(nghttp3_conn *conn, const nghttp3_cvec *origin,
   return 0;
 }
 
+static void rand_cb(void *data, size_t datalen) { memset(data, 0xfe, datalen); }
+
 typedef struct conn_options {
   nghttp3_callbacks *callbacks;
   nghttp3_settings *settings;
@@ -591,6 +593,7 @@ void test_nghttp3_conn_read_control(void) {
   nghttp3_conn *conn;
   nghttp3_callbacks callbacks = {
     .recv_settings = recv_settings,
+    .rand = rand_cb,
   };
   uint8_t rawbuf[2048];
   nghttp3_buf buf;
@@ -1697,7 +1700,7 @@ static void check_http_header(const nghttp3_nv *nva, size_t nvlen, int request,
   settings.enable_connect_protocol = 1;
 
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)nva;
@@ -2294,7 +2297,7 @@ void test_nghttp3_conn_http_content_length(void) {
 
   /* client */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)resnv;
@@ -2318,7 +2321,7 @@ void test_nghttp3_conn_http_content_length(void) {
 
   /* server */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)reqnv;
@@ -2366,7 +2369,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
 
   /* content-length is 20, but no DATA is present and see fin */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)reqnv;
@@ -2388,7 +2391,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   /* content-length is 20, but no DATA is present and stream is
      reset */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)reqnv;
@@ -2417,7 +2420,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
 
   /* content-length is 20, but server receives 21 bytes DATA. */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)reqnv;
@@ -2441,7 +2444,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
 
   /* content-length is 20, but no DATA is present and see fin */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)resnv;
@@ -2464,7 +2467,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   /* content-length is 20, but no DATA is present and stream is
      reset */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)resnv;
@@ -2494,7 +2497,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
 
   /* content-length is 20, but server receives 21 bytes DATA. */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)resnv;
@@ -2537,7 +2540,7 @@ void test_nghttp3_conn_http_non_final_response(void) {
 
   /* non-final followed by DATA is illegal.  */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)infonv;
@@ -2560,7 +2563,7 @@ void test_nghttp3_conn_http_non_final_response(void) {
 
   /* 2 non-finals followed by final headers */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)infonv;
@@ -2591,7 +2594,7 @@ void test_nghttp3_conn_http_non_final_response(void) {
      another non-final or final header fields.  Since it does not
      include mandatory header field, it is treated as error. */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)infonv;
@@ -2649,7 +2652,7 @@ void test_nghttp3_conn_http_trailers(void) {
 
   /* final response followed by trailers */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)resp_nva;
@@ -2677,7 +2680,7 @@ void test_nghttp3_conn_http_trailers(void) {
 
   /* trailers contain :status */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)resp_nva;
@@ -2705,7 +2708,7 @@ void test_nghttp3_conn_http_trailers(void) {
 
   /* Receiving 2 trailers HEADERS is invalid*/
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)resp_nva;
@@ -2735,7 +2738,7 @@ void test_nghttp3_conn_http_trailers(void) {
   /* We don't expect response trailers after HEADERS with CONNECT
      request */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)resp_nva;
@@ -2766,7 +2769,7 @@ void test_nghttp3_conn_http_trailers(void) {
   /* We don't expect response trailers after DATA with CONNECT
      request */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)resp_nva;
@@ -2797,7 +2800,7 @@ void test_nghttp3_conn_http_trailers(void) {
 
   /* request followed by trailers */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)reqnv;
@@ -2824,7 +2827,7 @@ void test_nghttp3_conn_http_trailers(void) {
 
   /* request followed by trailers which contains pseudo headers */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)reqnv;
@@ -2846,7 +2849,7 @@ void test_nghttp3_conn_http_trailers(void) {
 
   /* request followed by 2 trailers */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)reqnv;
@@ -2874,7 +2877,7 @@ void test_nghttp3_conn_http_trailers(void) {
 
   /* We don't expect trailers after HEADERS with CONNECT request */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)connect_reqnv;
@@ -2901,7 +2904,7 @@ void test_nghttp3_conn_http_trailers(void) {
 
   /* We don't expect trailers after DATA with CONNECT request */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)connect_reqnv;
@@ -2930,7 +2933,7 @@ void test_nghttp3_conn_http_trailers(void) {
   /* server: content-length in request trailers is ignored and
      removed. */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)reqnv;
@@ -2968,7 +2971,7 @@ void test_nghttp3_conn_http_trailers(void) {
   /* client: content-length in request trailers is ignored and
      removed. */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)resp_nva;
@@ -3032,7 +3035,7 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
 
   /* If status code is 304, content-length must be ignored. */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)resnv;
@@ -3059,7 +3062,7 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
 
   /* If method is CONNECT, content-length must be ignored. */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)reqnv;
@@ -3088,7 +3091,7 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
 
   /* Content-Length in 200 response to CONNECT is ignored */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)cl_resnv;
@@ -3142,7 +3145,7 @@ void test_nghttp3_conn_http_record_request_method(void) {
   /* content-length is not allowed with 200 status code in response to
      CONNECT request.  Just ignore it. */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)resnv;
@@ -3168,7 +3171,7 @@ void test_nghttp3_conn_http_record_request_method(void) {
   /* The content-length in response to HEAD request must be
      ignored. */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)resnv;
@@ -3226,7 +3229,7 @@ void test_nghttp3_conn_http_error(void) {
 
   /* duplicated :scheme */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)dupschemenv;
@@ -3251,7 +3254,7 @@ void test_nghttp3_conn_http_error(void) {
 
   /* without :scheme */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.nva = (nghttp3_nv *)noschemenv;
@@ -3276,7 +3279,8 @@ void test_nghttp3_conn_http_error(void) {
 
   /* error on blocked stream */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_dtable_capacity, mem);
+  nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_dtable_capacity,
+                             NGHTTP3_TEST_MAP_SEED, mem);
   nghttp3_qpack_encoder_set_max_blocked_streams(&qenc,
                                                 settings.qpack_blocked_streams);
   nghttp3_qpack_encoder_set_max_dtable_capacity(
@@ -3349,7 +3353,8 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   nghttp3_buf_init(&ebuf);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
-  nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_dtable_capacity, mem);
+  nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_dtable_capacity,
+                             NGHTTP3_TEST_MAP_SEED, mem);
   nghttp3_qpack_encoder_set_max_blocked_streams(&qenc,
                                                 settings.qpack_blocked_streams);
   nghttp3_qpack_encoder_set_max_dtable_capacity(
@@ -3424,7 +3429,8 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   nghttp3_buf_init(&ebuf);
   nghttp3_buf_reset(&buf);
 
-  nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_dtable_capacity, mem);
+  nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_dtable_capacity,
+                             NGHTTP3_TEST_MAP_SEED, mem);
   nghttp3_qpack_encoder_set_max_blocked_streams(&qenc,
                                                 settings.qpack_blocked_streams);
   nghttp3_qpack_encoder_set_max_dtable_capacity(
@@ -3993,7 +3999,7 @@ void test_nghttp3_conn_shutdown_server(void) {
 
   setup_default_server_with_options(&conn, opts);
   conn_write_initial_streams(conn);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.headers.nva = (nghttp3_nv *)req_nva;
@@ -4118,7 +4124,7 @@ void test_nghttp3_conn_priority_update(void) {
   /* Receive PRIORITY_UPDATE and stream has not been created yet */
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
@@ -4172,7 +4178,7 @@ void test_nghttp3_conn_priority_update(void) {
   nghttp3_buf_reset(&buf);
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
@@ -4568,7 +4574,7 @@ void test_nghttp3_conn_request_priority(void) {
   /* Priority in request */
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
@@ -4608,7 +4614,7 @@ void test_nghttp3_conn_request_priority(void) {
   nghttp3_buf_reset(&buf);
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
@@ -4755,7 +4761,8 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   nghttp3_buf_init(&ebuf);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
-  nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_dtable_capacity, mem);
+  nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_dtable_capacity,
+                             NGHTTP3_TEST_MAP_SEED, mem);
   nghttp3_qpack_encoder_set_max_blocked_streams(&qenc,
                                                 settings.qpack_blocked_streams);
   nghttp3_qpack_encoder_set_max_dtable_capacity(
@@ -4945,7 +4952,7 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
 
   assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left(conn, 0));
 
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   fr.hd.type = NGHTTP3_FRAME_HEADERS;
   fr.headers.nva = (nghttp3_nv *)req_nva;
@@ -5163,7 +5170,7 @@ void test_nghttp3_conn_rx_http_state(void) {
 
   /* Server receives fin without completing HEADERS */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   setup_default_server(&conn);
 
@@ -5190,7 +5197,7 @@ void test_nghttp3_conn_rx_http_state(void) {
   /* Client sends CONNECT request, and gets non-2xx response with
      trailers. */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   setup_default_client(&conn);
   conn_write_initial_streams(conn);
@@ -5239,7 +5246,7 @@ void test_nghttp3_conn_rx_http_state(void) {
 
   /* Server receives headers, data, and then trailers */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   setup_default_server(&conn);
 
@@ -5277,7 +5284,7 @@ void test_nghttp3_conn_rx_http_state(void) {
 
   /* Client receives headers and fin. */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   setup_default_client(&conn);
   conn_write_initial_streams(conn);
@@ -5349,7 +5356,7 @@ void test_nghttp3_conn_rx_http_state(void) {
 
   /* Client receives headers, data, and then trailers. */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   setup_default_client(&conn);
   conn_write_initial_streams(conn);
@@ -5420,7 +5427,7 @@ void test_nghttp3_conn_rx_http_state(void) {
 
   /* Server receives headers, data, and then empty trailers */
   nghttp3_buf_reset(&buf);
-  nghttp3_qpack_encoder_init(&qenc, 0, mem);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
   setup_default_server(&conn);
 
