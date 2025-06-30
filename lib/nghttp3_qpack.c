@@ -901,7 +901,7 @@ void nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
                                 const nghttp3_mem *mem) {
   qpack_context_init(&encoder->ctx, hard_max_dtable_capacity, 0, mem);
 
-  nghttp3_map_init(&encoder->streams, mem);
+  nghttp3_map_init(&encoder->streams, 0, mem);
 
   nghttp3_ksl_init(&encoder->blocked_streams, max_cnt_greater,
                    ksl_max_cnt_greater_search,
