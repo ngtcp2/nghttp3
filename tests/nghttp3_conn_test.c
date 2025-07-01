@@ -398,7 +398,9 @@ static int recv_origin(nghttp3_conn *conn, const nghttp3_cvec *origin,
   return 0;
 }
 
-static void rand_cb(void *data, size_t datalen) { memset(data, 0xfe, datalen); }
+static void rand_cb(uint8_t *data, size_t datalen) {
+  memset(data, 0xfe, datalen);
+}
 
 typedef struct conn_options {
   nghttp3_callbacks *callbacks;

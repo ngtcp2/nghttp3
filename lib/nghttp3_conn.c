@@ -292,7 +292,7 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
   nghttp3_objalloc_stream_init(&conn->stream_objalloc, 8, mem);
 
   if (callbacks->rand) {
-    callbacks->rand(&map_seed, sizeof(map_seed));
+    callbacks->rand((uint8_t *)&map_seed, sizeof(map_seed));
   } else {
     map_seed = 0;
   }
