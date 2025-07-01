@@ -1995,7 +1995,7 @@ typedef int (*nghttp3_end_origin)(nghttp3_conn *conn, void *conn_user_data);
  * implementation must write unpredictable data of |destlen| bytes
  * into the buffer pointed by |dest|.
  */
-typedef void (*nghttp3_rand)(void *dest, size_t destlen);
+typedef void (*nghttp3_rand)(uint8_t *dest, size_t destlen);
 
 #define NGHTTP3_CALLBACKS_V1 1
 #define NGHTTP3_CALLBACKS_V2 2
