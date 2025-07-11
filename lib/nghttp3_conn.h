@@ -97,7 +97,7 @@ struct nghttp3_conn {
        nghttp3_settings.origin_list passed from an application if this
        object is initialized as server.  settings.origin_list may
        point to the address of this field. */
-    nghttp3_cvec origin_list;
+    nghttp3_vec origin_list;
     nghttp3_settings settings;
     struct {
       /* max_pushes is the number of push IDs that local endpoint can

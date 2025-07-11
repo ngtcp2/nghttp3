@@ -120,7 +120,7 @@ typedef struct nghttp3_frame_origin {
   nghttp3_frame_hd hd;
   /* These fields are only used by server to send ORIGIN frame.
      Client never use them. */
-  nghttp3_cvec origin_list;
+  nghttp3_vec origin_list;
 } nghttp3_frame_origin;
 
 typedef union nghttp3_frame {

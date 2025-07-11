@@ -207,8 +207,8 @@ static int conn_call_recv_settings(nghttp3_conn *conn) {
 
 static int conn_call_recv_origin(nghttp3_conn *conn, const uint8_t *origin,
                                  size_t originlen) {
-  const nghttp3_cvec cv = {
-    .base = origin,
+  const nghttp3_vec v = {
+    .base = (uint8_t *)origin,
     .len = originlen,
   };
 
@@ -216,7 +216,7 @@ static int conn_call_recv_origin(nghttp3_conn *conn, const uint8_t *origin,
     return 0;
   }
 
-  if (conn->callbacks.recv_origin(conn, &cv, conn->user_data) != 0) {
+  if (conn->callbacks.recv_origin(conn, &v, conn->user_data) != 0) {
     return NGHTTP3_ERR_CALLBACK_FAILURE;
   }
 
