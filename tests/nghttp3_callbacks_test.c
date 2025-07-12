@@ -213,10 +213,11 @@ static int recv_settings(nghttp3_conn *conn, const nghttp3_settings *settings,
   return 0;
 }
 
-static int recv_origin(nghttp3_conn *conn, const nghttp3_vec *origin,
-                       void *conn_user_data) {
+static int recv_origin(nghttp3_conn *conn, const uint8_t *origin,
+                       size_t originlen, void *conn_user_data) {
   (void)conn;
   (void)origin;
+  (void)originlen;
   (void)conn_user_data;
 
   return 0;

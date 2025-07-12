@@ -1944,17 +1944,15 @@ typedef int (*nghttp3_recv_settings)(nghttp3_conn *conn,
  *
  * :type:`nghttp3_recv_origin` is a callback function which is invoked
  * when a single origin in ORIGIN frame is received.  |origin| is a
- * received origin.  |origin| never be NULL, and :member:`origin->len
- * <nghttp3_vec.len>` never be 0.
+ * received origin of length |originlen|.  |originlen| never be 0.
  *
  * The implementation of this callback must return 0 if it succeeds.
  * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
  * caller immediately.  Any values other than 0 is treated as
  * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
-typedef int (*nghttp3_recv_origin)(nghttp3_conn *conn,
-                                   const nghttp3_vec *origin,
-                                   void *conn_user_data);
+typedef int (*nghttp3_recv_origin)(nghttp3_conn *conn, const uint8_t *origin,
+                                   size_t originlen, void *conn_user_data);
 
 /**
  * @functypedef

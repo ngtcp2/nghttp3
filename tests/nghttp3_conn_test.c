@@ -381,8 +381,8 @@ static int recv_settings(nghttp3_conn *conn, const nghttp3_settings *settings,
   return 0;
 }
 
-static int recv_origin(nghttp3_conn *conn, const nghttp3_vec *origin,
-                       void *user_data) {
+static int recv_origin(nghttp3_conn *conn, const uint8_t *origin,
+                       size_t originlen, void *user_data) {
   userdata *ud = user_data;
   const nghttp3_vec *expected;
   (void)conn;
@@ -391,7 +391,7 @@ static int recv_origin(nghttp3_conn *conn, const nghttp3_vec *origin,
 
   expected = &ud->recv_origin_cb.origin_list[ud->recv_origin_cb.offset];
 
-  assert_memn_equal(expected->base, expected->len, origin->base, origin->len);
+  assert_memn_equal(expected->base, expected->len, origin, originlen);
 
   ++ud->recv_origin_cb.offset;
 
