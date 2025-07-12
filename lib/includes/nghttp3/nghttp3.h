@@ -566,24 +566,6 @@ typedef struct nghttp3_vec {
 /**
  * @struct
  *
- * :type:`nghttp3_cvec` is like :type:`nghttp3_vec`, but its
- * :member:`base` is const qualifed.
- */
-typedef struct nghttp3_cvec {
-  /**
-   * :member:`base` points to the data.
-   */
-  const uint8_t *base;
-  /**
-   * :member:`len` is the number of bytes which the buffer pointed by
-   * :member:`base` contains.
-   */
-  size_t len;
-} nghttp3_cvec;
-
-/**
- * @struct
- *
  * :type:`nghttp3_rcbuf` is the object representing reference counted
  * buffer.  The details of this structure are intentionally hidden
  * from the public API.
@@ -1709,15 +1691,15 @@ typedef struct nghttp3_settings {
    * ORIGIN frame (see :rfc:`9412`) payload.  The ORIGIN frame payload
    * is a sequence of zero or more of a length prefixed byte string.
    * The length is encoded in 2 bytes in network byte order.  If
-   * :member:`origin_list->len <nghttp3_cvec.len>` is zero, an empty
+   * :member:`origin_list->len <nghttp3_vec.len>` is zero, an empty
    * ORIGIN frame is sent.  An application must keep the buffer
-   * pointed by :member:`origin_list->base <nghttp3_cvec.base>` alive
+   * pointed by :member:`origin_list->base <nghttp3_vec.base>` alive
    * until the :type:`nghttp3_conn` to which this field was passed is
    * freed by `nghttp3_conn_del`.  The object pointed to by this field
    * is copied internally, and does not need to be kept alive.  Only
    * server uses this field.  This field is available since v1.11.0.
    */
-  const nghttp3_cvec *origin_list;
+  const nghttp3_vec *origin_list;
 } nghttp3_settings;
 
 /**
@@ -1962,17 +1944,15 @@ typedef int (*nghttp3_recv_settings)(nghttp3_conn *conn,
  *
  * :type:`nghttp3_recv_origin` is a callback function which is invoked
  * when a single origin in ORIGIN frame is received.  |origin| is a
- * received origin.  |origin| never be NULL, and :member:`origin->len
- * <nghttp3_cvec.len>` never be 0.
+ * received origin of length |originlen|.  |originlen| never be 0.
  *
  * The implementation of this callback must return 0 if it succeeds.
  * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
  * caller immediately.  Any values other than 0 is treated as
  * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
  */
-typedef int (*nghttp3_recv_origin)(nghttp3_conn *conn,
-                                   const nghttp3_cvec *origin,
-                                   void *conn_user_data);
+typedef int (*nghttp3_recv_origin)(nghttp3_conn *conn, const uint8_t *origin,
+                                   size_t originlen, void *conn_user_data);
 
 /**
  * @functypedef

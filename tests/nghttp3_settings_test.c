@@ -82,8 +82,8 @@ void test_nghttp3_settings_convert_to_latest(void) {
 void test_nghttp3_settings_convert_to_old(void) {
   nghttp3_settings src, *dest, destbuf;
   const uint8_t origins[] = "foo";
-  nghttp3_cvec origin_list = {
-    .base = origins,
+  nghttp3_vec origin_list = {
+    .base = (uint8_t *)origins,
     .len = strsize(origins),
   };
   size_t v1len;

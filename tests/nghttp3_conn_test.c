@@ -128,7 +128,7 @@ typedef struct {
     size_t ncalled;
   } recv_trailer_cb;
   struct {
-    const nghttp3_cvec *origin_list;
+    const nghttp3_vec *origin_list;
     size_t origin_listlen;
     size_t offset;
   } recv_origin_cb;
@@ -381,17 +381,17 @@ static int recv_settings(nghttp3_conn *conn, const nghttp3_settings *settings,
   return 0;
 }
 
-static int recv_origin(nghttp3_conn *conn, const nghttp3_cvec *origin,
-                       void *user_data) {
+static int recv_origin(nghttp3_conn *conn, const uint8_t *origin,
+                       size_t originlen, void *user_data) {
   userdata *ud = user_data;
-  const nghttp3_cvec *expected;
+  const nghttp3_vec *expected;
   (void)conn;
 
   assert_size(ud->recv_origin_cb.origin_listlen, >, ud->recv_origin_cb.offset);
 
   expected = &ud->recv_origin_cb.origin_list[ud->recv_origin_cb.offset];
 
-  assert_memn_equal(expected->base, expected->len, origin->base, origin->len);
+  assert_memn_equal(expected->base, expected->len, origin, originlen);
 
   ++ud->recv_origin_cb.offset;
 
@@ -5688,17 +5688,17 @@ void test_nghttp3_conn_recv_origin(void) {
                                   "https://www.example.com"
                                   "\x0\x18"
                                   "https://www2.example.com";
-    nghttp3_cvec expected[] = {
+    nghttp3_vec expected[] = {
       {
-        .base = (const uint8_t *)"https://example.com",
+        .base = (uint8_t *)"https://example.com",
         .len = 0x13,
       },
       {
-        .base = (const uint8_t *)"https://www.example.com",
+        .base = (uint8_t *)"https://www.example.com",
         .len = 0x17,
       },
       {
-        .base = (const uint8_t *)"https://www2.example.com",
+        .base = (uint8_t *)"https://www2.example.com",
         .len = 0x18,
       },
     };
@@ -5710,7 +5710,7 @@ void test_nghttp3_conn_recv_origin(void) {
     setup_default_client_with_options(&conn, opts);
     conn_read_control_stream(conn, 3, &settings);
 
-    fr.origin.origin_list.base = origin_list;
+    fr.origin.origin_list.base = (uint8_t *)origin_list;
     fr.origin.origin_list.len = strsize(origin_list);
 
     nghttp3_write_frame(&buf, &fr);
@@ -5733,7 +5733,7 @@ void test_nghttp3_conn_recv_origin(void) {
     setup_default_client(&conn);
     conn_read_control_stream(conn, 3, &settings);
 
-    fr.origin.origin_list.base = origin_list;
+    fr.origin.origin_list.base = (uint8_t *)origin_list;
     fr.origin.origin_list.len = strsize(origin_list);
 
     nghttp3_write_frame(&buf, &fr);
@@ -5755,7 +5755,7 @@ void test_nghttp3_conn_recv_origin(void) {
     setup_default_client_with_options(&conn, opts);
     conn_read_control_stream(conn, 3, &settings);
 
-    fr.origin.origin_list.base = origin_list;
+    fr.origin.origin_list.base = (uint8_t *)origin_list;
     fr.origin.origin_list.len = strsize(origin_list);
 
     nghttp3_write_frame(&buf, &fr);
@@ -5785,7 +5785,7 @@ void test_nghttp3_conn_recv_origin(void) {
       setup_default_client_with_options(&conn, opts);
       conn_read_control_stream(conn, 3, &settings);
 
-      fr.origin.origin_list.base = origin_list;
+      fr.origin.origin_list.base = (uint8_t *)origin_list;
       fr.origin.origin_list.len = i;
 
       nghttp3_write_frame(&buf, &fr);
@@ -5834,7 +5834,7 @@ void test_nghttp3_conn_recv_origin(void) {
     setup_default_client_with_options(&conn, opts);
     conn_read_control_stream(conn, 3, &settings);
 
-    fr.origin.origin_list.base = origin_list;
+    fr.origin.origin_list.base = (uint8_t *)origin_list;
     fr.origin.origin_list.len = strsize(origin_list);
 
     nghttp3_write_frame(&buf, &fr);
@@ -5876,7 +5876,7 @@ void test_nghttp3_conn_recv_origin(void) {
     setup_default_client_with_options(&conn, opts);
     conn_read_control_stream(conn, 3, &settings);
 
-    fr.origin.origin_list.base = origin_list;
+    fr.origin.origin_list.base = (uint8_t *)origin_list;
     fr.origin.origin_list.len = strsize(origin_list);
 
     nghttp3_write_frame(&buf, &fr);
@@ -5898,7 +5898,7 @@ void test_nghttp3_conn_recv_origin(void) {
     setup_default_client(&conn);
     conn_read_control_stream(conn, 3, &settings);
 
-    fr.origin.origin_list.base = origin_list;
+    fr.origin.origin_list.base = (uint8_t *)origin_list;
     fr.origin.origin_list.len = strsize(origin_list);
 
     nghttp3_write_frame(&buf, &fr);
@@ -5916,7 +5916,7 @@ void test_nghttp3_conn_recv_origin(void) {
     /* Maximum length ASCII-ORIGIN */
     uint8_t
       long_origin[sizeof(uint16_t) + UINT16_MAX + sizeof(uint16_t) + 0x13];
-    nghttp3_cvec expected[2];
+    nghttp3_vec expected[2];
 
     memset(long_origin, 'w', sizeof(long_origin));
     long_origin[0] = 0xff;
@@ -5929,7 +5929,7 @@ void test_nghttp3_conn_recv_origin(void) {
 
     expected[0].base = &long_origin[2];
     expected[0].len = UINT16_MAX;
-    expected[1].base = (const uint8_t *)"https://example.com";
+    expected[1].base = (uint8_t *)"https://example.com";
     expected[1].len = 0x13;
 
     nghttp3_buf_reset(&buf);
@@ -5965,7 +5965,7 @@ void test_nghttp3_conn_write_origin(void) {
   nghttp3_settings settings;
   const uint8_t origins[] = "\x0\x13https://example.com";
   uint8_t long_origin[sizeof(uint16_t) + UINT16_MAX] = {0};
-  nghttp3_cvec origin_list;
+  nghttp3_vec origin_list;
   conn_options opts;
   nghttp3_ssize sveccnt;
   nghttp3_ssize nread;
@@ -5985,7 +5985,7 @@ void test_nghttp3_conn_write_origin(void) {
 
   /* Write ORIGIN frame */
   nghttp3_settings_default(&settings);
-  origin_list.base = origins;
+  origin_list.base = (uint8_t *)origins;
   origin_list.len = strsize(origins);
   settings.origin_list = &origin_list;
 
