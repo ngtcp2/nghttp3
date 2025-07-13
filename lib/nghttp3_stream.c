@@ -57,10 +57,19 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
     return NGHTTP3_ERR_NOMEM;
   }
 
-  memset(stream, 0, sizeof(*stream));
-
-  stream->out_chunk_objalloc = out_chunk_objalloc;
-  stream->stream_objalloc = stream_objalloc;
+  *stream = (nghttp3_stream){
+    .out_chunk_objalloc = out_chunk_objalloc,
+    .stream_objalloc = stream_objalloc,
+    .qpack_blocked_pe.index = NGHTTP3_PQ_BAD_INDEX,
+    .mem = mem,
+    .rx =
+      {
+        .http.status_code = -1,
+        .http.content_length = -1,
+        .http.pri.urgency = NGHTTP3_DEFAULT_URGENCY,
+      },
+    .error_code = NGHTTP3_H3_NO_ERROR,
+  };
 
   nghttp3_tnode_init(&stream->node, stream_id);
 
@@ -70,13 +79,6 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
   nghttp3_ringbuf_init(&stream->inq, 0, sizeof(nghttp3_buf), mem);
 
   nghttp3_qpack_stream_context_init(&stream->qpack_sctx, stream_id, mem);
-
-  stream->qpack_blocked_pe.index = NGHTTP3_PQ_BAD_INDEX;
-  stream->mem = mem;
-  stream->rx.http.status_code = -1;
-  stream->rx.http.content_length = -1;
-  stream->rx.http.pri.urgency = NGHTTP3_DEFAULT_URGENCY;
-  stream->error_code = NGHTTP3_H3_NO_ERROR;
 
   if (callbacks) {
     stream->callbacks = *callbacks;
