@@ -2319,16 +2319,18 @@ static int conn_submit_headers_data(nghttp3_conn *conn, nghttp3_stream *stream,
                                     const nghttp3_data_reader *dr) {
   int rv;
   nghttp3_nv *nnva;
-  nghttp3_frame_entry frent = {0};
+  nghttp3_frame_entry frent;
 
   rv = nghttp3_nva_copy(&nnva, nva, nvlen, conn->mem);
   if (rv != 0) {
     return rv;
   }
 
-  frent.fr.hd.type = NGHTTP3_FRAME_HEADERS;
-  frent.fr.headers.nva = nnva;
-  frent.fr.headers.nvlen = nvlen;
+  frent.fr.headers = (nghttp3_frame_headers){
+    .hd.type = NGHTTP3_FRAME_HEADERS,
+    .nva = nnva,
+    .nvlen = nvlen,
+  };
 
   rv = nghttp3_stream_frq_add(stream, &frent);
   if (rv != 0) {
@@ -2487,14 +2489,16 @@ int nghttp3_conn_submit_trailers(nghttp3_conn *conn, int64_t stream_id,
 }
 
 int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn) {
-  nghttp3_frame_entry frent = {0};
+  nghttp3_frame_entry frent;
   int rv;
 
   assert(conn->tx.ctrl);
 
-  frent.fr.hd.type = NGHTTP3_FRAME_GOAWAY;
-  frent.fr.goaway.id = conn->server ? NGHTTP3_SHUTDOWN_NOTICE_STREAM_ID
-                                    : NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID;
+  frent.fr.goaway = (nghttp3_frame_goaway){
+    .hd.type = NGHTTP3_FRAME_GOAWAY,
+    .id = conn->server ? NGHTTP3_SHUTDOWN_NOTICE_STREAM_ID
+                       : NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID,
+  };
 
   assert(frent.fr.goaway.id <= conn->tx.goaway_id);
 
@@ -2510,17 +2514,18 @@ int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn) {
 }
 
 int nghttp3_conn_shutdown(nghttp3_conn *conn) {
-  nghttp3_frame_entry frent = {0};
+  nghttp3_frame_entry frent;
   int rv;
 
   assert(conn->tx.ctrl);
 
-  frent.fr.hd.type = NGHTTP3_FRAME_GOAWAY;
+  frent.fr.goaway = (nghttp3_frame_goaway){
+    .hd.type = NGHTTP3_FRAME_GOAWAY,
+  };
+
   if (conn->server) {
     frent.fr.goaway.id =
       nghttp3_min_int64((1ll << 62) - 4, conn->rx.max_stream_id_bidi + 4);
-  } else {
-    frent.fr.goaway.id = 0;
   }
 
   assert(frent.fr.goaway.id <= conn->tx.goaway_id);
@@ -2769,7 +2774,7 @@ int nghttp3_conn_set_client_stream_priority(nghttp3_conn *conn,
                                             const uint8_t *data,
                                             size_t datalen) {
   nghttp3_stream *stream;
-  nghttp3_frame_entry frent = {0};
+  nghttp3_frame_entry frent;
   uint8_t *buf = NULL;
 
   assert(!conn->server);
@@ -2794,10 +2799,12 @@ int nghttp3_conn_set_client_stream_priority(nghttp3_conn *conn,
     memcpy(buf, data, datalen);
   }
 
-  frent.fr.hd.type = NGHTTP3_FRAME_PRIORITY_UPDATE;
-  frent.fr.priority_update.pri_elem_id = stream_id;
-  frent.fr.priority_update.data = buf;
-  frent.fr.priority_update.datalen = datalen;
+  frent.fr.priority_update = (nghttp3_frame_priority_update){
+    .hd.type = NGHTTP3_FRAME_PRIORITY_UPDATE,
+    .pri_elem_id = stream_id,
+    .data = buf,
+    .datalen = datalen,
+  };
 
   return nghttp3_stream_frq_add(conn->tx.ctrl, &frent);
 }
