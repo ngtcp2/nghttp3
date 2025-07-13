@@ -2319,7 +2319,7 @@ static int conn_submit_headers_data(nghttp3_conn *conn, nghttp3_stream *stream,
                                     const nghttp3_data_reader *dr) {
   int rv;
   nghttp3_nv *nnva;
-  nghttp3_frame_entry frent = {0};
+  nghttp3_frame_entry frent;
 
   rv = nghttp3_nva_copy(&nnva, nva, nvlen, conn->mem);
   if (rv != 0) {
@@ -2487,7 +2487,7 @@ int nghttp3_conn_submit_trailers(nghttp3_conn *conn, int64_t stream_id,
 }
 
 int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn) {
-  nghttp3_frame_entry frent = {0};
+  nghttp3_frame_entry frent;
   int rv;
 
   assert(conn->tx.ctrl);
@@ -2510,7 +2510,7 @@ int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn) {
 }
 
 int nghttp3_conn_shutdown(nghttp3_conn *conn) {
-  nghttp3_frame_entry frent = {0};
+  nghttp3_frame_entry frent;
   int rv;
 
   assert(conn->tx.ctrl);
@@ -2769,7 +2769,7 @@ int nghttp3_conn_set_client_stream_priority(nghttp3_conn *conn,
                                             const uint8_t *data,
                                             size_t datalen) {
   nghttp3_stream *stream;
-  nghttp3_frame_entry frent = {0};
+  nghttp3_frame_entry frent;
   uint8_t *buf = NULL;
 
   assert(!conn->server);
