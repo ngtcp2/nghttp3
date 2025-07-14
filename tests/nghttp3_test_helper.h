@@ -51,6 +51,11 @@
  */
 #define NGHTTP3_TEST_MAP_SEED 0
 
+typedef struct nghttp3_frame_hd {
+  int64_t type;
+  int64_t length;
+} nghttp3_frame_hd;
+
 /*
  * nghttp3_write_frame writes |fr| to |dest|.  This function
  * calculates the payload length and assigns it to fr->hd.length;
