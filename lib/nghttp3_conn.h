@@ -216,6 +216,9 @@ int nghttp3_conn_qpack_blocked_streams_push(nghttp3_conn *conn,
 
 void nghttp3_conn_qpack_blocked_streams_pop(nghttp3_conn *conn);
 
+void nghttp3_conn_qpack_blocked_streams_remove(nghttp3_conn *conn,
+                                               nghttp3_stream *stream);
+
 int nghttp3_conn_schedule_stream(nghttp3_conn *conn, nghttp3_stream *stream);
 
 int nghttp3_conn_ensure_stream_scheduled(nghttp3_conn *conn,

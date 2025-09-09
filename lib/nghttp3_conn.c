@@ -1263,11 +1263,23 @@ static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
     return rv;
   }
 
-  if (bidi && conn->callbacks.stream_close) {
-    rv = conn->callbacks.stream_close(conn, stream->node.id, stream->error_code,
-                                      conn->user_data, stream->user_data);
-    if (rv != 0) {
-      return NGHTTP3_ERR_CALLBACK_FAILURE;
+  if (bidi) {
+    if (stream->qpack_blocked_pe.index != NGHTTP3_PQ_BAD_INDEX) {
+      nghttp3_conn_qpack_blocked_streams_remove(conn, stream);
+
+      rv = nghttp3_qpack_decoder_cancel_stream(&conn->qdec, stream->node.id);
+      if (rv != 0) {
+        return rv;
+      }
+    }
+
+    if (conn->callbacks.stream_close) {
+      rv =
+        conn->callbacks.stream_close(conn, stream->node.id, stream->error_code,
+                                     conn->user_data, stream->user_data);
+      if (rv != 0) {
+        return NGHTTP3_ERR_CALLBACK_FAILURE;
+      }
     }
   }
 
@@ -1326,16 +1338,6 @@ static int conn_process_blocked_stream_data(nghttp3_conn *conn,
 
     if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
       break;
-    }
-  }
-
-  if (!(stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) &&
-      (stream->flags & NGHTTP3_STREAM_FLAG_CLOSED)) {
-    assert(stream->qpack_blocked_pe.index == NGHTTP3_PQ_BAD_INDEX);
-
-    rv = conn_delete_stream(conn, stream);
-    if (rv != 0) {
-      return rv;
     }
   }
 
@@ -2602,10 +2604,9 @@ int nghttp3_conn_is_stream_writable(nghttp3_conn *conn, int64_t stream_id) {
     return 0;
   }
 
-  return (stream->flags &
-          (NGHTTP3_STREAM_FLAG_FC_BLOCKED |
-           NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED | NGHTTP3_STREAM_FLAG_SHUT_WR |
-           NGHTTP3_STREAM_FLAG_CLOSED)) == 0;
+  return (stream->flags & (NGHTTP3_STREAM_FLAG_FC_BLOCKED |
+                           NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED |
+                           NGHTTP3_STREAM_FLAG_SHUT_WR)) == 0;
 }
 
 int nghttp3_conn_resume_stream(nghttp3_conn *conn, int64_t stream_id) {
@@ -2642,12 +2643,7 @@ int nghttp3_conn_close_stream(nghttp3_conn *conn, int64_t stream_id,
 
   nghttp3_conn_unschedule_stream(conn, stream);
 
-  if (stream->qpack_blocked_pe.index == NGHTTP3_PQ_BAD_INDEX) {
-    return conn_delete_stream(conn, stream);
-  }
-
-  stream->flags |= NGHTTP3_STREAM_FLAG_CLOSED;
-  return 0;
+  return conn_delete_stream(conn, stream);
 }
 
 int nghttp3_conn_shutdown_stream_read(nghttp3_conn *conn, int64_t stream_id) {
@@ -2683,6 +2679,14 @@ int nghttp3_conn_qpack_blocked_streams_push(nghttp3_conn *conn,
 void nghttp3_conn_qpack_blocked_streams_pop(nghttp3_conn *conn) {
   assert(!nghttp3_pq_empty(&conn->qpack_blocked_streams));
   nghttp3_pq_pop(&conn->qpack_blocked_streams);
+}
+
+void nghttp3_conn_qpack_blocked_streams_remove(nghttp3_conn *conn,
+                                               nghttp3_stream *stream) {
+  assert(!nghttp3_pq_empty(&conn->qpack_blocked_streams));
+  assert(stream->qpack_blocked_pe.index != NGHTTP3_PQ_BAD_INDEX);
+
+  nghttp3_pq_remove(&conn->qpack_blocked_streams, &stream->qpack_blocked_pe);
 }
 
 void nghttp3_conn_set_max_client_streams_bidi(nghttp3_conn *conn,
