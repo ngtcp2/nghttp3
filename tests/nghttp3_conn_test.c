@@ -3350,8 +3350,7 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   settings.qpack_max_dtable_capacity = 4096;
   settings.qpack_blocked_streams = 100;
 
-  /* The deletion of QPACK blocked stream is deferred to the moment
-     when it is unblocked */
+  /* Closing QUIC stream deletes a stream that is blocked by QPACK */
   nghttp3_buf_init(&ebuf);
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
@@ -3404,22 +3403,6 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
   assert_int(0, ==, rv);
-
-  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_CLOSED);
-
-  nghttp3_buf_reset(&buf);
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_QPACK_ENCODER);
-
-  sconsumed = nghttp3_conn_read_stream(conn, 7, buf.pos, nghttp3_buf_len(&buf),
-                                       /* fin = */ 0);
-
-  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
-  assert_not_null(nghttp3_conn_find_stream(conn, 0));
-
-  sconsumed = nghttp3_conn_read_stream(conn, 7, ebuf.pos,
-                                       nghttp3_buf_len(&ebuf), /* fin = */ 0);
-
-  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&ebuf), ==, sconsumed);
   assert_null(nghttp3_conn_find_stream(conn, 0));
 
   nghttp3_conn_del(conn);
@@ -3472,25 +3455,7 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
   assert_int(0, ==, rv);
-
-  stream = nghttp3_conn_find_stream(conn, 0);
-
-  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_CLOSED);
-
-  nghttp3_buf_reset(&buf);
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_QPACK_ENCODER);
-
-  sconsumed = nghttp3_conn_read_stream(conn, 7, buf.pos, nghttp3_buf_len(&buf),
-                                       /* fin = */ 0);
-
-  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
-  assert_not_null(nghttp3_conn_find_stream(conn, 0));
-
-  sconsumed = nghttp3_conn_read_stream(conn, 7, ebuf.pos,
-                                       nghttp3_buf_len(&ebuf), /* fin = */ 0);
-
-  assert_ptrdiff(NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED, ==, sconsumed);
-  assert_not_null(nghttp3_conn_find_stream(conn, 0));
+  assert_null(nghttp3_conn_find_stream(conn, 0));
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
