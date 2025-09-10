@@ -130,6 +130,7 @@ else()
     set(CMAKE_REQUIRED_LIBRARIES "-fsanitize=address")
     check_c_compiler_flag(-fsanitize=address C__fsanitize_address_VALID)
     if(ENABLE_LIB_ONLY)
+      # Bypass C++-specific check for lib-only builds where C++ is not enabled.
       set(CXX__fsanitize_address_VALID TRUE)
     else()
       check_cxx_compiler_flag(-fsanitize=address CXX__fsanitize_address_VALID)
