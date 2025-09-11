@@ -82,6 +82,59 @@ extern "C" {
 typedef ptrdiff_t nghttp3_ssize;
 
 /**
+ * @typedef
+ *
+ * :type:`nghttp3_tstamp` is a timestamp with nanosecond resolution.
+ * ``UINT64_MAX`` is an invalid value, and it is often used to
+ * indicate that no value is set.  This type is available since
+ * v1.12.0.
+ */
+typedef uint64_t nghttp3_tstamp;
+
+/**
+ * @typedef
+ *
+ * :type:`nghttp3_duration` is a period of time in nanosecond
+ * resolution.  ``UINT64_MAX`` is an invalid value, and it is often
+ * used to indicate that no value is set.  This type is available
+ * since v1.12.0.
+ */
+typedef uint64_t nghttp3_duration;
+
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_NANOSECONDS` is a count of tick which corresponds
+ * to 1 nanosecond.  This macro is available since v1.12.0.
+ */
+#define NGHTTP3_NANOSECONDS ((nghttp3_duration)1ULL)
+
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_MICROSECONDS` is a count of tick which corresponds
+ * to 1 microsecond.  This macro is available since v1.12.0.
+ */
+#define NGHTTP3_MICROSECONDS ((nghttp3_duration)(1000ULL * NGHTTP3_NANOSECONDS))
+
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_MILLISECONDS` is a count of tick which corresponds
+ * to 1 millisecond.  This macro is available since v1.12.0.
+ */
+#define NGHTTP3_MILLISECONDS                                                   \
+  ((nghttp3_duration)(1000ULL * NGHTTP3_MICROSECONDS))
+
+/**
+ * @macro
+ *
+ * :macro:`NGHTTP3_SECONDS` is a count of tick which corresponds to 1
+ * second.  This macro is available since v1.12.0.
+ */
+#define NGHTTP3_SECONDS ((nghttp3_duration)(1000ULL * NGHTTP3_MILLISECONDS))
+
+/**
  * @macro
  *
  * :macro:`NGHTTP3_ALPN_H3` is a serialized form of HTTP/3 ALPN
@@ -1638,7 +1691,8 @@ typedef struct nghttp3_conn nghttp3_conn;
 
 #define NGHTTP3_SETTINGS_V1 1
 #define NGHTTP3_SETTINGS_V2 2
-#define NGHTTP3_SETTINGS_VERSION NGHTTP3_SETTINGS_V2
+#define NGHTTP3_SETTINGS_V3 3
+#define NGHTTP3_SETTINGS_VERSION NGHTTP3_SETTINGS_V3
 
 /**
  * @struct
@@ -1700,6 +1754,12 @@ typedef struct nghttp3_settings {
    * server uses this field.  This field is available since v1.11.0.
    */
   const nghttp3_vec *origin_list;
+  /* The following fields have been added since NGHTTP3_SETTINGS_V3. */
+  /**
+   * :member:`initial_ts` is an initial timestamp given to the
+   * library.  This field is available since v1.12.0.
+   */
+  nghttp3_tstamp initial_ts;
 } nghttp3_settings;
 
 /**
@@ -2113,6 +2173,8 @@ typedef struct nghttp3_callbacks {
  *   <nghttp3_settings.qpack_blocked_streams>` = 0
  * - :member:`enable_connect_protocol
  *   <nghttp3_settings.enable_connect_protocol>` = 0
+ * - :member:`initial_ts <nghttp3_settings.initial_ts>` =
+ *   ``UINT64_MAX``
  */
 NGHTTP3_EXTERN void
 nghttp3_settings_default_versioned(int settings_version,
@@ -2209,6 +2271,11 @@ NGHTTP3_EXTERN int nghttp3_conn_bind_qpack_streams(nghttp3_conn *conn,
 /**
  * @function
  *
+ * .. warning::
+ *
+ *   Deprecated since v1.12.0.  Use `nghttp3_conn_read_stream2`
+ *   instead.
+ *
  * `nghttp3_conn_read_stream` reads data |src| of length |srclen| on
  * stream identified by |stream_id|.  It returns the number of bytes
  * consumed.  The "consumed" means that application can increase flow
@@ -2236,6 +2303,42 @@ NGHTTP3_EXTERN nghttp3_ssize nghttp3_conn_read_stream(nghttp3_conn *conn,
                                                       int64_t stream_id,
                                                       const uint8_t *src,
                                                       size_t srclen, int fin);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_read_stream2` reads data |src| of length |srclen| on
+ * stream identified by |stream_id|.  It returns the number of bytes
+ * consumed.  The "consumed" means that application can increase flow
+ * control credit (both stream and connection) of underlying QUIC
+ * connection by that amount.  It does not include the amount of data
+ * carried by DATA frame which contains application data (excluding
+ * any control or QPACK unidirectional streams).  See
+ * :type:`nghttp3_recv_data` to handle those bytes.  If |fin| is
+ * nonzero, this is the last data from remote endpoint in this stream.
+ * |ts| is the current timestamp, and must be non-decreasing.  It
+ * should be obtained from the clock that is steadily increasing.
+ *
+ * This function returns the number of bytes consumed, or one of the
+ * following negative error codes:
+ *
+ * :macro:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`
+ *     User callback failed.
+ *
+ * It may return the other error codes.  The negative error code means
+ * that |conn| encountered a connection error, and the connection must
+ * be closed.  Calling nghttp3 API other than `nghttp3_conn_del`
+ * causes undefined behavior.
+ *
+ * This function is available since v1.12.0.
+ */
+NGHTTP3_EXTERN nghttp3_ssize nghttp3_conn_read_stream2(nghttp3_conn *conn,
+                                                       int64_t stream_id,
+                                                       const uint8_t *src,
+                                                       size_t srclen, int fin,
+                                                       nghttp3_tstamp ts);
 
 /**
  * @function

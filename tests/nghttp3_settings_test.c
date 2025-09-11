@@ -43,9 +43,14 @@ const MunitSuite settings_suite = {
 void test_nghttp3_settings_convert_to_latest(void) {
   nghttp3_settings *src, srcbuf, settingsbuf;
   const nghttp3_settings *dest;
-  size_t v1len;
+  const uint8_t origins[] = "foo";
+  nghttp3_vec origin_list = {
+    .base = (uint8_t *)origins,
+    .len = strsize(origins),
+  };
+  size_t v2len;
 
-  nghttp3_settings_default_versioned(NGHTTP3_SETTINGS_V1, &srcbuf);
+  nghttp3_settings_default_versioned(NGHTTP3_SETTINGS_V2, &srcbuf);
 
   srcbuf.max_field_section_size = 1000000007;
   srcbuf.qpack_max_dtable_capacity = 1000000009;
@@ -53,15 +58,16 @@ void test_nghttp3_settings_convert_to_latest(void) {
   srcbuf.qpack_blocked_streams = 478324193;
   srcbuf.enable_connect_protocol = 1;
   srcbuf.h3_datagram = 1;
+  srcbuf.origin_list = &origin_list;
 
-  v1len = nghttp3_settingslen_version(NGHTTP3_SETTINGS_V1);
+  v2len = nghttp3_settingslen_version(NGHTTP3_SETTINGS_V2);
 
-  src = malloc(v1len);
+  src = malloc(v2len);
 
-  memcpy(src, &srcbuf, v1len);
+  memcpy(src, &srcbuf, v2len);
 
   dest =
-    nghttp3_settings_convert_to_latest(&settingsbuf, NGHTTP3_SETTINGS_V1, src);
+    nghttp3_settings_convert_to_latest(&settingsbuf, NGHTTP3_SETTINGS_V2, src);
 
   free(src);
 
@@ -76,7 +82,8 @@ void test_nghttp3_settings_convert_to_latest(void) {
   assert_uint8(srcbuf.enable_connect_protocol, ==,
                dest->enable_connect_protocol);
   assert_uint8(srcbuf.h3_datagram, ==, dest->h3_datagram);
-  assert_null(dest->origin_list);
+  assert_ptr_equal(srcbuf.origin_list, dest->origin_list);
+  assert_uint64(UINT64_MAX, ==, dest->initial_ts);
 }
 
 void test_nghttp3_settings_convert_to_old(void) {
@@ -86,11 +93,11 @@ void test_nghttp3_settings_convert_to_old(void) {
     .base = (uint8_t *)origins,
     .len = strsize(origins),
   };
-  size_t v1len;
+  size_t v2len;
 
-  v1len = nghttp3_settingslen_version(NGHTTP3_SETTINGS_V1);
+  v2len = nghttp3_settingslen_version(NGHTTP3_SETTINGS_V2);
 
-  dest = malloc(v1len);
+  dest = malloc(v2len);
 
   nghttp3_settings_default(&src);
   src.max_field_section_size = 1000000007;
@@ -100,11 +107,12 @@ void test_nghttp3_settings_convert_to_old(void) {
   src.enable_connect_protocol = 1;
   src.h3_datagram = 1;
   src.origin_list = &origin_list;
+  src.initial_ts = 6398888;
 
-  nghttp3_settings_convert_to_old(NGHTTP3_SETTINGS_V1, dest, &src);
+  nghttp3_settings_convert_to_old(NGHTTP3_SETTINGS_V2, dest, &src);
 
   memset(&destbuf, 0, sizeof(destbuf));
-  memcpy(&destbuf, dest, v1len);
+  memcpy(&destbuf, dest, v2len);
 
   free(dest);
 
@@ -117,5 +125,6 @@ void test_nghttp3_settings_convert_to_old(void) {
   assert_uint8(src.enable_connect_protocol, ==,
                destbuf.enable_connect_protocol);
   assert_uint8(src.h3_datagram, ==, destbuf.h3_datagram);
-  assert_null(destbuf.origin_list);
+  assert_ptr_equal(src.origin_list, destbuf.origin_list);
+  assert_uint64(0, ==, destbuf.initial_ts);
 }

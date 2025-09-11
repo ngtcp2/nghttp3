@@ -88,6 +88,7 @@ struct nghttp3_conn {
     nghttp3_pq spq;
   } sched[NGHTTP3_URGENCY_LEVELS];
   const nghttp3_mem *mem;
+  nghttp3_tstamp ts;
   void *user_data;
   int server;
   uint16_t flags;

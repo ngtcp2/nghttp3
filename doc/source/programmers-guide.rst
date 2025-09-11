@@ -51,7 +51,7 @@ effectively required to do HTTP/3 transaction below:
   had been blocked for synchronization between streams.  Application
   has to tell QUIC stack the number of bytes consumed which affects
   flow control.  We will discuss more about this callback later when
-  explaining `nghttp3_conn_read_stream`.
+  explaining `nghttp3_conn_read_stream2`.
 * :member:`recv_header <nghttp3_callbacks.recv_header>`: It is called
   when an HTTP header field is received.
 * :member:`send_stop_sending <nghttp3_callbacks.send_stop_sending>`:
@@ -69,6 +69,7 @@ effectively required to do HTTP/3 transaction below:
 The initialization functions also takes :type:`nghttp3_settings` which
 is a set of options to tweak HTTP3/ connection settings.
 `nghttp3_settings_default` fills the default values.
+`nghttp3_settings.initial_ts` should be set to the current timestamp.
 
 The *user_data* parameter to the initialization function is an opaque
 pointer and it is passed to callback functions.
@@ -89,7 +90,7 @@ Use the following functions to bind those streams to their purposes:
 Reading HTTP stream data
 ------------------------
 
-`nghttp3_conn_read_stream` reads HTTP stream data from a particular
+`nghttp3_conn_read_stream2` reads HTTP stream data from a particular
 stream.  It returns the number of bytes "consumed".  "Consumed" means
 that the those bytes are completely processed and QUIC stack can
 increase the flow control credit of both stream and connection by that
