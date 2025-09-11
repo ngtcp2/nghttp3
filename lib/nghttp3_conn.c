@@ -322,6 +322,7 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
   }
   nghttp3_settings_default(&conn->remote.settings);
   conn->mem = mem;
+  conn->ts = settings->initial_ts;
   conn->user_data = user_data;
   conn->server = server;
   conn->rx.goaway_id = NGHTTP3_VARINT_MAX + 1;
@@ -427,12 +428,25 @@ static int conn_bidi_idtr_open(nghttp3_conn *conn, int64_t stream_id) {
 nghttp3_ssize nghttp3_conn_read_stream(nghttp3_conn *conn, int64_t stream_id,
                                        const uint8_t *src, size_t srclen,
                                        int fin) {
+  return nghttp3_conn_read_stream2(conn, stream_id, src, srclen, fin, conn->ts);
+}
+
+nghttp3_ssize nghttp3_conn_read_stream2(nghttp3_conn *conn, int64_t stream_id,
+                                        const uint8_t *src, size_t srclen,
+                                        int fin, nghttp3_tstamp ts) {
   nghttp3_stream *stream;
   size_t bidi_nproc;
   int rv;
 
   assert(stream_id >= 0);
   assert(stream_id <= (int64_t)NGHTTP3_MAX_VARINT);
+  assert(conn->ts <= ts);
+
+  /* Guard against the case that nghttp3_settings.initial_ts is not
+     set. */
+  if (ts != UINT64_MAX) {
+    conn->ts = ts;
+  }
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
   if (stream == NULL) {
