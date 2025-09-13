@@ -1153,7 +1153,7 @@ void test_nghttp3_conn_write_control(void) {
     nghttp3_frame fr;
     struct {
       nghttp3_frame_settings settings;
-      nghttp3_settings pad[15];
+      nghttp3_settings_entry pad[15];
     };
   } fr;
 
@@ -6147,7 +6147,7 @@ void test_nghttp3_conn_write_origin(void) {
     nghttp3_frame fr;
     struct {
       nghttp3_frame_settings settings;
-      nghttp3_settings pad[15];
+      nghttp3_settings_entry pad[15];
     };
   } fr;
   int64_t stream_id;
