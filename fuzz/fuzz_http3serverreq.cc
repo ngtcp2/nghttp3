@@ -345,6 +345,7 @@ void run_fuzzer(const uint8_t *data, size_t size, size_t step) {
   settings.enable_connect_protocol =
     fuzzed_data_provider.ConsumeIntegral<uint8_t>();
   settings.h3_datagram = fuzzed_data_provider.ConsumeIntegral<uint8_t>();
+  settings.initial_ts = 0;
 
   auto mem = *nghttp3_mem_default();
   mem.user_data = &fuzzed_data_provider;
@@ -355,6 +356,7 @@ void run_fuzzer(const uint8_t *data, size_t size, size_t step) {
   nghttp3_conn *conn;
   auto shutdown_started = false;
   auto server = fuzzed_data_provider.ConsumeBool();
+  nghttp3_tstamp ts = 0;
 
   if (server) {
     auto rv = nghttp3_conn_server_new(&conn, &callbacks, &settings, &mem,
@@ -418,11 +420,13 @@ void run_fuzzer(const uint8_t *data, size_t size, size_t step) {
       auto chunk = fuzzed_data_provider.ConsumeBytes<uint8_t>(chunk_size);
       auto v = std::span{chunk};
       auto fin = fuzzed_data_provider.ConsumeBool();
+      ts = fuzzed_data_provider.ConsumeIntegralInRange<nghttp3_tstamp>(
+        ts, std::numeric_limits<nghttp3_tstamp>::max() - 1);
 
       for (; !v.empty();) {
         auto len = std::min(v.size(), step);
-        auto nread = nghttp3_conn_read_stream(conn, stream_id, v.data(), len,
-                                              v.size() == len && fin);
+        auto nread = nghttp3_conn_read_stream2(conn, stream_id, v.data(), len,
+                                               v.size() == len && fin, ts);
         if (nread < 0) {
           goto fin;
         }
