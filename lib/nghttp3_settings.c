@@ -43,6 +43,8 @@ void nghttp3_settings_default_versioned(int settings_version,
   switch (settings_version) {
   case NGHTTP3_SETTINGS_VERSION:
     settings->initial_ts = UINT64_MAX;
+    settings->glitch_ratelim_burst = NGHTTP3_DEFAULT_GLITCH_RATELIM_BURST;
+    settings->glitch_ratelim_rate = NGHTTP3_DEFAULT_GLITCH_RATELIM_RATE;
     /* fall through */
   case NGHTTP3_SETTINGS_V2:
   case NGHTTP3_SETTINGS_V1:

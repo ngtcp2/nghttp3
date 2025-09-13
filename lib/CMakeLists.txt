@@ -62,6 +62,7 @@ set(nghttp3_SOURCES
   nghttp3_unreachable.c
   nghttp3_settings.c
   nghttp3_callbacks.c
+  nghttp3_ratelim.c
   sfparse/sfparse.c
 )
 

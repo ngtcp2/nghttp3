@@ -37,6 +37,7 @@
 #include "nghttp3_tnode.h"
 #include "nghttp3_idtr.h"
 #include "nghttp3_gaptr.h"
+#include "nghttp3_ratelim.h"
 
 /* NGHTTP3_QPACK_ENCODER_MAX_TABLE_CAPACITY is the maximum dynamic
    table size for QPACK encoder. */
@@ -84,11 +85,11 @@ struct nghttp3_conn {
   nghttp3_qpack_decoder qdec;
   nghttp3_qpack_encoder qenc;
   nghttp3_pq qpack_blocked_streams;
+  nghttp3_ratelim glitch_rlim;
   struct {
     nghttp3_pq spq;
   } sched[NGHTTP3_URGENCY_LEVELS];
   const nghttp3_mem *mem;
-  nghttp3_tstamp ts;
   void *user_data;
   int server;
   uint16_t flags;
@@ -181,18 +182,20 @@ int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
 
 nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
                                      nghttp3_stream *stream, const uint8_t *src,
-                                     size_t srclen, int fin);
+                                     size_t srclen, int fin, nghttp3_tstamp ts);
 
 nghttp3_ssize nghttp3_conn_read_uni(nghttp3_conn *conn, nghttp3_stream *stream,
-                                    const uint8_t *src, size_t srclen, int fin);
+                                    const uint8_t *src, size_t srclen, int fin,
+                                    nghttp3_tstamp ts);
 
 nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
                                         nghttp3_stream *stream,
-                                        const uint8_t *src, size_t srclen);
+                                        const uint8_t *src, size_t srclen,
+                                        nghttp3_tstamp ts);
 
 nghttp3_ssize nghttp3_conn_read_qpack_encoder(nghttp3_conn *conn,
-                                              const uint8_t *src,
-                                              size_t srclen);
+                                              const uint8_t *src, size_t srclen,
+                                              nghttp3_tstamp ts);
 
 nghttp3_ssize nghttp3_conn_read_qpack_decoder(nghttp3_conn *conn,
                                               const uint8_t *src,
