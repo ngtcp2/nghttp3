@@ -320,6 +320,14 @@ typedef uint64_t nghttp3_duration;
 /**
  * @macro
  *
+ * :macro:`NGHTTP3_ERR_H3_EXCESSIVE_LOAD` indicates that a local
+ * endpoint detected that its remote endpoint is exhibiting a behavior
+ * that might generating excessive load.
+ */
+#define NGHTTP3_ERR_H3_EXCESSIVE_LOAD -610
+/**
+ * @macro
+ *
  * :macro:`NGHTTP3_ERR_FATAL` indicates that error codes less than
  * this value is fatal error.  When this error is returned, an
  * endpoint should drop connection immediately.
@@ -1760,6 +1768,23 @@ typedef struct nghttp3_settings {
    * library.  This field is available since v1.12.0.
    */
   nghttp3_tstamp initial_ts;
+  /**
+   * :member:`glitch_ratelim_burst` is the maximum number of tokens
+   * available to "glitch" rate limiter.  "glitch" is a suspicious
+   * activity from a remote endpoint.  If detected, certain amount of
+   * tokens are consumed.  If no tokens are available to consume, the
+   * connection is closed.  The rate of token generation is specified
+   * by :member:`glitch_ratelim_rate`.  This feature is enabled only
+   * when :member:`initial_ts` is set and `nghttp3_conn_read_stream2`
+   * is used.  This field has been available since v1.12.0.
+   */
+  uint64_t glitch_ratelim_burst;
+  /**
+   * :member:`glitch_ratelim_rate` is the number of tokens generated
+   * per second.  See :member:`glitch_ratelim_burst` for "glitch" rate
+   * limiter.  This field has been available since v1.12.0.
+   */
+  uint64_t glitch_ratelim_rate;
 } nghttp3_settings;
 
 /**
@@ -2175,6 +2200,10 @@ typedef struct nghttp3_callbacks {
  *   <nghttp3_settings.enable_connect_protocol>` = 0
  * - :member:`initial_ts <nghttp3_settings.initial_ts>` =
  *   ``UINT64_MAX``
+ * - :member:`glitch_ratelim_burst
+ *   <nghttp3_settings.glitch_ratelim_burst>` = 1000
+ * - :member:`glitch_ratelim_rate
+ *   <nghttp3_settings.glitch_ratelim_rate>` = 33
  */
 NGHTTP3_EXTERN void
 nghttp3_settings_default_versioned(int settings_version,

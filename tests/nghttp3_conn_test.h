@@ -69,5 +69,6 @@ munit_void_test_decl(test_nghttp3_conn_rx_http_state)
 munit_void_test_decl(test_nghttp3_conn_push)
 munit_void_test_decl(test_nghttp3_conn_recv_origin)
 munit_void_test_decl(test_nghttp3_conn_write_origin)
+munit_void_test_decl(test_nghttp3_conn_recv_unknown_frame)
 
 #endif /* !defined(NGHTTP3_CONN_TEST_H) */
