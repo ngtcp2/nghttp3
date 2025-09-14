@@ -83,7 +83,6 @@ void test_nghttp3_settings_convert_to_latest(void) {
                dest->enable_connect_protocol);
   assert_uint8(srcbuf.h3_datagram, ==, dest->h3_datagram);
   assert_ptr_equal(srcbuf.origin_list, dest->origin_list);
-  assert_uint64(UINT64_MAX, ==, dest->initial_ts);
   assert_uint64(NGHTTP3_DEFAULT_GLITCH_RATELIM_BURST, ==,
                 dest->glitch_ratelim_burst);
   assert_uint64(NGHTTP3_DEFAULT_GLITCH_RATELIM_RATE, ==,
@@ -111,7 +110,6 @@ void test_nghttp3_settings_convert_to_old(void) {
   src.enable_connect_protocol = 1;
   src.h3_datagram = 1;
   src.origin_list = &origin_list;
-  src.initial_ts = 6398888;
   src.glitch_ratelim_burst = 74111;
   src.glitch_ratelim_rate = 6831;
 
@@ -132,7 +130,6 @@ void test_nghttp3_settings_convert_to_old(void) {
                destbuf.enable_connect_protocol);
   assert_uint8(src.h3_datagram, ==, destbuf.h3_datagram);
   assert_ptr_equal(src.origin_list, destbuf.origin_list);
-  assert_uint64(0, ==, destbuf.initial_ts);
   assert_uint64(0, ==, destbuf.glitch_ratelim_burst);
   assert_uint64(0, ==, destbuf.glitch_ratelim_rate);
 }

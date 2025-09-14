@@ -1764,19 +1764,14 @@ typedef struct nghttp3_settings {
   const nghttp3_vec *origin_list;
   /* The following fields have been added since NGHTTP3_SETTINGS_V3. */
   /**
-   * :member:`initial_ts` is an initial timestamp given to the
-   * library.  This field is available since v1.12.0.
-   */
-  nghttp3_tstamp initial_ts;
-  /**
    * :member:`glitch_ratelim_burst` is the maximum number of tokens
    * available to "glitch" rate limiter.  "glitch" is a suspicious
    * activity from a remote endpoint.  If detected, certain amount of
    * tokens are consumed.  If no tokens are available to consume, the
    * connection is closed.  The rate of token generation is specified
    * by :member:`glitch_ratelim_rate`.  This feature is enabled only
-   * when :member:`initial_ts` is set and `nghttp3_conn_read_stream2`
-   * is used.  This field has been available since v1.12.0.
+   * when `nghttp3_conn_read_stream2` is used.  This field has been
+   * available since v1.12.0.
    */
   uint64_t glitch_ratelim_burst;
   /**
@@ -2198,8 +2193,6 @@ typedef struct nghttp3_callbacks {
  *   <nghttp3_settings.qpack_blocked_streams>` = 0
  * - :member:`enable_connect_protocol
  *   <nghttp3_settings.enable_connect_protocol>` = 0
- * - :member:`initial_ts <nghttp3_settings.initial_ts>` =
- *   ``UINT64_MAX``
  * - :member:`glitch_ratelim_burst
  *   <nghttp3_settings.glitch_ratelim_burst>` = 1000
  * - :member:`glitch_ratelim_rate

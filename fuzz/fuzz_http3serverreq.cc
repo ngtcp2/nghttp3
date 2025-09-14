@@ -345,7 +345,6 @@ void run_fuzzer(const uint8_t *data, size_t size, size_t step) {
   settings.enable_connect_protocol =
     fuzzed_data_provider.ConsumeIntegral<uint8_t>();
   settings.h3_datagram = fuzzed_data_provider.ConsumeIntegral<uint8_t>();
-  settings.initial_ts = 0;
 
   auto mem = *nghttp3_mem_default();
   mem.user_data = &fuzzed_data_provider;
