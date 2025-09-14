@@ -431,7 +431,6 @@ static void setup_conn_with_options(nghttp3_conn **pconn, int server,
 
   if (opts.settings == NULL) {
     nghttp3_settings_default(&settings);
-    settings.initial_ts = 0;
     opts.settings = &settings;
   }
 
@@ -1176,7 +1175,6 @@ void test_nghttp3_conn_write_control(void) {
   nghttp3_settings_default(&settings);
   settings.h3_datagram = 1;
   settings.enable_connect_protocol = 1;
-  settings.initial_ts = 0;
 
   conn_options_clear(&opts);
   opts.settings = &settings;
@@ -1611,7 +1609,6 @@ void test_nghttp3_conn_http_request(void) {
 
   settings.qpack_max_dtable_capacity = 4096;
   settings.qpack_blocked_streams = 100;
-  settings.initial_ts = 0;
 
   clud.data.left = 2000;
   clud.data.step = 1200;
@@ -1733,7 +1730,6 @@ static void check_http_header(const nghttp3_nv *nva, size_t nvlen, int request,
 
   nghttp3_settings_default(&settings);
   settings.enable_connect_protocol = 1;
-  settings.initial_ts = 0;
 
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
@@ -3262,7 +3258,6 @@ void test_nghttp3_conn_http_error(void) {
   nghttp3_settings_default(&settings);
   settings.qpack_max_dtable_capacity = 4096;
   settings.qpack_blocked_streams = 100;
-  settings.initial_ts = 0;
 
   /* duplicated :scheme */
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
@@ -3384,7 +3379,6 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   nghttp3_settings_default(&settings);
   settings.qpack_max_dtable_capacity = 4096;
   settings.qpack_blocked_streams = 100;
-  settings.initial_ts = 0;
 
   /* Closing QUIC stream deletes a stream that is blocked by QPACK */
   nghttp3_buf_init(&ebuf);
@@ -4888,7 +4882,6 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   nghttp3_settings_default(&settings);
   settings.qpack_max_dtable_capacity = 4096;
   settings.qpack_blocked_streams = 100;
-  settings.initial_ts = 0;
 
   /* Shutting down read-side stream when a stream is blocked by QPACK
      dependency. */
@@ -6161,7 +6154,6 @@ void test_nghttp3_conn_write_origin(void) {
   origin_list.base = (uint8_t *)origins;
   origin_list.len = strsize(origins);
   settings.origin_list = &origin_list;
-  settings.initial_ts = 0;
 
   conn_options_clear(&opts);
   opts.settings = &settings;
@@ -6196,7 +6188,6 @@ void test_nghttp3_conn_write_origin(void) {
   origin_list.base = NULL;
   origin_list.len = 0;
   settings.origin_list = &origin_list;
-  settings.initial_ts = 0;
 
   conn_options_clear(&opts);
   opts.settings = &settings;
@@ -6232,7 +6223,6 @@ void test_nghttp3_conn_write_origin(void) {
   origin_list.base = long_origin;
   origin_list.len = sizeof(long_origin);
   settings.origin_list = &origin_list;
-  settings.initial_ts = 0;
 
   conn_options_clear(&opts);
   opts.settings = &settings;

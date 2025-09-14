@@ -69,7 +69,6 @@ effectively required to do HTTP/3 transaction below:
 The initialization functions also takes :type:`nghttp3_settings` which
 is a set of options to tweak HTTP3/ connection settings.
 `nghttp3_settings_default` fills the default values.
-`nghttp3_settings.initial_ts` should be set to the current timestamp.
 
 The *user_data* parameter to the initialization function is an opaque
 pointer and it is passed to callback functions.

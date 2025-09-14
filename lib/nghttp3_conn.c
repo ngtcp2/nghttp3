@@ -233,7 +233,7 @@ static int conn_call_end_origin(nghttp3_conn *conn) {
 
 static int conn_glitch_ratelim_drain(nghttp3_conn *conn, uint64_t n,
                                      nghttp3_tstamp ts) {
-  if (ts == UINT64_MAX || conn->glitch_rlim.ts == UINT64_MAX) {
+  if (ts == UINT64_MAX) {
     return 0;
   }
 
@@ -319,7 +319,7 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
   nghttp3_idtr_init(&conn->remote.bidi.idtr, mem);
 
   nghttp3_ratelim_init(&conn->glitch_rlim, settings->glitch_ratelim_burst,
-                       settings->glitch_ratelim_rate, settings->initial_ts);
+                       settings->glitch_ratelim_rate, 0);
 
   conn->callbacks = *callbacks;
   conn->local.settings = *settings;
