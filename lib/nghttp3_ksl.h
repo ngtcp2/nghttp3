@@ -136,9 +136,9 @@ typedef size_t (*nghttp3_ksl_search)(const nghttp3_ksl *ksl,
     size_t i;                                                                  \
     nghttp3_ksl_node *node;                                                    \
                                                                                \
-    for (i = 0, node = (void *)blk->nodes;                                     \
-         i < blk->n && COMPAR((nghttp3_ksl_key *)node->key, key);              \
-         ++i, node = (void *)((uint8_t *)node + ksl->nodelen))                 \
+    for (i = 0, node = (nghttp3_ksl_node *)(void *)blk->nodes;                 \
+         i < blk->n && COMPAR((nghttp3_ksl_key *)node->key, key); ++i,         \
+        node = (nghttp3_ksl_node *)(void *)((uint8_t *)node + ksl->nodelen))   \
       ;                                                                        \
                                                                                \
     return i;                                                                  \
