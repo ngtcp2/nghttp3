@@ -954,7 +954,7 @@ static void stream_pop_outq_entry(nghttp3_stream *stream,
     break;
   default:
     nghttp3_unreachable();
-  };
+  }
 
   nghttp3_ringbuf_pop_front(&stream->outq);
 }
