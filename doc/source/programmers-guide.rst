@@ -65,6 +65,13 @@ effectively required to do HTTP/3 transaction below:
   stream.  Sending RESET_STREAM frame means that :type:`nghttp3_conn`
   stops sending any HTTP stream data to a particular stream.
   Application has to tell QUIC stack to send RESET_STREAM frame.
+* :member:`rand <nghttp3_callbacks.rand>`: It is called when
+  unpredictable data are needed.  Although this field is optional due
+  to the backward compatibility, it is strongly recommended to specify
+  this field to harden the runtime behavior against suspicious
+  activities of a remote endpoint.  Most notably, it is used to
+  randomize map key hashing which may be crucial for server side
+  endpoints.
 
 The initialization functions also takes :type:`nghttp3_settings` which
 is a set of options to tweak HTTP3/ connection settings.
