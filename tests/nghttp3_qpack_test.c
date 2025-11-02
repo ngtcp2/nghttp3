@@ -34,6 +34,7 @@
 static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_qpack_encoder_encode),
   munit_void_test(test_nghttp3_qpack_encoder_encode_try_encode),
+  munit_void_test(test_nghttp3_qpack_encoder_encode_indexing_strat_eager),
   munit_void_test(test_nghttp3_qpack_encoder_still_blocked),
   munit_void_test(test_nghttp3_qpack_encoder_set_dtable_cap),
   munit_void_test(test_nghttp3_qpack_decoder_feedback),
@@ -338,6 +339,44 @@ void test_nghttp3_qpack_encoder_encode_try_encode(void) {
 
   assert_size(nva[0].namelen, ==, ent->nv.name->len);
   assert_memory_equal(ent->nv.name->len, nva[0].name, ent->nv.name->base);
+
+  nghttp3_qpack_encoder_free(&enc);
+  nghttp3_buf_free(&ebuf, mem);
+  nghttp3_buf_free(&rbuf, mem);
+  nghttp3_buf_free(&pbuf, mem);
+}
+
+void test_nghttp3_qpack_encoder_encode_indexing_strat_eager(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_qpack_encoder enc;
+  const nghttp3_nv nva[] = {
+    MAKE_NV(":path", "/foo"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV("nonstd", "non-standard-cookie"),
+  };
+  int rv;
+  nghttp3_buf pbuf, rbuf, ebuf;
+  nghttp3_qpack_entry *ent;
+
+  nghttp3_buf_init(&pbuf);
+  nghttp3_buf_init(&rbuf);
+  nghttp3_buf_init(&ebuf);
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
+  nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 1);
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 4096);
+  nghttp3_qpack_encoder_set_indexing_strat(&enc,
+                                           NGHTTP3_QPACK_INDEXING_STRAT_EAGER);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 0, nva,
+                                    nghttp3_arraylen(nva));
+
+  assert_int(0, ==, rv);
+  assert_size(2, ==, nghttp3_ringbuf_len(&enc.ctx.dtable));
+
+  ent = *(nghttp3_qpack_entry **)nghttp3_ringbuf_get(&enc.ctx.dtable, 0);
+
+  assert_size(nva[2].namelen, ==, ent->nv.name->len);
+  assert_memory_equal(ent->nv.name->len, nva[2].name, ent->nv.name->base);
 
   nghttp3_qpack_encoder_free(&enc);
   nghttp3_buf_free(&ebuf, mem);

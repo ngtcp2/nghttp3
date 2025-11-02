@@ -1152,6 +1152,32 @@ typedef struct nghttp3_qpack_nv {
 } nghttp3_qpack_nv;
 
 /**
+ * @enum
+ *
+ * :type:`nghttp3_qpack_indexing_strat` defines the QPACK dynamic
+ * table indexing strategies for fields not defined in
+ * :type:`nghttp3_qpack_token`.  This type is available since v1.13.0.
+
+ */
+typedef enum nghttp3_qpack_indexing_strat {
+  /**
+   * :enum:`NGHTTP3_QPACK_INDEXING_STRAT_NONE` does not index any
+   * fields not defined in :type:`nghttp3_qpack_token`.  This is the
+   * default strategy.  You can still use
+   * :macro:`NGHTTP3_NV_FLAG_TRY_INDEX` to index a particular field.
+   * This enum is available since v1.13.0.
+   */
+  NGHTTP3_QPACK_INDEXING_STRAT_NONE,
+  /**
+   * :enum:`NGHTTP3_QPACK_INDEXING_STRAT_EAGER` indexes all fields not
+   * defined in :type:`nghttp3_qpack_token`.  Please note that QPACK
+   * encoder might not index the field in various reasons.  This enum
+   * is available since v1.13.0.
+   */
+  NGHTTP3_QPACK_INDEXING_STRAT_EAGER
+} nghttp3_qpack_indexing_strat;
+
+/**
  * @struct
  *
  * :type:`nghttp3_qpack_encoder` is QPACK encoder.  The details of
@@ -1298,6 +1324,18 @@ nghttp3_qpack_encoder_set_max_dtable_capacity(nghttp3_qpack_encoder *encoder,
 NGHTTP3_EXTERN void
 nghttp3_qpack_encoder_set_max_blocked_streams(nghttp3_qpack_encoder *encoder,
                                               size_t max_blocked_streams);
+
+/**
+ * @function
+ *
+ * `nghttp3_qpack_encoder_set_indexing_strat` sets the dynamic table
+ * indexing strategy |strat| to |encoder|.  This function is available
+ * since v1.13.0.
+
+ */
+NGHTTP3_EXTERN void
+nghttp3_qpack_encoder_set_indexing_strat(nghttp3_qpack_encoder *encoder,
+                                         nghttp3_qpack_indexing_strat strat);
 
 /**
  * @function
