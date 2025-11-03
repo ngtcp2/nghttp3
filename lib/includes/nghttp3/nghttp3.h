@@ -1738,7 +1738,8 @@ typedef struct nghttp3_conn nghttp3_conn;
 #define NGHTTP3_SETTINGS_V1 1
 #define NGHTTP3_SETTINGS_V2 2
 #define NGHTTP3_SETTINGS_V3 3
-#define NGHTTP3_SETTINGS_VERSION NGHTTP3_SETTINGS_V3
+#define NGHTTP3_SETTINGS_V4 4
+#define NGHTTP3_SETTINGS_VERSION NGHTTP3_SETTINGS_V4
 
 /**
  * @struct
@@ -1818,6 +1819,13 @@ typedef struct nghttp3_settings {
    * limiter.  This field has been available since v1.12.0.
    */
   uint64_t glitch_ratelim_rate;
+  /**
+   * :member:`qpack_indexing_strat` defines the QPACK dynamic table
+   * indexing strategy for those fields that are not defined in
+   * :type:`nghttp3_qpack_token`.  This field has been available since
+   * v1.13.0.
+   */
+  nghttp3_qpack_indexing_strat qpack_indexing_strat;
 } nghttp3_settings;
 
 /**
