@@ -458,6 +458,7 @@ enum {{
     print('''\
 typedef struct {
   uint16_t fstate;
+  uint8_t flags;
   uint8_t sym;
 } nghttp3_qpack_huffman_decode_node;
 ''')
