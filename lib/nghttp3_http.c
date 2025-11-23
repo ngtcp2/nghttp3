@@ -660,7 +660,7 @@ void nghttp3_http_record_request_method(nghttp3_stream *stream,
   }
 }
 
-static const char VALID_HD_NAME_CHARS[256] = {
+static const int8_t VALID_HD_NAME_CHARS[256] = {
   ['!'] = 1,  ['#'] = 1,  ['$'] = 1,  ['%'] = 1,  ['&'] = 1,  ['\''] = 1,
   ['*'] = 1,  ['+'] = 1,  ['-'] = 1,  ['.'] = 1,  ['0'] = 1,  ['1'] = 1,
   ['2'] = 1,  ['3'] = 1,  ['4'] = 1,  ['5'] = 1,  ['6'] = 1,  ['7'] = 1,
