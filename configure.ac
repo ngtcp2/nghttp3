@@ -43,7 +43,7 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 # See versioning rule:
 #  https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
 AC_SUBST(LT_CURRENT, 14)
-AC_SUBST(LT_REVISION, 0)
+AC_SUBST(LT_REVISION, 1)
 AC_SUBST(LT_AGE, 5)
 
 # from nghttp2
