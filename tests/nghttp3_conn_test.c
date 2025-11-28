@@ -239,8 +239,10 @@ static nghttp3_ssize step_read_data(nghttp3_conn *conn, int64_t stream_id,
     }
   }
 
-  vec[0].base = nulldata;
-  vec[0].len = n;
+  vec[0] = (nghttp3_vec){
+    .base = nulldata,
+    .len = n,
+  };
 
   return 1;
 }
@@ -294,8 +296,10 @@ static nghttp3_ssize stream_data_overflow_read_data(
   (void)user_data;
   (void)stream_user_data;
 
-  vec[0].base = nulldata;
-  vec[0].len = NGHTTP3_MAX_VARINT + 1;
+  vec[0] = (nghttp3_vec){
+    .base = nulldata,
+    .len = NGHTTP3_MAX_VARINT + 1,
+  };
 
   return 1;
 }
@@ -310,8 +314,10 @@ static nghttp3_ssize stream_data_almost_overflow_read_data(
   (void)user_data;
   (void)stream_user_data;
 
-  vec[0].base = nulldata;
-  vec[0].len = NGHTTP3_MAX_VARINT;
+  vec[0] = (nghttp3_vec){
+    .base = nulldata,
+    .len = NGHTTP3_MAX_VARINT,
+  };
 
   return 1;
 }
@@ -618,14 +624,22 @@ void test_nghttp3_conn_read_control(void) {
 
   fr.settings.type = NGHTTP3_FRAME_SETTINGS;
   iv = fr.settings.iv;
-  iv[0].id = NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE;
-  iv[0].value = 65536;
-  iv[1].id = 1000000009;
-  iv[1].value = 1000000007;
-  iv[2].id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY;
-  iv[2].value = 4096;
-  iv[3].id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS;
-  iv[3].value = 99;
+  iv[0] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE,
+    .value = 65536,
+  };
+  iv[1] = (nghttp3_settings_entry){
+    .id = 1000000009,
+    .value = 1000000007,
+  };
+  iv[2] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY,
+    .value = 4096,
+  };
+  iv[3] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS,
+    .value = 99,
+  };
   fr.settings.niv = 4;
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
@@ -710,10 +724,14 @@ void test_nghttp3_conn_read_control(void) {
 
   fr.settings.type = NGHTTP3_FRAME_SETTINGS;
   iv = fr.settings.iv;
-  iv[0].id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY;
-  iv[0].value = 4097;
-  iv[1].id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS;
-  iv[1].value = 101;
+  iv[0] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY,
+    .value = 4097,
+  };
+  iv[1] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS,
+    .value = 101,
+  };
   fr.settings.niv = 2;
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
@@ -744,10 +762,14 @@ void test_nghttp3_conn_read_control(void) {
 
   fr.settings.type = NGHTTP3_FRAME_SETTINGS;
   iv = fr.settings.iv;
-  iv[0].id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY;
-  iv[0].value = 4097;
-  iv[1].id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY;
-  iv[1].value = 4097;
+  iv[0] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY,
+    .value = 4097,
+  };
+  iv[1] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY,
+    .value = 4097,
+  };
   fr.settings.niv = 2;
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
@@ -773,10 +795,14 @@ void test_nghttp3_conn_read_control(void) {
 
   fr.settings.type = NGHTTP3_FRAME_SETTINGS;
   iv = fr.settings.iv;
-  iv[0].id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS;
-  iv[0].value = 1;
-  iv[1].id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS;
-  iv[1].value = 1;
+  iv[0] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS,
+    .value = 1,
+  };
+  iv[1] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS,
+    .value = 1,
+  };
   fr.settings.niv = 2;
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
@@ -801,8 +827,10 @@ void test_nghttp3_conn_read_control(void) {
 
   fr.settings.type = NGHTTP3_FRAME_SETTINGS;
   iv = fr.settings.iv;
-  iv[0].id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL;
-  iv[0].value = 1;
+  iv[0] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL,
+    .value = 1,
+  };
   fr.settings.niv = 1;
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
@@ -829,10 +857,13 @@ void test_nghttp3_conn_read_control(void) {
 
   fr.settings.type = NGHTTP3_FRAME_SETTINGS;
   iv = fr.settings.iv;
-  iv[0].id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL;
-  iv[0].value = 1;
-  iv[1].id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL;
-  iv[1].value = 0;
+  iv[0] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL,
+    .value = 1,
+  };
+  iv[1] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL,
+  };
   fr.settings.niv = 2;
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
@@ -857,8 +888,10 @@ void test_nghttp3_conn_read_control(void) {
 
   fr.settings.type = NGHTTP3_FRAME_SETTINGS;
   iv = fr.settings.iv;
-  iv[0].id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM;
-  iv[0].value = 1;
+  iv[0] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM,
+    .value = 1,
+  };
   fr.settings.niv = 1;
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
@@ -884,8 +917,9 @@ void test_nghttp3_conn_read_control(void) {
 
   fr.settings.type = NGHTTP3_FRAME_SETTINGS;
   iv = fr.settings.iv;
-  iv[0].id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM;
-  iv[0].value = 0;
+  iv[0] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM,
+  };
   fr.settings.niv = 1;
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
@@ -911,8 +945,10 @@ void test_nghttp3_conn_read_control(void) {
 
   fr.settings.type = NGHTTP3_FRAME_SETTINGS;
   iv = fr.settings.iv;
-  iv[0].id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM;
-  iv[0].value = 2;
+  iv[0] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM,
+    .value = 2,
+  };
   fr.settings.niv = 1;
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
@@ -937,10 +973,14 @@ void test_nghttp3_conn_read_control(void) {
 
   fr.settings.type = NGHTTP3_FRAME_SETTINGS;
   iv = fr.settings.iv;
-  iv[0].id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL;
-  iv[0].value = 1;
-  iv[1].id = NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE;
-  iv[1].value = 4096;
+  iv[0] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL,
+    .value = 1,
+  };
+  iv[1] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE,
+    .value = 4096,
+  };
   fr.settings.niv = 2;
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
@@ -967,10 +1007,14 @@ void test_nghttp3_conn_read_control(void) {
 
   fr.settings.type = NGHTTP3_FRAME_SETTINGS;
   iv = fr.settings.iv;
-  iv[0].id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL;
-  iv[0].value = 1;
-  iv[1].id = NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE;
-  iv[1].value = 4096;
+  iv[0] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL,
+    .value = 1,
+  };
+  iv[1] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE,
+    .value = 4096,
+  };
   fr.settings.niv = 2;
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
@@ -1437,8 +1481,10 @@ void test_nghttp3_conn_submit_request(void) {
   fr.settings.type = NGHTTP3_FRAME_SETTINGS;
   fr.settings.niv = 1;
   iv = fr.settings.iv;
-  iv[0].id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY;
-  iv[0].value = 4096;
+  iv[0] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY,
+    .value = 4096,
+  };
 
   conn_read_control_stream(conn, 3, &fr.fr);
 
@@ -5042,12 +5088,18 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
 
   settingsfr.settings.type = NGHTTP3_FRAME_SETTINGS;
   iv = settingsfr.settings.iv;
-  iv[0].id = NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE;
-  iv[0].value = 1000000009;
-  iv[1].id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY;
-  iv[1].value = 1000000007;
-  iv[2].id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS;
-  iv[2].value = 1000000001;
+  iv[0] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE,
+    .value = 1000000009,
+  };
+  iv[1] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY,
+    .value = 1000000007,
+  };
+  iv[2] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS,
+    .value = 1000000001,
+  };
   settingsfr.settings.niv = 3;
 
   nghttp3_write_frame(&buf, (nghttp3_frame *)&settingsfr);
@@ -6062,10 +6114,14 @@ void test_nghttp3_conn_recv_origin(void) {
     memcpy(&long_origin[sizeof(long_origin) - 0x13], "https://example.com",
            0x13);
 
-    expected[0].base = &long_origin[2];
-    expected[0].len = UINT16_MAX;
-    expected[1].base = (uint8_t *)"https://example.com";
-    expected[1].len = 0x13;
+    expected[0] = (nghttp3_vec){
+      .base = &long_origin[2],
+      .len = UINT16_MAX,
+    };
+    expected[1] = (nghttp3_vec){
+      .base = (uint8_t *)"https://example.com",
+      .len = 0x13,
+    };
 
     nghttp3_buf_reset(&buf);
     setup_default_client_with_options(&conn, opts);

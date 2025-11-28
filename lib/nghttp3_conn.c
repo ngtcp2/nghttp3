@@ -1094,8 +1094,9 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
       nghttp3_varint_read_state_reset(rvint);
 
       if (rstate->left == 0) {
-        rstate->fr.priority_update.pri.urgency = NGHTTP3_DEFAULT_URGENCY;
-        rstate->fr.priority_update.pri.inc = 0;
+        rstate->fr.priority_update.pri = (nghttp3_pri){
+          .urgency = NGHTTP3_DEFAULT_URGENCY,
+        };
 
         rv = nghttp3_conn_on_priority_update(conn, &rstate->fr.priority_update);
         if (rv != 0) {
@@ -1154,8 +1155,9 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
         return (nghttp3_ssize)nconsumed;
       }
 
-      rstate->fr.priority_update.pri.urgency = NGHTTP3_DEFAULT_URGENCY;
-      rstate->fr.priority_update.pri.inc = 0;
+      rstate->fr.priority_update.pri = (nghttp3_pri){
+        .urgency = NGHTTP3_DEFAULT_URGENCY,
+      };
 
       if (nghttp3_http_parse_priority(&rstate->fr.priority_update.pri,
                                       pri_field_value,
