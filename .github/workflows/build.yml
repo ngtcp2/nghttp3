@@ -12,7 +12,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-14, macos-15]
+        os: [ubuntu-24.04, macos-14, macos-15]
         compiler: [gcc, clang]
         buildtool: [autotools, distcheck, cmake]
         exclude:
@@ -22,10 +22,13 @@ jobs:
           buildtool: distcheck
         - compiler: gcc
           buildtool: distcheck
+        include:
         - os: ubuntu-24.04-arm
-          buildtool: distcheck
+          compiler: gcc
+          buildtool: autotools
         - os: ubuntu-24.04-arm
-          buildtool: cmake
+          compiler: clang
+          buildtool: autotools
 
     runs-on: ${{ matrix.os }}
 
