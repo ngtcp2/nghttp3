@@ -14,15 +14,11 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-14, macos-15]
         compiler: [gcc, clang]
-        buildtool: [autotools, distcheck, cmake]
-        exclude:
-        - os: macos-14
-          buildtool: distcheck
-        - os: macos-15
-          buildtool: distcheck
-        - compiler: gcc
-          buildtool: distcheck
+        buildtool: [autotools, cmake]
         include:
+        - os: ubuntu-24.04
+          compiler: clang
+          buildtool: distcheck
         - os: ubuntu-24.04-arm
           compiler: gcc
           buildtool: autotools
