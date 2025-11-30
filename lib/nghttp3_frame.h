@@ -75,6 +75,9 @@ typedef struct nghttp3_frame_headers {
 #define NGHTTP3_H2_SETTINGS_ID_INITIAL_WINDOW_SIZE 0x4
 #define NGHTTP3_H2_SETTINGS_ID_MAX_FRAME_SIZE 0x5
 
+#define NGHTTP3_SETTINGS_ENABLE_WEBTRANSPORT 0x2b603742ULL
+#define NGHTTP3_SETTINGS_ENABLE_WEBTRANSPORT_DATAGRAM 0xffd277ULL
+
 typedef struct nghttp3_settings_entry {
   uint64_t id;
   uint64_t value;

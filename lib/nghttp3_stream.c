@@ -385,6 +385,22 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
     ++fr.settings.niv;
   }
 
+   if (local_settings->enable_web_transport) {
+    iv[fr.settings.niv] = (nghttp3_settings_entry){
+      .id = NGHTTP3_SETTINGS_ENABLE_WEBTRANSPORT,
+      .value = 1,
+    };
+    ++fr.settings.niv;
+  }
+
+  if (local_settings->enable_webtransport_datagrams) {
+    iv[fr.settings.niv] = (nghttp3_settings_entry){
+      .id = NGHTTP3_SETTINGS_ENABLE_WEBTRANSPORT_DATAGRAM,
+      .value = 1,
+    };
+    ++fr.settings.niv;
+  }
+
   len = nghttp3_frame_write_settings_len(&payloadlen, &fr.settings);
 
   rv = nghttp3_stream_ensure_chunk(stream, len);
