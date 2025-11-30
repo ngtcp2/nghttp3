@@ -1,5 +1,8 @@
 # emacs backup file
 *~
+out64/
+out32/
+inst.bat
 
 # autotools
 *.la

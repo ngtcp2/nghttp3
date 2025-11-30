@@ -1826,6 +1826,13 @@ typedef struct nghttp3_settings {
    * v1.13.0.
    */
   nghttp3_qpack_indexing_strat qpack_indexing_strat;
+
+   // Setting 0x2b603742ULL 1.14.0
+  uint64_t enable_web_transport;
+
+  // Setting 0xffd277ULL 1.14.0
+  uint64_t enable_webtransport_datagrams;
+
 } nghttp3_settings;
 
 /**

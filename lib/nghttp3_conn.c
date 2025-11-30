@@ -1944,6 +1944,17 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
     nghttp3_qpack_encoder_set_max_dtable_capacity(&conn->qenc,
                                                   (size_t)ent->value);
     break;
+
+
+    case NGHTTP3_SETTINGS_ENABLE_WEBTRANSPORT: {
+    dest->enable_web_transport = ent->value;
+    break;
+  }
+  case NGHTTP3_SETTINGS_ENABLE_WEBTRANSPORT_DATAGRAM: {
+    dest->enable_webtransport_datagrams = ent->value;
+    break;
+  }
+
   case NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS:
     if (dest->qpack_blocked_streams != 0) {
       return NGHTTP3_ERR_H3_SETTINGS_ERROR;
