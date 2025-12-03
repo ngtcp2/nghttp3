@@ -141,7 +141,7 @@ static void delete_frq(nghttp3_ringbuf *frq, const nghttp3_mem *mem) {
 
   for (i = 0; i < len; ++i) {
     frent = nghttp3_ringbuf_get(frq, i);
-    switch (frent->fr.type) {
+    switch (frent->fr.hd.type) {
     case NGHTTP3_FRAME_HEADERS:
       nghttp3_frame_headers_free(&frent->fr.headers, mem);
       break;
@@ -254,7 +254,7 @@ int nghttp3_stream_fill_outq(nghttp3_stream *stream) {
          stream->unsent_bytes < NGHTTP3_MIN_UNSENT_BYTES;) {
     frent = nghttp3_ringbuf_get(frq, 0);
 
-    switch (frent->fr.type) {
+    switch (frent->fr.hd.type) {
     case NGHTTP3_FRAME_SETTINGS:
       rv = nghttp3_stream_write_settings(stream, frent);
       if (rv != 0) {
@@ -338,21 +338,17 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
   int rv;
   nghttp3_buf *chunk;
   nghttp3_typed_buf tbuf;
-  struct {
-    nghttp3_frame_settings settings;
-    nghttp3_settings_entry iv[15];
-  } fr = {
-    .settings =
-      {
-        .type = NGHTTP3_FRAME_SETTINGS,
-        .niv = 3,
-      },
+  nghttp3_settings_entry ents[16];
+  nghttp3_frame_settings fr = {
+    .type = NGHTTP3_FRAME_SETTINGS,
+    .niv = 3,
+    .iv = ents,
   };
   nghttp3_settings_entry *iv;
   nghttp3_settings *local_settings = frent->aux.settings.local_settings;
   int64_t payloadlen;
 
-  iv = &fr.settings.iv[0];
+  iv = &fr.iv[0];
 
   iv[0] = (nghttp3_settings_entry){
     .id = NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE,
@@ -368,24 +364,24 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
   };
 
   if (local_settings->h3_datagram) {
-    iv[fr.settings.niv] = (nghttp3_settings_entry){
+    iv[fr.niv] = (nghttp3_settings_entry){
       .id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM,
       .value = 1,
     };
 
-    ++fr.settings.niv;
+    ++fr.niv;
   }
 
   if (local_settings->enable_connect_protocol) {
-    iv[fr.settings.niv] = (nghttp3_settings_entry){
+    iv[fr.niv] = (nghttp3_settings_entry){
       .id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL,
       .value = 1,
     };
 
-    ++fr.settings.niv;
+    ++fr.niv;
   }
 
-  len = nghttp3_frame_write_settings_len(&payloadlen, &fr.settings);
+  len = nghttp3_frame_write_settings_len(&payloadlen, &fr);
 
   rv = nghttp3_stream_ensure_chunk(stream, len);
   if (rv != 0) {
@@ -395,8 +391,7 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
   chunk = nghttp3_stream_get_chunk(stream);
   nghttp3_typed_buf_shared_init(&tbuf, chunk);
 
-  chunk->last =
-    nghttp3_frame_write_settings(chunk->last, &fr.settings, payloadlen);
+  chunk->last = nghttp3_frame_write_settings(chunk->last, &fr, payloadlen);
 
   tbuf.buf.last = chunk->last;
 
