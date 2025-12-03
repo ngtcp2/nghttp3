@@ -582,7 +582,7 @@ static void conn_write_initial_streams(nghttp3_conn *conn) {
 }
 
 static void conn_read_control_stream(nghttp3_conn *conn, int64_t stream_id,
-                                     nghttp3_frame *fr) {
+                                     const nghttp3_frame *fr) {
   uint8_t rawbuf[1024];
   nghttp3_buf buf;
   nghttp3_ssize nconsumed;
@@ -1181,7 +1181,7 @@ void test_nghttp3_conn_read_control(void) {
 
   setup_default_server(&conn);
 
-  conn_read_control_stream(conn, 2, (nghttp3_frame *)&fr);
+  conn_read_control_stream(conn, 2, &fr);
 
   /* unknown frame */
   buf.last = nghttp3_put_varint(buf.last, 1000000007);
@@ -1779,7 +1779,7 @@ static void check_http_header(const nghttp3_nv *nva, size_t nvlen, int request,
                               int want_lib_error) {
   uint8_t rawbuf[4096];
   nghttp3_buf buf;
-  nghttp3_frame_headers fr;
+  nghttp3_frame fr;
   nghttp3_conn *conn;
   nghttp3_settings settings;
   const nghttp3_mem *mem = nghttp3_mem_default();
@@ -1794,11 +1794,13 @@ static void check_http_header(const nghttp3_nv *nva, size_t nvlen, int request,
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)nva;
-  fr.nvlen = nvlen;
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)nva,
+    .nvlen = nvlen,
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   conn_options_clear(&opts);
   opts.settings = &settings;
@@ -2370,7 +2372,7 @@ void test_nghttp3_conn_http_req_header(void) {
 void test_nghttp3_conn_http_content_length(void) {
   uint8_t rawbuf[4096];
   nghttp3_buf buf;
-  nghttp3_frame_headers fr;
+  nghttp3_frame fr;
   nghttp3_conn *conn;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
@@ -2391,11 +2393,13 @@ void test_nghttp3_conn_http_content_length(void) {
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)resnv;
-  fr.nvlen = nghttp3_arraylen(resnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resnv,
+    .nvlen = nghttp3_arraylen(resnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
@@ -2415,11 +2419,13 @@ void test_nghttp3_conn_http_content_length(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)reqnv;
-  fr.nvlen = nghttp3_arraylen(reqnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)reqnv,
+    .nvlen = nghttp3_arraylen(reqnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
@@ -2440,7 +2446,7 @@ void test_nghttp3_conn_http_content_length(void) {
 void test_nghttp3_conn_http_content_length_mismatch(void) {
   uint8_t rawbuf[4096];
   nghttp3_buf buf;
-  nghttp3_frame_headers fr;
+  nghttp3_frame fr;
   nghttp3_conn *conn;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
@@ -2463,11 +2469,13 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)reqnv;
-  fr.nvlen = nghttp3_arraylen(reqnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)reqnv,
+    .nvlen = nghttp3_arraylen(reqnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
@@ -2485,11 +2493,13 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)reqnv;
-  fr.nvlen = nghttp3_arraylen(reqnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)reqnv,
+    .nvlen = nghttp3_arraylen(reqnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
@@ -2514,11 +2524,13 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)reqnv;
-  fr.nvlen = nghttp3_arraylen(reqnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)reqnv,
+    .nvlen = nghttp3_arraylen(reqnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
   nghttp3_write_frame_data(&buf, 21);
 
   setup_default_server(&conn);
@@ -2538,11 +2550,13 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)resnv;
-  fr.nvlen = nghttp3_arraylen(resnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resnv,
+    .nvlen = nghttp3_arraylen(resnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
@@ -2561,11 +2575,13 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)resnv;
-  fr.nvlen = nghttp3_arraylen(resnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resnv,
+    .nvlen = nghttp3_arraylen(resnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
@@ -2591,11 +2607,13 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)resnv;
-  fr.nvlen = nghttp3_arraylen(resnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resnv,
+    .nvlen = nghttp3_arraylen(resnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
   nghttp3_write_frame_data(&buf, 21);
 
   setup_default_client(&conn);
@@ -2614,7 +2632,7 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
 void test_nghttp3_conn_http_non_final_response(void) {
   uint8_t rawbuf[4096];
   nghttp3_buf buf;
-  nghttp3_frame_headers fr;
+  nghttp3_frame fr;
   nghttp3_conn *conn;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
@@ -2634,11 +2652,13 @@ void test_nghttp3_conn_http_non_final_response(void) {
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)infonv;
-  fr.nvlen = nghttp3_arraylen(infonv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)infonv,
+    .nvlen = nghttp3_arraylen(infonv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
   nghttp3_write_frame_data(&buf, 0);
 
   setup_default_client(&conn);
@@ -2657,18 +2677,22 @@ void test_nghttp3_conn_http_non_final_response(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)infonv;
-  fr.nvlen = nghttp3_arraylen(infonv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)infonv,
+    .nvlen = nghttp3_arraylen(infonv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)resnv;
-  fr.nvlen = nghttp3_arraylen(resnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resnv,
+    .nvlen = nghttp3_arraylen(resnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
@@ -2688,17 +2712,21 @@ void test_nghttp3_conn_http_non_final_response(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)infonv;
-  fr.nvlen = nghttp3_arraylen(infonv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)infonv,
+    .nvlen = nghttp3_arraylen(infonv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)trnv;
-  fr.nvlen = nghttp3_arraylen(trnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)trnv,
+    .nvlen = nghttp3_arraylen(trnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
@@ -2716,7 +2744,7 @@ void test_nghttp3_conn_http_non_final_response(void) {
 void test_nghttp3_conn_http_trailers(void) {
   uint8_t rawbuf[4096];
   nghttp3_buf buf;
-  nghttp3_frame_headers fr;
+  nghttp3_frame fr;
   nghttp3_conn *conn;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
@@ -2746,17 +2774,21 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)resp_nva;
-  fr.nvlen = nghttp3_arraylen(resp_nva);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)trnv;
-  fr.nvlen = nghttp3_arraylen(trnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)trnv,
+    .nvlen = nghttp3_arraylen(trnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
@@ -2774,17 +2806,21 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)resp_nva;
-  fr.nvlen = nghttp3_arraylen(resp_nva);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)resp_nva;
-  fr.nvlen = nghttp3_arraylen(resp_nva);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
@@ -2802,18 +2838,22 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)resp_nva;
-  fr.nvlen = nghttp3_arraylen(resp_nva);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)trnv;
-  fr.nvlen = nghttp3_arraylen(trnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)trnv,
+    .nvlen = nghttp3_arraylen(trnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
@@ -2832,17 +2872,21 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)resp_nva;
-  fr.nvlen = nghttp3_arraylen(resp_nva);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)trnv;
-  fr.nvlen = nghttp3_arraylen(trnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)trnv,
+    .nvlen = nghttp3_arraylen(trnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
@@ -2863,18 +2907,22 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)resp_nva;
-  fr.nvlen = nghttp3_arraylen(resp_nva);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
   nghttp3_write_frame_data(&buf, 99);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)trnv;
-  fr.nvlen = nghttp3_arraylen(trnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)trnv,
+    .nvlen = nghttp3_arraylen(trnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
@@ -2894,17 +2942,21 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)reqnv;
-  fr.nvlen = nghttp3_arraylen(reqnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)reqnv,
+    .nvlen = nghttp3_arraylen(reqnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)trnv;
-  fr.nvlen = nghttp3_arraylen(trnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)trnv,
+    .nvlen = nghttp3_arraylen(trnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
@@ -2921,12 +2973,14 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)reqnv;
-  fr.nvlen = nghttp3_arraylen(reqnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)reqnv,
+    .nvlen = nghttp3_arraylen(reqnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
@@ -2943,18 +2997,22 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)reqnv;
-  fr.nvlen = nghttp3_arraylen(reqnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)reqnv,
+    .nvlen = nghttp3_arraylen(reqnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)trnv;
-  fr.nvlen = nghttp3_arraylen(trnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)trnv,
+    .nvlen = nghttp3_arraylen(trnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
@@ -2971,17 +3029,21 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)connect_reqnv;
-  fr.nvlen = nghttp3_arraylen(connect_reqnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)connect_reqnv,
+    .nvlen = nghttp3_arraylen(connect_reqnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)trnv;
-  fr.nvlen = nghttp3_arraylen(trnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)trnv,
+    .nvlen = nghttp3_arraylen(trnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
@@ -2998,18 +3060,22 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)connect_reqnv;
-  fr.nvlen = nghttp3_arraylen(connect_reqnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)connect_reqnv,
+    .nvlen = nghttp3_arraylen(connect_reqnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
   nghttp3_write_frame_data(&buf, 11);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)trnv;
-  fr.nvlen = nghttp3_arraylen(trnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)trnv,
+    .nvlen = nghttp3_arraylen(trnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
@@ -3027,17 +3093,21 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)reqnv;
-  fr.nvlen = nghttp3_arraylen(reqnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)reqnv,
+    .nvlen = nghttp3_arraylen(reqnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)clnv;
-  fr.nvlen = nghttp3_arraylen(clnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)clnv,
+    .nvlen = nghttp3_arraylen(clnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   memset(&callbacks, 0, sizeof(callbacks));
   callbacks.recv_trailer = recv_trailer;
@@ -3065,17 +3135,21 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)resp_nva;
-  fr.nvlen = nghttp3_arraylen(resp_nva);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)clnv;
-  fr.nvlen = nghttp3_arraylen(clnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)clnv,
+    .nvlen = nghttp3_arraylen(clnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   memset(&callbacks, 0, sizeof(callbacks));
   callbacks.recv_trailer = recv_trailer;
@@ -3104,7 +3178,7 @@ void test_nghttp3_conn_http_trailers(void) {
 void test_nghttp3_conn_http_ignore_content_length(void) {
   uint8_t rawbuf[4096];
   nghttp3_buf buf;
-  nghttp3_frame_headers fr;
+  nghttp3_frame fr;
   nghttp3_conn *conn;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
@@ -3129,11 +3203,13 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)resnv;
-  fr.nvlen = nghttp3_arraylen(resnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resnv,
+    .nvlen = nghttp3_arraylen(resnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
@@ -3156,11 +3232,13 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)reqnv;
-  fr.nvlen = nghttp3_arraylen(reqnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)reqnv,
+    .nvlen = nghttp3_arraylen(reqnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
@@ -3185,11 +3263,13 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)cl_resnv;
-  fr.nvlen = nghttp3_arraylen(cl_resnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)cl_resnv,
+    .nvlen = nghttp3_arraylen(cl_resnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
@@ -3213,7 +3293,7 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
 void test_nghttp3_conn_http_record_request_method(void) {
   uint8_t rawbuf[4096];
   nghttp3_buf buf;
-  nghttp3_frame_headers fr;
+  nghttp3_frame fr;
   nghttp3_conn *conn;
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
@@ -3239,11 +3319,13 @@ void test_nghttp3_conn_http_record_request_method(void) {
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)resnv;
-  fr.nvlen = nghttp3_arraylen(resnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resnv,
+    .nvlen = nghttp3_arraylen(resnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
@@ -3265,11 +3347,13 @@ void test_nghttp3_conn_http_record_request_method(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)resnv;
-  fr.nvlen = nghttp3_arraylen(resnv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resnv,
+    .nvlen = nghttp3_arraylen(resnv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   setup_default_client(&conn);
   nghttp3_conn_create_stream(conn, &stream, 0);
@@ -3290,7 +3374,7 @@ void test_nghttp3_conn_http_record_request_method(void) {
 void test_nghttp3_conn_http_error(void) {
   uint8_t rawbuf[4096];
   nghttp3_buf buf, ebuf;
-  nghttp3_frame_headers fr;
+  nghttp3_frame fr;
   nghttp3_conn *conn;
   nghttp3_callbacks callbacks = {
     .stop_sending = stop_sending,
@@ -3323,11 +3407,13 @@ void test_nghttp3_conn_http_error(void) {
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)dupschemenv;
-  fr.nvlen = nghttp3_arraylen(dupschemenv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)dupschemenv,
+    .nvlen = nghttp3_arraylen(dupschemenv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   conn_options_clear(&opts);
   opts.callbacks = &callbacks;
@@ -3348,11 +3434,13 @@ void test_nghttp3_conn_http_error(void) {
   nghttp3_buf_reset(&buf);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)noschemenv;
-  fr.nvlen = nghttp3_arraylen(noschemenv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)noschemenv,
+    .nvlen = nghttp3_arraylen(noschemenv),
+  };
 
-  nghttp3_write_frame_qpack(&buf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
 
   conn_options_clear(&opts);
   opts.callbacks = &callbacks;
@@ -3380,11 +3468,13 @@ void test_nghttp3_conn_http_error(void) {
 
   nghttp3_buf_init(&ebuf);
 
-  fr.type = NGHTTP3_FRAME_HEADERS;
-  fr.nva = (nghttp3_nv *)noschemenv;
-  fr.nvlen = nghttp3_arraylen(noschemenv);
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)noschemenv,
+    .nvlen = nghttp3_arraylen(noschemenv),
+  };
 
-  nghttp3_write_frame_qpack_dyn(&buf, &ebuf, &qenc, 0, (nghttp3_frame *)&fr);
+  nghttp3_write_frame_qpack_dyn(&buf, &ebuf, &qenc, 0, &fr);
 
   conn_options_clear(&opts);
   opts.callbacks = &callbacks;
@@ -4094,18 +4184,15 @@ void test_nghttp3_conn_recv_goaway(void) {
   nghttp3_buf_reset(&buf);
   setup_default_client(&conn);
 
-  fr = (nghttp3_frame){
-    .settings.type = NGHTTP3_FRAME_SETTINGS,
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
   };
 
   conn_read_control_stream(conn, 3, &fr);
 
-  fr = (nghttp3_frame){
-    .goaway =
-      {
-        .type = NGHTTP3_FRAME_GOAWAY,
-        .id = 0xeeec,
-      },
+  fr.goaway = (nghttp3_frame_goaway){
+    .type = NGHTTP3_FRAME_GOAWAY,
+    .id = 0xeeec,
   };
 
   nghttp3_write_frame(&buf, &fr);
@@ -4746,11 +4833,11 @@ void test_nghttp3_conn_priority_update(void) {
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
-  fr = (nghttp3_frame){
-    .settings.type = NGHTTP3_FRAME_SETTINGS,
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
   };
 
-  nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
+  nghttp3_write_frame(&buf, &fr);
 
   nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                         /* fin = */ 0, 0);
@@ -4759,16 +4846,13 @@ void test_nghttp3_conn_priority_update(void) {
 
   nghttp3_buf_reset(&buf);
 
-  fr = (nghttp3_frame){
-    .priority_update =
-      {
-        .type = NGHTTP3_FRAME_PRIORITY_UPDATE,
-        .data = (uint8_t *)"u=2,i",
-        .datalen = strlen("u=2,i"),
-      },
+  fr.priority_update = (nghttp3_frame_priority_update){
+    .type = NGHTTP3_FRAME_PRIORITY_UPDATE,
+    .data = (uint8_t *)"u=2,i",
+    .datalen = strlen("u=2,i"),
   };
 
-  nghttp3_write_frame(&buf, (nghttp3_frame *)&fr);
+  nghttp3_write_frame(&buf, &fr);
 
   for (i = 0; i < conn->local.settings.glitch_ratelim_burst; ++i) {
     nconsumed =

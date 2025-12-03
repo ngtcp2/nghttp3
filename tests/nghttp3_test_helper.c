@@ -30,7 +30,7 @@
 #include "nghttp3_str.h"
 #include "nghttp3_conv.h"
 
-void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr) {
+void nghttp3_write_frame(nghttp3_buf *dest, const nghttp3_frame *fr) {
   int64_t payloadlen;
 
   switch (fr->hd.type) {
@@ -61,7 +61,7 @@ void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr) {
 }
 
 void nghttp3_write_frame_qpack(nghttp3_buf *dest, nghttp3_qpack_encoder *qenc,
-                               int64_t stream_id, nghttp3_frame *fr) {
+                               int64_t stream_id, const nghttp3_frame *fr) {
   int rv;
   const nghttp3_nv *nva;
   size_t nvlen;
@@ -101,7 +101,7 @@ void nghttp3_write_frame_qpack(nghttp3_buf *dest, nghttp3_qpack_encoder *qenc,
 
 void nghttp3_write_frame_qpack_dyn(nghttp3_buf *dest, nghttp3_buf *ebuf,
                                    nghttp3_qpack_encoder *qenc,
-                                   int64_t stream_id, nghttp3_frame *fr) {
+                                   int64_t stream_id, const nghttp3_frame *fr) {
   int rv;
   const nghttp3_nv *nva;
   size_t nvlen;
