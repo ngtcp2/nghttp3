@@ -33,7 +33,7 @@
 void nghttp3_write_frame(nghttp3_buf *dest, nghttp3_frame *fr) {
   int64_t payloadlen;
 
-  switch (fr->type) {
+  switch (fr->hd.type) {
   case NGHTTP3_FRAME_SETTINGS:
     nghttp3_frame_write_settings_len(&payloadlen, &fr->settings);
     dest->last =
@@ -70,7 +70,7 @@ void nghttp3_write_frame_qpack(nghttp3_buf *dest, nghttp3_qpack_encoder *qenc,
   int64_t payloadlen;
   (void)rv;
 
-  switch (fr->type) {
+  switch (fr->hd.type) {
   case NGHTTP3_FRAME_HEADERS:
     nva = fr->headers.nva;
     nvlen = fr->headers.nvlen;
@@ -91,7 +91,7 @@ void nghttp3_write_frame_qpack(nghttp3_buf *dest, nghttp3_qpack_encoder *qenc,
 
   payloadlen = (int64_t)(nghttp3_buf_len(&pbuf) + nghttp3_buf_len(&rbuf));
 
-  dest->last = nghttp3_frame_write_hd(dest->last, fr->type, payloadlen);
+  dest->last = nghttp3_frame_write_hd(dest->last, fr->headers.type, payloadlen);
   dest->last = nghttp3_cpymem(dest->last, pbuf.pos, nghttp3_buf_len(&pbuf));
   dest->last = nghttp3_cpymem(dest->last, rbuf.pos, nghttp3_buf_len(&rbuf));
 
@@ -110,7 +110,7 @@ void nghttp3_write_frame_qpack_dyn(nghttp3_buf *dest, nghttp3_buf *ebuf,
   int64_t payloadlen;
   (void)rv;
 
-  switch (fr->type) {
+  switch (fr->hd.type) {
   case NGHTTP3_FRAME_HEADERS:
     nva = fr->headers.nva;
     nvlen = fr->headers.nvlen;
@@ -129,7 +129,7 @@ void nghttp3_write_frame_qpack_dyn(nghttp3_buf *dest, nghttp3_buf *ebuf,
 
   payloadlen = (int64_t)(nghttp3_buf_len(&pbuf) + nghttp3_buf_len(&rbuf));
 
-  dest->last = nghttp3_frame_write_hd(dest->last, fr->type, payloadlen);
+  dest->last = nghttp3_frame_write_hd(dest->last, fr->headers.type, payloadlen);
   dest->last = nghttp3_cpymem(dest->last, pbuf.pos, nghttp3_buf_len(&pbuf));
   dest->last = nghttp3_cpymem(dest->last, rbuf.pos, nghttp3_buf_len(&rbuf));
 
@@ -144,8 +144,9 @@ void nghttp3_write_frame_data(nghttp3_buf *dest, size_t len) {
   dest->last += len;
 }
 
-nghttp3_ssize nghttp3_decode_frame_hd(nghttp3_frame_hd *hd,
-                                      const nghttp3_vec *vec, size_t veccnt) {
+nghttp3_ssize nghttp3_decode_raw_frame_hd(nghttp3_raw_frame_hd *hd,
+                                          const nghttp3_vec *vec,
+                                          size_t veccnt) {
   const uint8_t *p = vec->base;
   size_t len = 2;
   size_t vlen;
@@ -179,9 +180,9 @@ nghttp3_decode_priority_update_frame(nghttp3_frame_priority_update *fr,
   const uint8_t *p = vec->base;
   size_t vlen;
   nghttp3_ssize hdlen;
-  nghttp3_frame_hd hd;
+  nghttp3_raw_frame_hd hd;
 
-  hdlen = nghttp3_decode_frame_hd(&hd, vec, veccnt);
+  hdlen = nghttp3_decode_raw_frame_hd(&hd, vec, veccnt);
   if (hdlen < 0) {
     return hdlen;
   }
@@ -219,9 +220,9 @@ nghttp3_ssize nghttp3_decode_settings_frame(nghttp3_frame_settings *fr,
   size_t vlen;
   size_t i;
   nghttp3_ssize hdlen;
-  nghttp3_frame_hd hd;
+  nghttp3_raw_frame_hd hd;
 
-  hdlen = nghttp3_decode_frame_hd(&hd, vec, veccnt);
+  hdlen = nghttp3_decode_raw_frame_hd(&hd, vec, veccnt);
   if (hdlen < 0) {
     return hdlen;
   }
@@ -289,9 +290,9 @@ nghttp3_ssize nghttp3_decode_origin_frame(nghttp3_frame_origin *fr,
                                           const nghttp3_vec *vec,
                                           size_t veccnt) {
   nghttp3_ssize hdlen;
-  nghttp3_frame_hd hd;
+  nghttp3_raw_frame_hd hd;
 
-  hdlen = nghttp3_decode_frame_hd(&hd, vec, veccnt);
+  hdlen = nghttp3_decode_raw_frame_hd(&hd, vec, veccnt);
   if (hdlen < 0) {
     return hdlen;
   }

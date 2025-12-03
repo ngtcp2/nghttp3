@@ -743,7 +743,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
         return (nghttp3_ssize)nconsumed;
       }
 
-      rstate->fr.type = rvint->acc;
+      rstate->fr.hd.type = rvint->acc;
       nghttp3_varint_read_state_reset(rvint);
       rstate->state = NGHTTP3_CTRL_STREAM_STATE_FRAME_LENGTH;
       if (p == end) {
@@ -767,15 +767,15 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
       nghttp3_varint_read_state_reset(rvint);
 
       if (!(conn->flags & NGHTTP3_CONN_FLAG_SETTINGS_RECVED)) {
-        if (rstate->fr.type != NGHTTP3_FRAME_SETTINGS) {
+        if (rstate->fr.hd.type != NGHTTP3_FRAME_SETTINGS) {
           return NGHTTP3_ERR_H3_MISSING_SETTINGS;
         }
         conn->flags |= NGHTTP3_CONN_FLAG_SETTINGS_RECVED;
-      } else if (rstate->fr.type == NGHTTP3_FRAME_SETTINGS) {
+      } else if (rstate->fr.hd.type == NGHTTP3_FRAME_SETTINGS) {
         return NGHTTP3_ERR_H3_FRAME_UNEXPECTED;
       }
 
-      switch (rstate->fr.type) {
+      switch (rstate->fr.hd.type) {
       case NGHTTP3_FRAME_SETTINGS:
         /* SETTINGS frame might be empty. */
         if (rstate->left == 0) {
@@ -787,6 +787,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
           nghttp3_stream_read_state_reset(rstate);
           break;
         }
+        rstate->fr.settings.iv = &rstate->iv;
         rstate->state = NGHTTP3_CTRL_STREAM_STATE_SETTINGS;
         break;
       case NGHTTP3_FRAME_GOAWAY:
@@ -1523,7 +1524,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
         goto almost_done;
       }
 
-      rstate->fr.type = rvint->acc;
+      rstate->fr.hd.type = rvint->acc;
       nghttp3_varint_read_state_reset(rvint);
       rstate->state = NGHTTP3_REQ_STREAM_STATE_FRAME_LENGTH;
       if (p == end) {
@@ -1546,7 +1547,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       rstate->left = rvint->acc;
       nghttp3_varint_read_state_reset(rvint);
 
-      switch (rstate->fr.type) {
+      switch (rstate->fr.hd.type) {
       case NGHTTP3_FRAME_DATA:
         rv = nghttp3_stream_transit_rx_http_state(
           stream, NGHTTP3_HTTP_EVENT_DATA_BEGIN);
@@ -2150,7 +2151,7 @@ int nghttp3_conn_bind_control_stream(nghttp3_conn *conn, int64_t stream_id) {
     return rv;
   }
 
-  frent.fr.type = NGHTTP3_FRAME_SETTINGS;
+  frent.fr.settings.type = NGHTTP3_FRAME_SETTINGS;
   frent.aux.settings.local_settings = &conn->local.settings;
 
   rv = nghttp3_stream_frq_add(stream, &frent);
@@ -2401,7 +2402,7 @@ static int conn_submit_headers_data(nghttp3_conn *conn, nghttp3_stream *stream,
     return rv;
   }
 
-  frent.fr.type = NGHTTP3_FRAME_HEADERS;
+  frent.fr.headers.type = NGHTTP3_FRAME_HEADERS;
   frent.fr.headers.nva = nnva;
   frent.fr.headers.nvlen = nvlen;
 
@@ -2412,7 +2413,7 @@ static int conn_submit_headers_data(nghttp3_conn *conn, nghttp3_stream *stream,
   }
 
   if (dr) {
-    frent.fr.type = NGHTTP3_FRAME_DATA;
+    frent.fr.data.type = NGHTTP3_FRAME_DATA;
     frent.aux.data.dr = *dr;
 
     rv = nghttp3_stream_frq_add(stream, &frent);
@@ -2567,7 +2568,7 @@ int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn) {
 
   assert(conn->tx.ctrl);
 
-  frent.fr.type = NGHTTP3_FRAME_GOAWAY;
+  frent.fr.goaway.type = NGHTTP3_FRAME_GOAWAY;
   frent.fr.goaway.id = conn->server ? NGHTTP3_SHUTDOWN_NOTICE_STREAM_ID
                                     : NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID;
 
@@ -2590,7 +2591,7 @@ int nghttp3_conn_shutdown(nghttp3_conn *conn) {
 
   assert(conn->tx.ctrl);
 
-  frent.fr.type = NGHTTP3_FRAME_GOAWAY;
+  frent.fr.goaway.type = NGHTTP3_FRAME_GOAWAY;
   if (conn->server) {
     frent.fr.goaway.id =
       nghttp3_min_int64((1ll << 62) - 4, conn->rx.max_stream_id_bidi + 4);
@@ -2871,7 +2872,7 @@ int nghttp3_conn_set_client_stream_priority(nghttp3_conn *conn,
     memcpy(buf, data, datalen);
   }
 
-  frent.fr.type = NGHTTP3_FRAME_PRIORITY_UPDATE;
+  frent.fr.priority_update.type = NGHTTP3_FRAME_PRIORITY_UPDATE;
   frent.fr.priority_update.pri_elem_id = stream_id;
   frent.fr.priority_update.data = buf;
   frent.fr.priority_update.datalen = datalen;

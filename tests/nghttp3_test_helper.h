@@ -51,10 +51,10 @@
  */
 #define NGHTTP3_TEST_MAP_SEED 0
 
-typedef struct nghttp3_frame_hd {
+typedef struct nghttp3_raw_frame_hd {
   int64_t type;
   int64_t length;
-} nghttp3_frame_hd;
+} nghttp3_raw_frame_hd;
 
 /*
  * nghttp3_write_frame writes |fr| to |dest|.  This function
@@ -87,12 +87,13 @@ void nghttp3_write_frame_qpack_dyn(nghttp3_buf *dest, nghttp3_buf *ebuf,
 void nghttp3_write_frame_data(nghttp3_buf *dest, size_t len);
 
 /*
- * nghttp3_decode_frame_hd decodes frame header out of |vec| of length
- * |veccnt|.  It returns the number of bytes read if it succeeds, or
- * negative error code.
+ * nghttp3_decode_raw_frame_hd decodes frame header out of |vec| of
+ * length |veccnt|.  It returns the number of bytes read if it
+ * succeeds, or negative error code.
  */
-nghttp3_ssize nghttp3_decode_frame_hd(nghttp3_frame_hd *hd,
-                                      const nghttp3_vec *vec, size_t veccnt);
+nghttp3_ssize nghttp3_decode_raw_frame_hd(nghttp3_raw_frame_hd *hd,
+                                          const nghttp3_vec *vec,
+                                          size_t veccnt);
 
 /*
  * nghttp3_decode_priority_update_frame decodes PRIORITY_UPDATE frame
