@@ -170,7 +170,28 @@ int shutdown(nghttp3_conn *conn, int64_t id, void *conn_user_data) {
 }; // namespace
 
 namespace {
-int recv_settings(nghttp3_conn *conn, const nghttp3_settings *settings,
+int recv_origin(nghttp3_conn *conn, const uint8_t *origin, size_t originlen,
+                void *conn_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+} // namespace
+
+namespace {
+int end_origin(nghttp3_conn *conn, void *conn_user_data) {
+  auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
+
+  return fuzzed_data_provider->ConsumeBool() ? NGHTTP3_ERR_CALLBACK_FAILURE : 0;
+}
+} // namespace
+
+namespace {
+void rand(uint8_t *dest, size_t destlen) { memset(dest, 0, destlen); }
+} // namespace
+
+namespace {
+int recv_settings(nghttp3_conn *conn, const nghttp3_proto_settings *settings,
                   void *conn_user_data) {
   auto fuzzed_data_provider = static_cast<FuzzedDataProvider *>(conn_user_data);
 
@@ -328,7 +349,10 @@ void run_fuzzer(const uint8_t *data, size_t size, size_t step) {
     .end_stream = end_stream,
     .reset_stream = reset_stream,
     .shutdown = shutdown,
-    .recv_settings = recv_settings,
+    .recv_origin = recv_origin,
+    .end_origin = end_origin,
+    .rand = rand,
+    .recv_settings2 = recv_settings,
   };
 
   nghttp3_settings settings;
