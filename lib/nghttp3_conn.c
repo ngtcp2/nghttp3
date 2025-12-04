@@ -190,14 +190,33 @@ static int conn_call_deferred_consume(nghttp3_conn *conn,
 }
 
 static int conn_call_recv_settings(nghttp3_conn *conn) {
+  nghttp3_settings settings;
   int rv;
 
-  if (!conn->callbacks.recv_settings) {
+  if (!conn->callbacks.recv_settings2) {
+    if (!conn->callbacks.recv_settings) {
+      return 0;
+    }
+
+    settings = (nghttp3_settings){
+      .max_field_section_size = conn->remote.settings.max_field_section_size,
+      .qpack_max_dtable_capacity =
+        conn->remote.settings.qpack_max_dtable_capacity,
+      .qpack_blocked_streams = conn->remote.settings.qpack_blocked_streams,
+      .enable_connect_protocol = conn->remote.settings.enable_connect_protocol,
+      .h3_datagram = conn->remote.settings.h3_datagram,
+    };
+
+    rv = conn->callbacks.recv_settings(conn, &settings, conn->user_data);
+    if (rv != 0) {
+      return NGHTTP3_ERR_CALLBACK_FAILURE;
+    }
+
     return 0;
   }
 
-  rv = conn->callbacks.recv_settings(conn, &conn->remote.settings,
-                                     conn->user_data);
+  rv = conn->callbacks.recv_settings2(conn, &conn->remote.settings,
+                                      conn->user_data);
   if (rv != 0) {
     return NGHTTP3_ERR_CALLBACK_FAILURE;
   }
@@ -334,7 +353,7 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
     conn->local.settings.enable_connect_protocol = 0;
     conn->local.settings.origin_list = NULL;
   }
-  nghttp3_settings_default(&conn->remote.settings);
+  conn->remote.settings.max_field_section_size = NGHTTP3_VARINT_MAX;
   conn->mem = mem;
   conn->user_data = user_data;
   conn->server = server;
@@ -1924,7 +1943,7 @@ nghttp3_ssize nghttp3_conn_on_headers(nghttp3_conn *conn,
 int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
                                             const nghttp3_frame_settings *fr) {
   const nghttp3_settings_entry *ent = &fr->iv[0];
-  nghttp3_settings *dest = &conn->remote.settings;
+  nghttp3_proto_settings *dest = &conn->remote.settings;
 
   /* TODO Check for duplicates */
   switch (ent->id) {
