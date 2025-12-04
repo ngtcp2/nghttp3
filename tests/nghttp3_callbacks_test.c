@@ -230,10 +230,25 @@ static int end_origin(nghttp3_conn *conn, void *conn_user_data) {
   return 0;
 }
 
+static void randcb(uint8_t *dest, size_t destlen) {
+  (void)dest;
+  (void)destlen;
+}
+
+static int recv_settings2(nghttp3_conn *conn,
+                          const nghttp3_proto_settings *settings,
+                          void *conn_user_data) {
+  (void)conn;
+  (void)settings;
+  (void)conn_user_data;
+
+  return 0;
+}
+
 void test_nghttp3_callbacks_convert_to_latest(void) {
   nghttp3_callbacks *src, srcbuf, callbacksbuf;
   const nghttp3_callbacks *dest;
-  size_t v1len;
+  size_t v2len;
 
   memset(&srcbuf, 0, sizeof(srcbuf));
 
@@ -252,15 +267,18 @@ void test_nghttp3_callbacks_convert_to_latest(void) {
   srcbuf.reset_stream = reset_stream;
   srcbuf.shutdown = shutdown;
   srcbuf.recv_settings = recv_settings;
+  srcbuf.recv_origin = recv_origin;
+  srcbuf.end_origin = end_origin;
+  srcbuf.rand = randcb;
 
-  v1len = nghttp3_callbackslen_version(NGHTTP3_CALLBACKS_V1);
+  v2len = nghttp3_callbackslen_version(NGHTTP3_CALLBACKS_V2);
 
-  src = malloc(v1len);
+  src = malloc(v2len);
 
-  memcpy(src, &srcbuf, v1len);
+  memcpy(src, &srcbuf, v2len);
 
   dest = nghttp3_callbacks_convert_to_latest(&callbacksbuf,
-                                             NGHTTP3_CALLBACKS_V1, src);
+                                             NGHTTP3_CALLBACKS_V2, src);
 
   free(src);
 
@@ -280,17 +298,19 @@ void test_nghttp3_callbacks_convert_to_latest(void) {
   assert_ptr_equal(srcbuf.reset_stream, dest->reset_stream);
   assert_ptr_equal(srcbuf.shutdown, dest->shutdown);
   assert_ptr_equal(srcbuf.recv_settings, dest->recv_settings);
-  assert_null(dest->recv_origin);
-  assert_null(dest->end_origin);
+  assert_ptr_equal(srcbuf.recv_origin, dest->recv_origin);
+  assert_ptr_equal(srcbuf.end_origin, dest->end_origin);
+  assert_ptr_equal(srcbuf.rand, dest->rand);
+  assert_null(dest->recv_settings2);
 }
 
 void test_nghttp3_callbacks_convert_to_old(void) {
   nghttp3_callbacks src, *dest, destbuf;
-  size_t v1len;
+  size_t v2len;
 
-  v1len = nghttp3_callbackslen_version(NGHTTP3_CALLBACKS_V1);
+  v2len = nghttp3_callbackslen_version(NGHTTP3_CALLBACKS_V2);
 
-  dest = malloc(v1len);
+  dest = malloc(v2len);
 
   memset(&src, 0, sizeof(src));
   src.acked_stream_data = acked_stream_data;
@@ -310,11 +330,13 @@ void test_nghttp3_callbacks_convert_to_old(void) {
   src.recv_settings = recv_settings;
   src.recv_origin = recv_origin;
   src.end_origin = end_origin;
+  src.rand = randcb;
+  src.recv_settings2 = recv_settings2;
 
-  nghttp3_callbacks_convert_to_old(NGHTTP3_CALLBACKS_V1, dest, &src);
+  nghttp3_callbacks_convert_to_old(NGHTTP3_CALLBACKS_V2, dest, &src);
 
   memset(&destbuf, 0, sizeof(destbuf));
-  memcpy(&destbuf, dest, v1len);
+  memcpy(&destbuf, dest, v2len);
 
   free(dest);
 
@@ -333,6 +355,8 @@ void test_nghttp3_callbacks_convert_to_old(void) {
   assert_ptr_equal(src.reset_stream, destbuf.reset_stream);
   assert_ptr_equal(src.shutdown, destbuf.shutdown);
   assert_ptr_equal(src.recv_settings, destbuf.recv_settings);
-  assert_null(destbuf.recv_origin);
-  assert_null(destbuf.end_origin);
+  assert_ptr_equal(src.recv_origin, destbuf.recv_origin);
+  assert_ptr_equal(src.end_origin, destbuf.end_origin);
+  assert_ptr_equal(src.rand, destbuf.rand);
+  assert_null(destbuf.recv_settings2);
 }

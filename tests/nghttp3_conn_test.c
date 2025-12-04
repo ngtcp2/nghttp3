@@ -128,6 +128,10 @@ typedef struct {
   } recv_settings_cb;
   struct {
     size_t ncalled;
+    nghttp3_proto_settings settings;
+  } recv_settings2_cb;
+  struct {
+    size_t ncalled;
   } recv_trailer_cb;
   struct {
     const nghttp3_vec *origin_list;
@@ -389,6 +393,18 @@ static int recv_settings(nghttp3_conn *conn, const nghttp3_settings *settings,
   return 0;
 }
 
+static int recv_settings2(nghttp3_conn *conn,
+                          const nghttp3_proto_settings *settings,
+                          void *user_data) {
+  userdata *ud = user_data;
+  (void)conn;
+
+  ++ud->recv_settings2_cb.ncalled;
+  ud->recv_settings2_cb.settings = *settings;
+
+  return 0;
+}
+
 static int recv_origin(nghttp3_conn *conn, const uint8_t *origin,
                        size_t originlen, void *user_data) {
   userdata *ud = user_data;
@@ -602,6 +618,10 @@ static void conn_read_control_stream(nghttp3_conn *conn, int64_t stream_id,
 void test_nghttp3_conn_read_control(void) {
   nghttp3_conn *conn;
   nghttp3_callbacks callbacks = {
+    .recv_settings2 = recv_settings2,
+    .rand = rand_cb,
+  };
+  nghttp3_callbacks deprecated_callbacks = {
     .recv_settings = recv_settings,
     .rand = rand_cb,
   };
@@ -660,10 +680,12 @@ void test_nghttp3_conn_read_control(void) {
   assert_size(4096, ==, conn->qenc.ctx.hard_max_dtable_capacity);
   assert_size(4096, ==, conn->qenc.ctx.max_dtable_capacity);
   assert_size(99, ==, conn->qenc.ctx.max_blocked_streams);
-  assert_size(1, ==, ud.recv_settings_cb.ncalled);
-  assert_uint64(65536, ==, ud.recv_settings_cb.settings.max_field_section_size);
-  assert_size(4096, ==, ud.recv_settings_cb.settings.qpack_max_dtable_capacity);
-  assert_size(99, ==, ud.recv_settings_cb.settings.qpack_blocked_streams);
+  assert_size(1, ==, ud.recv_settings2_cb.ncalled);
+  assert_uint64(65536, ==,
+                ud.recv_settings2_cb.settings.max_field_section_size);
+  assert_size(4096, ==,
+              ud.recv_settings2_cb.settings.qpack_max_dtable_capacity);
+  assert_size(99, ==, ud.recv_settings2_cb.settings.qpack_blocked_streams);
 
   nghttp3_conn_del(conn);
 
@@ -709,11 +731,11 @@ void test_nghttp3_conn_read_control(void) {
                                         /* fin = */ 0, 0);
 
   assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
-  assert_size(1, ==, ud.recv_settings_cb.ncalled);
+  assert_size(1, ==, ud.recv_settings2_cb.ncalled);
   assert_uint64(NGHTTP3_VARINT_MAX, ==,
-                ud.recv_settings_cb.settings.max_field_section_size);
-  assert_size(0, ==, ud.recv_settings_cb.settings.qpack_max_dtable_capacity);
-  assert_size(0, ==, ud.recv_settings_cb.settings.qpack_blocked_streams);
+                ud.recv_settings2_cb.settings.max_field_section_size);
+  assert_size(0, ==, ud.recv_settings2_cb.settings.qpack_max_dtable_capacity);
+  assert_size(0, ==, ud.recv_settings2_cb.settings.qpack_blocked_streams);
 
   nghttp3_conn_del(conn);
 
@@ -1201,6 +1223,64 @@ void test_nghttp3_conn_read_control(void) {
                                         /* fin = */ 0, 0);
 
   assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nconsumed);
+
+  nghttp3_conn_del(conn);
+
+  /* Deprecated recv_settings */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+    .niv = 5,
+    .iv = ents,
+  };
+  ents[0] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE,
+    .value = 178,
+  };
+  ents[1] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY,
+    .value = 39,
+  };
+  ents[2] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS,
+    .value = 787,
+  };
+  ents[3] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL,
+    .value = 1,
+  };
+  ents[4] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM,
+    .value = 1,
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  conn_options_clear(&opts);
+  opts.callbacks = &deprecated_callbacks;
+  opts.user_data = &ud;
+
+  setup_default_server_with_options(&conn, opts);
+
+  memset(&ud, 0, sizeof(ud));
+  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  assert_uint64(178, ==, conn->remote.settings.max_field_section_size);
+  assert_size(39, ==, conn->remote.settings.qpack_max_dtable_capacity);
+  assert_size(787, ==, conn->remote.settings.qpack_blocked_streams);
+  assert_uint8(1, ==, conn->remote.settings.enable_connect_protocol);
+  assert_uint8(1, ==, conn->remote.settings.h3_datagram);
+  assert_size(1, ==, ud.recv_settings_cb.ncalled);
+  assert_uint64(178, ==, ud.recv_settings_cb.settings.max_field_section_size);
+  assert_size(39, ==, ud.recv_settings_cb.settings.qpack_max_dtable_capacity);
+  assert_size(787, ==, ud.recv_settings_cb.settings.qpack_blocked_streams);
+  assert_uint8(1, ==, ud.recv_settings_cb.settings.enable_connect_protocol);
+  assert_uint8(1, ==, ud.recv_settings_cb.settings.h3_datagram);
 
   nghttp3_conn_del(conn);
 }
