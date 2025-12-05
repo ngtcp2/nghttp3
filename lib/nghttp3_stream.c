@@ -344,27 +344,24 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
     .niv = 3,
     .iv = ents,
   };
-  nghttp3_settings_entry *iv;
   nghttp3_settings *local_settings = frent->aux.settings.local_settings;
   int64_t payloadlen;
 
-  iv = &fr.iv[0];
-
-  iv[0] = (nghttp3_settings_entry){
+  ents[0] = (nghttp3_settings_entry){
     .id = NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE,
     .value = local_settings->max_field_section_size,
   };
-  iv[1] = (nghttp3_settings_entry){
+  ents[1] = (nghttp3_settings_entry){
     .id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY,
     .value = local_settings->qpack_max_dtable_capacity,
   };
-  iv[2] = (nghttp3_settings_entry){
+  ents[2] = (nghttp3_settings_entry){
     .id = NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS,
     .value = local_settings->qpack_blocked_streams,
   };
 
   if (local_settings->h3_datagram) {
-    iv[fr.niv] = (nghttp3_settings_entry){
+    ents[fr.niv] = (nghttp3_settings_entry){
       .id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM,
       .value = 1,
     };
@@ -373,7 +370,7 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
   }
 
   if (local_settings->enable_connect_protocol) {
-    iv[fr.niv] = (nghttp3_settings_entry){
+    ents[fr.niv] = (nghttp3_settings_entry){
       .id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL,
       .value = 1,
     };
