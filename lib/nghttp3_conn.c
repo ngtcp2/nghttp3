@@ -190,7 +190,6 @@ static int conn_call_deferred_consume(nghttp3_conn *conn,
 }
 
 static int conn_call_recv_settings(nghttp3_conn *conn) {
-  nghttp3_settings settings;
   int rv;
 
   if (!conn->callbacks.recv_settings2) {
@@ -198,16 +197,18 @@ static int conn_call_recv_settings(nghttp3_conn *conn) {
       return 0;
     }
 
-    settings = (nghttp3_settings){
-      .max_field_section_size = conn->remote.settings.max_field_section_size,
-      .qpack_max_dtable_capacity =
-        conn->remote.settings.qpack_max_dtable_capacity,
-      .qpack_blocked_streams = conn->remote.settings.qpack_blocked_streams,
-      .enable_connect_protocol = conn->remote.settings.enable_connect_protocol,
-      .h3_datagram = conn->remote.settings.h3_datagram,
-    };
-
-    rv = conn->callbacks.recv_settings(conn, &settings, conn->user_data);
+    rv = conn->callbacks.recv_settings(
+      conn,
+      &(nghttp3_settings){
+        .max_field_section_size = conn->remote.settings.max_field_section_size,
+        .qpack_max_dtable_capacity =
+          conn->remote.settings.qpack_max_dtable_capacity,
+        .qpack_blocked_streams = conn->remote.settings.qpack_blocked_streams,
+        .enable_connect_protocol =
+          conn->remote.settings.enable_connect_protocol,
+        .h3_datagram = conn->remote.settings.h3_datagram,
+      },
+      conn->user_data);
     if (rv != 0) {
       return NGHTTP3_ERR_CALLBACK_FAILURE;
     }
@@ -2108,11 +2109,11 @@ int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
                                int64_t stream_id) {
   nghttp3_stream *stream;
   int rv;
-  nghttp3_stream_callbacks callbacks = {
-    .acked_data = conn_stream_acked_data,
-  };
 
-  rv = nghttp3_stream_new(&stream, stream_id, &callbacks,
+  rv = nghttp3_stream_new(&stream, stream_id,
+                          &(nghttp3_stream_callbacks){
+                            .acked_data = conn_stream_acked_data,
+                          },
                           &conn->out_chunk_objalloc, &conn->stream_objalloc,
                           conn->mem);
   if (rv != 0) {
@@ -2181,8 +2182,10 @@ int nghttp3_conn_bind_control_stream(nghttp3_conn *conn, int64_t stream_id) {
   if (conn->local.settings.origin_list) {
     assert(conn->server);
 
-    frent.fr.origin.type = NGHTTP3_FRAME_ORIGIN;
-    frent.fr.origin.origin_list = *conn->local.settings.origin_list;
+    frent.fr.origin = (nghttp3_frame_origin){
+      .type = NGHTTP3_FRAME_ORIGIN,
+      .origin_list = *conn->local.settings.origin_list,
+    };
 
     rv = nghttp3_stream_frq_add(stream, &frent);
     if (rv != 0) {
@@ -2421,9 +2424,11 @@ static int conn_submit_headers_data(nghttp3_conn *conn, nghttp3_stream *stream,
     return rv;
   }
 
-  frent.fr.headers.type = NGHTTP3_FRAME_HEADERS;
-  frent.fr.headers.nva = nnva;
-  frent.fr.headers.nvlen = nvlen;
+  frent.fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = nnva,
+    .nvlen = nvlen,
+  };
 
   rv = nghttp3_stream_frq_add(stream, &frent);
   if (rv != 0) {
@@ -2432,7 +2437,9 @@ static int conn_submit_headers_data(nghttp3_conn *conn, nghttp3_stream *stream,
   }
 
   if (dr) {
-    frent.fr.data.type = NGHTTP3_FRAME_DATA;
+    frent.fr.data = (nghttp3_frame_data){
+      .type = NGHTTP3_FRAME_DATA,
+    };
     frent.aux.data.dr = *dr;
 
     rv = nghttp3_stream_frq_add(stream, &frent);
@@ -2587,9 +2594,11 @@ int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn) {
 
   assert(conn->tx.ctrl);
 
-  frent.fr.goaway.type = NGHTTP3_FRAME_GOAWAY;
-  frent.fr.goaway.id = conn->server ? NGHTTP3_SHUTDOWN_NOTICE_STREAM_ID
-                                    : NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID;
+  frent.fr.goaway = (nghttp3_frame_goaway){
+    .type = NGHTTP3_FRAME_GOAWAY,
+    .id = conn->server ? NGHTTP3_SHUTDOWN_NOTICE_STREAM_ID
+                       : NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID,
+  };
 
   assert(frent.fr.goaway.id <= conn->tx.goaway_id);
 
@@ -2610,13 +2619,12 @@ int nghttp3_conn_shutdown(nghttp3_conn *conn) {
 
   assert(conn->tx.ctrl);
 
-  frent.fr.goaway.type = NGHTTP3_FRAME_GOAWAY;
-  if (conn->server) {
-    frent.fr.goaway.id =
-      nghttp3_min_int64((1ll << 62) - 4, conn->rx.max_stream_id_bidi + 4);
-  } else {
-    frent.fr.goaway.id = 0;
-  }
+  frent.fr.goaway = (nghttp3_frame_goaway){
+    .type = NGHTTP3_FRAME_GOAWAY,
+    .id = conn->server ? nghttp3_min_int64((1ll << 62) - 4,
+                                           conn->rx.max_stream_id_bidi + 4)
+                       : 0,
+  };
 
   assert(frent.fr.goaway.id <= conn->tx.goaway_id);
 
@@ -2891,10 +2899,12 @@ int nghttp3_conn_set_client_stream_priority(nghttp3_conn *conn,
     memcpy(buf, data, datalen);
   }
 
-  frent.fr.priority_update.type = NGHTTP3_FRAME_PRIORITY_UPDATE;
-  frent.fr.priority_update.pri_elem_id = stream_id;
-  frent.fr.priority_update.data = buf;
-  frent.fr.priority_update.datalen = datalen;
+  frent.fr.priority_update = (nghttp3_frame_priority_update){
+    .type = NGHTTP3_FRAME_PRIORITY_UPDATE,
+    .pri_elem_id = stream_id,
+    .data = buf,
+    .datalen = datalen,
+  };
 
   return nghttp3_stream_frq_add(conn->tx.ctrl, &frent);
 }
