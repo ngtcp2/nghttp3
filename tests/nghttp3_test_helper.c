@@ -181,6 +181,7 @@ nghttp3_decode_priority_update_frame(nghttp3_frame_priority_update *fr,
   size_t vlen;
   nghttp3_ssize hdlen;
   nghttp3_raw_frame_hd hd;
+  int64_t pri_elem_id;
 
   hdlen = nghttp3_decode_raw_frame_hd(&hd, vec, veccnt);
   if (hdlen < 0) {
@@ -190,8 +191,6 @@ nghttp3_decode_priority_update_frame(nghttp3_frame_priority_update *fr,
   if (hd.type != NGHTTP3_FRAME_PRIORITY_UPDATE) {
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
-
-  fr->type = hd.type;
 
   if (hd.length == 0 || (int64_t)hdlen + hd.length > (int64_t)vec->len) {
     return NGHTTP3_ERR_INVALID_ARGUMENT;
@@ -204,10 +203,14 @@ nghttp3_decode_priority_update_frame(nghttp3_frame_priority_update *fr,
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
-  p = nghttp3_get_varint(&fr->pri_elem_id, p);
+  p = nghttp3_get_varint(&pri_elem_id, p);
 
-  fr->data = (uint8_t *)p;
-  fr->datalen = (size_t)hd.length - vlen;
+  *fr = (nghttp3_frame_priority_update){
+    .type = hd.type,
+    .pri_elem_id = pri_elem_id,
+    .data = (uint8_t *)p,
+    .datalen = (size_t)hd.length - vlen,
+  };
 
   return hdlen + (nghttp3_ssize)hd.length;
 }
@@ -231,10 +234,10 @@ nghttp3_ssize nghttp3_decode_settings_frame(nghttp3_frame_settings *fr,
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
-  fr->type = hd.type;
-
   if (hd.length == 0) {
-    fr->niv = 0;
+    *fr = (nghttp3_frame_settings){
+      .type = hd.type,
+    };
     return hdlen;
   }
 
@@ -276,6 +279,7 @@ nghttp3_ssize nghttp3_decode_settings_frame(nghttp3_frame_settings *fr,
 
   p = vec->base + hdlen;
 
+  fr->type = hd.type;
   fr->niv = i;
 
   for (i = 0; i < fr->niv; ++i) {
@@ -301,11 +305,10 @@ nghttp3_ssize nghttp3_decode_origin_frame(nghttp3_frame_origin *fr,
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
-  fr->type = hd.type;
-
   if (hd.length == 0) {
-    fr->origin_list.base = NULL;
-    fr->origin_list.len = 0;
+    *fr = (nghttp3_frame_origin){
+      .type = hd.type,
+    };
 
     return hdlen;
   }
@@ -320,8 +323,14 @@ nghttp3_ssize nghttp3_decode_origin_frame(nghttp3_frame_origin *fr,
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
-  fr->origin_list.base = vec->base;
-  fr->origin_list.len = (size_t)hd.length;
+  *fr = (nghttp3_frame_origin){
+    .type = hd.type,
+    .origin_list =
+      {
+        .base = vec->base,
+        .len = (size_t)hd.length,
+      },
+  };
 
   return hdlen + (nghttp3_ssize)hd.length;
 }
