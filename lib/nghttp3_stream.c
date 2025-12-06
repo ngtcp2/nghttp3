@@ -754,11 +754,13 @@ int nghttp3_stream_outq_add(nghttp3_stream *stream,
   size_t len = nghttp3_ringbuf_len(outq);
   size_t buflen = nghttp3_buf_len(&tbuf->buf);
 
-  if (buflen > NGHTTP3_MAX_VARINT - stream->tx.offset) {
+  /* Check if adding this buffer would cause stream data to exceed
+     NGHTTP3_MAX_VARINT.  We check against NGHTTP3_MAX_VARINT without
+     tracking the total offset, relying on ack_offset and unsent_bytes. */
+  if (buflen > NGHTTP3_MAX_VARINT - stream->ack_offset - stream->unsent_bytes) {
     return NGHTTP3_ERR_STREAM_DATA_OVERFLOW;
   }
 
-  stream->tx.offset += buflen;
   stream->unsent_bytes += buflen;
 
   if (len) {
