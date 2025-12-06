@@ -1,0 +1,1 @@
+/home/runner/work/nghttp3/.codeql-scratch/dbs/cpp/working/autobuild/bin/c++ -Wl,--dependency-file=CMakeFiles/qpack.dir/link.d CMakeFiles/qpack.dir/qpack.cc.o CMakeFiles/qpack.dir/qpack_encode.cc.o CMakeFiles/qpack.dir/qpack_decode.cc.o CMakeFiles/qpack.dir/util.cc.o -o qpack  -Wl,-rpath,/home/runner/work/nghttp3/nghttp3/_codeql_build_dir/lib ../lib/libnghttp3.so.9.5.1
