@@ -869,9 +869,9 @@ void test_nghttp3_conn_read_control(void) {
   opts.callbacks = &callbacks;
   opts.user_data = &ud;
 
-  setup_default_server_with_options(&conn, opts);
+  setup_default_client_with_options(&conn, opts);
 
-  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+  nconsumed = nghttp3_conn_read_stream2(conn, 3, buf.pos, nghttp3_buf_len(&buf),
                                         /* fin = */ 0, 0);
 
   assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
@@ -904,9 +904,9 @@ void test_nghttp3_conn_read_control(void) {
   opts.callbacks = &callbacks;
   opts.user_data = &ud;
 
-  setup_default_server_with_options(&conn, opts);
+  setup_default_client_with_options(&conn, opts);
 
-  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+  nconsumed = nghttp3_conn_read_stream2(conn, 3, buf.pos, nghttp3_buf_len(&buf),
                                         /* fin = */ 0, 0);
 
   assert_ptrdiff(NGHTTP3_ERR_H3_SETTINGS_ERROR, ==, nconsumed);
@@ -1263,10 +1263,10 @@ void test_nghttp3_conn_read_control(void) {
   opts.callbacks = &deprecated_callbacks;
   opts.user_data = &ud;
 
-  setup_default_server_with_options(&conn, opts);
+  setup_default_client_with_options(&conn, opts);
 
   memset(&ud, 0, sizeof(ud));
-  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+  nconsumed = nghttp3_conn_read_stream2(conn, 3, buf.pos, nghttp3_buf_len(&buf),
                                         /* fin = */ 0, 0);
 
   assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);

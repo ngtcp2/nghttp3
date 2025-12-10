@@ -1980,7 +1980,7 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
       &conn->qenc, (size_t)nghttp3_min_uint64(100, ent->value));
     break;
   case NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL:
-    if (!conn->server) {
+    if (conn->server) {
       break;
     }
 
