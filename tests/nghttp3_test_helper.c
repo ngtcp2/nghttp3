@@ -55,6 +55,20 @@ void nghttp3_write_frame(nghttp3_buf *dest, const nghttp3_frame *fr) {
     dest->last =
       nghttp3_frame_write_origin(dest->last, &fr->origin, payloadlen);
     break;
+  case NGHTTP3_FRAME_EX_CPSL:
+    switch (fr->cpsl.fr.hd.type) {
+    case NGHTTP3_EXFR_CPSL_WT_CLOSE_SESSION:
+      nghttp3_frame_write_cpsl_wt_close_session_len(
+        &payloadlen, &fr->cpsl.fr.wt_close_session);
+      dest->last = nghttp3_frame_write_cpsl_wt_close_session(
+        dest->last, &fr->cpsl.fr.wt_close_session, payloadlen);
+
+      break;
+    default:
+      assert(0);
+    }
+
+    break;
   default:
     assert(0);
   }
