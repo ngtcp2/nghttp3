@@ -693,19 +693,19 @@ int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
     return rv;
   }
 
-  if (datalen) {
-    for (i = 0; i < (size_t)sveccnt; ++i) {
-      v = &vec[i];
-      if (v->len == 0) {
-        continue;
-      }
-      nghttp3_buf_wrap_init(&buf, v->base, v->len);
-      buf.last = buf.end;
-      nghttp3_typed_buf_init(&tbuf, &buf, NGHTTP3_BUF_TYPE_ALIEN);
-      rv = nghttp3_stream_outq_add(stream, &tbuf);
-      if (rv != 0) {
-        return rv;
-      }
+  assert(datalen);
+
+  for (i = 0; i < (size_t)sveccnt; ++i) {
+    v = &vec[i];
+    if (v->len == 0) {
+      continue;
+    }
+    nghttp3_buf_wrap_init(&buf, v->base, v->len);
+    buf.last = buf.end;
+    nghttp3_typed_buf_init(&tbuf, &buf, NGHTTP3_BUF_TYPE_ALIEN);
+    rv = nghttp3_stream_outq_add(stream, &tbuf);
+    if (rv != 0) {
+      return rv;
     }
   }
 
