@@ -527,7 +527,6 @@ nghttp3_ssize nghttp3_conn_read_stream2(nghttp3_conn *conn, int64_t stream_id,
       }
 
       stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
-      stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
     } else if (nghttp3_server_stream_uni(stream_id)) {
       if (srclen == 0 && fin) {
         return 0;
@@ -539,7 +538,6 @@ nghttp3_ssize nghttp3_conn_read_stream2(nghttp3_conn *conn, int64_t stream_id,
       }
 
       stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
-      stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
     } else {
       /* client doesn't expect to receive new bidirectional stream or
          client initiated unidirectional stream from server. */
@@ -2065,7 +2063,6 @@ conn_on_priority_update_stream(nghttp3_conn *conn,
     stream->node.pri = fr->pri;
     stream->flags |= NGHTTP3_STREAM_FLAG_PRIORITY_UPDATE_RECVED;
     stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
-    stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
 
     return 0;
   }
@@ -2517,7 +2514,6 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
     return rv;
   }
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
-  stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_END;
   stream->user_data = stream_user_data;
 
   nghttp3_http_record_request_method(stream, nva, nvlen);
