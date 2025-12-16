@@ -1416,7 +1416,7 @@ static int conn_process_blocked_stream_data(nghttp3_conn *conn,
 
     rv = conn_call_deferred_consume(conn, stream, (size_t)nconsumed);
     if (rv != 0) {
-      return 0;
+      return rv;
     }
 
     if (nghttp3_buf_len(buf) == 0) {
