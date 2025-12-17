@@ -1749,7 +1749,11 @@ typedef struct nghttp3_conn nghttp3_conn;
 typedef struct nghttp3_settings {
   /**
    * :member:`max_field_section_size` specifies the maximum header
-   * section (block) size.
+   * section (block) size.  nghttp3 library does not enforce this
+   * limit.  Applications are responsible for imposing their own
+   * limits to protect against resource exhaustion.  See
+   * https://datatracker.ietf.org/doc/html/rfc9114#section-4.2.2 for
+   * details.
    */
   uint64_t max_field_section_size;
   /**
