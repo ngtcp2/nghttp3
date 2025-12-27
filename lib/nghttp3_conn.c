@@ -2488,15 +2488,27 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
                                 const nghttp3_nv *nva, size_t nvlen,
                                 const nghttp3_data_reader *dr,
                                 void *stream_user_data) {
+  return nghttp3_conn_submit_request2(conn, stream_id, nva, nvlen, dr, NULL,
+                                      stream_user_data);
+}
+
+int nghttp3_conn_submit_request2_versioned(
+  nghttp3_conn *conn, int64_t stream_id, const nghttp3_nv *nva, size_t nvlen,
+  const nghttp3_data_reader *dr, int pri_version, const nghttp3_pri *pri,
+  void *stream_user_data) {
   nghttp3_stream *stream;
   int rv;
+  (void)pri_version;
 
   assert(!conn->server);
   assert(conn->tx.qenc);
-
   assert(stream_id >= 0);
   assert(stream_id <= (int64_t)NGHTTP3_MAX_VARINT);
   assert(nghttp3_client_stream_bidi(stream_id));
+
+  if (pri && (pri->urgency >= NGHTTP3_URGENCY_LEVELS || pri->inc > 1)) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
 
   /* TODO Check GOAWAY last stream ID */
 
@@ -2515,6 +2527,10 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
   }
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
   stream->user_data = stream_user_data;
+
+  if (pri) {
+    stream->node.pri = *pri;
+  }
 
   nghttp3_http_record_request_method(stream, nva, nvlen);
 
