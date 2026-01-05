@@ -2530,6 +2530,8 @@ int nghttp3_conn_submit_request2_versioned(
 
   if (pri) {
     stream->node.pri = *pri;
+  } else {
+    stream->node.pri.inc = 1;
   }
 
   nghttp3_http_record_request_method(stream, nva, nvlen);
