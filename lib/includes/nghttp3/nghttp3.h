@@ -3119,7 +3119,7 @@ NGHTTP3_EXTERN int nghttp3_conn_set_server_stream_priority_versioned(
  * function works exactly like `nghttp3_conn_submit_request`.
  *
  * If |pri| is NULL, the default priority, (urgency =
- * :macro:`NGHTTP3_DEFAULT_URGENCY` and inc = 0), is used.
+ * :macro:`NGHTTP3_DEFAULT_URGENCY` and inc = 1), is used.
  *
  * |pri| is not sent to server, and does not affect server-side
  * scheduling.  Server cannot update priority set by |pri| or the
