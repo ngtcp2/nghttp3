@@ -2833,6 +2833,9 @@ typedef struct nghttp3_data_reader {
  * stream.  |stream_user_data| is an opaque pointer attached to the
  * stream.
  *
+ * This function is equivalent to call `nghttp3_conn_submit_request2`
+ * with |pri| == NULL.
+ *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
@@ -3110,6 +3113,40 @@ NGHTTP3_EXTERN int nghttp3_conn_set_server_stream_priority_versioned(
 /**
  * @function
  *
+ * `nghttp3_conn_submit_request2` works like
+ * `nghttp3_conn_submit_request`, but it can specify |pri| that
+ * controls client-side stream scheduling.  If |pri| is NULL, this
+ * function works exactly like `nghttp3_conn_submit_request`.
+ *
+ * If |pri| is NULL, the default priority, (urgency =
+ * :macro:`NGHTTP3_DEFAULT_URGENCY` and inc = 0), is used.
+ *
+ * |pri| is not sent to server, and does not affect server-side
+ * scheduling.  Server cannot update priority set by |pri| or the
+ * default value.  `nghttp3_conn_set_client_stream_priority` cannot
+ * update priority set by |pri| or the default value, because it only
+ * updates server-side scheduling.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :macro:`NGHTTP3_ERR_CONN_CLOSING`
+ *     Connection is shutting down, and no new stream is allowed.
+ * :macro:`NGHTTP3_ERR_STREAM_IN_USE`
+ *     Stream has already been opened.
+ * :macro:`NGHTTP3_ERR_INVALID_ARGUMENT`
+ *     |pri| contains invalid values.
+ * :macro:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
+ */
+NGHTTP3_EXTERN int nghttp3_conn_submit_request2_versioned(
+  nghttp3_conn *conn, int64_t stream_id, const nghttp3_nv *nva, size_t nvlen,
+  const nghttp3_data_reader *dr, int pri_version, const nghttp3_pri *pri,
+  void *stream_user_data);
+
+/**
+ * @function
+ *
  * `nghttp3_vec_len` returns the sum of length in |vec| of |cnt|
  * elements.
  */
@@ -3278,6 +3315,17 @@ NGHTTP3_EXTERN int nghttp3_err_is_fatal(int liberr);
 #define nghttp3_conn_get_stream_priority(CONN, DEST, STREAM_ID)                \
   nghttp3_conn_get_stream_priority_versioned((CONN), NGHTTP3_PRI_VERSION,      \
                                              (DEST), (STREAM_ID))
+
+/*
+ * `nghttp3_conn_submit_request2` is a wrapper around
+ * `nghttp3_conn_submit_request2_versioned` to set the correct struct
+ * version.
+ */
+#define nghttp3_conn_submit_request2(CONN, STREAM_ID, NVA, NVLEN, DR, PRI,     \
+                                     STREAM_USER_DATA)                         \
+  nghttp3_conn_submit_request2_versioned((CONN), (STREAM_ID), (NVA), (NVLEN),  \
+                                         (DR), NGHTTP3_PRI_VERSION, (PRI),     \
+                                         (STREAM_USER_DATA))
 
 /*
  * `nghttp3_pri_parse_priority` is a wrapper around

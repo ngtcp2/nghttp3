@@ -140,6 +140,11 @@ typedef struct {
   } recv_origin_cb;
 } userdata;
 
+typedef struct {
+  size_t left;
+  size_t step;
+} step_reader;
+
 static int acked_stream_data(nghttp3_conn *conn, int64_t stream_id,
                              uint64_t datalen, void *user_data,
                              void *stream_user_data) {
@@ -287,6 +292,36 @@ step_then_block_read_data(nghttp3_conn *conn, int64_t stream_id,
   }
 
   return rv;
+}
+
+static nghttp3_ssize stream_step_read_data(nghttp3_conn *conn,
+                                           int64_t stream_id, nghttp3_vec *vec,
+                                           size_t veccnt, uint32_t *pflags,
+                                           void *user_data,
+                                           void *stream_user_data) {
+  step_reader *sr = stream_user_data;
+  size_t n = nghttp3_min_size(sr->left, sr->step);
+
+  (void)conn;
+  (void)stream_id;
+  (void)veccnt;
+  (void)user_data;
+
+  sr->left -= n;
+  if (sr->left == 0) {
+    *pflags = NGHTTP3_DATA_FLAG_EOF;
+
+    if (n == 0) {
+      return 0;
+    }
+  }
+
+  vec[0] = (nghttp3_vec){
+    .base = nulldata,
+    .len = n,
+  };
+
+  return 1;
 }
 
 #if SIZE_MAX > UINT32_MAX
@@ -1713,6 +1748,62 @@ void test_nghttp3_conn_submit_request(void) {
   assert_ptrdiff(0, ==, sveccnt);
 
   rv = nghttp3_conn_add_ack_offset(conn, stream_id, 0);
+
+  assert_int(0, ==, rv);
+
+  nghttp3_conn_del(conn);
+
+  /* Client-side scheduling with priority */
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  rv = nghttp3_conn_submit_request2(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                    (&(nghttp3_data_reader){
+                                      .read_data = stream_step_read_data,
+                                    }),
+                                    (&(nghttp3_pri){
+                                      .inc = 1,
+                                    }),
+                                    (&(step_reader){
+                                      .left = 16 * 1024,
+                                      .step = 4096,
+                                    }));
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_submit_request2(conn, 4, req_nva, nghttp3_arraylen(req_nva),
+                                    (&(nghttp3_data_reader){
+                                      .read_data = stream_step_read_data,
+                                    }),
+                                    (&(nghttp3_pri){
+                                      .inc = 1,
+                                    }),
+                                    (&(step_reader){
+                                      .left = 16 * 1024,
+                                      .step = 4096,
+                                    }));
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(2, ==, sveccnt);
+  assert_int64(0, ==, stream_id);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(2, ==, sveccnt);
+  assert_int64(4, ==, stream_id);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
 
   assert_int(0, ==, rv);
 
