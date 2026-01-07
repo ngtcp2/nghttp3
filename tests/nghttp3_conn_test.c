@@ -1757,31 +1757,25 @@ void test_nghttp3_conn_submit_request(void) {
   setup_default_client(&conn);
   conn_write_initial_streams(conn);
 
-  rv = nghttp3_conn_submit_request2(conn, 0, req_nva, nghttp3_arraylen(req_nva),
-                                    (&(nghttp3_data_reader){
-                                      .read_data = stream_step_read_data,
-                                    }),
-                                    (&(nghttp3_pri){
-                                      .inc = 1,
-                                    }),
-                                    (&(step_reader){
-                                      .left = 16 * 1024,
-                                      .step = 4096,
-                                    }));
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   &(nghttp3_data_reader){
+                                     .read_data = stream_step_read_data,
+                                   },
+                                   &(step_reader){
+                                     .left = 16 * 1024,
+                                     .step = 4096,
+                                   });
 
   assert_int(0, ==, rv);
 
-  rv = nghttp3_conn_submit_request2(conn, 4, req_nva, nghttp3_arraylen(req_nva),
-                                    (&(nghttp3_data_reader){
-                                      .read_data = stream_step_read_data,
-                                    }),
-                                    (&(nghttp3_pri){
-                                      .inc = 1,
-                                    }),
-                                    (&(step_reader){
-                                      .left = 16 * 1024,
-                                      .step = 4096,
-                                    }));
+  rv = nghttp3_conn_submit_request(conn, 4, req_nva, nghttp3_arraylen(req_nva),
+                                   &(nghttp3_data_reader){
+                                     .read_data = stream_step_read_data,
+                                   },
+                                   &(step_reader){
+                                     .left = 16 * 1024,
+                                     .step = 4096,
+                                   });
 
   assert_int(0, ==, rv);
 
