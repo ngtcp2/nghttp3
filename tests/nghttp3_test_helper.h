@@ -32,19 +32,15 @@
 #include "nghttp3_buf.h"
 #include "nghttp3_frame.h"
 #include "nghttp3_qpack.h"
+#include "nghttp3_macro.h"
 
 #define MAKE_NV(NAME, VALUE)                                                   \
   {                                                                            \
     .name = (uint8_t *)(NAME),                                                 \
     .value = (uint8_t *)(VALUE),                                               \
-    .namelen = sizeof((NAME)) - 1,                                             \
-    .valuelen = sizeof((VALUE)) - 1,                                           \
+    .namelen = nghttp3_strlen_lit((NAME)),                                     \
+    .valuelen = nghttp3_strlen_lit((VALUE)),                                   \
   }
-
-/*
- * strsize macro returns the length of string literal |S|.
- */
-#define strsize(S) (sizeof(S) - 1)
 
 /*
  * NGHTTP3_TEST_MAP_SEED is the seed passed to nghttp3_map_init.

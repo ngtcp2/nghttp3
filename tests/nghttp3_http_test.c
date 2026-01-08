@@ -53,7 +53,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(0, ==, rv);
     assert_uint32((uint32_t)-1, ==, pri.urgency);
@@ -67,7 +67,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "";
 
-    rv = nghttp3_pri_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_pri_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(0, ==, rv);
     assert_uint32((uint32_t)-1, ==, pri.urgency);
@@ -81,7 +81,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "u=1";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(0, ==, rv);
     assert_uint32((uint32_t)1, ==, pri.urgency);
@@ -95,7 +95,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "i";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(0, ==, rv);
     assert_uint32((uint32_t)-1, ==, pri.urgency);
@@ -109,7 +109,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "i=?0";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(0, ==, rv);
     assert_uint32((uint32_t)-1, ==, pri.urgency);
@@ -123,7 +123,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "u=7,i";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(0, ==, rv);
     assert_uint32((uint32_t)7, ==, pri.urgency);
@@ -137,7 +137,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "u=0,i=?0";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(0, ==, rv);
     assert_uint32((uint32_t)0, ==, pri.urgency);
@@ -151,7 +151,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "u=3, i";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(0, ==, rv);
     assert_uint32((uint32_t)3, ==, pri.urgency);
@@ -165,7 +165,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "u=0, i, i=?0, u=6";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(0, ==, rv);
     assert_uint32((uint32_t)6, ==, pri.urgency);
@@ -179,7 +179,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "u=0,";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(NGHTTP3_ERR_INVALID_ARGUMENT, ==, rv);
   }
@@ -191,7 +191,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "u=0, ";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(NGHTTP3_ERR_INVALID_ARGUMENT, ==, rv);
   }
@@ -203,7 +203,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "u=";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(NGHTTP3_ERR_INVALID_ARGUMENT, ==, rv);
   }
@@ -215,7 +215,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "u";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(NGHTTP3_ERR_INVALID_ARGUMENT, ==, rv);
   }
@@ -227,7 +227,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "i=?1";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(0, ==, rv);
     assert_uint32((uint32_t)-1, ==, pri.urgency);
@@ -241,7 +241,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "i=?2";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(NGHTTP3_ERR_INVALID_ARGUMENT, ==, rv);
   }
@@ -253,7 +253,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "i=?";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(NGHTTP3_ERR_INVALID_ARGUMENT, ==, rv);
   }
@@ -265,7 +265,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "i=";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(NGHTTP3_ERR_INVALID_ARGUMENT, ==, rv);
   }
@@ -277,7 +277,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "u=-1";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(NGHTTP3_ERR_INVALID_ARGUMENT, ==, rv);
   }
@@ -289,7 +289,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "u=8";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(NGHTTP3_ERR_INVALID_ARGUMENT, ==, rv);
   }
@@ -302,7 +302,7 @@ void test_nghttp3_http_parse_priority(void) {
     const uint8_t v[] =
       "i=?0, u=1, a=(x y z), u=2; i=?0;foo=\",,,\", i=?1;i=?0; u=6";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(0, ==, rv);
     assert_uint32((uint32_t)2, ==, pri.urgency);
@@ -328,7 +328,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "i=1";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(NGHTTP3_ERR_INVALID_ARGUMENT, ==, rv);
   }
@@ -340,7 +340,7 @@ void test_nghttp3_http_parse_priority(void) {
     };
     const uint8_t v[] = "ii=1, u=7";
 
-    rv = nghttp3_http_parse_priority(&pri, v, sizeof(v) - 1);
+    rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
     assert_int(0, ==, rv);
     assert_uint32((uint32_t)7, ==, pri.urgency);
@@ -349,7 +349,7 @@ void test_nghttp3_http_parse_priority(void) {
 }
 
 #define check_header_value(S)                                                  \
-  nghttp3_check_header_value((const uint8_t *)(S), sizeof(S) - 1)
+  nghttp3_check_header_value((const uint8_t *)(S), nghttp3_strlen_lit(S))
 
 void test_nghttp3_check_header_value(void) {
   uint8_t goodval[] = {'a', 'b', 0x80u, 'c', 0xffu, 'd'};
@@ -409,7 +409,7 @@ void test_nghttp3_check_header_value(void) {
 }
 
 #define check_header_name(S)                                                   \
-  nghttp3_check_header_name((const uint8_t *)(S), sizeof(S) - 1)
+  nghttp3_check_header_name((const uint8_t *)(S), nghttp3_strlen_lit(S))
 
 void test_nghttp3_check_header_name(void) {
   assert_false(check_header_name(""));
