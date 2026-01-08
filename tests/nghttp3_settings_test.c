@@ -46,7 +46,7 @@ void test_nghttp3_settings_convert_to_latest(void) {
   const uint8_t origins[] = "foo";
   nghttp3_vec origin_list = {
     .base = (uint8_t *)origins,
-    .len = strsize(origins),
+    .len = nghttp3_strlen_lit(origins),
   };
   size_t v3len;
 
@@ -96,7 +96,7 @@ void test_nghttp3_settings_convert_to_old(void) {
   const uint8_t origins[] = "foo";
   nghttp3_vec origin_list = {
     .base = (uint8_t *)origins,
-    .len = strsize(origins),
+    .len = nghttp3_strlen_lit(origins),
   };
   size_t v3len;
 
