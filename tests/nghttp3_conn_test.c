@@ -5149,7 +5149,7 @@ void test_nghttp3_conn_set_stream_priority(void) {
   nghttp3_conn *conn;
   int rv;
   nghttp3_pri pri;
-  nghttp3_frame_entry *ent;
+  nghttp3_frame *fr;
   nghttp3_stream *stream;
   size_t i;
 
@@ -5173,14 +5173,14 @@ void test_nghttp3_conn_set_stream_priority(void) {
   stream = nghttp3_conn_find_stream(conn, 2);
 
   for (i = 0; i < nghttp3_ringbuf_len(&stream->frq); ++i) {
-    ent = nghttp3_ringbuf_get(&stream->frq, i);
-    if (ent->fr.hd.type != NGHTTP3_FRAME_PRIORITY_UPDATE) {
+    fr = nghttp3_ringbuf_get(&stream->frq, i);
+    if (fr->hd.type != NGHTTP3_FRAME_PRIORITY_UPDATE) {
       continue;
     }
 
-    assert_size(strlen(NGHTTP3_PRI_DATA), ==, ent->fr.priority_update.datalen);
+    assert_size(strlen(NGHTTP3_PRI_DATA), ==, fr->priority_update.datalen);
     assert_memory_equal(strlen(NGHTTP3_PRI_DATA), NGHTTP3_PRI_DATA,
-                        ent->fr.priority_update.data);
+                        fr->priority_update.data);
 
     break;
   }
