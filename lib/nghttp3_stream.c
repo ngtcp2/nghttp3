@@ -342,7 +342,7 @@ int nghttp3_stream_write_settings(nghttp3_stream *stream,
     .niv = 3,
     .iv = ents,
   };
-  nghttp3_settings *local_settings = infr->local_settings;
+  const nghttp3_settings *local_settings = infr->local_settings;
   int64_t payloadlen;
 
   ents[0] = (nghttp3_settings_entry){
