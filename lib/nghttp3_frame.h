@@ -93,7 +93,7 @@ typedef struct nghttp3_frame_settings {
   nghttp3_settings_entry *iv;
   /* local_settings is set when sending SETTINGS frame.  It is not
      used on reception. */
-  nghttp3_settings *local_settings;
+  const nghttp3_settings *local_settings;
 } nghttp3_frame_settings;
 
 typedef struct nghttp3_frame_goaway {
