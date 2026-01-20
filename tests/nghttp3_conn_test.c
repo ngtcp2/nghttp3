@@ -36,6 +36,7 @@
 #include "nghttp3_http.h"
 #include "nghttp3_str.h"
 #include "nghttp3_settings.h"
+#include "nghttp3_wt.h"
 
 static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_conn_read_control),
@@ -73,6 +74,10 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_conn_recv_origin),
   munit_void_test(test_nghttp3_conn_write_origin),
   munit_void_test(test_nghttp3_conn_recv_unknown_frame),
+  munit_void_test(test_nghttp3_conn_wt_client),
+  munit_void_test(test_nghttp3_conn_wt_server),
+  munit_void_test(test_nghttp3_conn_wt_read_capsule),
+  munit_void_test(test_nghttp3_conn_wt_pri),
   munit_test_end(),
 };
 
@@ -190,6 +195,25 @@ static int end_headers(nghttp3_conn *conn, int64_t stream_id, int fin,
   (void)fin;
   (void)stream_user_data;
   (void)user_data;
+  return 0;
+}
+
+static int end_headers_404(nghttp3_conn *conn, int64_t stream_id, int fin,
+                           void *user_data, void *stream_user_data) {
+  const nghttp3_nv nva[] = {
+    MAKE_NV(":status", "404"),
+  };
+  int rv;
+  (void)fin;
+  (void)stream_user_data;
+  (void)user_data;
+
+  rv = nghttp3_conn_submit_response(conn, stream_id, nva, nghttp3_arraylen(nva),
+                                    NULL);
+  if (rv != 0) {
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
   return 0;
 }
 
@@ -561,6 +585,21 @@ static void setup_default_server(nghttp3_conn **pconn) {
   conn_options opts = {0};
 
   setup_default_server_with_options(pconn, opts);
+}
+
+static void conn_finish_write(nghttp3_conn *conn, const nghttp3_vec *vec,
+                              size_t veccnt) {
+  size_t len;
+  int rv;
+
+  len = (size_t)nghttp3_vec_len(vec, veccnt);
+  rv = nghttp3_conn_add_write_offset(conn, 0, len);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 0, len);
+
+  assert_int(0, ==, rv);
 }
 
 static void conn_write_initial_streams(nghttp3_conn *conn) {
@@ -6686,5 +6725,1634 @@ void test_nghttp3_conn_recv_unknown_frame(void) {
 
   assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nconsumed);
 
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_wt_client(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  const nghttp3_nv nva[] = {
+    MAKE_NV(":path", "/wt"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "CONNECT"),
+    MAKE_NV(":protocol", "webtransport"),
+  };
+  const nghttp3_nv respnva[] = {
+    MAKE_NV(":status", "200"),
+  };
+  int rv;
+  int64_t stream_id;
+  nghttp3_vec vec[256];
+  nghttp3_ssize sveccnt;
+  int fin;
+  nghttp3_settings_entry ents[] = {
+    {
+      .id = NGHTTP3_SETTINGS_ID_WT_MAX_SESSIONS,
+      .value = 1,
+    },
+    {
+      .id = NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL,
+      .value = 1,
+    },
+    {
+      .id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM,
+      .value = 1,
+    },
+  };
+  nghttp3_frame fr;
+  uint8_t rawbuf[1024];
+  nghttp3_buf buf;
+  nghttp3_settings settings;
+  conn_options opts;
+  nghttp3_ssize nconsumed;
+  nghttp3_qpack_encoder qenc;
+  userdata ud;
+  size_t len;
+  int64_t varint;
+  const uint8_t *p;
+  nghttp3_stream *stream;
+  uint32_t error_code;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  nghttp3_settings_default(&settings);
+  settings.wt_max_sessions = 1;
+  settings.h3_datagram = 1;
+
+  opts = (conn_options){
+    .settings = &settings,
+    .user_data = &ud,
+  };
+
+  setup_default_client_with_options(&conn, opts);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  conn_write_initial_streams(conn);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+    .niv = 3,
+    .iv = ents,
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 3, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  rv =
+    nghttp3_conn_submit_wt_request(conn, 0, nva, nghttp3_arraylen(nva), NULL);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, <, sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_false(fin);
+
+  len = (size_t)nghttp3_vec_len(vec, (size_t)sveccnt);
+  rv = nghttp3_conn_add_write_offset(conn, 0, len);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 0, len);
+
+  assert_int(0, ==, rv);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)respnva,
+    .nvlen = nghttp3_arraylen(respnva),
+  };
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  /* Open WebTransport bidi stream and write data */
+  rv =
+    nghttp3_conn_open_wt_data_stream(conn, 0, 4,
+                                     (&(nghttp3_data_reader){
+                                       .read_data = step_then_block_read_data,
+                                     }),
+                                     NULL);
+
+  assert_int(0, ==, rv);
+
+  ud.data.left = 1000;
+  ud.data.step = 1000;
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(2, ==, sveccnt);
+  assert_int64(4, ==, stream_id);
+
+  p = nghttp3_get_varint(&varint, vec[0].base);
+
+  assert_int64(NGHTTP3_EXFR_WT_STREAM_BIDI, ==, varint);
+
+  p = nghttp3_get_varint(&varint, p);
+
+  assert_int64(0, ==, varint);
+  assert_ptr_equal(vec[0].base + vec[0].len, p);
+  assert_uint64(1000, ==, vec[1].len);
+
+  len = (size_t)nghttp3_vec_len(vec, (size_t)sveccnt);
+  rv = nghttp3_conn_add_write_offset(conn, 4, len);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 4, len);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, ==, sveccnt);
+
+  /* Read from bidi stream */
+  nconsumed = nghttp3_conn_read_stream2(conn, 4, nulldata, sizeof(nulldata),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff(0, ==, nconsumed);
+
+  /* Open WebTransport uni stream and write data */
+  rv =
+    nghttp3_conn_open_wt_data_stream(conn, 0, 14,
+                                     (&(nghttp3_data_reader){
+                                       .read_data = step_then_block_read_data,
+                                     }),
+                                     NULL);
+
+  assert_int(0, ==, rv);
+
+  ud.data.left = 1000;
+  ud.data.step = 1000;
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(2, ==, sveccnt);
+  assert_int64(14, ==, stream_id);
+
+  p = nghttp3_get_varint(&varint, vec[0].base);
+
+  assert_int64(NGHTTP3_EXFR_WT_STREAM_UNI, ==, varint);
+
+  p = nghttp3_get_varint(&varint, p);
+
+  assert_int64(0, ==, varint);
+  assert_ptr_equal(vec[0].base + vec[0].len, p);
+  assert_uint64(1000, ==, vec[1].len);
+
+  len = (size_t)nghttp3_vec_len(vec, (size_t)sveccnt);
+  rv = nghttp3_conn_add_write_offset(conn, 14, len);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 14, len);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, ==, sveccnt);
+
+  /* Read server uni stream */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_WT_STREAM);
+  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_cpymem(buf.last, nulldata, 190);
+
+  nconsumed =
+    nghttp3_conn_read_stream2(conn, 15, buf.pos, nghttp3_buf_len(&buf),
+                              /* fin = */ 0, 0);
+
+  assert_ptrdiff(
+    (nghttp3_ssize)(nghttp3_put_varintlen(NGHTTP3_STREAM_TYPE_WT_STREAM) +
+                    nghttp3_put_varintlen(0)),
+    ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 15);
+
+  assert_not_null(stream);
+  assert_int(NGHTTP3_WT_STREAM_STATE_DATA, ==, stream->rstate.state);
+
+  /* Read server initiated bidirectional stream */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_EXFR_WT_STREAM_BIDI);
+  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_cpymem(buf.last, nulldata, 17);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 1, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff(
+    (nghttp3_ssize)(nghttp3_put_varintlen(NGHTTP3_EXFR_WT_STREAM_BIDI) +
+                    nghttp3_put_varintlen(0)),
+    ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 1);
+
+  assert_not_null(stream);
+  assert_not_null(stream->wt.session);
+  assert_int64(0, ==, stream->wt.session->session_id);
+  assert_int(NGHTTP3_REQ_STREAM_STATE_WT_DATA, ==, stream->rstate.state);
+
+  /* Write server initiated bidirectional stream */
+  rv =
+    nghttp3_conn_open_wt_data_stream(conn, 0, 1,
+                                     (&(nghttp3_data_reader){
+                                       .read_data = step_then_block_read_data,
+                                     }),
+                                     NULL);
+
+  assert_int(0, ==, rv);
+
+  ud.data.left = 1000;
+  ud.data.step = 1000;
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(1, ==, stream_id);
+
+  len = (size_t)nghttp3_vec_len(vec, (size_t)sveccnt);
+
+  assert_size(1000, ==, len);
+
+  rv = nghttp3_conn_add_write_offset(conn, 1, len);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 1, len);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, ==, sveccnt);
+
+  /* Read capsule */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_DATA);
+  buf.last = nghttp3_put_varint(
+    buf.last,
+    (int64_t)(nghttp3_put_varintlen(NGHTTP3_EXFR_CPSL_WT_MAX_STREAMS_BIDI) +
+              nghttp3_put_varintlen((int64_t)nghttp3_put_varintlen(100)) +
+              nghttp3_put_varintlen(100)));
+  buf.last =
+    nghttp3_put_varint(buf.last, NGHTTP3_EXFR_CPSL_WT_MAX_STREAMS_BIDI);
+  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(100));
+  buf.last = nghttp3_put_varint(buf.last, 100);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_int(NGHTTP3_REQ_STREAM_STATE_FRAME_TYPE, ==, stream->rstate.state);
+  assert_int(NGHTTP3_WT_CTRL_STREAM_STATE_TYPE, ==,
+             stream->wt.session->rstate.state);
+
+  /* Write WT_CLOSE_SESSION */
+  rv = nghttp3_conn_close_wt_session(conn, 0, 0, NULL, 0);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_true(fin);
+
+  p = nghttp3_get_varint(&varint, vec[0].base);
+
+  assert_int64(NGHTTP3_FRAME_DATA, ==, varint);
+
+  p = nghttp3_get_varint(&varint, p);
+
+  assert_int64(
+    (int64_t)(nghttp3_put_varintlen(NGHTTP3_EXFR_CPSL_WT_CLOSE_SESSION) +
+              nghttp3_put_varintlen(sizeof(uint32_t)) + sizeof(uint32_t)),
+    ==, varint);
+
+  p = nghttp3_get_varint(&varint, p);
+
+  assert_int64(NGHTTP3_EXFR_CPSL_WT_CLOSE_SESSION, ==, varint);
+
+  p = nghttp3_get_varint(&varint, p);
+
+  assert_int64(sizeof(uint32_t), ==, varint);
+
+  p = nghttp3_get_uint32be(&error_code, p);
+
+  assert_uint32(0, ==, error_code);
+  assert_ptr_equal(vec[0].base + vec[0].len, p);
+
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_conn_del(conn);
+
+  /* Client waits for WebTransport session confirmation to unblock
+     server initiated WebTransport streams. */
+  setup_default_client_with_options(&conn, opts);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  conn_write_initial_streams(conn);
+
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+    .niv = 3,
+    .iv = ents,
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 3, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  rv =
+    nghttp3_conn_submit_wt_request(conn, 0, nva, nghttp3_arraylen(nva), NULL);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, <, sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_false(fin);
+
+  len = (size_t)nghttp3_vec_len(vec, (size_t)sveccnt);
+  rv = nghttp3_conn_add_write_offset(conn, 0, len);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 0, len);
+
+  assert_int(0, ==, rv);
+
+  /* Read and buffer server initiated unidirectional stream */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_WT_STREAM);
+  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_cpymem(buf.last, nulldata, 190);
+
+  nconsumed =
+    nghttp3_conn_read_stream2(conn, 15, buf.pos, nghttp3_buf_len(&buf),
+                              /* fin = */ 0, 0);
+
+  assert_ptrdiff(
+    (nghttp3_ssize)(nghttp3_put_varintlen(NGHTTP3_STREAM_TYPE_WT_STREAM) +
+                    nghttp3_put_varintlen(0)),
+    ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 15);
+
+  assert_not_null(stream);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_WT_SESSION_BLOCKED);
+  assert_int(NGHTTP3_WT_STREAM_STATE_DATA, ==, stream->rstate.state);
+
+  /* Read and buffer server initiated bidirectional stream */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_EXFR_WT_STREAM_BIDI);
+  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_cpymem(buf.last, nulldata, 17);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 1, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff(
+    (nghttp3_ssize)(nghttp3_put_varintlen(NGHTTP3_EXFR_WT_STREAM_BIDI) +
+                    nghttp3_put_varintlen(0)),
+    ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 1);
+
+  assert_not_null(stream);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_WT_SESSION_BLOCKED);
+  assert_int(NGHTTP3_REQ_STREAM_STATE_WT_DATA, ==, stream->rstate.state);
+
+  /* Unblock the streams upon WebTransport session establishment */
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)respnva,
+    .nvlen = nghttp3_arraylen(respnva),
+  };
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 15);
+
+  assert_not_null(stream);
+  assert_false(stream->flags & NGHTTP3_STREAM_FLAG_WT_SESSION_BLOCKED);
+
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_wt_server(void) {
+  const uint8_t error_msg[] = "\xe3\x81\xbe\xe3\x81\x9f\xe3\x81\x8a\xe3\x81\x93"
+                              "\xe3\x81\x97\xe3\x82\x84\xe3\x81\x99";
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  const nghttp3_nv nva[] = {
+    MAKE_NV(":path", "/wt"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "CONNECT"),
+    MAKE_NV(":protocol", "webtransport"),
+  };
+  const nghttp3_nv respnva[] = {
+    MAKE_NV(":status", "200"),
+  };
+  int rv;
+  int64_t stream_id;
+  nghttp3_vec vec[256];
+  nghttp3_ssize sveccnt;
+  int fin;
+  nghttp3_settings_entry ents[] = {
+    {
+      .id = NGHTTP3_SETTINGS_ID_WT_MAX_SESSIONS,
+      .value = 1,
+    },
+    {
+      .id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM,
+      .value = 1,
+    },
+  };
+  nghttp3_frame fr;
+  uint8_t rawbuf[1024];
+  nghttp3_buf buf;
+  nghttp3_callbacks callbacks;
+  nghttp3_settings settings;
+  conn_options opts;
+  nghttp3_ssize nconsumed;
+  nghttp3_qpack_encoder qenc;
+  userdata ud;
+  size_t len;
+  int64_t varint;
+  const uint8_t *p;
+  nghttp3_stream *stream;
+  uint32_t error_code;
+  nghttp3_wt_session *wt_session;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  nghttp3_settings_default(&settings);
+  settings.wt_max_sessions = 1;
+  settings.enable_connect_protocol = 1;
+  settings.h3_datagram = 1;
+
+  opts = (conn_options){
+    .settings = &settings,
+    .user_data = &ud,
+  };
+
+  setup_default_server_with_options(&conn, opts);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  conn_write_initial_streams(conn);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+    .niv = nghttp3_arraylen(ents),
+    .iv = ents,
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)nva,
+    .nvlen = nghttp3_arraylen(nva),
+  };
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  rv = nghttp3_conn_submit_wt_response(conn, 0, respnva,
+                                       nghttp3_arraylen(respnva));
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_server_confirm_wt_session(conn, 0, 0);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, <, sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_false(fin);
+
+  len = (size_t)nghttp3_vec_len(vec, (size_t)sveccnt);
+  rv = nghttp3_conn_add_write_offset(conn, 0, len);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 0, len);
+
+  assert_int(0, ==, rv);
+
+  /* Open WebTransport bidi stream and write data */
+  rv =
+    nghttp3_conn_open_wt_data_stream(conn, 0, 1,
+                                     (&(nghttp3_data_reader){
+                                       .read_data = step_then_block_read_data,
+                                     }),
+                                     NULL);
+
+  assert_int(0, ==, rv);
+
+  ud.data.left = 1000;
+  ud.data.step = 1000;
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(2, ==, sveccnt);
+  assert_int64(1, ==, stream_id);
+
+  p = nghttp3_get_varint(&varint, vec[0].base);
+
+  assert_int64(NGHTTP3_EXFR_WT_STREAM_BIDI, ==, varint);
+
+  p = nghttp3_get_varint(&varint, p);
+
+  assert_int64(0, ==, varint);
+  assert_ptr_equal(vec[0].base + vec[0].len, p);
+  assert_uint64(1000, ==, vec[1].len);
+
+  len = (size_t)nghttp3_vec_len(vec, (size_t)sveccnt);
+  rv = nghttp3_conn_add_write_offset(conn, 1, len);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 1, len);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, ==, sveccnt);
+
+  /* Read from bidi stream */
+  nconsumed = nghttp3_conn_read_stream2(conn, 1, nulldata, 907,
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff(0, ==, nconsumed);
+
+  /* Open WebTransport uni stream and write data */
+  rv =
+    nghttp3_conn_open_wt_data_stream(conn, 0, 15,
+                                     (&(nghttp3_data_reader){
+                                       .read_data = step_then_block_read_data,
+                                     }),
+                                     NULL);
+
+  assert_int(0, ==, rv);
+
+  ud.data.left = 1000;
+  ud.data.step = 1000;
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(2, ==, sveccnt);
+  assert_int64(15, ==, stream_id);
+
+  p = nghttp3_get_varint(&varint, vec[0].base);
+
+  assert_int64(NGHTTP3_EXFR_WT_STREAM_UNI, ==, varint);
+
+  p = nghttp3_get_varint(&varint, p);
+
+  assert_int64(0, ==, varint);
+  assert_ptr_equal(vec[0].base + vec[0].len, p);
+  assert_uint64(1000, ==, vec[1].len);
+
+  len = (size_t)nghttp3_vec_len(vec, (size_t)sveccnt);
+  rv = nghttp3_conn_add_write_offset(conn, 15, len);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 15, len);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, ==, sveccnt);
+
+  /* Read client uni stream */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_WT_STREAM);
+  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_cpymem(buf.last, nulldata, 190);
+
+  nconsumed =
+    nghttp3_conn_read_stream2(conn, 14, buf.pos, nghttp3_buf_len(&buf),
+                              /* fin = */ 0, 0);
+
+  assert_ptrdiff(
+    (nghttp3_ssize)(nghttp3_put_varintlen(NGHTTP3_STREAM_TYPE_WT_STREAM) +
+                    nghttp3_put_varintlen(0)),
+    ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 14);
+
+  assert_not_null(stream);
+  assert_int(NGHTTP3_WT_STREAM_STATE_DATA, ==, stream->rstate.state);
+
+  /* Read client initiated bidirectional stream */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_EXFR_WT_STREAM_BIDI);
+  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_cpymem(buf.last, nulldata, 17);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 4, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff(
+    (nghttp3_ssize)(nghttp3_put_varintlen(NGHTTP3_EXFR_WT_STREAM_BIDI) +
+                    nghttp3_put_varintlen(0)),
+    ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 4);
+
+  assert_not_null(stream);
+  assert_not_null(stream->wt.session);
+  assert_int64(0, ==, stream->wt.session->session_id);
+  assert_int(NGHTTP3_REQ_STREAM_STATE_WT_DATA, ==, stream->rstate.state);
+
+  /* Write server initiated bidirectional stream */
+  rv =
+    nghttp3_conn_open_wt_data_stream(conn, 0, 4,
+                                     (&(nghttp3_data_reader){
+                                       .read_data = step_then_block_read_data,
+                                     }),
+                                     NULL);
+
+  assert_int(0, ==, rv);
+
+  ud.data.left = 1000;
+  ud.data.step = 1000;
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(4, ==, stream_id);
+
+  len = (size_t)nghttp3_vec_len(vec, (size_t)sveccnt);
+
+  assert_size(1000, ==, len);
+
+  rv = nghttp3_conn_add_write_offset(conn, 4, len);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 4, len);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, ==, sveccnt);
+
+  /* Read capsule */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_DATA);
+  buf.last = nghttp3_put_varint(
+    buf.last,
+    (int64_t)(nghttp3_put_varintlen(NGHTTP3_EXFR_CPSL_WT_MAX_STREAMS_BIDI) +
+              nghttp3_put_varintlen((int64_t)nghttp3_put_varintlen(100)) +
+              nghttp3_put_varintlen(100)));
+  buf.last =
+    nghttp3_put_varint(buf.last, NGHTTP3_EXFR_CPSL_WT_MAX_STREAMS_BIDI);
+  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(100));
+  buf.last = nghttp3_put_varint(buf.last, 100);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_int(NGHTTP3_REQ_STREAM_STATE_FRAME_TYPE, ==, stream->rstate.state);
+  assert_int(NGHTTP3_WT_CTRL_STREAM_STATE_TYPE, ==,
+             stream->wt.session->rstate.state);
+
+  /* Write WT_CLOSE_SESSION */
+  rv = nghttp3_conn_close_wt_session(conn, 0, 0, error_msg,
+                                     nghttp3_strlen_lit(error_msg));
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(2, ==, sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_true(fin);
+
+  p = nghttp3_get_varint(&varint, vec[0].base);
+
+  assert_int64(NGHTTP3_FRAME_DATA, ==, varint);
+
+  p = nghttp3_get_varint(&varint, p);
+
+  assert_int64(
+    (int64_t)(nghttp3_put_varintlen(NGHTTP3_EXFR_CPSL_WT_CLOSE_SESSION) +
+              nghttp3_put_varintlen(sizeof(uint32_t) +
+                                    nghttp3_strlen_lit(error_msg)) +
+              sizeof(uint32_t) + nghttp3_strlen_lit(error_msg)),
+    ==, varint);
+
+  p = nghttp3_get_varint(&varint, p);
+
+  assert_int64(NGHTTP3_EXFR_CPSL_WT_CLOSE_SESSION, ==, varint);
+
+  p = nghttp3_get_varint(&varint, p);
+
+  assert_int64(sizeof(uint32_t) + nghttp3_strlen_lit(error_msg), ==, varint);
+
+  p = nghttp3_get_uint32be(&error_code, p);
+
+  assert_uint32(0, ==, error_code);
+  assert_ptr_equal(vec[0].base + vec[0].len, p);
+  assert_memn_equal(error_msg, nghttp3_strlen_lit(error_msg), vec[1].base,
+                    vec[1].len);
+
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_conn_del(conn);
+
+  /* Server receives WebTransport stream before getting WebTransport
+     session stream. */
+  setup_default_server_with_options(&conn, opts);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 10);
+
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  conn_write_initial_streams(conn);
+
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+    .niv = nghttp3_arraylen(ents),
+    .iv = ents,
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  /* Read and buffer client initiated unidirectioan stream */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_WT_STREAM);
+  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_cpymem(buf.last, nulldata, 111);
+
+  nconsumed =
+    nghttp3_conn_read_stream2(conn, 14, buf.pos, nghttp3_buf_len(&buf),
+                              /* fin = */ 0, 0);
+
+  assert_ptrdiff(
+    (nghttp3_ssize)(nghttp3_put_varintlen(NGHTTP3_STREAM_TYPE_WT_STREAM) +
+                    nghttp3_put_varintlen(0)),
+    ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 14);
+
+  assert_not_null(stream);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_WT_SESSION_BLOCKED);
+  assert_int(NGHTTP3_WT_STREAM_STATE_DATA, ==, stream->rstate.state);
+
+  /* Read and buffer client initiated bidirectional stream */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_EXFR_WT_STREAM_BIDI);
+  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_cpymem(buf.last, nulldata, 17);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 4, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff(
+    (nghttp3_ssize)(nghttp3_put_varintlen(NGHTTP3_EXFR_WT_STREAM_BIDI) +
+                    nghttp3_put_varintlen(0)),
+    ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 4);
+
+  assert_not_null(stream);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_WT_SESSION_BLOCKED);
+  assert_int(NGHTTP3_REQ_STREAM_STATE_WT_DATA, ==, stream->rstate.state);
+
+  /* Read WebTransport session stream and confirm it, then unblock the
+     streams. */
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)nva,
+    .nvlen = nghttp3_arraylen(nva),
+  };
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  rv = nghttp3_conn_submit_wt_response(conn, 0, respnva,
+                                       nghttp3_arraylen(respnva));
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_server_confirm_wt_session(conn, 0, 0);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, <, sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_false(fin);
+
+  len = (size_t)nghttp3_vec_len(vec, (size_t)sveccnt);
+  rv = nghttp3_conn_add_write_offset(conn, 0, len);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 0, len);
+
+  assert_int(0, ==, rv);
+
+  stream = nghttp3_conn_find_stream(conn, 14);
+
+  assert_not_null(stream);
+  assert_false(stream->flags & NGHTTP3_STREAM_FLAG_WT_SESSION_BLOCKED);
+
+  stream = nghttp3_conn_find_stream(conn, 4);
+
+  assert_not_null(stream);
+  assert_false(stream->flags & NGHTTP3_STREAM_FLAG_WT_SESSION_BLOCKED);
+
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_conn_del(conn);
+
+  /* WebTransport session stream is created by PRIORITY_UPDATE
+     frame. */
+  setup_default_server_with_options(&conn, opts);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 10);
+
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  conn_write_initial_streams(conn);
+
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+    .niv = nghttp3_arraylen(ents),
+    .iv = ents,
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  fr.priority_update = (nghttp3_frame_priority_update){
+    .type = NGHTTP3_FRAME_PRIORITY_UPDATE,
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_not_null(stream);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)nva,
+    .nvlen = nghttp3_arraylen(nva),
+  };
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  rv = nghttp3_conn_submit_wt_response(conn, 0, respnva,
+                                       nghttp3_arraylen(respnva));
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_server_confirm_wt_session(conn, 0, 0);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, <, sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_false(fin);
+
+  len = (size_t)nghttp3_vec_len(vec, (size_t)sveccnt);
+  rv = nghttp3_conn_add_write_offset(conn, 0, len);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(conn, 0, len);
+
+  assert_int(0, ==, rv);
+  assert_not_null(stream->wt.session);
+  assert_int64(0, ==, stream->wt.session->session_id);
+
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_conn_del(conn);
+
+  /* Server receives WebTransport stream before getting client SETTINGS. */
+  setup_default_server_with_options(&conn, opts);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 10);
+
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  conn_write_initial_streams(conn);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)nva,
+    .nvlen = nghttp3_arraylen(nva),
+  };
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  /* Read and buffer client initiated unidirectioan stream */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_WT_STREAM);
+  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_cpymem(buf.last, nulldata, 111);
+
+  nconsumed =
+    nghttp3_conn_read_stream2(conn, 14, buf.pos, nghttp3_buf_len(&buf),
+                              /* fin = */ 0, 0);
+
+  assert_ptrdiff(
+    (nghttp3_ssize)(nghttp3_put_varintlen(NGHTTP3_STREAM_TYPE_WT_STREAM) +
+                    nghttp3_put_varintlen(0)),
+    ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 14);
+
+  assert_not_null(stream);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_WT_SESSION_BLOCKED);
+  assert_int(NGHTTP3_WT_STREAM_STATE_DATA, ==, stream->rstate.state);
+
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+    .niv = nghttp3_arraylen(ents),
+    .iv = ents,
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_not_null(stream);
+  assert_int(NGHTTP3_REQ_STREAM_STATE_FRAME_TYPE, ==, stream->rstate.state);
+
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_conn_del(conn);
+
+  /* Server receives WebTransport stream before getting client
+     SETTINGS which lacks mandatory entries. */
+  setup_default_server_with_options(&conn, opts);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 10);
+
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  conn_write_initial_streams(conn);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)nva,
+    .nvlen = nghttp3_arraylen(nva),
+  };
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  /* Read and buffer client initiated unidirectioan stream */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_WT_STREAM);
+  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_cpymem(buf.last, nulldata, 111);
+
+  nconsumed =
+    nghttp3_conn_read_stream2(conn, 14, buf.pos, nghttp3_buf_len(&buf),
+                              /* fin = */ 0, 0);
+
+  assert_ptrdiff(
+    (nghttp3_ssize)(nghttp3_put_varintlen(NGHTTP3_STREAM_TYPE_WT_STREAM) +
+                    nghttp3_put_varintlen(0)),
+    ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 14);
+
+  assert_not_null(stream);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_WT_SESSION_BLOCKED);
+  assert_int(NGHTTP3_WT_STREAM_STATE_DATA, ==, stream->rstate.state);
+
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+    /* Remove a mandatory setting. */
+    .niv = nghttp3_arraylen(ents) - 1,
+    .iv = ents,
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_not_null(stream);
+  assert_int(NGHTTP3_REQ_STREAM_STATE_IGN_REST, ==, stream->rstate.state);
+
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_conn_del(conn);
+
+  /* Closed WebTransport data streams are removed from stream chain. */
+  setup_default_server_with_options(&conn, opts);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  conn_write_initial_streams(conn);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+    .niv = nghttp3_arraylen(ents),
+    .iv = ents,
+  };
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)nva,
+    .nvlen = nghttp3_arraylen(nva),
+  };
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  rv = nghttp3_conn_submit_wt_response(conn, 0, respnva,
+                                       nghttp3_arraylen(respnva));
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_server_confirm_wt_session(conn, 0, 0);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, <, sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_false(fin);
+
+  conn_finish_write(conn, vec, (size_t)sveccnt);
+
+  /* Read client initiated unidirectioan stream */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_WT_STREAM);
+  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_cpymem(buf.last, nulldata, 111);
+
+  nconsumed =
+    nghttp3_conn_read_stream2(conn, 14, buf.pos, nghttp3_buf_len(&buf),
+                              /* fin = */ 0, 0);
+
+  assert_ptrdiff(0, <, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 14);
+
+  assert_not_null(stream->wt.session);
+
+  /* Read client bidirectional stream */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_EXFR_WT_STREAM_BIDI);
+  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_cpymem(buf.last, nulldata, 67);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 4, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff(0, <, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 4);
+
+  assert_not_null(stream->wt.session);
+
+  /* Open server unidirectional stream */
+  rv =
+    nghttp3_conn_open_wt_data_stream(conn, 0, 15,
+                                     (&(nghttp3_data_reader){
+                                       .read_data = step_then_block_read_data,
+                                     }),
+                                     NULL);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_close_stream(conn, 4, 0);
+
+  assert_int(0, ==, rv);
+  assert_null(nghttp3_conn_find_stream(conn, 4));
+
+  stream = nghttp3_conn_find_stream(conn, 15);
+
+  wt_session = stream->wt.session;
+
+  assert_ptr_equal(stream, wt_session->head);
+  assert_null(stream->wt.prev);
+  assert_ptr_equal(nghttp3_conn_find_stream(conn, 14), stream->wt.next);
+
+  stream = nghttp3_conn_find_stream(conn, 14);
+
+  assert_null(stream->wt.next);
+  assert_ptr_equal(wt_session->head, stream->wt.prev);
+
+  rv = nghttp3_conn_close_stream(conn, 15, 0);
+
+  assert_int(0, ==, rv);
+  assert_null(nghttp3_conn_find_stream(conn, 15));
+  assert_ptr_equal(stream, wt_session->head);
+  assert_null(stream->wt.prev);
+  assert_null(stream->wt.next);
+
+  rv = nghttp3_conn_close_stream(conn, 14, 0);
+
+  assert_int(0, ==, rv);
+  assert_null(nghttp3_conn_find_stream(conn, 14));
+  assert_null(wt_session->head);
+
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_conn_del(conn);
+
+  /* Server refuses WebTransport upgrade request in end_headers
+     callback. */
+  callbacks = (nghttp3_callbacks){
+    .end_headers = end_headers_404,
+  };
+
+  opts = (conn_options){
+    .callbacks = &callbacks,
+    .settings = &settings,
+  };
+
+  setup_default_server_with_options(&conn, opts);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  conn_write_initial_streams(conn);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+    .niv = nghttp3_arraylen(ents),
+    .iv = ents,
+  };
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)nva,
+    .nvlen = nghttp3_arraylen(nva),
+  };
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_not_null(stream);
+  assert_int(NGHTTP3_REQ_STREAM_STATE_IGN_REST, ==, stream->rstate.state);
+
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_conn_del(conn);
+}
+
+static void conn_server_accept_wt(nghttp3_conn *conn, int64_t session_id,
+                                  nghttp3_qpack_encoder *qenc) {
+  const nghttp3_nv nva[] = {
+    MAKE_NV(":path", "/wt"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "CONNECT"),
+    MAKE_NV(":protocol", "webtransport"),
+  };
+  const nghttp3_nv respnva[] = {
+    MAKE_NV(":status", "200"),
+  };
+  int rv;
+  nghttp3_settings_entry ents[] = {
+    {
+      .id = NGHTTP3_SETTINGS_ID_WT_MAX_SESSIONS,
+      .value = 1,
+    },
+    {
+      .id = NGHTTP3_SETTINGS_ID_H3_DATAGRAM,
+      .value = 1,
+    },
+  };
+  nghttp3_frame fr;
+  uint8_t rawbuf[1024];
+  nghttp3_buf buf;
+  nghttp3_ssize nconsumed;
+  nghttp3_vec vec[256];
+  nghttp3_ssize sveccnt;
+  int64_t stream_id;
+  int fin;
+  size_t len;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+    .niv = nghttp3_arraylen(ents),
+    .iv = ents,
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)nva,
+    .nvlen = nghttp3_arraylen(nva),
+  };
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_qpack(&buf, qenc, session_id, &fr);
+
+  nconsumed =
+    nghttp3_conn_read_stream2(conn, session_id, buf.pos, nghttp3_buf_len(&buf),
+                              /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  rv = nghttp3_conn_submit_wt_response(conn, session_id, respnva,
+                                       nghttp3_arraylen(respnva));
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_server_confirm_wt_session(conn, session_id, 0);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, <, sveccnt);
+  assert_int64(session_id, ==, stream_id);
+
+  len = (size_t)nghttp3_vec_len(vec, (size_t)sveccnt);
+
+  rv = nghttp3_conn_add_write_offset(conn, stream_id, len);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_add_ack_offset(conn, stream_id, len);
+
+  assert_int(0, ==, rv);
+}
+
+void test_nghttp3_conn_wt_read_capsule(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  nghttp3_settings settings;
+  nghttp3_qpack_encoder qenc;
+  conn_options opts;
+  nghttp3_frame fr;
+  uint8_t rawbuf[1024];
+  nghttp3_buf buf;
+  nghttp3_ssize nconsumed;
+  nghttp3_stream *stream;
+  int rv;
+  nghttp3_vec vec[256];
+  nghttp3_ssize sveccnt;
+  int64_t stream_id;
+  userdata ud;
+  int fin;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  nghttp3_settings_default(&settings);
+  settings.wt_max_sessions = 1;
+  settings.enable_connect_protocol = 1;
+  settings.h3_datagram = 1;
+
+  opts = (conn_options){
+    .settings = &settings,
+    .user_data = &ud,
+  };
+
+  /* Read WT_CLOSE_SESSION */
+  setup_default_server_with_options(&conn, opts);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  conn_write_initial_streams(conn);
+  conn_server_accept_wt(conn, 4, &qenc);
+
+  rv =
+    nghttp3_conn_open_wt_data_stream(conn, 4, 1,
+                                     (&(nghttp3_data_reader){
+                                       .read_data = step_then_block_read_data,
+                                     }),
+                                     NULL);
+
+  assert_int(0, ==, rv);
+
+  fr.cpsl = (nghttp3_frame_ex_cpsl){
+    .type = NGHTTP3_FRAME_EX_CPSL,
+    .fr.wt_close_session =
+      (nghttp3_exfr_cpsl_wt_close_session){
+        .type = NGHTTP3_EXFR_CPSL_WT_CLOSE_SESSION,
+        .error_code = 999,
+      },
+  };
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 4, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 4);
+
+  assert_not_null(stream);
+  assert_int(NGHTTP3_REQ_STREAM_STATE_IGN_REST, ==, stream->rstate.state);
+
+  stream = nghttp3_conn_find_stream(conn, 1);
+
+  assert_not_null(stream);
+  assert_int(NGHTTP3_REQ_STREAM_STATE_IGN_REST, ==, stream->rstate.state);
+
+  ud.data.left = 1000;
+  ud.data.step = 1000;
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(2, ==, sveccnt);
+  assert_int64(1, ==, stream_id);
+
+  /* Data is produced but we already call reset_stream callback, so
+     QUIC stack should discard or reject it. */
+
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_wt_pri(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  nghttp3_settings settings;
+  nghttp3_qpack_encoder qenc;
+  conn_options opts;
+  uint8_t rawbuf[1024];
+  nghttp3_buf buf;
+  nghttp3_ssize nconsumed;
+  nghttp3_stream *stream;
+  int rv;
+  nghttp3_vec vec[256];
+  nghttp3_ssize sveccnt;
+  int64_t stream_id;
+  int fin;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  nghttp3_settings_default(&settings);
+  settings.wt_max_sessions = 1;
+  settings.enable_connect_protocol = 1;
+  settings.h3_datagram = 1;
+
+  opts = (conn_options){
+    .settings = &settings,
+  };
+
+  /* Read WT_CLOSE_SESSION */
+  setup_default_server_with_options(&conn, opts);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  conn_write_initial_streams(conn);
+  conn_server_accept_wt(conn, 0, &qenc);
+
+  /* Read client initiated bidirectional stream */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_EXFR_WT_STREAM_BIDI);
+  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_cpymem(buf.last, nulldata, 17);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 4, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff(
+    (nghttp3_ssize)(nghttp3_put_varintlen(NGHTTP3_EXFR_WT_STREAM_BIDI) +
+                    nghttp3_put_varintlen(0)),
+    ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 4);
+
+  assert_not_null(stream);
+  assert_not_null(stream->wt.session);
+
+  rv = nghttp3_conn_open_wt_data_stream(conn, 0, 4,
+                                        &(nghttp3_data_reader){
+                                          .read_data = stream_step_read_data,
+                                        },
+                                        &(step_reader){
+                                          .left = 16 * 1024,
+                                          .step = 4096,
+                                        });
+
+  assert_int(0, ==, rv);
+
+  /* Open server initiated bidirectional stream */
+  rv = nghttp3_conn_open_wt_data_stream(conn, 0, 1,
+                                        &(nghttp3_data_reader){
+                                          .read_data = stream_step_read_data,
+                                        },
+                                        &(step_reader){
+                                          .left = 16 * 1024,
+                                          .step = 4096,
+                                        });
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(2, ==, sveccnt);
+  assert_int64(1, ==, stream_id);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(4, ==, stream_id);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  nghttp3_qpack_encoder_free(&qenc);
   nghttp3_conn_del(conn);
 }
