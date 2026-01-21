@@ -223,9 +223,8 @@ nghttp3_ssize nghttp3_read_varint(nghttp3_varint_read_state *rvint,
   return (nghttp3_ssize)len;
 }
 
-int nghttp3_stream_frq_add(nghttp3_stream *stream, const nghttp3_frame *fr) {
+int nghttp3_stream_frq_emplace(nghttp3_stream *stream, nghttp3_frame **pfr) {
   nghttp3_ringbuf *frq = &stream->frq;
-  nghttp3_frame *dest;
   int rv;
 
   if (nghttp3_ringbuf_full(frq)) {
@@ -237,8 +236,7 @@ int nghttp3_stream_frq_add(nghttp3_stream *stream, const nghttp3_frame *fr) {
     }
   }
 
-  dest = nghttp3_ringbuf_push_back(frq);
-  *dest = *fr;
+  *pfr = nghttp3_ringbuf_push_back(frq);
 
   return 0;
 }

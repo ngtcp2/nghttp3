@@ -2142,7 +2142,7 @@ nghttp3_stream *nghttp3_conn_find_stream(nghttp3_conn *conn,
 
 int nghttp3_conn_bind_control_stream(nghttp3_conn *conn, int64_t stream_id) {
   nghttp3_stream *stream;
-  nghttp3_frame fr;
+  nghttp3_frame *fr;
   int rv;
 
   assert(stream_id >= 0);
@@ -2168,28 +2168,28 @@ int nghttp3_conn_bind_control_stream(nghttp3_conn *conn, int64_t stream_id) {
     return rv;
   }
 
-  fr.settings = (nghttp3_frame_settings){
-    .type = NGHTTP3_FRAME_SETTINGS,
-    .local_settings = &conn->local.settings,
-  };
-
-  rv = nghttp3_stream_frq_add(stream, &fr);
+  rv = nghttp3_stream_frq_emplace(stream, &fr);
   if (rv != 0) {
     return rv;
   }
 
+  fr->settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+    .local_settings = &conn->local.settings,
+  };
+
   if (conn->local.settings.origin_list) {
     assert(conn->server);
 
-    fr.origin = (nghttp3_frame_origin){
-      .type = NGHTTP3_FRAME_ORIGIN,
-      .origin_list = *conn->local.settings.origin_list,
-    };
-
-    rv = nghttp3_stream_frq_add(stream, &fr);
+    rv = nghttp3_stream_frq_emplace(stream, &fr);
     if (rv != 0) {
       return rv;
     }
+
+    fr->origin = (nghttp3_frame_origin){
+      .type = NGHTTP3_FRAME_ORIGIN,
+      .origin_list = *conn->local.settings.origin_list,
+    };
   }
 
   return 0;
@@ -2416,35 +2416,35 @@ static int conn_submit_headers_data(nghttp3_conn *conn, nghttp3_stream *stream,
                                     const nghttp3_data_reader *dr) {
   int rv;
   nghttp3_nv *nnva;
-  nghttp3_frame fr;
+  nghttp3_frame *fr;
 
   rv = nghttp3_nva_copy(&nnva, nva, nvlen, conn->mem);
   if (rv != 0) {
     return rv;
   }
 
-  fr.headers = (nghttp3_frame_headers){
-    .type = NGHTTP3_FRAME_HEADERS,
-    .nva = nnva,
-    .nvlen = nvlen,
-  };
-
-  rv = nghttp3_stream_frq_add(stream, &fr);
+  rv = nghttp3_stream_frq_emplace(stream, &fr);
   if (rv != 0) {
     nghttp3_nva_del(nnva, conn->mem);
     return rv;
   }
 
-  if (dr) {
-    fr.data = (nghttp3_frame_data){
-      .type = NGHTTP3_FRAME_DATA,
-      .dr = *dr,
-    };
+  fr->headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = nnva,
+    .nvlen = nvlen,
+  };
 
-    rv = nghttp3_stream_frq_add(stream, &fr);
+  if (dr) {
+    rv = nghttp3_stream_frq_emplace(stream, &fr);
     if (rv != 0) {
       return rv;
     }
+
+    fr->data = (nghttp3_frame_data){
+      .type = NGHTTP3_FRAME_DATA,
+      .dr = *dr,
+    };
   }
 
   if (nghttp3_stream_require_schedule(stream)) {
@@ -2587,51 +2587,51 @@ int nghttp3_conn_submit_trailers(nghttp3_conn *conn, int64_t stream_id,
 }
 
 int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn) {
-  nghttp3_frame fr;
+  nghttp3_frame *fr;
   int rv;
 
   assert(conn->tx.ctrl);
 
-  fr.goaway = (nghttp3_frame_goaway){
+  rv = nghttp3_stream_frq_emplace(conn->tx.ctrl, &fr);
+  if (rv != 0) {
+    return rv;
+  }
+
+  fr->goaway = (nghttp3_frame_goaway){
     .type = NGHTTP3_FRAME_GOAWAY,
     .id = conn->server ? NGHTTP3_SHUTDOWN_NOTICE_STREAM_ID
                        : NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID,
   };
 
-  assert(fr.goaway.id <= conn->tx.goaway_id);
+  assert(fr->goaway.id <= conn->tx.goaway_id);
 
-  rv = nghttp3_stream_frq_add(conn->tx.ctrl, &fr);
-  if (rv != 0) {
-    return rv;
-  }
-
-  conn->tx.goaway_id = fr.goaway.id;
+  conn->tx.goaway_id = fr->goaway.id;
   conn->flags |= NGHTTP3_CONN_FLAG_GOAWAY_QUEUED;
 
   return 0;
 }
 
 int nghttp3_conn_shutdown(nghttp3_conn *conn) {
-  nghttp3_frame fr;
+  nghttp3_frame *fr;
   int rv;
 
   assert(conn->tx.ctrl);
 
-  fr.goaway = (nghttp3_frame_goaway){
+  rv = nghttp3_stream_frq_emplace(conn->tx.ctrl, &fr);
+  if (rv != 0) {
+    return rv;
+  }
+
+  fr->goaway = (nghttp3_frame_goaway){
     .type = NGHTTP3_FRAME_GOAWAY,
     .id = conn->server ? nghttp3_min_int64((1ll << 62) - 4,
                                            conn->rx.max_stream_id_bidi + 4)
                        : 0,
   };
 
-  assert(fr.goaway.id <= conn->tx.goaway_id);
+  assert(fr->goaway.id <= conn->tx.goaway_id);
 
-  rv = nghttp3_stream_frq_add(conn->tx.ctrl, &fr);
-  if (rv != 0) {
-    return rv;
-  }
-
-  conn->tx.goaway_id = fr.goaway.id;
+  conn->tx.goaway_id = fr->goaway.id;
   conn->flags |=
     NGHTTP3_CONN_FLAG_GOAWAY_QUEUED | NGHTTP3_CONN_FLAG_SHUTDOWN_COMMENCED;
 
@@ -2872,7 +2872,8 @@ int nghttp3_conn_set_client_stream_priority(nghttp3_conn *conn,
                                             const uint8_t *data,
                                             size_t datalen) {
   nghttp3_stream *stream;
-  nghttp3_frame fr;
+  nghttp3_frame *fr;
+  int rv;
   uint8_t *buf = NULL;
 
   assert(!conn->server);
@@ -2897,14 +2898,19 @@ int nghttp3_conn_set_client_stream_priority(nghttp3_conn *conn,
     memcpy(buf, data, datalen);
   }
 
-  fr.priority_update = (nghttp3_frame_priority_update){
+  rv = nghttp3_stream_frq_emplace(conn->tx.ctrl, &fr);
+  if (rv != 0) {
+    return rv;
+  }
+
+  fr->priority_update = (nghttp3_frame_priority_update){
     .type = NGHTTP3_FRAME_PRIORITY_UPDATE,
     .pri_elem_id = stream_id,
     .data = buf,
     .datalen = datalen,
   };
 
-  return nghttp3_stream_frq_add(conn->tx.ctrl, &fr);
+  return 0;
 }
 
 int nghttp3_conn_set_server_stream_priority_versioned(nghttp3_conn *conn,

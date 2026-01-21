@@ -262,7 +262,18 @@ nghttp3_ssize nghttp3_read_varint(nghttp3_varint_read_state *rvint,
                                   const uint8_t *begin, const uint8_t *end,
                                   int fin);
 
-int nghttp3_stream_frq_add(nghttp3_stream *stream, const nghttp3_frame *fr);
+/*
+ * nghttp3_stream_frq_emplace adds new space for nghttp3_frame to
+ * stream->frq, and assigns the pointer to the space to |*pfr| if it
+ * succeeds.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * NGHTTP3_ERR_NOMEM
+ *   Out of memory.
+ */
+int nghttp3_stream_frq_emplace(nghttp3_stream *stream, nghttp3_frame **pfr);
 
 int nghttp3_stream_fill_outq(nghttp3_stream *stream);
 
