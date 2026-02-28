@@ -40,7 +40,7 @@
 #include "nghttp3_ksl.h"
 #include "nghttp3_qpack_huffman.h"
 
-#define NGHTTP3_QPACK_INT_MAX ((1ull << 62) - 1)
+#define NGHTTP3_QPACK_INT_MAX ((1ULL << 62) - 1)
 
 /* NGHTTP3_QPACK_MAX_NAMELEN is the maximum (compressed) length of
    header name this library can decode. */
@@ -223,10 +223,10 @@ typedef enum nghttp3_qpack_decoder_stream_opcode {
 /* QPACK encoder flags */
 
 /* NGHTTP3_QPACK_ENCODER_FLAG_NONE indicates that no flag is set. */
-#define NGHTTP3_QPACK_ENCODER_FLAG_NONE 0x00u
+#define NGHTTP3_QPACK_ENCODER_FLAG_NONE 0x00U
 /* NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP indicates that
    Set Dynamic Table Capacity is required. */
-#define NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP 0x01u
+#define NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP 0x01U
 
 struct nghttp3_qpack_encoder {
   nghttp3_qpack_context ctx;

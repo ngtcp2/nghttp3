@@ -56,7 +56,7 @@
 
 #include <nghttp3/nghttp3.h>
 
-#define NGHTTP3_VARINT_MAX ((1ull << 62) - 1)
+#define NGHTTP3_VARINT_MAX ((1ULL << 62) - 1)
 
 #if HAVE_DECL_BE64TOH
 #  define nghttp3_ntohl64(N) be64toh(N)
@@ -96,9 +96,9 @@ STIN uint32_t htonl(uint32_t hostlong) {
   uint32_t res;
   unsigned char *p = (unsigned char *)&res;
   *p++ = (unsigned char)(hostlong >> 24);
-  *p++ = (hostlong >> 16) & 0xffu;
-  *p++ = (hostlong >> 8) & 0xffu;
-  *p = hostlong & 0xffu;
+  *p++ = (hostlong >> 16) & 0xFFU;
+  *p++ = (hostlong >> 8) & 0xFFU;
+  *p = hostlong & 0xFFU;
   return res;
 }
 
@@ -106,7 +106,7 @@ STIN uint16_t htons(uint16_t hostshort) {
   uint16_t res;
   unsigned char *p = (unsigned char *)&res;
   *p++ = (unsigned char)(hostshort >> 8);
-  *p = hostshort & 0xffu;
+  *p = hostshort & 0xFFU;
   return res;
 }
 

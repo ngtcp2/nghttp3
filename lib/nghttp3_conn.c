@@ -2624,7 +2624,7 @@ int nghttp3_conn_shutdown(nghttp3_conn *conn) {
 
   fr->goaway = (nghttp3_frame_goaway){
     .type = NGHTTP3_FRAME_GOAWAY,
-    .id = conn->server ? nghttp3_min_int64((1ll << 62) - 4,
+    .id = conn->server ? nghttp3_min_int64((1LL << 62) - 4,
                                            conn->rx.max_stream_id_bidi + 4)
                        : 0,
   };

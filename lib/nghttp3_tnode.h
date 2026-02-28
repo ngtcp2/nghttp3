@@ -33,7 +33,7 @@
 
 #include "nghttp3_pq.h"
 
-#define NGHTTP3_TNODE_MAX_CYCLE_GAP (1llu << 24)
+#define NGHTTP3_TNODE_MAX_CYCLE_GAP (1ULL << 24)
 
 typedef struct nghttp3_tnode {
   nghttp3_pq_entry pe;

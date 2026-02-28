@@ -458,7 +458,7 @@ static int recv_origin(nghttp3_conn *conn, const uint8_t *origin,
 }
 
 static void rand_cb(uint8_t *data, size_t datalen) {
-  memset(data, 0xfe, datalen);
+  memset(data, 0xFE, datalen);
 }
 
 typedef struct conn_options {
@@ -1145,8 +1145,8 @@ void test_nghttp3_conn_read_control(void) {
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_SETTINGS);
   buf.last =
-    nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(0xffff));
-  buf.last = nghttp3_put_varint(buf.last, 0xffff);
+    nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(0xFFFF));
+  buf.last = nghttp3_put_varint(buf.last, 0xFFFF);
 
   setup_default_server(&conn);
 
@@ -3792,7 +3792,7 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   /* Craft empty HEADERS (just leave Header Block Prefix) */
   buf.pos[1] = 2;
   /* Write garbage to continue to read stream */
-  buf.pos[4] = 0xff;
+  buf.pos[4] = 0xFF;
 
   sconsumed = nghttp3_conn_read_stream2(
     conn, 0, buf.pos, 5 /* Frame header + Header Block Prefix */,
@@ -4062,7 +4062,7 @@ void test_nghttp3_conn_recv_uni(void) {
   setup_default_client(&conn);
 
   /* 4 bytes integer */
-  buf[0] = 0xc0;
+  buf[0] = 0xC0;
   nread = nghttp3_conn_read_stream2(conn, 3, buf, 1, /* fin = */ 0, 0);
 
   assert_ptrdiff(1, ==, nread);
@@ -4087,7 +4087,7 @@ void test_nghttp3_conn_recv_uni(void) {
   /* Receiving too many unknown stream types */
   setup_default_client(&conn);
 
-  buf[0] = 0x3f;
+  buf[0] = 0x3F;
 
   for (i = 0; i < conn->local.settings.glitch_ratelim_burst; ++i) {
     nread = nghttp3_conn_read_stream2(conn, (int64_t)((i << 2) | 0x3), buf, 1,
@@ -4108,7 +4108,7 @@ void test_nghttp3_conn_recv_uni(void) {
   /* Receiving too many unknown stream types with fin */
   setup_default_client(&conn);
 
-  buf[0] = 0x3f;
+  buf[0] = 0x3F;
 
   for (i = 0; i < conn->local.settings.glitch_ratelim_burst; ++i) {
     nread = nghttp3_conn_read_stream2(conn, (int64_t)((i << 2) | 0x3), buf, 1,
@@ -4326,7 +4326,7 @@ void test_nghttp3_conn_recv_goaway(void) {
 
   fr.goaway = (nghttp3_frame_goaway){
     .type = NGHTTP3_FRAME_GOAWAY,
-    .id = 0xff1,
+    .id = 0xFF1,
   };
 
   nghttp3_write_frame(&buf, &fr);
@@ -4357,7 +4357,7 @@ void test_nghttp3_conn_recv_goaway(void) {
 
   fr.goaway = (nghttp3_frame_goaway){
     .type = NGHTTP3_FRAME_GOAWAY,
-    .id = 0xeeec,
+    .id = 0xEEEC,
   };
 
   nghttp3_write_frame(&buf, &fr);
@@ -6452,8 +6452,8 @@ void test_nghttp3_conn_recv_origin(void) {
     nghttp3_vec expected[2];
 
     memset(long_origin, 'w', sizeof(long_origin));
-    long_origin[0] = 0xff;
-    long_origin[1] = 0xff;
+    long_origin[0] = 0xFF;
+    long_origin[1] = 0xFF;
 
     long_origin[sizeof(long_origin) - 2 - 0x13] = 0;
     long_origin[sizeof(long_origin) - 1 - 0x13] = 0x13;
@@ -6543,8 +6543,8 @@ void test_nghttp3_conn_write_origin(void) {
   int64_t stream_id;
   int fin;
 
-  long_origin[0] = 0xff;
-  long_origin[1] = 0xff;
+  long_origin[0] = 0xFF;
+  long_origin[1] = 0xFF;
 
   /* Write ORIGIN frame */
   nghttp3_settings_default(&settings);

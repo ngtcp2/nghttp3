@@ -40,12 +40,12 @@
 #define NGHTTP3_FRAME_SETTINGS 0x04
 #define NGHTTP3_FRAME_PUSH_PROMISE 0x05
 #define NGHTTP3_FRAME_GOAWAY 0x07
-#define NGHTTP3_FRAME_MAX_PUSH_ID 0x0d
+#define NGHTTP3_FRAME_MAX_PUSH_ID 0x0D
 /* PRIORITY_UPDATE: https://datatracker.ietf.org/doc/html/rfc9218 */
-#define NGHTTP3_FRAME_PRIORITY_UPDATE 0x0f0700
-#define NGHTTP3_FRAME_PRIORITY_UPDATE_PUSH_ID 0x0f0701
+#define NGHTTP3_FRAME_PRIORITY_UPDATE 0x0F0700
+#define NGHTTP3_FRAME_PRIORITY_UPDATE_PUSH_ID 0x0F0701
 /* ORIGIN: https://datatracker.ietf.org/doc/html/rfc9412 */
-#define NGHTTP3_FRAME_ORIGIN 0x0c
+#define NGHTTP3_FRAME_ORIGIN 0x0C
 
 /* Frame types that are reserved for HTTP/2, and must not be used in
    HTTP/3. */

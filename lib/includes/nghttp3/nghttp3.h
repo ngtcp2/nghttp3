@@ -429,42 +429,42 @@ typedef uint64_t nghttp3_duration;
  * :macro:`NGHTTP3_H3_MISSING_SETTINGS` is HTTP/3 application error
  * code ``H3_MISSING_SETTINGS``.
  */
-#define NGHTTP3_H3_MISSING_SETTINGS 0x010a
+#define NGHTTP3_H3_MISSING_SETTINGS 0x010A
 /**
  * @macro
  *
  * :macro:`NGHTTP3_H3_REQUEST_REJECTED` is HTTP/3 application error
  * code ``H3_REQUEST_REJECTED``.
  */
-#define NGHTTP3_H3_REQUEST_REJECTED 0x010b
+#define NGHTTP3_H3_REQUEST_REJECTED 0x010B
 /**
  * @macro
  *
  * :macro:`NGHTTP3_H3_REQUEST_CANCELLED` is HTTP/3 application error
  * code ``H3_REQUEST_CANCELLED``.
  */
-#define NGHTTP3_H3_REQUEST_CANCELLED 0x010c
+#define NGHTTP3_H3_REQUEST_CANCELLED 0x010C
 /**
  * @macro
  *
  * :macro:`NGHTTP3_H3_REQUEST_INCOMPLETE` is HTTP/3 application error
  * code ``H3_REQUEST_INCOMPLETE``.
  */
-#define NGHTTP3_H3_REQUEST_INCOMPLETE 0x010d
+#define NGHTTP3_H3_REQUEST_INCOMPLETE 0x010D
 /**
  * @macro
  *
  * :macro:`NGHTTP3_H3_MESSAGE_ERROR` is HTTP/3 application error code
  * ``H3_MESSAGE_ERROR``.
  */
-#define NGHTTP3_H3_MESSAGE_ERROR 0x010e
+#define NGHTTP3_H3_MESSAGE_ERROR 0x010E
 /**
  * @macro
  *
  * :macro:`NGHTTP3_H3_CONNECT_ERROR` is HTTP/3 application error code
  * ``H3_CONNECT_ERROR``.
  */
-#define NGHTTP3_H3_CONNECT_ERROR 0x010f
+#define NGHTTP3_H3_CONNECT_ERROR 0x010F
 /**
  * @macro
  *
@@ -753,7 +753,7 @@ NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
  *
  * :macro:`NGHTTP3_NV_FLAG_NONE` indicates no flag set.
  */
-#define NGHTTP3_NV_FLAG_NONE 0x00u
+#define NGHTTP3_NV_FLAG_NONE 0x00U
 
 /**
  * @macro
@@ -762,7 +762,7 @@ NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
  * pair must not be indexed.  Other implementation calls this bit as
  * "sensitive".
  */
-#define NGHTTP3_NV_FLAG_NEVER_INDEX 0x01u
+#define NGHTTP3_NV_FLAG_NEVER_INDEX 0x01U
 
 /**
  * @macro
@@ -771,7 +771,7 @@ NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
  * If this flag is set, the library does not make a copy of field
  * name.  This could improve performance.
  */
-#define NGHTTP3_NV_FLAG_NO_COPY_NAME 0x02u
+#define NGHTTP3_NV_FLAG_NO_COPY_NAME 0x02U
 
 /**
  * @macro
@@ -780,7 +780,7 @@ NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
  * application.  If this flag is set, the library does not make a copy
  * of field value.  This could improve performance.
  */
-#define NGHTTP3_NV_FLAG_NO_COPY_VALUE 0x04u
+#define NGHTTP3_NV_FLAG_NO_COPY_VALUE 0x04U
 
 /**
  * @macro
@@ -790,7 +790,7 @@ NGHTTP3_EXTERN void nghttp3_buf_reset(nghttp3_buf *buf);
  * a hint, and QPACK encoder might not encode the field in various
  * reasons.
  */
-#define NGHTTP3_NV_FLAG_TRY_INDEX 0x08u
+#define NGHTTP3_NV_FLAG_TRY_INDEX 0x08U
 
 /**
  * @struct
@@ -1495,7 +1495,7 @@ nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
  *
  * :macro:`NGHTTP3_QPACK_DECODE_FLAG_NONE` indicates that no flag set.
  */
-#define NGHTTP3_QPACK_DECODE_FLAG_NONE 0x00u
+#define NGHTTP3_QPACK_DECODE_FLAG_NONE 0x00U
 
 /**
  * @macro
@@ -1503,7 +1503,7 @@ nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
  * :macro:`NGHTTP3_QPACK_DECODE_FLAG_EMIT` indicates that an HTTP
  * field is successfully decoded.
  */
-#define NGHTTP3_QPACK_DECODE_FLAG_EMIT 0x01u
+#define NGHTTP3_QPACK_DECODE_FLAG_EMIT 0x01U
 
 /**
  * @macro
@@ -1511,7 +1511,7 @@ nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
  * :macro:`NGHTTP3_QPACK_DECODE_FLAG_FINAL` indicates that an entire
  * HTTP field section has been decoded.
  */
-#define NGHTTP3_QPACK_DECODE_FLAG_FINAL 0x02u
+#define NGHTTP3_QPACK_DECODE_FLAG_FINAL 0x02U
 
 /**
  * @macro
@@ -1519,7 +1519,7 @@ nghttp3_qpack_decoder_get_icnt(const nghttp3_qpack_decoder *decoder);
  * :macro:`NGHTTP3_QPACK_DECODE_FLAG_BLOCKED` indicates that decoding
  * has been blocked.
  */
-#define NGHTTP3_QPACK_DECODE_FLAG_BLOCKED 0x04u
+#define NGHTTP3_QPACK_DECODE_FLAG_BLOCKED 0x04U
 
 /**
  * @function
@@ -1714,7 +1714,7 @@ NGHTTP3_EXTERN void nghttp3_set_debug_vprintf_callback(
  * by a server when it initiates graceful shutdown of the connection
  * via `nghttp3_conn_submit_shutdown_notice`.
  */
-#define NGHTTP3_SHUTDOWN_NOTICE_STREAM_ID ((1ull << 62) - 4)
+#define NGHTTP3_SHUTDOWN_NOTICE_STREAM_ID ((1ULL << 62) - 4)
 
 /**
  * @macro
@@ -1724,7 +1724,7 @@ NGHTTP3_EXTERN void nghttp3_set_debug_vprintf_callback(
  * `nghttp3_conn_submit_shutdown_notice`.  Note that libnghttp3 does
  * not implement HTTP/3 Server Push.
  */
-#define NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID ((1ull << 62) - 1)
+#define NGHTTP3_SHUTDOWN_NOTICE_PUSH_ID ((1ULL << 62) - 1)
 
 /**
  * @struct
@@ -2306,7 +2306,7 @@ typedef struct nghttp3_callbacks {
  * values.
  *
  * - :member:`max_field_section_size
- *   <nghttp3_settings.max_field_section_size>` = :expr:`((1ull << 62) - 1)`
+ *   <nghttp3_settings.max_field_section_size>` = :expr:`((1ULL << 62) - 1)`
  * - :member:`qpack_max_dtable_capacity
  *   <nghttp3_settings.qpack_max_dtable_capacity>` = 0
  * - :member:`qpack_encoder_max_dtable_capacity
@@ -2729,7 +2729,7 @@ NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
  *
  * :macro:`NGHTTP3_DATA_FLAG_NONE` indicates no flag set.
  */
-#define NGHTTP3_DATA_FLAG_NONE 0x00u
+#define NGHTTP3_DATA_FLAG_NONE 0x00U
 
 /**
  * @macro
@@ -2739,7 +2739,7 @@ NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
  * that sending side of stream is closed unless
  * :macro:`NGHTTP3_DATA_FLAG_NO_END_STREAM` is given at the same time.
  */
-#define NGHTTP3_DATA_FLAG_EOF 0x01u
+#define NGHTTP3_DATA_FLAG_EOF 0x01U
 
 /**
  * @macro
@@ -2751,7 +2751,7 @@ NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
  * has been called, regardless of this flag, the submitted trailer
  * fields are sent.
  */
-#define NGHTTP3_DATA_FLAG_NO_END_STREAM 0x02u
+#define NGHTTP3_DATA_FLAG_NO_END_STREAM 0x02U
 
 /**
  * @function

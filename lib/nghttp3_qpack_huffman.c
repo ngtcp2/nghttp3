@@ -107,7 +107,7 @@ nghttp3_qpack_huffman_decode(nghttp3_qpack_huffman_decode_context *ctx,
       *p++ = t.sym;
     }
 
-    t = qpack_huffman_decode_table[t.fstate][c & 0xf];
+    t = qpack_huffman_decode_table[t.fstate][c & 0xF];
     if (t.flags & NGHTTP3_QPACK_HUFFMAN_SYM) {
       *p++ = t.sym;
     }
