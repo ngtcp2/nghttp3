@@ -352,9 +352,9 @@ void test_nghttp3_http_parse_priority(void) {
   nghttp3_check_header_value((const uint8_t *)(S), nghttp3_strlen_lit(S))
 
 void test_nghttp3_check_header_value(void) {
-  uint8_t goodval[] = {'a', 'b', 0x80u, 'c', 0xffu, 'd'};
-  uint8_t badval1[] = {'a', 0x1fu, 'b'};
-  uint8_t badval2[] = {'a', 0x7fu, 'b'};
+  uint8_t goodval[] = {'a', 'b', 0x80U, 'c', 0xFFU, 'd'};
+  uint8_t badval1[] = {'a', 0x1FU, 'b'};
+  uint8_t badval2[] = {'a', 0x7FU, 'b'};
   uint8_t tmpl[65], t[sizeof(tmpl)];
   uint8_t b;
 
@@ -395,7 +395,7 @@ void test_nghttp3_check_header_value(void) {
 
   assert_true(nghttp3_check_header_value(t, sizeof(t)));
 
-  for (b = 0x0a; b < 0x20; ++b) {
+  for (b = 0x0A; b < 0x20; ++b) {
     memcpy(t, tmpl, sizeof(t));
     t[32] = b;
 
@@ -403,7 +403,7 @@ void test_nghttp3_check_header_value(void) {
   }
 
   memcpy(t, tmpl, sizeof(t));
-  t[32] = 0x7f;
+  t[32] = 0x7F;
 
   assert_false(nghttp3_check_header_value(t, sizeof(t)));
 }

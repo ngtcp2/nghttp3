@@ -46,7 +46,7 @@ void test_nghttp3_read_varint(void) {
 
   {
     /* 1 byte integer */
-    const uint8_t input[] = {0x3f};
+    const uint8_t input[] = {0x3F};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -60,7 +60,7 @@ void test_nghttp3_read_varint(void) {
 
   {
     /* 1 byte integer with fin */
-    const uint8_t input[] = {0x3f};
+    const uint8_t input[] = {0x3F};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -74,7 +74,7 @@ void test_nghttp3_read_varint(void) {
 
   {
     /* 4 bytes integer */
-    const uint8_t input[] = {0xad, 0xa5, 0xcb, 0x03};
+    const uint8_t input[] = {0xAD, 0xA5, 0xCB, 0x03};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -83,12 +83,12 @@ void test_nghttp3_read_varint(void) {
 
     assert_ptrdiff((nghttp3_ssize)sizeof(input), ==, nread);
     assert_size(0, ==, rvint.left);
-    assert_int64(0x2d << 24 | 0xa5 << 16 | 0xcb << 8 | 0x03, ==, rvint.acc);
+    assert_int64(0x2D << 24 | 0xA5 << 16 | 0xCB << 8 | 0x03, ==, rvint.acc);
   }
 
   {
     /* 4 bytes integer but incomplete */
-    const uint8_t input[] = {0xad, 0xa5, 0xcb, 0x03};
+    const uint8_t input[] = {0xAD, 0xA5, 0xCB, 0x03};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -103,12 +103,12 @@ void test_nghttp3_read_varint(void) {
 
     assert_ptrdiff(1, ==, nread);
     assert_size(0, ==, rvint.left);
-    assert_int64(0x2d << 24 | 0xa5 << 16 | 0xcb << 8 | 0x03, ==, rvint.acc);
+    assert_int64(0x2D << 24 | 0xA5 << 16 | 0xCB << 8 | 0x03, ==, rvint.acc);
   }
 
   {
     /* 4 bytes integer prematurely ended by fin */
-    const uint8_t input[] = {0xad, 0xa5, 0xcb};
+    const uint8_t input[] = {0xAD, 0xA5, 0xCB};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -120,7 +120,7 @@ void test_nghttp3_read_varint(void) {
 
   {
     /* 4 bytes integer prematurely ended by fin in the second input */
-    const uint8_t input[] = {0xad, 0xa5, 0xcb};
+    const uint8_t input[] = {0xAD, 0xA5, 0xCB};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -139,7 +139,7 @@ void test_nghttp3_read_varint(void) {
 
   {
     /* 4 bytes integer + extra byte */
-    const uint8_t input[] = {0xad, 0xa5, 0xcb, 0x03, 0xff};
+    const uint8_t input[] = {0xAD, 0xA5, 0xCB, 0x03, 0xFF};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -148,12 +148,12 @@ void test_nghttp3_read_varint(void) {
 
     assert_ptrdiff((nghttp3_ssize)(sizeof(input) - 1), ==, nread);
     assert_size(0, ==, rvint.left);
-    assert_int64(0x2d << 24 | 0xa5 << 16 | 0xcb << 8 | 0x03, ==, rvint.acc);
+    assert_int64(0x2D << 24 | 0xA5 << 16 | 0xCB << 8 | 0x03, ==, rvint.acc);
   }
 
   {
     /* 8 bytes integer */
-    const uint8_t input[] = {0xed, 0xa5, 0xcb, 0x03, 0x90, 0xfc, 0x13, 0xd8};
+    const uint8_t input[] = {0xED, 0xA5, 0xCB, 0x03, 0x90, 0xFC, 0x13, 0xD8};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -162,14 +162,14 @@ void test_nghttp3_read_varint(void) {
 
     assert_ptrdiff((nghttp3_ssize)sizeof(input), ==, nread);
     assert_size(0, ==, rvint.left);
-    assert_int64(0x2dll << 56 | 0xa5ll << 48 | 0xcbll << 40 | 0x03ll << 32 |
-                   0x90ll << 24 | 0xfcll << 16 | 0x13ll << 8 | 0xd8ll,
+    assert_int64(0x2DLL << 56 | 0xA5LL << 48 | 0xCBLL << 40 | 0x03LL << 32 |
+                   0x90LL << 24 | 0xFCLL << 16 | 0x13LL << 8 | 0xD8LL,
                  ==, rvint.acc);
   }
 
   {
     /* 8 bytes integer prematurely ended by fin at the first byte */
-    const uint8_t input[] = {0xed};
+    const uint8_t input[] = {0xED};
 
     nghttp3_varint_read_state_reset(&rvint);
 

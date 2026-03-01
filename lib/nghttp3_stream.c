@@ -203,7 +203,7 @@ nghttp3_ssize nghttp3_read_varint(nghttp3_varint_read_state *rvint,
 
     p = (uint8_t *)&rvint->acc + (sizeof(rvint->acc) - vlen);
     memcpy(p, begin, len);
-    *p &= 0x3f;
+    *p &= 0x3F;
     rvint->left = vlen - len;
 
     return (nghttp3_ssize)len;

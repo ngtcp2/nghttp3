@@ -882,7 +882,7 @@ void test_nghttp3_qpack_huffman(void) {
 
 void test_nghttp3_qpack_huffman_decode_failure_state(void) {
   nghttp3_qpack_huffman_decode_context ctx;
-  const uint8_t data[] = {0xff, 0xff, 0xff, 0xff};
+  const uint8_t data[] = {0xFF, 0xFF, 0xFF, 0xFF};
   uint8_t buf[4096];
   nghttp3_ssize nwrite;
 
