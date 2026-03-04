@@ -246,30 +246,29 @@ static int recv_settings2(nghttp3_conn *conn,
 }
 
 void test_nghttp3_callbacks_convert_to_latest(void) {
-  nghttp3_callbacks *src, srcbuf, callbacksbuf;
+  static const nghttp3_callbacks srcbuf = {
+    .acked_stream_data = acked_stream_data,
+    .stream_close = stream_close,
+    .recv_data = recv_data,
+    .deferred_consume = deferred_consume,
+    .begin_headers = begin_headers,
+    .recv_header = recv_header,
+    .end_headers = end_headers,
+    .begin_trailers = begin_trailers,
+    .recv_trailer = recv_trailer,
+    .end_trailers = end_trailers,
+    .stop_sending = stop_sending,
+    .end_stream = end_stream,
+    .reset_stream = reset_stream,
+    .shutdown = shutdown,
+    .recv_settings = recv_settings,
+    .recv_origin = recv_origin,
+    .end_origin = end_origin,
+    .rand = randcb,
+  };
+  nghttp3_callbacks *src, callbacksbuf;
   const nghttp3_callbacks *dest;
   size_t v2len;
-
-  memset(&srcbuf, 0, sizeof(srcbuf));
-
-  srcbuf.acked_stream_data = acked_stream_data;
-  srcbuf.stream_close = stream_close;
-  srcbuf.recv_data = recv_data;
-  srcbuf.deferred_consume = deferred_consume;
-  srcbuf.begin_headers = begin_headers;
-  srcbuf.recv_header = recv_header;
-  srcbuf.end_headers = end_headers;
-  srcbuf.begin_trailers = begin_trailers;
-  srcbuf.recv_trailer = recv_trailer;
-  srcbuf.end_trailers = end_trailers;
-  srcbuf.stop_sending = stop_sending;
-  srcbuf.end_stream = end_stream;
-  srcbuf.reset_stream = reset_stream;
-  srcbuf.shutdown = shutdown;
-  srcbuf.recv_settings = recv_settings;
-  srcbuf.recv_origin = recv_origin;
-  srcbuf.end_origin = end_origin;
-  srcbuf.rand = randcb;
 
   v2len = nghttp3_callbackslen_version(NGHTTP3_CALLBACKS_V2);
 
@@ -305,37 +304,36 @@ void test_nghttp3_callbacks_convert_to_latest(void) {
 }
 
 void test_nghttp3_callbacks_convert_to_old(void) {
-  nghttp3_callbacks src, *dest, destbuf;
+  static const nghttp3_callbacks src = {
+    .acked_stream_data = acked_stream_data,
+    .stream_close = stream_close,
+    .recv_data = recv_data,
+    .deferred_consume = deferred_consume,
+    .begin_headers = begin_headers,
+    .recv_header = recv_header,
+    .end_headers = end_headers,
+    .begin_trailers = begin_trailers,
+    .recv_trailer = recv_trailer,
+    .end_trailers = end_trailers,
+    .stop_sending = stop_sending,
+    .end_stream = end_stream,
+    .reset_stream = reset_stream,
+    .shutdown = shutdown,
+    .recv_settings = recv_settings,
+    .recv_origin = recv_origin,
+    .end_origin = end_origin,
+    .rand = randcb,
+    .recv_settings2 = recv_settings2,
+  };
+  nghttp3_callbacks *dest, destbuf = {0};
   size_t v2len;
 
   v2len = nghttp3_callbackslen_version(NGHTTP3_CALLBACKS_V2);
 
   dest = malloc(v2len);
 
-  memset(&src, 0, sizeof(src));
-  src.acked_stream_data = acked_stream_data;
-  src.stream_close = stream_close;
-  src.recv_data = recv_data;
-  src.deferred_consume = deferred_consume;
-  src.begin_headers = begin_headers;
-  src.recv_header = recv_header;
-  src.end_headers = end_headers;
-  src.begin_trailers = begin_trailers;
-  src.recv_trailer = recv_trailer;
-  src.end_trailers = end_trailers;
-  src.stop_sending = stop_sending;
-  src.end_stream = end_stream;
-  src.reset_stream = reset_stream;
-  src.shutdown = shutdown;
-  src.recv_settings = recv_settings;
-  src.recv_origin = recv_origin;
-  src.end_origin = end_origin;
-  src.rand = randcb;
-  src.recv_settings2 = recv_settings2;
-
   nghttp3_callbacks_convert_to_old(NGHTTP3_CALLBACKS_V2, dest, &src);
 
-  memset(&destbuf, 0, sizeof(destbuf));
   memcpy(&destbuf, dest, v2len);
 
   free(dest);

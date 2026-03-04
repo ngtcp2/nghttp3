@@ -749,7 +749,7 @@ static int qpack_nv_value_eq(const nghttp3_qpack_nv *a, const nghttp3_nv *b) {
 }
 
 static void qpack_map_init(nghttp3_qpack_map *map) {
-  memset(map, 0, sizeof(nghttp3_qpack_map));
+  *map = (nghttp3_qpack_map){0};
 }
 
 static void qpack_map_insert(nghttp3_qpack_map *map, nghttp3_qpack_entry *ent) {
