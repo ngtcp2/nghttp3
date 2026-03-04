@@ -172,11 +172,11 @@ void nghttp3_stream_del(nghttp3_stream *stream) {
 }
 
 void nghttp3_varint_read_state_reset(nghttp3_varint_read_state *rvint) {
-  memset(rvint, 0, sizeof(*rvint));
+  *rvint = (nghttp3_varint_read_state){0};
 }
 
 void nghttp3_stream_read_state_reset(nghttp3_stream_read_state *rstate) {
-  memset(rstate, 0, sizeof(*rstate));
+  *rstate = (nghttp3_stream_read_state){0};
 }
 
 nghttp3_ssize nghttp3_read_varint(nghttp3_varint_read_state *rvint,
