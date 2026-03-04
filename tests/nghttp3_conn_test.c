@@ -2091,7 +2091,7 @@ void test_nghttp3_conn_http_resp_header(void) {
   /* response header has a bad header value. */
   const nghttp3_nv badvalue_resnv[] = {
     MAKE_NV(":status", "200"),
-    MAKE_NV("foo", "\x7f"),
+    MAKE_NV("foo", "\x7F"),
   };
   /* response header has empty header name followed by a pseudo
      header. */
@@ -2227,14 +2227,14 @@ void test_nghttp3_conn_http_req_header(void) {
   const nghttp3_nv badauthority_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":method", "GET"),
-    MAKE_NV(":authority", "\x0d\x0alocalhost"),
+    MAKE_NV(":authority", "\x0D\x0Alocalhost"),
     MAKE_NV(":path", "/"),
   };
   /* request header has regular header field containing illegal
      character before all mandatory header fields are seen. */
   const nghttp3_nv badhdbtw_reqnv[] = {
     MAKE_NV(":scheme", "https"), MAKE_NV(":method", "GET"),
-    MAKE_NV("foo", "\x0d\x0a"),  MAKE_NV(":authority", "localhost"),
+    MAKE_NV("foo", "\x0D\x0A"),  MAKE_NV(":authority", "localhost"),
     MAKE_NV(":path", "/"),
   };
   /* request header has "*" in :path header field while method is GET.
@@ -2273,7 +2273,7 @@ void test_nghttp3_conn_http_req_header(void) {
   const nghttp3_nv invalidname_reqnv[] = {
     MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
-    MAKE_NV("\x0foo", "zzz"),
+    MAKE_NV("\x0Foo", "zzz"),
   };
   /* header value contains invalid character */
   const nghttp3_nv invalidvalue_reqnv[] = {
@@ -2357,7 +2357,7 @@ void test_nghttp3_conn_http_req_header(void) {
   const nghttp3_nv badcharmethod_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":path", "/"),
-    MAKE_NV(":method", "GET\xb2"),
+    MAKE_NV(":method", "GET\xB2"),
     MAKE_NV(":authority", "localhost"),
   };
   /* empty :path for https URI. */
@@ -2431,13 +2431,13 @@ void test_nghttp3_conn_http_req_header(void) {
   const nghttp3_nv badcharpriority_reqnv[] = {
     MAKE_NV(":scheme", "https"), MAKE_NV(":path", "/"),
     MAKE_NV(":method", "GET"),   MAKE_NV(":authority", "localhost"),
-    MAKE_NV("priority", "\x7f"),
+    MAKE_NV("priority", "\x7F"),
   };
   /* priority header is followed by bad priority header. */
   const nghttp3_nv dupbadcharpriority_reqnv[] = {
     MAKE_NV(":scheme", "https"), MAKE_NV(":path", "/"),
     MAKE_NV(":method", "GET"),   MAKE_NV(":authority", "localhost"),
-    MAKE_NV("priority", "\x7f"), MAKE_NV("priority", "i"),
+    MAKE_NV("priority", "\x7F"), MAKE_NV("priority", "i"),
   };
   /* request header has :status header. */
   const nghttp3_nv unknownpseudohd_reqnv[] = {
