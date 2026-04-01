@@ -649,10 +649,7 @@ nghttp3_ssize nghttp3_conn_read_uni(nghttp3_conn *conn, nghttp3_stream *stream,
         return NGHTTP3_ERR_H3_EXCESSIVE_LOAD;
       }
 
-      rv = conn_delete_stream(conn, stream);
-      assert(0 == rv);
-
-      return 0;
+      return conn_delete_stream(conn, stream);
     }
     nread = conn_read_type(conn, stream, src, srclen, fin);
     if (nread < 0) {
@@ -1339,7 +1336,6 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
 }
 
 static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
-  int bidi = nghttp3_client_stream_bidi(stream->node.id);
   int rv;
 
   rv = conn_call_deferred_consume(conn, stream,
@@ -1348,23 +1344,20 @@ static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
     return rv;
   }
 
-  if (bidi) {
-    if (stream->qpack_blocked_pe.index != NGHTTP3_PQ_BAD_INDEX) {
-      nghttp3_conn_qpack_blocked_streams_remove(conn, stream);
+  if (stream->qpack_blocked_pe.index != NGHTTP3_PQ_BAD_INDEX) {
+    nghttp3_conn_qpack_blocked_streams_remove(conn, stream);
 
-      rv = nghttp3_qpack_decoder_cancel_stream(&conn->qdec, stream->node.id);
-      if (rv != 0) {
-        return rv;
-      }
+    rv = nghttp3_qpack_decoder_cancel_stream(&conn->qdec, stream->node.id);
+    if (rv != 0) {
+      return rv;
     }
+  }
 
-    if (conn->callbacks.stream_close) {
-      rv =
-        conn->callbacks.stream_close(conn, stream->node.id, stream->error_code,
-                                     conn->user_data, stream->user_data);
-      if (rv != 0) {
-        return NGHTTP3_ERR_CALLBACK_FAILURE;
-      }
+  if (conn->callbacks.stream_close) {
+    rv = conn->callbacks.stream_close(conn, stream->node.id, stream->error_code,
+                                      conn->user_data, stream->user_data);
+    if (rv != 0) {
+      return NGHTTP3_ERR_CALLBACK_FAILURE;
     }
   }
 
