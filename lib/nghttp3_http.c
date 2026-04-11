@@ -94,7 +94,7 @@ static int check_pseudo_header(nghttp3_http_state *http,
   return 1;
 }
 
-static int expect_response_body(nghttp3_http_state *http) {
+static int expect_response_body(const nghttp3_http_state *http) {
   return (http->flags & NGHTTP3_HTTP_FLAG_METH_HEAD) == 0 &&
          http->status_code / 100 != 1 && http->status_code != 304 &&
          http->status_code != 204;
@@ -105,7 +105,7 @@ static int expect_response_body(nghttp3_http_state *http) {
    :path header field value must start with "/".  This function must
    be called after ":method" header field was received.  This function
    returns nonzero if path is valid.*/
-static int check_path_flags(nghttp3_http_state *http) {
+static int check_path_flags(const nghttp3_http_state *http) {
   return (http->flags & NGHTTP3_HTTP_FLAG_SCHEME_HTTP) == 0 ||
          ((http->flags & NGHTTP3_HTTP_FLAG_PATH_REGULAR) ||
           ((http->flags & NGHTTP3_HTTP_FLAG_METH_OPTIONS) &&
@@ -308,7 +308,7 @@ static int check_path(const uint8_t *value, size_t len) {
 }
 
 static int http_request_on_header(nghttp3_http_state *http,
-                                  nghttp3_qpack_nv *nv, int trailers,
+                                  const nghttp3_qpack_nv *nv, int trailers,
                                   int connect_protocol) {
   nghttp3_pri pri;
 
@@ -452,7 +452,7 @@ static int http_request_on_header(nghttp3_http_state *http,
 }
 
 static int http_response_on_header(nghttp3_http_state *http,
-                                   nghttp3_qpack_nv *nv, int trailers) {
+                                   const nghttp3_qpack_nv *nv, int trailers) {
   switch (nv->token) {
   case NGHTTP3_QPACK_TOKEN__STATUS: {
     if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__STATUS) ||
@@ -527,7 +527,7 @@ static int http_response_on_header(nghttp3_http_state *http,
 
 static int http_check_nonempty_header_name(const uint8_t *name, size_t len);
 
-int nghttp3_http_on_header(nghttp3_http_state *http, nghttp3_qpack_nv *nv,
+int nghttp3_http_on_header(nghttp3_http_state *http, const nghttp3_qpack_nv *nv,
                            int request, int trailers, int connect_protocol) {
   if (nv->name->len == 0) {
     http->flags |= NGHTTP3_HTTP_FLAG_PSEUDO_HEADER_DISALLOWED;
@@ -615,7 +615,7 @@ int nghttp3_http_on_response_headers(nghttp3_http_state *http) {
   return 0;
 }
 
-int nghttp3_http_on_remote_end_stream(nghttp3_stream *stream) {
+int nghttp3_http_on_remote_end_stream(const nghttp3_stream *stream) {
   if ((stream->rx.http.flags & NGHTTP3_HTTP_FLAG_EXPECT_FINAL_RESPONSE) ||
       (stream->rx.http.content_length != -1 &&
        stream->rx.http.content_length != stream->rx.http.recv_content_length)) {

@@ -175,7 +175,8 @@ struct nghttp3_conn {
   } tx;
 };
 
-nghttp3_stream *nghttp3_conn_find_stream(nghttp3_conn *conn, int64_t stream_id);
+nghttp3_stream *nghttp3_conn_find_stream(const nghttp3_conn *conn,
+                                         int64_t stream_id);
 
 int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
                                int64_t stream_id);

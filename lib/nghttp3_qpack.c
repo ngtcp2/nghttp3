@@ -966,7 +966,8 @@ void nghttp3_qpack_encoder_set_indexing_strat(
   encoder->indexing_strat = strat;
 }
 
-uint64_t nghttp3_qpack_encoder_get_min_cnt(nghttp3_qpack_encoder *encoder) {
+uint64_t
+nghttp3_qpack_encoder_get_min_cnt(const nghttp3_qpack_encoder *encoder) {
   assert(!nghttp3_pq_empty(&encoder->min_cnts));
 
   return nghttp3_struct_of(nghttp3_pq_top(&encoder->min_cnts),
@@ -1275,13 +1276,13 @@ int nghttp3_qpack_encoder_write_set_dtable_cap(nghttp3_qpack_encoder *encoder,
 }
 
 nghttp3_qpack_stream *
-nghttp3_qpack_encoder_find_stream(nghttp3_qpack_encoder *encoder,
+nghttp3_qpack_encoder_find_stream(const nghttp3_qpack_encoder *encoder,
                                   int64_t stream_id) {
   return nghttp3_map_find(&encoder->streams, (nghttp3_map_key_type)stream_id);
 }
 
-int nghttp3_qpack_encoder_stream_is_blocked(nghttp3_qpack_encoder *encoder,
-                                            nghttp3_qpack_stream *stream) {
+int nghttp3_qpack_encoder_stream_is_blocked(
+  const nghttp3_qpack_encoder *encoder, const nghttp3_qpack_stream *stream) {
   return stream && encoder->krcnt < nghttp3_qpack_stream_get_max_cnt(stream);
 }
 
@@ -1304,7 +1305,7 @@ static uint32_t qpack_hash_name(const nghttp3_nv *nv) {
  * name.
  */
 static nghttp3_qpack_indexing_mode
-qpack_encoder_decide_indexing_mode(nghttp3_qpack_encoder *encoder,
+qpack_encoder_decide_indexing_mode(const nghttp3_qpack_encoder *encoder,
                                    const nghttp3_nv *nv, int32_t token) {
   if (nv->flags & NGHTTP3_NV_FLAG_NEVER_INDEX) {
     return NGHTTP3_QPACK_INDEXING_MODE_NEVER;
@@ -1815,18 +1816,16 @@ void nghttp3_qpack_stream_pop_ref(nghttp3_qpack_stream *stream) {
   nghttp3_ringbuf_pop_front(&stream->refs);
 }
 
-int nghttp3_qpack_encoder_write_static_indexed(nghttp3_qpack_encoder *encoder,
-                                               nghttp3_buf *rbuf,
-                                               uint64_t absidx) {
+int nghttp3_qpack_encoder_write_static_indexed(
+  const nghttp3_qpack_encoder *encoder, nghttp3_buf *rbuf, uint64_t absidx) {
   DEBUGF("qpack::encode: Indexed Field Line (static) absidx=%" PRIu64 "\n",
          absidx);
   return qpack_write_number(rbuf, 0xC0, absidx, 6, encoder->ctx.mem);
 }
 
-int nghttp3_qpack_encoder_write_dynamic_indexed(nghttp3_qpack_encoder *encoder,
-                                                nghttp3_buf *rbuf,
-                                                uint64_t absidx,
-                                                uint64_t base) {
+int nghttp3_qpack_encoder_write_dynamic_indexed(
+  const nghttp3_qpack_encoder *encoder, nghttp3_buf *rbuf, uint64_t absidx,
+  uint64_t base) {
   DEBUGF("qpack::encode: Indexed Field Line (dynamic) absidx=%" PRIu64
          " base=%" PRIu64 "\n",
          absidx, base);
@@ -1851,10 +1850,10 @@ int nghttp3_qpack_encoder_write_dynamic_indexed(nghttp3_qpack_encoder *encoder,
  * NGHTTP3_ERR_NOMEM
  *     Out of memory.
  */
-static int qpack_encoder_write_indexed_name(nghttp3_qpack_encoder *encoder,
-                                            nghttp3_buf *buf, uint8_t fb,
-                                            uint64_t nameidx, size_t prefix,
-                                            const nghttp3_nv *nv) {
+static int
+qpack_encoder_write_indexed_name(const nghttp3_qpack_encoder *encoder,
+                                 nghttp3_buf *buf, uint8_t fb, uint64_t nameidx,
+                                 size_t prefix, const nghttp3_nv *nv) {
   int rv;
   size_t len = nghttp3_qpack_put_varint_len(nameidx, prefix);
   uint8_t *p;
@@ -1899,7 +1898,7 @@ static int qpack_encoder_write_indexed_name(nghttp3_qpack_encoder *encoder,
 }
 
 int nghttp3_qpack_encoder_write_static_indexed_name(
-  nghttp3_qpack_encoder *encoder, nghttp3_buf *rbuf, uint64_t absidx,
+  const nghttp3_qpack_encoder *encoder, nghttp3_buf *rbuf, uint64_t absidx,
   const nghttp3_nv *nv) {
   uint8_t fb =
     (uint8_t)(0x50 | ((nv->flags & NGHTTP3_NV_FLAG_NEVER_INDEX) ? 0x20 : 0));
@@ -1911,7 +1910,7 @@ int nghttp3_qpack_encoder_write_static_indexed_name(
 }
 
 int nghttp3_qpack_encoder_write_dynamic_indexed_name(
-  nghttp3_qpack_encoder *encoder, nghttp3_buf *rbuf, uint64_t absidx,
+  const nghttp3_qpack_encoder *encoder, nghttp3_buf *rbuf, uint64_t absidx,
   uint64_t base, const nghttp3_nv *nv) {
   uint8_t fb;
 
@@ -1943,7 +1942,7 @@ int nghttp3_qpack_encoder_write_dynamic_indexed_name(
  * NGHTTP3_ERR_NOMEM
  *     Out of memory.
  */
-static int qpack_encoder_write_literal(nghttp3_qpack_encoder *encoder,
+static int qpack_encoder_write_literal(const nghttp3_qpack_encoder *encoder,
                                        nghttp3_buf *buf, uint8_t fb,
                                        size_t prefix, const nghttp3_nv *nv) {
   int rv;
@@ -2007,7 +2006,7 @@ static int qpack_encoder_write_literal(nghttp3_qpack_encoder *encoder,
   return 0;
 }
 
-int nghttp3_qpack_encoder_write_literal(nghttp3_qpack_encoder *encoder,
+int nghttp3_qpack_encoder_write_literal(const nghttp3_qpack_encoder *encoder,
                                         nghttp3_buf *rbuf,
                                         const nghttp3_nv *nv) {
   uint8_t fb =
@@ -2017,20 +2016,18 @@ int nghttp3_qpack_encoder_write_literal(nghttp3_qpack_encoder *encoder,
   return qpack_encoder_write_literal(encoder, rbuf, fb, 3, nv);
 }
 
-int nghttp3_qpack_encoder_write_static_insert(nghttp3_qpack_encoder *encoder,
-                                              nghttp3_buf *ebuf,
-                                              uint64_t absidx,
-                                              const nghttp3_nv *nv) {
+int nghttp3_qpack_encoder_write_static_insert(
+  const nghttp3_qpack_encoder *encoder, nghttp3_buf *ebuf, uint64_t absidx,
+  const nghttp3_nv *nv) {
   DEBUGF("qpack::encode: Insert With Name Reference (static) absidx=%" PRIu64
          "\n",
          absidx);
   return qpack_encoder_write_indexed_name(encoder, ebuf, 0xC0, absidx, 6, nv);
 }
 
-int nghttp3_qpack_encoder_write_dynamic_insert(nghttp3_qpack_encoder *encoder,
-                                               nghttp3_buf *ebuf,
-                                               uint64_t absidx,
-                                               const nghttp3_nv *nv) {
+int nghttp3_qpack_encoder_write_dynamic_insert(
+  const nghttp3_qpack_encoder *encoder, nghttp3_buf *ebuf, uint64_t absidx,
+  const nghttp3_nv *nv) {
   DEBUGF("qpack::encode: Insert With Name Reference (dynamic) absidx=%" PRIu64
          "\n",
          absidx);
@@ -2038,9 +2035,8 @@ int nghttp3_qpack_encoder_write_dynamic_insert(nghttp3_qpack_encoder *encoder,
     encoder, ebuf, 0x80, encoder->ctx.next_absidx - absidx - 1, 6, nv);
 }
 
-int nghttp3_qpack_encoder_write_duplicate_insert(nghttp3_qpack_encoder *encoder,
-                                                 nghttp3_buf *ebuf,
-                                                 uint64_t absidx) {
+int nghttp3_qpack_encoder_write_duplicate_insert(
+  const nghttp3_qpack_encoder *encoder, nghttp3_buf *ebuf, uint64_t absidx) {
   uint64_t idx = encoder->ctx.next_absidx - absidx - 1;
   size_t len = nghttp3_qpack_put_varint_len(idx, 5);
   uint8_t *p;
@@ -2065,9 +2061,9 @@ int nghttp3_qpack_encoder_write_duplicate_insert(nghttp3_qpack_encoder *encoder,
   return 0;
 }
 
-int nghttp3_qpack_encoder_write_literal_insert(nghttp3_qpack_encoder *encoder,
-                                               nghttp3_buf *ebuf,
-                                               const nghttp3_nv *nv) {
+int nghttp3_qpack_encoder_write_literal_insert(
+  const nghttp3_qpack_encoder *encoder, nghttp3_buf *ebuf,
+  const nghttp3_nv *nv) {
   DEBUGF("qpack::encode: Insert With Literal Name\n");
   return qpack_encoder_write_literal(encoder, ebuf, 0x40, 5, nv);
 }
@@ -2422,7 +2418,7 @@ nghttp3_qpack_encoder_get_num_blocked_streams(nghttp3_qpack_encoder *encoder) {
 }
 
 int nghttp3_qpack_encoder_write_field_section_prefix(
-  nghttp3_qpack_encoder *encoder, nghttp3_buf *pbuf, uint64_t ricnt,
+  const nghttp3_qpack_encoder *encoder, nghttp3_buf *pbuf, uint64_t ricnt,
   uint64_t base) {
   size_t max_ents =
     encoder->ctx.hard_max_dtable_capacity / NGHTTP3_QPACK_ENTRY_OVERHEAD;
@@ -2783,8 +2779,9 @@ static nghttp3_ssize qpack_read_string(nghttp3_qpack_read_state *rstate,
  * NGHTTP3_ERR_QPACK_FATAL
  *     rstate->absidx is invalid.
  */
-static int qpack_decoder_validate_index(nghttp3_qpack_decoder *decoder,
-                                        nghttp3_qpack_read_state *rstate) {
+static int
+qpack_decoder_validate_index(const nghttp3_qpack_decoder *decoder,
+                             const nghttp3_qpack_read_state *rstate) {
   if (rstate->dynamic) {
     return rstate->absidx < decoder->ctx.next_absidx &&
                decoder->ctx.next_absidx - rstate->absidx - 1 <
@@ -3766,7 +3763,7 @@ fail:
   return rv;
 }
 
-static int qpack_decoder_dbuf_overflow(nghttp3_qpack_decoder *decoder) {
+static int qpack_decoder_dbuf_overflow(const nghttp3_qpack_decoder *decoder) {
   size_t limit = nghttp3_max_size(decoder->max_concurrent_streams, 100);
   /* 10 = nghttp3_qpack_put_varint_len((1ULL << 62) - 1, 2)) */
   return nghttp3_buf_len(&decoder->dbuf) > limit * 2 * 10;
@@ -3869,8 +3866,8 @@ int nghttp3_qpack_decoder_cancel_stream(nghttp3_qpack_decoder *decoder,
   return 0;
 }
 
-int nghttp3_qpack_decoder_reconstruct_ricnt(nghttp3_qpack_decoder *decoder,
-                                            uint64_t *dest, uint64_t encricnt) {
+int nghttp3_qpack_decoder_reconstruct_ricnt(
+  const nghttp3_qpack_decoder *decoder, uint64_t *dest, uint64_t encricnt) {
   uint64_t max_ents, full, max, max_wrapped, ricnt;
 
   if (encricnt == 0) {
@@ -3906,7 +3903,7 @@ int nghttp3_qpack_decoder_reconstruct_ricnt(nghttp3_qpack_decoder *decoder,
   return 0;
 }
 
-int nghttp3_qpack_decoder_rel2abs(nghttp3_qpack_decoder *decoder,
+int nghttp3_qpack_decoder_rel2abs(const nghttp3_qpack_decoder *decoder,
                                   nghttp3_qpack_read_state *rstate) {
   DEBUGF("qpack::decode: dynamic=%d relidx=%" PRIu64 " icnt=%" PRIu64 "\n",
          rstate->dynamic, rstate->left, decoder->ctx.next_absidx);
@@ -3925,7 +3922,7 @@ int nghttp3_qpack_decoder_rel2abs(nghttp3_qpack_decoder *decoder,
   return 0;
 }
 
-int nghttp3_qpack_decoder_brel2abs(nghttp3_qpack_decoder *decoder,
+int nghttp3_qpack_decoder_brel2abs(const nghttp3_qpack_decoder *decoder,
                                    nghttp3_qpack_stream_context *sctx) {
   nghttp3_qpack_read_state *rstate = &sctx->rstate;
 
@@ -3952,7 +3949,7 @@ int nghttp3_qpack_decoder_brel2abs(nghttp3_qpack_decoder *decoder,
   return 0;
 }
 
-int nghttp3_qpack_decoder_pbrel2abs(nghttp3_qpack_decoder *decoder,
+int nghttp3_qpack_decoder_pbrel2abs(const nghttp3_qpack_decoder *decoder,
                                     nghttp3_qpack_stream_context *sctx) {
   nghttp3_qpack_read_state *rstate = &sctx->rstate;
 
@@ -3974,8 +3971,8 @@ int nghttp3_qpack_decoder_pbrel2abs(nghttp3_qpack_decoder *decoder,
 }
 
 static void
-qpack_decoder_emit_static_indexed(nghttp3_qpack_decoder *decoder,
-                                  nghttp3_qpack_stream_context *sctx,
+qpack_decoder_emit_static_indexed(const nghttp3_qpack_decoder *decoder,
+                                  const nghttp3_qpack_stream_context *sctx,
                                   nghttp3_qpack_nv *nv) {
   const nghttp3_qpack_static_header *shd = &stable[sctx->rstate.absidx];
   (void)decoder;
@@ -3988,7 +3985,7 @@ qpack_decoder_emit_static_indexed(nghttp3_qpack_decoder *decoder,
 
 static void
 qpack_decoder_emit_dynamic_indexed(nghttp3_qpack_decoder *decoder,
-                                   nghttp3_qpack_stream_context *sctx,
+                                   const nghttp3_qpack_stream_context *sctx,
                                    nghttp3_qpack_nv *nv) {
   nghttp3_qpack_entry *ent =
     nghttp3_qpack_context_dtable_get(&decoder->ctx, sctx->rstate.absidx);
@@ -3999,9 +3996,9 @@ qpack_decoder_emit_dynamic_indexed(nghttp3_qpack_decoder *decoder,
   nghttp3_rcbuf_incref(nv->value);
 }
 
-void nghttp3_qpack_decoder_emit_indexed(nghttp3_qpack_decoder *decoder,
-                                        nghttp3_qpack_stream_context *sctx,
-                                        nghttp3_qpack_nv *nv) {
+void nghttp3_qpack_decoder_emit_indexed(
+  nghttp3_qpack_decoder *decoder, const nghttp3_qpack_stream_context *sctx,
+  nghttp3_qpack_nv *nv) {
   DEBUGF("qpack::decode: Indexed (%s) absidx=%" PRIu64 "\n",
          sctx->rstate.dynamic ? "dynamic" : "static", sctx->rstate.absidx);
 
@@ -4013,7 +4010,7 @@ void nghttp3_qpack_decoder_emit_indexed(nghttp3_qpack_decoder *decoder,
 }
 
 static void
-qpack_decoder_emit_static_indexed_name(nghttp3_qpack_decoder *decoder,
+qpack_decoder_emit_static_indexed_name(const nghttp3_qpack_decoder *decoder,
                                        nghttp3_qpack_stream_context *sctx,
                                        nghttp3_qpack_nv *nv) {
   const nghttp3_qpack_static_header *shd = &stable[sctx->rstate.absidx];
@@ -4073,7 +4070,7 @@ int nghttp3_qpack_decoder_emit_indexed_name(nghttp3_qpack_decoder *decoder,
   return 0;
 }
 
-void nghttp3_qpack_decoder_emit_literal(nghttp3_qpack_decoder *decoder,
+void nghttp3_qpack_decoder_emit_literal(const nghttp3_qpack_decoder *decoder,
                                         nghttp3_qpack_stream_context *sctx,
                                         nghttp3_qpack_nv *nv) {
   (void)decoder;

@@ -316,7 +316,7 @@ int nghttp3_stream_ensure_chunk(nghttp3_stream *stream, size_t need);
 
 nghttp3_buf *nghttp3_stream_get_chunk(nghttp3_stream *stream);
 
-int nghttp3_stream_is_blocked(nghttp3_stream *stream);
+int nghttp3_stream_is_blocked(const nghttp3_stream *stream);
 
 void nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n);
 
@@ -324,7 +324,7 @@ void nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n);
  * nghttp3_stream_outq_write_done returns nonzero if all contents in
  * outq have been written.
  */
-int nghttp3_stream_outq_write_done(nghttp3_stream *stream);
+int nghttp3_stream_outq_write_done(const nghttp3_stream *stream);
 
 /*
  * nghttp2_stream_update_ack_offset updates the last acknowledged
@@ -344,7 +344,7 @@ int nghttp3_stream_is_active(nghttp3_stream *stream);
  * be scheduled.  In other words, |stream| or its descendants have
  * something to send.
  */
-int nghttp3_stream_require_schedule(nghttp3_stream *stream);
+int nghttp3_stream_require_schedule(const nghttp3_stream *stream);
 
 int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *src,
                                size_t srclen);
@@ -358,7 +358,7 @@ void nghttp3_stream_delete_qpack_stream_context(nghttp3_stream *stream);
 int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
                                          nghttp3_stream_http_event event);
 
-int nghttp3_stream_empty_headers_allowed(nghttp3_stream *stream);
+int nghttp3_stream_empty_headers_allowed(const nghttp3_stream *stream);
 
 /*
  * nghttp3_stream_uni returns nonzero if stream identified by

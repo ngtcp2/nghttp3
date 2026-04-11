@@ -836,13 +836,13 @@ nghttp3_buf *nghttp3_stream_get_chunk(nghttp3_stream *stream) {
   return nghttp3_ringbuf_get(chunks, len - 1);
 }
 
-int nghttp3_stream_is_blocked(nghttp3_stream *stream) {
+int nghttp3_stream_is_blocked(const nghttp3_stream *stream) {
   return (stream->flags & NGHTTP3_STREAM_FLAG_FC_BLOCKED) ||
          (stream->flags & NGHTTP3_STREAM_FLAG_SHUT_WR) ||
          (stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED);
 }
 
-int nghttp3_stream_require_schedule(nghttp3_stream *stream) {
+int nghttp3_stream_require_schedule(const nghttp3_stream *stream) {
   return (!nghttp3_stream_outq_write_done(stream) &&
           !(stream->flags & NGHTTP3_STREAM_FLAG_FC_BLOCKED) &&
           !(stream->flags & NGHTTP3_STREAM_FLAG_SHUT_WR)) ||
@@ -910,8 +910,8 @@ void nghttp3_stream_add_outq_offset(nghttp3_stream *stream, size_t n) {
   stream->outq_idx = i;
 }
 
-int nghttp3_stream_outq_write_done(nghttp3_stream *stream) {
-  nghttp3_ringbuf *outq = &stream->outq;
+int nghttp3_stream_outq_write_done(const nghttp3_stream *stream) {
+  const nghttp3_ringbuf *outq = &stream->outq;
   size_t len = nghttp3_ringbuf_len(outq);
 
   return len == 0 || stream->outq_idx >= len;
@@ -1227,7 +1227,7 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
   }
 }
 
-int nghttp3_stream_empty_headers_allowed(nghttp3_stream *stream) {
+int nghttp3_stream_empty_headers_allowed(const nghttp3_stream *stream) {
   switch (stream->rx.hstate) {
   case NGHTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN:
   case NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:

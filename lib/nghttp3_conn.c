@@ -43,7 +43,7 @@ nghttp3_objalloc_def(chunk, nghttp3_chunk, oplent)
  * conn_remote_stream_uni returns nonzero if |stream_id| is remote
  * unidirectional stream ID.
  */
-static int conn_remote_stream_uni(nghttp3_conn *conn, int64_t stream_id) {
+static int conn_remote_stream_uni(const nghttp3_conn *conn, int64_t stream_id) {
   if (conn->server) {
     return (stream_id & 0x03) == 0x02;
   }
@@ -721,7 +721,7 @@ static void conn_reset_rx_originlen(nghttp3_conn *conn) {
   conn->rx.originlen = 0;
 }
 
-static int frame_fin(nghttp3_stream_read_state *rstate, size_t len) {
+static int frame_fin(const nghttp3_stream_read_state *rstate, size_t len) {
   return (int64_t)len >= rstate->left;
 }
 
@@ -2128,7 +2128,7 @@ int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
   return 0;
 }
 
-nghttp3_stream *nghttp3_conn_find_stream(nghttp3_conn *conn,
+nghttp3_stream *nghttp3_conn_find_stream(const nghttp3_conn *conn,
                                          int64_t stream_id) {
   return nghttp3_map_find(&conn->streams, (nghttp3_map_key_type)stream_id);
 }

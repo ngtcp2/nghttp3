@@ -60,6 +60,6 @@ int nghttp3_tnode_schedule(nghttp3_tnode *tnode, nghttp3_pq *pq,
 /*
  * nghttp3_tnode_is_scheduled returns nonzero if |tnode| is scheduled.
  */
-int nghttp3_tnode_is_scheduled(nghttp3_tnode *tnode);
+int nghttp3_tnode_is_scheduled(const nghttp3_tnode *tnode);
 
 #endif /* !defined(NGHTTP3_TNODE_H) */
