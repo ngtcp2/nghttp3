@@ -718,7 +718,7 @@ int nghttp3_stream_write_qpack_decoder_stream(nghttp3_stream *stream) {
 
   assert(qdec);
 
-  len = nghttp3_qpack_decoder_get_decoder_streamlen(qdec);
+  len = nghttp3_qpack_decoder_get_decoder_streamlen2(qdec);
   if (len == 0) {
     return 0;
   }

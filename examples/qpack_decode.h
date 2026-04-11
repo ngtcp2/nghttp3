@@ -53,8 +53,8 @@ namespace std {
 template <> struct greater<std::shared_ptr<nghttp3::Request>> {
   bool operator()(const std::shared_ptr<nghttp3::Request> &lhs,
                   const std::shared_ptr<nghttp3::Request> &rhs) const {
-    return nghttp3_qpack_stream_context_get_ricnt(lhs->sctx) >
-           nghttp3_qpack_stream_context_get_ricnt(rhs->sctx);
+    return nghttp3_qpack_stream_context_get_ricnt2(lhs->sctx) >
+           nghttp3_qpack_stream_context_get_ricnt2(rhs->sctx);
   }
 };
 } // namespace std

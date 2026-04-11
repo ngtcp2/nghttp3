@@ -5431,7 +5431,7 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
   /* Control stream */
   setup_default_server(&conn);
 
-  assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left(conn, 2));
+  assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left2(conn, 2));
 
   buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
@@ -5461,20 +5461,20 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
 
   assert_ptrdiff(3, ==, nconsumed);
   assert_uint64(nghttp3_buf_len(&buf) - 3, ==,
-                nghttp3_conn_get_frame_payload_left(conn, 2));
+                nghttp3_conn_get_frame_payload_left2(conn, 2));
 
   nconsumed =
     nghttp3_conn_read_stream2(conn, 2, buf.pos + 3, 14, /* fin = */ 0, 0);
 
   assert_ptrdiff(14, ==, nconsumed);
   assert_uint64(nghttp3_buf_len(&buf) - 17, ==,
-                nghttp3_conn_get_frame_payload_left(conn, 2));
+                nghttp3_conn_get_frame_payload_left2(conn, 2));
 
   nconsumed =
     nghttp3_conn_read_stream2(conn, 2, buf.pos + 17, 1, /* fin = */ 0, 0);
 
   assert_ptrdiff(1, ==, nconsumed);
-  assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left(conn, 2));
+  assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left2(conn, 2));
 
   nghttp3_conn_del(conn);
 
@@ -5482,7 +5482,7 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
   nghttp3_buf_reset(&buf);
   setup_default_server(&conn);
 
-  assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left(conn, 0));
+  assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left2(conn, 0));
 
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
@@ -5497,14 +5497,14 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
   nconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, 1, /* fin = */ 0, 0);
 
   assert_ptrdiff(1, ==, nconsumed);
-  assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left(conn, 0));
+  assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left2(conn, 0));
 
   nconsumed =
     nghttp3_conn_read_stream2(conn, 0, buf.pos + 1, 1, /* fin = */ 0, 0);
 
   assert_ptrdiff(1, ==, nconsumed);
   assert_uint64(nghttp3_buf_len(&buf) - 2, ==,
-                nghttp3_conn_get_frame_payload_left(conn, 0));
+                nghttp3_conn_get_frame_payload_left2(conn, 0));
 
   nghttp3_qpack_encoder_free(&qenc);
   nghttp3_conn_del(conn);

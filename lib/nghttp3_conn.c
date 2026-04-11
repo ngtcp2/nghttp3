@@ -1438,7 +1438,7 @@ nghttp3_ssize nghttp3_conn_read_qpack_encoder(nghttp3_conn *conn,
   for (; !nghttp3_pq_empty(&conn->qpack_blocked_streams);) {
     stream = nghttp3_struct_of(nghttp3_pq_top(&conn->qpack_blocked_streams),
                                nghttp3_stream, qpack_blocked_pe);
-    if (nghttp3_qpack_stream_context_get_ricnt(&stream->qpack_sctx) >
+    if (nghttp3_qpack_stream_context_get_ricnt2(&stream->qpack_sctx) >
         nghttp3_qpack_decoder_get_icnt(&conn->qdec)) {
       break;
     }
@@ -2690,7 +2690,12 @@ int nghttp3_conn_unblock_stream(nghttp3_conn *conn, int64_t stream_id) {
 }
 
 int nghttp3_conn_is_stream_writable(nghttp3_conn *conn, int64_t stream_id) {
-  nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
+  return nghttp3_conn_is_stream_writable2(conn, stream_id);
+}
+
+int nghttp3_conn_is_stream_writable2(const nghttp3_conn *conn,
+                                     int64_t stream_id) {
+  const nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
 
   if (stream == NULL) {
     return 0;
@@ -2810,7 +2815,12 @@ int nghttp3_conn_set_stream_user_data(nghttp3_conn *conn, int64_t stream_id,
 
 uint64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
                                              int64_t stream_id) {
-  nghttp3_stream *stream;
+  return nghttp3_conn_get_frame_payload_left2(conn, stream_id);
+}
+
+uint64_t nghttp3_conn_get_frame_payload_left2(const nghttp3_conn *conn,
+                                              int64_t stream_id) {
+  const nghttp3_stream *stream;
   int uni = 0;
 
   assert(stream_id >= 0);
@@ -2839,7 +2849,15 @@ int nghttp3_conn_get_stream_priority_versioned(nghttp3_conn *conn,
                                                int pri_version,
                                                nghttp3_pri *dest,
                                                int64_t stream_id) {
-  nghttp3_stream *stream;
+  return nghttp3_conn_get_stream_priority2_versioned(conn, pri_version, dest,
+                                                     stream_id);
+}
+
+int nghttp3_conn_get_stream_priority2_versioned(const nghttp3_conn *conn,
+                                                int pri_version,
+                                                nghttp3_pri *dest,
+                                                int64_t stream_id) {
+  const nghttp3_stream *stream;
   (void)pri_version;
 
   assert(conn->server);
@@ -2935,6 +2953,10 @@ int nghttp3_conn_set_server_stream_priority_versioned(nghttp3_conn *conn,
 }
 
 int nghttp3_conn_is_drained(nghttp3_conn *conn) {
+  return nghttp3_conn_is_drained2(conn);
+}
+
+int nghttp3_conn_is_drained2(const nghttp3_conn *conn) {
   assert(conn->server);
 
   return (conn->flags & NGHTTP3_CONN_FLAG_SHUTDOWN_COMMENCED) &&

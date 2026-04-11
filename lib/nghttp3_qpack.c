@@ -2414,6 +2414,11 @@ void nghttp3_qpack_encoder_cancel_stream(nghttp3_qpack_encoder *encoder,
 
 size_t
 nghttp3_qpack_encoder_get_num_blocked_streams(nghttp3_qpack_encoder *encoder) {
+  return nghttp3_qpack_encoder_get_num_blocked_streams2(encoder);
+}
+
+size_t nghttp3_qpack_encoder_get_num_blocked_streams2(
+  const nghttp3_qpack_encoder *encoder) {
   return nghttp3_ksl_len(&encoder->blocked_streams);
 }
 
@@ -3313,6 +3318,11 @@ void nghttp3_qpack_stream_context_reset(nghttp3_qpack_stream_context *sctx) {
 
 uint64_t
 nghttp3_qpack_stream_context_get_ricnt(nghttp3_qpack_stream_context *sctx) {
+  return nghttp3_qpack_stream_context_get_ricnt2(sctx);
+}
+
+uint64_t nghttp3_qpack_stream_context_get_ricnt2(
+  const nghttp3_qpack_stream_context *sctx) {
   return sctx->ricnt;
 }
 
@@ -3799,6 +3809,11 @@ int nghttp3_qpack_decoder_write_section_ack(
 
 size_t
 nghttp3_qpack_decoder_get_decoder_streamlen(nghttp3_qpack_decoder *decoder) {
+  return nghttp3_qpack_decoder_get_decoder_streamlen2(decoder);
+}
+
+size_t nghttp3_qpack_decoder_get_decoder_streamlen2(
+  const nghttp3_qpack_decoder *decoder) {
   uint64_t n;
   size_t len = 0;
 
