@@ -98,7 +98,7 @@ typedef struct nghttp3_http_state nghttp3_http_state;
  *     Invalid HTTP header field was received but it can be treated as
  *     if it was not received because of compatibility reasons.
  */
-int nghttp3_http_on_header(nghttp3_http_state *http, nghttp3_qpack_nv *nv,
+int nghttp3_http_on_header(nghttp3_http_state *http, const nghttp3_qpack_nv *nv,
                            int request, int trailers, int connect_protocol);
 
 /*
@@ -131,7 +131,7 @@ int nghttp3_http_on_response_headers(nghttp3_http_state *http);
  * NGHTTP3_ERR_MALFORMED_HTTP_MESSAGING
  *     HTTP messaging is violated.
  */
-int nghttp3_http_on_remote_end_stream(nghttp3_stream *stream);
+int nghttp3_http_on_remote_end_stream(const nghttp3_stream *stream);
 
 /*
  * This function is called when chunk of data is received.  This

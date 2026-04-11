@@ -105,6 +105,6 @@ nghttp3_qpack_huffman_decode(nghttp3_qpack_huffman_decode_context *ctx,
  * indicates that huffman decoding context is in failure state.
  */
 int nghttp3_qpack_huffman_decode_failure_state(
-  nghttp3_qpack_huffman_decode_context *ctx);
+  const nghttp3_qpack_huffman_decode_context *ctx);
 
 #endif /* !defined(NGHTTP3_QPACK_HUFFMAN_H) */

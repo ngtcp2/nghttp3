@@ -56,7 +56,7 @@ void nghttp3_tnode_unschedule(nghttp3_tnode *tnode, nghttp3_pq *pq) {
   tnode_unschedule(tnode, pq);
 }
 
-static uint64_t pq_get_first_cycle(nghttp3_pq *pq) {
+static uint64_t pq_get_first_cycle(const nghttp3_pq *pq) {
   nghttp3_tnode *top;
 
   if (nghttp3_pq_empty(pq)) {
@@ -90,6 +90,6 @@ int nghttp3_tnode_schedule(nghttp3_tnode *tnode, nghttp3_pq *pq,
   return nghttp3_pq_push(pq, &tnode->pe);
 }
 
-int nghttp3_tnode_is_scheduled(nghttp3_tnode *tnode) {
+int nghttp3_tnode_is_scheduled(const nghttp3_tnode *tnode) {
   return tnode->pe.index != NGHTTP3_PQ_BAD_INDEX;
 }

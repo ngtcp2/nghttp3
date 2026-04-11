@@ -124,6 +124,6 @@ nghttp3_qpack_huffman_decode(nghttp3_qpack_huffman_decode_context *ctx,
 }
 
 int nghttp3_qpack_huffman_decode_failure_state(
-  nghttp3_qpack_huffman_decode_context *ctx) {
+  const nghttp3_qpack_huffman_decode_context *ctx) {
   return ctx->fstate == 0x100;
 }
