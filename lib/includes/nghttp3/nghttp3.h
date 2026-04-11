@@ -1354,9 +1354,23 @@ nghttp3_qpack_encoder_ack_everything(nghttp3_qpack_encoder *encoder);
  *
  * `nghttp3_qpack_encoder_get_num_blocked_streams` returns the number
  * of streams which are potentially blocked at decoder side.
+ *
+ * Deprecated since v1.16.0.  Use
+ * `nghttp3_qpack_encoder_get_num_blocked_streams2` instead.
  */
 NGHTTP3_EXTERN size_t
 nghttp3_qpack_encoder_get_num_blocked_streams(nghttp3_qpack_encoder *encoder);
+
+/**
+ * @function
+ *
+ * `nghttp3_qpack_encoder_get_num_blocked_streams2` returns the number
+ * of streams which are potentially blocked at decoder side.
+ *
+ * This function has been available since v1.16.0.
+ */
+NGHTTP3_EXTERN size_t nghttp3_qpack_encoder_get_num_blocked_streams2(
+  const nghttp3_qpack_encoder *encoder);
 
 /**
  * @struct
@@ -1403,9 +1417,21 @@ nghttp3_qpack_stream_context_del(nghttp3_qpack_stream_context *sctx);
  *
  * `nghttp3_qpack_stream_context_get_ricnt` returns required insert
  * count.
+ *
+ * Deprecated since v1.16.0.  Use
+ * `nghttp3_qpack_stream_context_get_ricnt2` instead.
  */
 NGHTTP3_EXTERN uint64_t
 nghttp3_qpack_stream_context_get_ricnt(nghttp3_qpack_stream_context *sctx);
+
+/**
+ * @function
+ *
+ * `nghttp3_qpack_stream_context_get_ricnt2` returns required insert
+ * count.
+ */
+NGHTTP3_EXTERN uint64_t nghttp3_qpack_stream_context_get_ricnt2(
+  const nghttp3_qpack_stream_context *sctx);
 
 /**
  * @function
@@ -1579,8 +1605,8 @@ NGHTTP3_EXTERN nghttp3_ssize nghttp3_qpack_decoder_read_request(
  *
  * The caller must ensure that `nghttp3_buf_left(dbuf)
  * <nghttp3_buf_left>` >=
- * `nghttp3_qpack_decoder_get_decoder_streamlen(decoder)
- * <nghttp3_qpack_decoder_get_decoder_streamlen>`.
+ * `nghttp3_qpack_decoder_get_decoder_streamlen2(decoder)
+ * <nghttp3_qpack_decoder_get_decoder_streamlen2>`.
  */
 NGHTTP3_EXTERN void
 nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
@@ -1591,9 +1617,23 @@ nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
  *
  * `nghttp3_qpack_decoder_get_decoder_streamlen` returns the length of
  * decoder stream that is currently pending.
+ *
+ * Deprecated since v1.16.0.  Use
+ * `nghttp3_qpack_decoder_get_decoder_streamlen2` instead.
  */
 NGHTTP3_EXTERN size_t
 nghttp3_qpack_decoder_get_decoder_streamlen(nghttp3_qpack_decoder *decoder);
+
+/**
+ * @function
+ *
+ * `nghttp3_qpack_decoder_get_decoder_streamlen2` returns the length
+ * of decoder stream that is currently pending.
+ *
+ * This function has been available since v1.16.0.
+ */
+NGHTTP3_EXTERN size_t nghttp3_qpack_decoder_get_decoder_streamlen2(
+  const nghttp3_qpack_decoder *decoder);
 
 /**
  * @function
@@ -2637,9 +2677,34 @@ NGHTTP3_EXTERN int nghttp3_conn_unblock_stream(nghttp3_conn *conn,
  *   :type:`nghttp3_read_data_callback`); or,
  * - the stream is half-closed local (e.g.,
  *   `nghttp3_conn_shutdown_stream_write` is called).
+ *
+ * Deprecated since v1.16.0.  Use `nghttp3_conn_is_stream_writable2`
+ * instead.
  */
 NGHTTP3_EXTERN int nghttp3_conn_is_stream_writable(nghttp3_conn *conn,
                                                    int64_t stream_id);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_is_stream_writable2` returns nonzero if a stream
+ * identified by |stream_id| is writable.  It is not writable if:
+ *
+ * - the stream does not exist; or,
+ * - the stream is closed (e.g., `nghttp3_conn_close_stream` is
+ *   called); or,
+ * - the stream is QUIC flow control blocked (e.g.,
+ *   `nghttp3_conn_block_stream` is called); or,
+ * - the stream is input data blocked (e.g.,
+ *   :macro:`NGHTTP3_ERR_WOULDBLOCK` is returned from
+ *   :type:`nghttp3_read_data_callback`); or,
+ * - the stream is half-closed local (e.g.,
+ *   `nghttp3_conn_shutdown_stream_write` is called).
+ *
+ * This function has been available since v1.16.0.
+ */
+NGHTTP3_EXTERN int nghttp3_conn_is_stream_writable2(const nghttp3_conn *conn,
+                                                    int64_t stream_id);
 
 /**
  * @function
@@ -2969,9 +3034,26 @@ NGHTTP3_EXTERN int nghttp3_conn_set_stream_user_data(nghttp3_conn *conn,
  * |stream_id|.  If no such stream is found, or |stream_id| identifies
  * neither client bidirectional stream nor remote control stream, it
  * returns 0.
+ *
+ * Deprecated since v1.16.0.  Use
+ * `nghttp3_conn_get_frame_payload_left2` instead.
  */
 NGHTTP3_EXTERN uint64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
                                                             int64_t stream_id);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_get_frame_payload_left2` returns the number of bytes
+ * left to read current frame payload for a stream denoted by
+ * |stream_id|.  If no such stream is found, or |stream_id| identifies
+ * neither client bidirectional stream nor remote control stream, it
+ * returns 0.
+ *
+ * This function has been available since v1.16.0.
+ */
+NGHTTP3_EXTERN uint64_t nghttp3_conn_get_frame_payload_left2(
+  const nghttp3_conn *conn, int64_t stream_id);
 
 /**
  * @macrosection
@@ -3049,9 +3131,38 @@ typedef struct NGHTTP3_ALIGN(8) nghttp3_pri {
  *     |stream_id| is not a client initiated bidirectional stream ID.
  * :macro:`NGHTTP3_ERR_STREAM_NOT_FOUND`
  *     Stream not found.
+ *
+ * Deprecated since v1.16.0.  Use `nghttp3_conn_get_stream_priority2`
+ * instead.
  */
 NGHTTP3_EXTERN int nghttp3_conn_get_stream_priority_versioned(
   nghttp3_conn *conn, int pri_version, nghttp3_pri *dest, int64_t stream_id);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_get_stream_priority2` stores stream priority of a
+ * stream denoted by |stream_id| into |*dest|.  |stream_id| must
+ * identify client initiated bidirectional stream.  Only server can
+ * use this function.
+ *
+ * This function must not be called if |conn| is initialized as
+ * client.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :macro:`NGHTTP3_ERR_INVALID_ARGUMENT`
+ *     |stream_id| is not a client initiated bidirectional stream ID.
+ * :macro:`NGHTTP3_ERR_STREAM_NOT_FOUND`
+ *     Stream not found.
+ *
+ * This function has been available since v1.16.0.
+ */
+NGHTTP3_EXTERN int
+nghttp3_conn_get_stream_priority2_versioned(const nghttp3_conn *conn,
+                                            int pri_version, nghttp3_pri *dest,
+                                            int64_t stream_id);
 
 /**
  * @function
@@ -3142,8 +3253,21 @@ NGHTTP3_EXTERN int nghttp3_check_header_value(const uint8_t *value, size_t len);
  * `nghttp3_conn_is_drained` returns nonzero if
  * `nghttp3_conn_shutdown` has been called, and there is no active
  * remote streams.  This function is for server use only.
+ *
+ * Deprecated since v1.16.0.  Use `nghttp3_conn_is_drained2` instead.
  */
 NGHTTP3_EXTERN int nghttp3_conn_is_drained(nghttp3_conn *conn);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_is_drained2` returns nonzero if
+ * `nghttp3_conn_shutdown` has been called, and there is no active
+ * remote streams.  This function is for server use only.
+ *
+ * This function has been available since v1.16.0.
+ */
+NGHTTP3_EXTERN int nghttp3_conn_is_drained2(const nghttp3_conn *conn);
 
 /**
  * @function
@@ -3278,6 +3402,15 @@ NGHTTP3_EXTERN int nghttp3_err_is_fatal(int liberr);
 #define nghttp3_conn_get_stream_priority(CONN, DEST, STREAM_ID)                \
   nghttp3_conn_get_stream_priority_versioned((CONN), NGHTTP3_PRI_VERSION,      \
                                              (DEST), (STREAM_ID))
+
+/*
+ * `nghttp3_conn_get_stream_priority2` is a wrapper around
+ * `nghttp3_conn_get_stream_priority2_versioned` to set the correct
+ * struct version.
+ */
+#define nghttp3_conn_get_stream_priority2(CONN, DEST, STREAM_ID)               \
+  nghttp3_conn_get_stream_priority2_versioned((CONN), NGHTTP3_PRI_VERSION,     \
+                                              (DEST), (STREAM_ID))
 
 /*
  * `nghttp3_pri_parse_priority` is a wrapper around

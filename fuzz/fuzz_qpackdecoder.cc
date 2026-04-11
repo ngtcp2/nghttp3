@@ -40,8 +40,8 @@ namespace std {
 template <> struct greater<std::shared_ptr<Request>> {
   bool operator()(const std::shared_ptr<Request> &lhs,
                   const std::shared_ptr<Request> &rhs) const {
-    return nghttp3_qpack_stream_context_get_ricnt(lhs->sctx) >
-           nghttp3_qpack_stream_context_get_ricnt(rhs->sctx);
+    return nghttp3_qpack_stream_context_get_ricnt2(lhs->sctx) >
+           nghttp3_qpack_stream_context_get_ricnt2(rhs->sctx);
   }
 };
 } // namespace std
@@ -176,7 +176,7 @@ std::tuple<Headers, int> Decoder::read_request(Request &req) {
 std::tuple<int64_t, Headers, int> Decoder::process_blocked() {
   if (!blocked_reqs_.empty()) {
     auto &top = blocked_reqs_.top();
-    if (nghttp3_qpack_stream_context_get_ricnt(top->sctx) >
+    if (nghttp3_qpack_stream_context_get_ricnt2(top->sctx) >
         nghttp3_qpack_decoder_get_icnt(dec_)) {
       return {-1, {}, 0};
     }
