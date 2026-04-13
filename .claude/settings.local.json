@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"typedef.*nghttp3_proto_settings\\\\|struct.*nghttp3_proto_settings\" lib/*.h)"
+    ]
+  }
+}

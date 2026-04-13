@@ -1937,9 +1937,12 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
   const nghttp3_settings_entry *ent = &fr->iv[0];
   nghttp3_proto_settings *dest = &conn->remote.settings;
 
-  /* TODO Check for duplicates */
   switch (ent->id) {
   case NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE:
+    /* Check for duplicate: value should still be at initial setting */
+    if (dest->max_field_section_size != NGHTTP3_VARINT_MAX) {
+      return NGHTTP3_ERR_H3_SETTINGS_ERROR;
+    }
     dest->max_field_section_size = ent->value;
     break;
   case NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY:
