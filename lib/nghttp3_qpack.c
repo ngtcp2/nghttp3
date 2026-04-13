@@ -2961,8 +2961,9 @@ nghttp3_ssize nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
       if (decoder->rstate.huffman_encoded) {
         decoder->state = NGHTTP3_QPACK_ES_STATE_READ_NAME_HUFFMAN;
         nghttp3_qpack_huffman_decode_context_init(&decoder->rstate.huffman_ctx);
+        /* Huffman decoding expands at most 8/5 ratio */
         rv = nghttp3_rcbuf_new(&decoder->rstate.name,
-                               (size_t)decoder->rstate.left * 2 + 1, mem);
+                               (size_t)decoder->rstate.left * 8 / 5 + 1, mem);
       } else {
         decoder->state = NGHTTP3_QPACK_ES_STATE_READ_NAME;
         rv = nghttp3_rcbuf_new(&decoder->rstate.name,
@@ -3043,8 +3044,9 @@ nghttp3_ssize nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
       if (decoder->rstate.huffman_encoded) {
         decoder->state = NGHTTP3_QPACK_ES_STATE_READ_VALUE_HUFFMAN;
         nghttp3_qpack_huffman_decode_context_init(&decoder->rstate.huffman_ctx);
+        /* Huffman decoding expands at most 8/5 ratio */
         rv = nghttp3_rcbuf_new(&decoder->rstate.value,
-                               (size_t)decoder->rstate.left * 2 + 1, mem);
+                               (size_t)decoder->rstate.left * 8 / 5 + 1, mem);
       } else {
         decoder->state = NGHTTP3_QPACK_ES_STATE_READ_VALUE;
         rv = nghttp3_rcbuf_new(&decoder->rstate.value,
