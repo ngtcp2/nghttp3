@@ -101,7 +101,12 @@ uint8_t *nghttp3_put_varint(uint8_t *p, int64_t n) {
     *p |= 0x80;
     return rv;
   }
-  assert(n < 4611686018427387904LL);
+  /* QUIC variable-length integer max is 2^62 - 1 */
+  if (n >= 4611686018427387904LL) {
+    /* Out of range for variable-length integer encoding.
+       Return NULL to indicate error. */
+    return NULL;
+  }
   rv = nghttp3_put_uint64be(p, (uint64_t)n);
   *p |= 0xC0;
   return rv;
