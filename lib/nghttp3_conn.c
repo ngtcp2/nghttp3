@@ -2545,17 +2545,24 @@ int nghttp3_conn_submit_info(nghttp3_conn *conn, int64_t stream_id,
     return NGHTTP3_ERR_INVALID_STATE;
   }
 
-  /* Transition through header states for info response */
-  rv = nghttp3_stream_transit_tx_http_state(stream,
-                                             NGHTTP3_HTTP_EVENT_HEADERS_BEGIN);
-  if (rv != 0) {
-    return rv;
+  /* For the first interim response, transition through normal header states.
+     For subsequent interim responses (already in RESP_HEADERS_END), don't
+     change state to avoid incorrectly transitioning to trailer state. */
+  if (stream->tx.hstate == NGHTTP3_HTTP_STATE_RESP_INITIAL) {
+    rv = nghttp3_stream_transit_tx_http_state(stream,
+                                               NGHTTP3_HTTP_EVENT_HEADERS_BEGIN);
+    if (rv != 0) {
+      return rv;
+    }
+    rv = nghttp3_stream_transit_tx_http_state(stream,
+                                               NGHTTP3_HTTP_EVENT_HEADERS_END);
+    if (rv != 0) {
+      return rv;
+    }
   }
-  rv = nghttp3_stream_transit_tx_http_state(stream,
-                                             NGHTTP3_HTTP_EVENT_HEADERS_END);
-  if (rv != 0) {
-    return rv;
-  }
+  /* If already in RESP_HEADERS_END from a previous interim response,
+     don't change state - remain in RESP_HEADERS_END to allow another
+     interim or the final response. */
 
   return conn_submit_headers_data(conn, stream, nva, nvlen, NULL);
 }
@@ -2580,8 +2587,10 @@ int nghttp3_conn_submit_response(nghttp3_conn *conn, int64_t stream_id,
   }
 
   /* Verify that sending final response is allowed at this point.
-     Can only be sent from RESP_INITIAL state. */
-  if (stream->tx.hstate != NGHTTP3_HTTP_STATE_RESP_INITIAL) {
+     Can be sent from RESP_INITIAL (first response) or RESP_HEADERS_END
+     (after previous interim 1xx responses). */
+  if (stream->tx.hstate != NGHTTP3_HTTP_STATE_RESP_INITIAL &&
+      stream->tx.hstate != NGHTTP3_HTTP_STATE_RESP_HEADERS_END) {
     return NGHTTP3_ERR_INVALID_STATE;
   }
 
@@ -2617,12 +2626,15 @@ int nghttp3_conn_submit_trailers(nghttp3_conn *conn, int64_t stream_id,
   }
 
   /* Trailers can only be sent after headers have been sent.
-     Valid states: REQ_HEADERS_END, REQ_DATA_END, RESP_HEADERS_END,
-     RESP_DATA_END */
-  if (stream->tx.hstate != NGHTTP3_HTTP_STATE_REQ_HEADERS_END &&
-      stream->tx.hstate != NGHTTP3_HTTP_STATE_REQ_DATA_END &&
-      stream->tx.hstate != NGHTTP3_HTTP_STATE_RESP_HEADERS_END &&
-      stream->tx.hstate != NGHTTP3_HTTP_STATE_RESP_DATA_END) {
+     For requests: REQ_HEADERS_END or REQ_DATA_END
+     For responses: only RESP_DATA_END (not RESP_HEADERS_END, which could be
+     just interim responses without a final response) */
+  if (stream->tx.hstate == NGHTTP3_HTTP_STATE_REQ_HEADERS_END ||
+      stream->tx.hstate == NGHTTP3_HTTP_STATE_REQ_DATA_END) {
+    /* Request trailers */
+  } else if (stream->tx.hstate == NGHTTP3_HTTP_STATE_RESP_DATA_END) {
+    /* Response trailers after data */
+  } else {
     return NGHTTP3_ERR_INVALID_STATE;
   }
 
