@@ -62,8 +62,13 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
     .stream_objalloc = stream_objalloc,
     .qpack_blocked_pe.index = NGHTTP3_PQ_BAD_INDEX,
     .mem = mem,
+    .tx =
+      {
+        .hstate = NGHTTP3_HTTP_STATE_NONE,
+      },
     .rx =
       {
+        .hstate = NGHTTP3_HTTP_STATE_NONE,
         .http.status_code = -1,
         .http.content_length = -1,
         .http.pri.urgency = NGHTTP3_DEFAULT_URGENCY,
@@ -1054,6 +1059,136 @@ size_t nghttp3_stream_get_buffered_datalen(nghttp3_stream *stream) {
   }
 
   return n;
+}
+
+int nghttp3_stream_transit_tx_http_state(nghttp3_stream *stream,
+                                         nghttp3_stream_http_event event) {
+  switch (stream->tx.hstate) {
+  case NGHTTP3_HTTP_STATE_NONE:
+    nghttp3_unreachable();
+  case NGHTTP3_HTTP_STATE_REQ_INITIAL:
+    if (event != NGHTTP3_HTTP_EVENT_HEADERS_BEGIN) {
+      return NGHTTP3_ERR_INVALID_STATE;
+    }
+    stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN;
+    return 0;
+  case NGHTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
+    if (event != NGHTTP3_HTTP_EVENT_HEADERS_END) {
+      return NGHTTP3_ERR_INVALID_STATE;
+    }
+    stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_HEADERS_END;
+    return 0;
+  case NGHTTP3_HTTP_STATE_REQ_HEADERS_END:
+    switch (event) {
+    case NGHTTP3_HTTP_EVENT_DATA_BEGIN:
+      stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_DATA_BEGIN;
+      return 0;
+    case NGHTTP3_HTTP_EVENT_HEADERS_BEGIN:
+      stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN;
+      return 0;
+    case NGHTTP3_HTTP_EVENT_MSG_END:
+      stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_END;
+      return 0;
+    default:
+      return NGHTTP3_ERR_INVALID_STATE;
+    }
+  case NGHTTP3_HTTP_STATE_REQ_DATA_BEGIN:
+    if (event != NGHTTP3_HTTP_EVENT_DATA_END) {
+      return NGHTTP3_ERR_INVALID_STATE;
+    }
+    stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_DATA_END;
+    return 0;
+  case NGHTTP3_HTTP_STATE_REQ_DATA_END:
+    switch (event) {
+    case NGHTTP3_HTTP_EVENT_DATA_BEGIN:
+      stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_DATA_BEGIN;
+      return 0;
+    case NGHTTP3_HTTP_EVENT_HEADERS_BEGIN:
+      stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN;
+      return 0;
+    case NGHTTP3_HTTP_EVENT_MSG_END:
+      stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_END;
+      return 0;
+    default:
+      return NGHTTP3_ERR_INVALID_STATE;
+    }
+  case NGHTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN:
+    if (event != NGHTTP3_HTTP_EVENT_HEADERS_END) {
+      return NGHTTP3_ERR_INVALID_STATE;
+    }
+    stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_TRAILERS_END;
+    return 0;
+  case NGHTTP3_HTTP_STATE_REQ_TRAILERS_END:
+    if (event != NGHTTP3_HTTP_EVENT_MSG_END) {
+      return NGHTTP3_ERR_INVALID_STATE;
+    }
+    stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_END;
+    return 0;
+  case NGHTTP3_HTTP_STATE_REQ_END:
+    return NGHTTP3_ERR_INVALID_STATE;
+  case NGHTTP3_HTTP_STATE_RESP_INITIAL:
+    if (event != NGHTTP3_HTTP_EVENT_HEADERS_BEGIN) {
+      return NGHTTP3_ERR_INVALID_STATE;
+    }
+    stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN;
+    return 0;
+  case NGHTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
+    if (event != NGHTTP3_HTTP_EVENT_HEADERS_END) {
+      return NGHTTP3_ERR_INVALID_STATE;
+    }
+    stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_HEADERS_END;
+    return 0;
+  case NGHTTP3_HTTP_STATE_RESP_HEADERS_END:
+    switch (event) {
+    case NGHTTP3_HTTP_EVENT_DATA_BEGIN:
+      stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_DATA_BEGIN;
+      return 0;
+    case NGHTTP3_HTTP_EVENT_HEADERS_BEGIN:
+      stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN;
+      return 0;
+    case NGHTTP3_HTTP_EVENT_MSG_END:
+      stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_END;
+      return 0;
+    default:
+      return NGHTTP3_ERR_INVALID_STATE;
+    }
+  case NGHTTP3_HTTP_STATE_RESP_DATA_BEGIN:
+    if (event != NGHTTP3_HTTP_EVENT_DATA_END) {
+      return NGHTTP3_ERR_INVALID_STATE;
+    }
+    stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_DATA_END;
+    return 0;
+  case NGHTTP3_HTTP_STATE_RESP_DATA_END:
+    switch (event) {
+    case NGHTTP3_HTTP_EVENT_DATA_BEGIN:
+      stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_DATA_BEGIN;
+      return 0;
+    case NGHTTP3_HTTP_EVENT_HEADERS_BEGIN:
+      stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN;
+      return 0;
+    case NGHTTP3_HTTP_EVENT_MSG_END:
+      stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_END;
+      return 0;
+    default:
+      return NGHTTP3_ERR_INVALID_STATE;
+    }
+  case NGHTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:
+    if (event != NGHTTP3_HTTP_EVENT_HEADERS_END) {
+      return NGHTTP3_ERR_INVALID_STATE;
+    }
+    stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_TRAILERS_END;
+    return 0;
+  case NGHTTP3_HTTP_STATE_RESP_TRAILERS_END:
+    if (event != NGHTTP3_HTTP_EVENT_MSG_END) {
+      return NGHTTP3_ERR_INVALID_STATE;
+    }
+    stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_END;
+    return 0;
+  case NGHTTP3_HTTP_STATE_RESP_END:
+    return NGHTTP3_ERR_INVALID_STATE;
+  default:
+    nghttp3_unreachable();
+  }
 }
 
 int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,

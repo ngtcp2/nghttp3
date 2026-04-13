@@ -2508,6 +2508,7 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
     return rv;
   }
   stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
+  stream->tx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
   stream->user_data = stream_user_data;
   stream->node.pri.inc = 1;
 
@@ -2523,15 +2524,37 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
 int nghttp3_conn_submit_info(nghttp3_conn *conn, int64_t stream_id,
                              const nghttp3_nv *nva, size_t nvlen) {
   nghttp3_stream *stream;
+  int rv;
 
-  /* TODO Verify that it is allowed to send info (non-final response)
-     now. */
   assert(conn->server);
   assert(conn->tx.qenc);
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
   if (stream == NULL) {
     return NGHTTP3_ERR_STREAM_NOT_FOUND;
+  }
+
+  /* Initialize tx state if this is the first send on this stream */
+  if (stream->tx.hstate == NGHTTP3_HTTP_STATE_NONE) {
+    stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
+  }
+
+  /* Verify that sending info (1xx response) is allowed at this point */
+  if (stream->tx.hstate != NGHTTP3_HTTP_STATE_RESP_INITIAL &&
+      stream->tx.hstate != NGHTTP3_HTTP_STATE_RESP_HEADERS_END) {
+    return NGHTTP3_ERR_INVALID_STATE;
+  }
+
+  /* Transition through header states for info response */
+  rv = nghttp3_stream_transit_tx_http_state(stream,
+                                             NGHTTP3_HTTP_EVENT_HEADERS_BEGIN);
+  if (rv != 0) {
+    return rv;
+  }
+  rv = nghttp3_stream_transit_tx_http_state(stream,
+                                             NGHTTP3_HTTP_EVENT_HEADERS_END);
+  if (rv != 0) {
+    return rv;
   }
 
   return conn_submit_headers_data(conn, stream, nva, nvlen, NULL);
@@ -2541,14 +2564,37 @@ int nghttp3_conn_submit_response(nghttp3_conn *conn, int64_t stream_id,
                                  const nghttp3_nv *nva, size_t nvlen,
                                  const nghttp3_data_reader *dr) {
   nghttp3_stream *stream;
+  int rv;
 
-  /* TODO Verify that it is allowed to send response now. */
   assert(conn->server);
   assert(conn->tx.qenc);
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
   if (stream == NULL) {
     return NGHTTP3_ERR_STREAM_NOT_FOUND;
+  }
+
+  /* Initialize tx state if this is the first send on this stream */
+  if (stream->tx.hstate == NGHTTP3_HTTP_STATE_NONE) {
+    stream->tx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
+  }
+
+  /* Verify that sending final response is allowed at this point.
+     Can only be sent from RESP_INITIAL state. */
+  if (stream->tx.hstate != NGHTTP3_HTTP_STATE_RESP_INITIAL) {
+    return NGHTTP3_ERR_INVALID_STATE;
+  }
+
+  /* Transition through header states for final response */
+  rv = nghttp3_stream_transit_tx_http_state(stream,
+                                             NGHTTP3_HTTP_EVENT_HEADERS_BEGIN);
+  if (rv != 0) {
+    return rv;
+  }
+  rv = nghttp3_stream_transit_tx_http_state(stream,
+                                             NGHTTP3_HTTP_EVENT_HEADERS_END);
+  if (rv != 0) {
+    return rv;
   }
 
   if (dr == NULL) {
@@ -2561,13 +2607,35 @@ int nghttp3_conn_submit_response(nghttp3_conn *conn, int64_t stream_id,
 int nghttp3_conn_submit_trailers(nghttp3_conn *conn, int64_t stream_id,
                                  const nghttp3_nv *nva, size_t nvlen) {
   nghttp3_stream *stream;
+  int rv;
 
-  /* TODO Verify that it is allowed to send trailer now. */
   assert(conn->tx.qenc);
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
   if (stream == NULL) {
     return NGHTTP3_ERR_STREAM_NOT_FOUND;
+  }
+
+  /* Trailers can only be sent after headers have been sent.
+     Valid states: REQ_HEADERS_END, REQ_DATA_END, RESP_HEADERS_END,
+     RESP_DATA_END */
+  if (stream->tx.hstate != NGHTTP3_HTTP_STATE_REQ_HEADERS_END &&
+      stream->tx.hstate != NGHTTP3_HTTP_STATE_REQ_DATA_END &&
+      stream->tx.hstate != NGHTTP3_HTTP_STATE_RESP_HEADERS_END &&
+      stream->tx.hstate != NGHTTP3_HTTP_STATE_RESP_DATA_END) {
+    return NGHTTP3_ERR_INVALID_STATE;
+  }
+
+  /* Transition to trailer state */
+  rv = nghttp3_stream_transit_tx_http_state(stream,
+                                             NGHTTP3_HTTP_EVENT_HEADERS_BEGIN);
+  if (rv != 0) {
+    return rv;
+  }
+  rv = nghttp3_stream_transit_tx_http_state(stream,
+                                             NGHTTP3_HTTP_EVENT_HEADERS_END);
+  if (rv != 0) {
+    return rv;
   }
 
   if (stream->flags & NGHTTP3_STREAM_FLAG_WRITE_END_STREAM) {

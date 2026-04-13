@@ -230,6 +230,7 @@ struct nghttp3_stream {
 
       struct {
         uint64_t offset;
+        nghttp3_stream_http_state hstate;
       } tx;
 
       struct {
@@ -354,6 +355,9 @@ size_t nghttp3_stream_get_buffered_datalen(nghttp3_stream *stream);
 int nghttp3_stream_ensure_qpack_stream_context(nghttp3_stream *stream);
 
 void nghttp3_stream_delete_qpack_stream_context(nghttp3_stream *stream);
+
+int nghttp3_stream_transit_tx_http_state(nghttp3_stream *stream,
+                                         nghttp3_stream_http_event event);
 
 int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
                                          nghttp3_stream_http_event event);
