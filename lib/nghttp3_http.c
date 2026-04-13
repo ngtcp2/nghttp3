@@ -455,11 +455,13 @@ static int http_response_on_header(nghttp3_http_state *http,
                                    const nghttp3_qpack_nv *nv, int trailers) {
   switch (nv->token) {
   case NGHTTP3_QPACK_TOKEN__STATUS: {
+    int64_t val;
     if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__STATUS) ||
         nv->value->len != 3) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    http->status_code = (int16_t)parse_uint(nv->value->base, nv->value->len);
+    val = parse_uint(nv->value->base, nv->value->len);
+    http->status_code = (int32_t)val;
     if (http->status_code < 100 || http->status_code == 101) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
