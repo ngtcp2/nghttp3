@@ -47,6 +47,12 @@
    blocked streams for QPACK encoder. */
 #define NGHTTP3_QPACK_ENCODER_MAX_BLOCK_STREAMS 100
 
+/* NGHTTP3_SETTINGS_RECEIVED_* flags track which SETTINGS have been
+   explicitly set in frames to detect duplicates */
+#define NGHTTP3_SETTINGS_RECEIVED_MAX_FIELD_SECTION_SIZE 0x01
+#define NGHTTP3_SETTINGS_RECEIVED_QPACK_MAX_TABLE_CAPACITY 0x02
+#define NGHTTP3_SETTINGS_RECEIVED_QPACK_BLOCKED_STREAMS 0x04
+
 /* NGHTTP3_CONN_FLAG_NONE indicates that no flag is set. */
 #define NGHTTP3_CONN_FLAG_NONE 0x0000U
 /* NGHTTP3_CONN_FLAG_SETTINGS_RECVED is set when SETTINGS frame has
@@ -122,6 +128,9 @@ struct nghttp3_conn {
       size_t num_streams;
     } bidi;
     nghttp3_proto_settings settings;
+    /* settings_received tracks which SETTINGS have been explicitly set
+       to detect duplicate entries */
+    uint32_t settings_received;
   } remote;
 
   struct {

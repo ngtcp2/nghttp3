@@ -37,3 +37,4 @@ test-driver
 # autotools derivatives
 /lib/includes/nghttp3/version.h
 /lib/libnghttp3.pc
+.claude/settings.local.json

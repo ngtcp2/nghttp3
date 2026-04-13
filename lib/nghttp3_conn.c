@@ -1939,16 +1939,19 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
 
   switch (ent->id) {
   case NGHTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE:
-    /* Check for duplicate: value should still be at initial setting */
-    if (dest->max_field_section_size != NGHTTP3_VARINT_MAX) {
+    /* Check for duplicate using flag-based tracking */
+    if (conn->remote.settings_received & NGHTTP3_SETTINGS_RECEIVED_MAX_FIELD_SECTION_SIZE) {
       return NGHTTP3_ERR_H3_SETTINGS_ERROR;
     }
+    conn->remote.settings_received |= NGHTTP3_SETTINGS_RECEIVED_MAX_FIELD_SECTION_SIZE;
     dest->max_field_section_size = ent->value;
     break;
   case NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY:
-    if (dest->qpack_max_dtable_capacity != 0) {
+    /* Check for duplicate using flag-based tracking */
+    if (conn->remote.settings_received & NGHTTP3_SETTINGS_RECEIVED_QPACK_MAX_TABLE_CAPACITY) {
       return NGHTTP3_ERR_H3_SETTINGS_ERROR;
     }
+    conn->remote.settings_received |= NGHTTP3_SETTINGS_RECEIVED_QPACK_MAX_TABLE_CAPACITY;
 
     if (ent->value == 0) {
       break;
@@ -1960,9 +1963,11 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
                                                   (size_t)ent->value);
     break;
   case NGHTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS:
-    if (dest->qpack_blocked_streams != 0) {
+    /* Check for duplicate using flag-based tracking */
+    if (conn->remote.settings_received & NGHTTP3_SETTINGS_RECEIVED_QPACK_BLOCKED_STREAMS) {
       return NGHTTP3_ERR_H3_SETTINGS_ERROR;
     }
+    conn->remote.settings_received |= NGHTTP3_SETTINGS_RECEIVED_QPACK_BLOCKED_STREAMS;
 
     if (ent->value == 0) {
       break;
