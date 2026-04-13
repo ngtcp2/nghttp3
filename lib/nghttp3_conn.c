@@ -2492,10 +2492,11 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
   assert(stream_id <= (int64_t)NGHTTP3_MAX_VARINT);
   assert(nghttp3_client_stream_bidi(stream_id));
 
-  /* TODO Check GOAWAY last stream ID */
-
   if (conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED) {
-    return NGHTTP3_ERR_CONN_CLOSING;
+    /* Check if stream_id is >= the last stream ID allowed by GOAWAY */
+    if (stream_id >= conn->rx.goaway_id) {
+      return NGHTTP3_ERR_CONN_CLOSING;
+    }
   }
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
