@@ -2427,7 +2427,15 @@ int nghttp3_qpack_encoder_write_field_section_prefix(
   uint64_t base) {
   size_t max_ents =
     encoder->ctx.hard_max_dtable_capacity / NGHTTP3_QPACK_ENTRY_OVERHEAD;
-  uint64_t encricnt = ricnt == 0 ? 0 : (max_ents == 0 ? 1 : (ricnt % (2 * max_ents)) + 1);
+  uint64_t encricnt;
+
+  if (ricnt == 0) {
+    encricnt = 0;
+  } else if (max_ents == 0) {
+    encricnt = 1;
+  } else {
+    encricnt = (ricnt % (2 * max_ents)) + 1;
+  }
   int sign = base < ricnt;
   uint64_t delta_base = sign ? ricnt - base - 1 : base - ricnt;
   size_t len = nghttp3_qpack_put_varint_len(encricnt, 8) +
