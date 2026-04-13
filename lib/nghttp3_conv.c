@@ -87,27 +87,29 @@ uint8_t *nghttp3_put_uint16be(uint8_t *p, uint16_t n) {
 
 uint8_t *nghttp3_put_varint(uint8_t *p, int64_t n) {
   uint8_t *rv;
-  if (n < 64) {
-    *p++ = (uint8_t)n;
+  uint64_t un = (uint64_t)n;
+
+  if (un < 64) {
+    *p++ = (uint8_t)un;
     return p;
   }
-  if (n < 16384) {
-    rv = nghttp3_put_uint16be(p, (uint16_t)n);
+  if (un < 16384) {
+    rv = nghttp3_put_uint16be(p, (uint16_t)un);
     *p |= 0x40;
     return rv;
   }
-  if (n < 1073741824) {
-    rv = nghttp3_put_uint32be(p, (uint32_t)n);
+  if (un < 1073741824) {
+    rv = nghttp3_put_uint32be(p, (uint32_t)un);
     *p |= 0x80;
     return rv;
   }
-  /* QUIC variable-length integer max is 2^62 - 1 */
-  if (n >= 4611686018427387904LL) {
+  /* QUIC variable-length integer max is NGHTTP3_VARINT_MAX (2^62 - 1) */
+  if (un > NGHTTP3_VARINT_MAX) {
     /* Out of range for variable-length integer encoding.
        Return NULL to indicate error. */
     return NULL;
   }
-  rv = nghttp3_put_uint64be(p, (uint64_t)n);
+  rv = nghttp3_put_uint64be(p, un);
   *p |= 0xC0;
   return rv;
 }
