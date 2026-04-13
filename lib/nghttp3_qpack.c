@@ -1112,6 +1112,11 @@ static int reserve_buf(nghttp3_buf *buf, size_t extra_size,
     return 0;
   }
 
+  /* Check for overflow before computing n */
+  if (extra_size > (1U << 31) - nghttp3_buf_cap(buf)) {
+    return NGHTTP3_ERR_NOMEM;
+  }
+
   n = nghttp3_max_size(n, nghttp3_buf_cap(buf) + extra_size - left);
 
   /* Check whether we are requesting too much memory */
