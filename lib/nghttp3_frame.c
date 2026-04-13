@@ -27,6 +27,7 @@
 
 #include <string.h>
 #include <assert.h>
+#include <limits.h>
 
 #include "nghttp3_conv.h"
 #include "nghttp3_str.h"
@@ -147,13 +148,28 @@ int nghttp3_nva_copy(nghttp3_nv **pnva, const nghttp3_nv *nva, size_t nvlen,
   for (i = 0; i < nvlen; ++i) {
     /* + 1 for null-termination */
     if ((nva[i].flags & NGHTTP3_NV_FLAG_NO_COPY_NAME) == 0) {
+      /* Check for overflow: buflen + namelen + 1 */
+      if (nva[i].namelen > SIZE_MAX - buflen - 1) {
+        return NGHTTP3_ERR_INVALID_ARGUMENT;
+      }
       buflen += nva[i].namelen + 1;
     }
     if ((nva[i].flags & NGHTTP3_NV_FLAG_NO_COPY_VALUE) == 0) {
+      /* Check for overflow: buflen + valuelen + 1 */
+      if (nva[i].valuelen > SIZE_MAX - buflen - 1) {
+        return NGHTTP3_ERR_INVALID_ARGUMENT;
+      }
       buflen += nva[i].valuelen + 1;
     }
   }
 
+  /* Check for overflow: buflen + sizeof(nghttp3_nv) * nvlen */
+  if (nvlen > SIZE_MAX / sizeof(nghttp3_nv)) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+  if (sizeof(nghttp3_nv) * nvlen > SIZE_MAX - buflen) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
   buflen += sizeof(nghttp3_nv) * nvlen;
 
   *pnva = nghttp3_mem_malloc(mem, buflen);
