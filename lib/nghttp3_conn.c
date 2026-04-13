@@ -1370,7 +1370,12 @@ static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
   rv =
     nghttp3_map_remove(&conn->streams, (nghttp3_map_key_type)stream->node.id);
 
-  assert(0 == rv);
+  if (rv != 0) {
+    /* Stream should always be in map if we're deleting it.
+       This indicates internal state corruption. */
+    nghttp3_stream_del(stream);
+    return rv;
+  }
 
   nghttp3_stream_del(stream);
 
@@ -1569,7 +1574,9 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
         if (rstate->left == 0) {
           rv = nghttp3_stream_transit_rx_http_state(
             stream, NGHTTP3_HTTP_EVENT_DATA_END);
-          assert(0 == rv);
+          if (rv != 0) {
+            return rv;
+          }
 
           nghttp3_stream_read_state_reset(rstate);
           break;
@@ -1590,7 +1597,9 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
 
           rv = nghttp3_stream_transit_rx_http_state(
             stream, NGHTTP3_HTTP_EVENT_HEADERS_END);
-          assert(0 == rv);
+          if (rv != 0) {
+            return rv;
+          }
 
           nghttp3_stream_read_state_reset(rstate);
           break;
@@ -1654,7 +1663,9 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
 
       rv = nghttp3_stream_transit_rx_http_state(stream,
                                                 NGHTTP3_HTTP_EVENT_DATA_END);
-      assert(0 == rv);
+      if (rv != 0) {
+        return rv;
+      }
 
       nghttp3_stream_read_state_reset(rstate);
       break;
@@ -1735,7 +1746,9 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
 
       rv = nghttp3_stream_transit_rx_http_state(stream,
                                                 NGHTTP3_HTTP_EVENT_HEADERS_END);
-      assert(0 == rv);
+      if (rv != 0) {
+        return rv;
+      }
 
       nghttp3_stream_read_state_reset(rstate);
 
