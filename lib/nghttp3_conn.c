@@ -1370,14 +1370,13 @@ static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream) {
   rv =
     nghttp3_map_remove(&conn->streams, (nghttp3_map_key_type)stream->node.id);
 
+  nghttp3_stream_del(stream);
+
   if (rv != 0) {
     /* Stream should always be in map if we're deleting it.
        This indicates internal state corruption. */
-    nghttp3_stream_del(stream);
     return rv;
   }
-
-  nghttp3_stream_del(stream);
 
   return 0;
 }
@@ -1531,6 +1530,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       assert(end - p > 0);
       nread = nghttp3_read_varint(rvint, p, end, fin);
       if (nread < 0) {
+        *pnproc = (size_t)(p - src);
         return NGHTTP3_ERR_H3_GENERAL_PROTOCOL_ERROR;
       }
 
@@ -1551,6 +1551,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       assert(end - p > 0);
       nread = nghttp3_read_varint(rvint, p, end, fin);
       if (nread < 0) {
+        *pnproc = (size_t)(p - src);
         return NGHTTP3_ERR_H3_FRAME_ERROR;
       }
 
@@ -1568,6 +1569,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
         rv = nghttp3_stream_transit_rx_http_state(
           stream, NGHTTP3_HTTP_EVENT_DATA_BEGIN);
         if (rv != 0) {
+          *pnproc = (size_t)(p - src);
           return rv;
         }
         /* DATA frame might be empty. */
