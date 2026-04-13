@@ -149,14 +149,14 @@ int nghttp3_nva_copy(nghttp3_nv **pnva, const nghttp3_nv *nva, size_t nvlen,
     /* + 1 for null-termination */
     if ((nva[i].flags & NGHTTP3_NV_FLAG_NO_COPY_NAME) == 0) {
       /* Check for overflow: buflen + namelen + 1 */
-      if (nva[i].namelen > SIZE_MAX - buflen - 1) {
+      if (buflen > SIZE_MAX - nva[i].namelen - 1) {
         return NGHTTP3_ERR_INVALID_ARGUMENT;
       }
       buflen += nva[i].namelen + 1;
     }
     if ((nva[i].flags & NGHTTP3_NV_FLAG_NO_COPY_VALUE) == 0) {
       /* Check for overflow: buflen + valuelen + 1 */
-      if (nva[i].valuelen > SIZE_MAX - buflen - 1) {
+      if (buflen > SIZE_MAX - nva[i].valuelen - 1) {
         return NGHTTP3_ERR_INVALID_ARGUMENT;
       }
       buflen += nva[i].valuelen + 1;
