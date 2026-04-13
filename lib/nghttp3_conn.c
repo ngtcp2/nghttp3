@@ -2493,7 +2493,8 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
   assert(nghttp3_client_stream_bidi(stream_id));
 
   if (conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED) {
-    /* Check if stream_id is >= the last stream ID allowed by GOAWAY */
+    /* Check if stream_id is >= goaway_id (the first disallowed stream ID
+       per RFC 9114 §5.2). Streams >= goaway_id cannot be opened. */
     if (stream_id >= conn->rx.goaway_id) {
       return NGHTTP3_ERR_CONN_CLOSING;
     }
