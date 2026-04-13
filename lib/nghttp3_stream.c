@@ -1129,8 +1129,8 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
     return 0;
   case NGHTTP3_HTTP_STATE_REQ_TRAILERS_END:
     if (event != NGHTTP3_HTTP_EVENT_MSG_END) {
-      /* RFC 9114: Ignore unexpected frame in this state */
-      return 0;
+      /* RFC 9114 §5.1: Frames received after trailers are a connection error */
+      return NGHTTP3_ERR_H3_FRAME_UNEXPECTED;
     }
     rv = nghttp3_http_on_remote_end_stream(stream);
     if (rv != 0) {
@@ -1211,8 +1211,8 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
     return 0;
   case NGHTTP3_HTTP_STATE_RESP_TRAILERS_END:
     if (event != NGHTTP3_HTTP_EVENT_MSG_END) {
-      /* RFC 9114: Ignore unexpected frame in this state */
-      return 0;
+      /* RFC 9114 §5.1: Frames received after trailers are a connection error */
+      return NGHTTP3_ERR_H3_FRAME_UNEXPECTED;
     }
     rv = nghttp3_http_on_remote_end_stream(stream);
     if (rv != 0) {
