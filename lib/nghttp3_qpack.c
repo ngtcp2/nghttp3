@@ -40,6 +40,15 @@
    dynamic table. */
 #define NGHTTP3_QPACK_MAX_QPACK_STREAMS 2000
 
+/* Huffman decoding expansion ratio is 8/5 (compressed:uncompressed) */
+#define NGHTTP3_QPACK_HUFFMAN_EXPAND_NUMERATOR 8
+#define NGHTTP3_QPACK_HUFFMAN_EXPAND_DENOMINATOR 5
+
+/* Macro to calculate maximum size needed for Huffman-decoded buffer */
+#define NGHTTP3_QPACK_HUFFMAN_DECODED_SIZE(compressed_len) \
+  ((size_t)(compressed_len) * NGHTTP3_QPACK_HUFFMAN_EXPAND_NUMERATOR / \
+   NGHTTP3_QPACK_HUFFMAN_EXPAND_DENOMINATOR + 1)
+
 /* Make scalar initialization form of nghttp3_qpack_static_entry */
 #define MAKE_STATIC_ENT(I, T, H)                                               \
   {                                                                            \
@@ -2963,7 +2972,8 @@ nghttp3_ssize nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
         nghttp3_qpack_huffman_decode_context_init(&decoder->rstate.huffman_ctx);
         /* Huffman decoding expands at most 8/5 ratio */
         rv = nghttp3_rcbuf_new(&decoder->rstate.name,
-                               (size_t)decoder->rstate.left * 8 / 5 + 1, mem);
+                               NGHTTP3_QPACK_HUFFMAN_DECODED_SIZE(decoder->rstate.left),
+                               mem);
       } else {
         decoder->state = NGHTTP3_QPACK_ES_STATE_READ_NAME;
         rv = nghttp3_rcbuf_new(&decoder->rstate.name,
@@ -3046,7 +3056,8 @@ nghttp3_ssize nghttp3_qpack_decoder_read_encoder(nghttp3_qpack_decoder *decoder,
         nghttp3_qpack_huffman_decode_context_init(&decoder->rstate.huffman_ctx);
         /* Huffman decoding expands at most 8/5 ratio */
         rv = nghttp3_rcbuf_new(&decoder->rstate.value,
-                               (size_t)decoder->rstate.left * 8 / 5 + 1, mem);
+                               NGHTTP3_QPACK_HUFFMAN_DECODED_SIZE(decoder->rstate.left),
+                               mem);
       } else {
         decoder->state = NGHTTP3_QPACK_ES_STATE_READ_VALUE;
         rv = nghttp3_rcbuf_new(&decoder->rstate.value,
