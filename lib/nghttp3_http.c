@@ -262,18 +262,17 @@ static const int8_t VALID_PATH_CHARS[256] = {
   ['\''] = 1, ['('] = 1,  [')'] = 1,  ['*'] = 1,  ['+'] = 1,  [','] = 1,
   ['-'] = 1,  ['.'] = 1,  ['/'] = 1,  ['0'] = 1,  ['1'] = 1,  ['2'] = 1,
   ['3'] = 1,  ['4'] = 1,  ['5'] = 1,  ['6'] = 1,  ['7'] = 1,  ['8'] = 1,
-  ['9'] = 1,  [':'] = 1,  [';'] = 1,  ['<'] = 1,  ['='] = 1,  ['>'] = 1,
-  ['?'] = 1,  ['@'] = 1,  ['A'] = 1,  ['B'] = 1,  ['C'] = 1,  ['D'] = 1,
-  ['E'] = 1,  ['F'] = 1,  ['G'] = 1,  ['H'] = 1,  ['I'] = 1,  ['J'] = 1,
-  ['K'] = 1,  ['L'] = 1,  ['M'] = 1,  ['N'] = 1,  ['O'] = 1,  ['P'] = 1,
-  ['Q'] = 1,  ['R'] = 1,  ['S'] = 1,  ['T'] = 1,  ['U'] = 1,  ['V'] = 1,
-  ['W'] = 1,  ['X'] = 1,  ['Y'] = 1,  ['Z'] = 1,  ['['] = 1,  ['\\'] = 1,
-  [']'] = 1,  ['^'] = 1,  ['_'] = 1,  ['`'] = 1,  ['a'] = 1,  ['b'] = 1,
+  ['9'] = 1,  [':'] = 1,  [';'] = 1,  ['='] = 1,  ['@'] = 1,  ['A'] = 1,
+  ['B'] = 1,  ['C'] = 1,  ['D'] = 1,  ['E'] = 1,  ['F'] = 1,  ['G'] = 1,
+  ['H'] = 1,  ['I'] = 1,  ['J'] = 1,  ['K'] = 1,  ['L'] = 1,  ['M'] = 1,
+  ['N'] = 1,  ['O'] = 1,  ['P'] = 1,  ['Q'] = 1,  ['R'] = 1,  ['S'] = 1,
+  ['T'] = 1,  ['U'] = 1,  ['V'] = 1,  ['W'] = 1,  ['X'] = 1,  ['Y'] = 1,
+  ['Z'] = 1,  ['['] = 1,  [']'] = 1,  ['_'] = 1,  ['a'] = 1,  ['b'] = 1,
   ['c'] = 1,  ['d'] = 1,  ['e'] = 1,  ['f'] = 1,  ['g'] = 1,  ['h'] = 1,
   ['i'] = 1,  ['j'] = 1,  ['k'] = 1,  ['l'] = 1,  ['m'] = 1,  ['n'] = 1,
   ['o'] = 1,  ['p'] = 1,  ['q'] = 1,  ['r'] = 1,  ['s'] = 1,  ['t'] = 1,
   ['u'] = 1,  ['v'] = 1,  ['w'] = 1,  ['x'] = 1,  ['y'] = 1,  ['z'] = 1,
-  ['{'] = 1,  ['|'] = 1,  ['}'] = 1,  ['~'] = 1,  /* Non-ASCII (0x80-0xFF) chars not allowed per RFC 3986 */
+  ['~'] = 1,  /* ASCII-only per RFC 3986/RFC 9110; exclude <>{}|^\`= per best practices */
 };
 
 static int check_path(const uint8_t *value, size_t len) {
@@ -727,10 +726,15 @@ static int contains_bad_header_value_char_avx2(const uint8_t *first,
   for (; first != last; first += 32) {
     s = _mm256_loadu_si256((void *)first);
 
+    /* Check for control characters (0x00-0x1F except tab) and DEL (0x7F) */
     x = _mm256_andnot_si256(
       _mm256_cmpeq_epi8(s, ht),
       _mm256_and_si256(_mm256_cmpgt_epi8(s, ctll), _mm256_cmpgt_epi8(ctlr, s)));
     x = _mm256_or_si256(_mm256_cmpeq_epi8(s, del), x);
+
+    /* Also check for non-ASCII characters (0x80-0xFF) per RFC 9110.
+       Bytes >= 0x80 are negative in signed int8_t interpretation. */
+    x = _mm256_or_si256(x, _mm256_cmplt_epi8(s, _mm256_set1_epi8(0)));
 
     m = (uint32_t)_mm256_movemask_epi8(x);
     if (m) {
