@@ -27,6 +27,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <limits.h>
 #ifdef WIN32
 #  include <intrin.h>
 #endif /* defined(WIN32) */
@@ -42,6 +43,11 @@ int nghttp3_ringbuf_init(nghttp3_ringbuf *rb, size_t nmemb, size_t size,
                          const nghttp3_mem *mem) {
   if (nmemb) {
     assert(ispow2(nmemb));
+
+    /* Check for overflow: nmemb * size */
+    if (size > 0 && nmemb > SIZE_MAX / size) {
+      return NGHTTP3_ERR_NOMEM;
+    }
 
     rb->buf = nghttp3_mem_malloc(mem, nmemb * size);
     if (rb->buf == NULL) {
@@ -120,6 +126,11 @@ int nghttp3_ringbuf_reserve(nghttp3_ringbuf *rb, size_t nmemb) {
   }
 
   assert(ispow2(nmemb));
+
+  /* Check for overflow: nmemb * rb->size */
+  if (rb->size > 0 && nmemb > SIZE_MAX / rb->size) {
+    return NGHTTP3_ERR_NOMEM;
+  }
 
   buf = nghttp3_mem_malloc(rb->mem, nmemb * rb->size);
   if (buf == NULL) {
