@@ -1129,9 +1129,8 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
     return 0;
   case NGHTTP3_HTTP_STATE_REQ_TRAILERS_END:
     if (event != NGHTTP3_HTTP_EVENT_MSG_END) {
-      /* TODO Should ignore unexpected frame in this state as per
-         spec. */
-      return NGHTTP3_ERR_H3_FRAME_UNEXPECTED;
+      /* RFC 9114: Ignore unexpected frame in this state */
+      return 0;
     }
     rv = nghttp3_http_on_remote_end_stream(stream);
     if (rv != 0) {
@@ -1212,7 +1211,8 @@ int nghttp3_stream_transit_rx_http_state(nghttp3_stream *stream,
     return 0;
   case NGHTTP3_HTTP_STATE_RESP_TRAILERS_END:
     if (event != NGHTTP3_HTTP_EVENT_MSG_END) {
-      return NGHTTP3_ERR_H3_FRAME_UNEXPECTED;
+      /* RFC 9114: Ignore unexpected frame in this state */
+      return 0;
     }
     rv = nghttp3_http_on_remote_end_stream(stream);
     if (rv != 0) {
