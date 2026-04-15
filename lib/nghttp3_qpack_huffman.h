@@ -107,4 +107,12 @@ nghttp3_qpack_huffman_decode(nghttp3_qpack_huffman_decode_context *ctx,
 int nghttp3_qpack_huffman_decode_failure_state(
   const nghttp3_qpack_huffman_decode_context *ctx);
 
+/*
+ * nghttp3_qpack_huffman_estimate_decode_length returns the estimated
+ * decoded length of the huffman encoded string of length |len|.
+ */
+static inline size_t nghttp3_qpack_huffman_estimate_decode_length(size_t len) {
+  return len * 8 / 5;
+}
+
 #endif /* !defined(NGHTTP3_QPACK_HUFFMAN_H) */
