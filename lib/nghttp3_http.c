@@ -459,7 +459,7 @@ static int http_response_on_header(nghttp3_http_state *http,
         nv->value->len != 3) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    http->status_code = (int16_t)parse_uint(nv->value->base, nv->value->len);
+    http->status_code = (int32_t)parse_uint(nv->value->base, nv->value->len);
     if (http->status_code < 100 || http->status_code == 101) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
