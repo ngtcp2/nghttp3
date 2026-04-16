@@ -3029,6 +3029,24 @@ NGHTTP3_EXTERN int nghttp3_conn_set_stream_user_data(nghttp3_conn *conn,
 /**
  * @function
  *
+ * `nghttp3_conn_get_stream_user_data` returns the user data
+ * associated to the stream identified by |stream_id|.  If no data is
+ * associated or the stream is not found, this function returns NULL.
+ *
+ * The user data can be associated to the stream by the following
+ * functions:
+ *
+ * - `nghttp3_conn_set_stream_user_data`
+ * - `nghttp3_conn_submit_request`
+ *
+ * This function has been available since v1.16.0.
+ */
+NGHTTP3_EXTERN void *nghttp3_conn_get_stream_user_data(const nghttp3_conn *conn,
+                                                       int64_t stream_id);
+
+/**
+ * @function
+ *
  * `nghttp3_conn_get_frame_payload_left` returns the number of bytes
  * left to read current frame payload for a stream denoted by
  * |stream_id|.  If no such stream is found, or |stream_id| identifies
