@@ -2813,6 +2813,21 @@ int nghttp3_conn_set_stream_user_data(nghttp3_conn *conn, int64_t stream_id,
   return 0;
 }
 
+void *nghttp3_conn_get_stream_user_data(const nghttp3_conn *conn,
+                                        int64_t stream_id) {
+  nghttp3_stream *stream;
+
+  assert(stream_id >= 0);
+  assert(stream_id <= (int64_t)NGHTTP3_MAX_VARINT);
+
+  stream = nghttp3_conn_find_stream(conn, stream_id);
+  if (stream == NULL) {
+    return NULL;
+  }
+
+  return stream->user_data;
+}
+
 uint64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
                                              int64_t stream_id) {
   return nghttp3_conn_get_frame_payload_left2(conn, stream_id);

@@ -73,6 +73,7 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_conn_recv_origin),
   munit_void_test(test_nghttp3_conn_write_origin),
   munit_void_test(test_nghttp3_conn_recv_unknown_frame),
+  munit_void_test(test_nghttp3_conn_get_stream_user_data),
   munit_test_end(),
 };
 
@@ -6721,6 +6722,37 @@ void test_nghttp3_conn_recv_unknown_frame(void) {
                                         /* fin = */ 0, 0);
 
   assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nconsumed);
+
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_get_stream_user_data(void) {
+  nghttp3_conn *conn;
+  int64_t stream_user_data = 0;
+  int rv;
+
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, &stream_user_data);
+
+  assert_int(0, ==, rv);
+  assert_ptr_equal(&stream_user_data,
+                   nghttp3_conn_get_stream_user_data(conn, 0));
+
+  rv = nghttp3_conn_set_stream_user_data(conn, 0, NULL);
+
+  assert_int(0, ==, rv);
+  assert_null(nghttp3_conn_get_stream_user_data(conn, 0));
+
+  rv = nghttp3_conn_set_stream_user_data(conn, 0, &stream_user_data);
+
+  assert_int(0, ==, rv);
+  assert_ptr_equal(&stream_user_data,
+                   nghttp3_conn_get_stream_user_data(conn, 0));
+
+  assert_null(nghttp3_conn_get_stream_user_data(conn, 100));
 
   nghttp3_conn_del(conn);
 }
