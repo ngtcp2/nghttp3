@@ -191,7 +191,7 @@ nghttp3_ssize nghttp3_read_varint(nghttp3_varint_read_state *rvint,
     assert(rvint->acc == 0);
 
     vlen = nghttp3_get_varintlen(begin);
-    len = nghttp3_min_size(vlen, (size_t)(end - begin));
+    len = nghttp3_min(vlen, (size_t)(end - begin));
     if (vlen <= len) {
       nghttp3_get_varint(&rvint->acc, begin);
       return (nghttp3_ssize)vlen;
@@ -209,7 +209,7 @@ nghttp3_ssize nghttp3_read_varint(nghttp3_varint_read_state *rvint,
     return (nghttp3_ssize)len;
   }
 
-  len = nghttp3_min_size(rvint->left, (size_t)(end - begin));
+  len = nghttp3_min(rvint->left, (size_t)(end - begin));
   p = (uint8_t *)&rvint->acc + (sizeof(rvint->acc) - rvint->left);
   memcpy(p, begin, len);
   rvint->left -= len;
@@ -228,8 +228,7 @@ int nghttp3_stream_frq_emplace(nghttp3_stream *stream, nghttp3_frame **pfr) {
   int rv;
 
   if (nghttp3_ringbuf_full(frq)) {
-    size_t nlen =
-      nghttp3_max_size(NGHTTP3_MIN_RBLEN, nghttp3_ringbuf_len(frq) * 2);
+    size_t nlen = nghttp3_max(NGHTTP3_MIN_RBLEN, nghttp3_ringbuf_len(frq) * 2);
     rv = nghttp3_ringbuf_reserve(frq, nlen);
     if (rv != 0) {
       return rv;
@@ -772,7 +771,7 @@ int nghttp3_stream_outq_add(nghttp3_stream *stream,
   }
 
   if (nghttp3_ringbuf_full(outq)) {
-    size_t nlen = nghttp3_max_size(NGHTTP3_MIN_RBLEN, len * 2);
+    size_t nlen = nghttp3_max(NGHTTP3_MIN_RBLEN, len * 2);
     rv = nghttp3_ringbuf_reserve(outq, nlen);
     if (rv != 0) {
       return rv;
@@ -814,7 +813,7 @@ int nghttp3_stream_ensure_chunk(nghttp3_stream *stream, size_t need) {
   }
 
   if (nghttp3_ringbuf_full(chunks)) {
-    size_t nlen = nghttp3_max_size(NGHTTP3_MIN_RBLEN, len * 2);
+    size_t nlen = nghttp3_max(NGHTTP3_MIN_RBLEN, len * 2);
     rv = nghttp3_ringbuf_reserve(chunks, nlen);
     if (rv != 0) {
       return rv;
@@ -967,8 +966,8 @@ int nghttp3_stream_update_ack_offset(nghttp3_stream *stream, uint64_t offset) {
     /* For NGHTTP3_BUF_TYPE_ALIEN, we never add 0 length buffer. */
     if (tbuf->type == NGHTTP3_BUF_TYPE_ALIEN && stream->ack_offset < offset &&
         stream->callbacks.acked_data) {
-      nack = nghttp3_min_uint64(offset, stream->ack_base + buflen) -
-             stream->ack_offset;
+      nack =
+        nghttp3_min(offset, stream->ack_base + buflen) - stream->ack_offset;
 
       rv = stream->callbacks.acked_data(stream, stream->node.id, nack,
                                         stream->user_data);
@@ -1009,7 +1008,7 @@ int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *data,
   if (len) {
     buf = nghttp3_ringbuf_get(inq, len - 1);
     bufleft = nghttp3_buf_left(buf);
-    nwrite = nghttp3_min_size(datalen, bufleft);
+    nwrite = nghttp3_min(datalen, bufleft);
     buf->last = nghttp3_cpymem(buf->last, data, nwrite);
     data += nwrite;
     datalen -= nwrite;
@@ -1018,7 +1017,7 @@ int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *data,
   for (; datalen;) {
     if (nghttp3_ringbuf_full(inq)) {
       size_t nlen =
-        nghttp3_max_size(NGHTTP3_MIN_RBLEN, nghttp3_ringbuf_len(inq) * 2);
+        nghttp3_max(NGHTTP3_MIN_RBLEN, nghttp3_ringbuf_len(inq) * 2);
       rv = nghttp3_ringbuf_reserve(inq, nlen);
       if (rv != 0) {
         return rv;
@@ -1033,7 +1032,7 @@ int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *data,
     buf = nghttp3_ringbuf_push_back(inq);
     nghttp3_buf_wrap_init(buf, rawbuf, 16384);
     bufleft = nghttp3_buf_left(buf);
-    nwrite = nghttp3_min_size(datalen, bufleft);
+    nwrite = nghttp3_min(datalen, bufleft);
     buf->last = nghttp3_cpymem(buf->last, data, nwrite);
     data += nwrite;
     datalen -= nwrite;
