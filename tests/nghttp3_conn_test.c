@@ -233,7 +233,7 @@ static nghttp3_ssize step_read_data(nghttp3_conn *conn, int64_t stream_id,
                                     uint32_t *pflags, void *user_data,
                                     void *stream_user_data) {
   userdata *ud = user_data;
-  size_t n = nghttp3_min_size(ud->data.left, ud->data.step);
+  size_t n = nghttp3_min(ud->data.left, ud->data.step);
 
   (void)conn;
   (void)stream_id;
@@ -301,7 +301,7 @@ static nghttp3_ssize stream_step_read_data(nghttp3_conn *conn,
                                            void *user_data,
                                            void *stream_user_data) {
   step_reader *sr = stream_user_data;
-  size_t n = nghttp3_min_size(sr->left, sr->step);
+  size_t n = nghttp3_min(sr->left, sr->step);
 
   (void)conn;
   (void)stream_id;
