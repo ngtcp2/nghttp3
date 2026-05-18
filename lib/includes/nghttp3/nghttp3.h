@@ -1863,6 +1863,7 @@ typedef struct nghttp3_settings {
    * limiter.  This field has been available since v1.12.0.
    */
   uint64_t glitch_ratelim_rate;
+  /* The following fields have been added since NGHTTP3_SETTINGS_V4. */
   /**
    * :member:`qpack_indexing_strat` defines the QPACK dynamic table
    * indexing strategy for those fields that are not defined in
