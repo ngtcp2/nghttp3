@@ -86,8 +86,9 @@ typedef ptrdiff_t nghttp3_ssize;
  *
  * :type:`nghttp3_tstamp` is a timestamp with nanosecond resolution.
  * ``UINT64_MAX`` is an invalid value, and it is often used to
- * indicate that no value is set.  This type is available since
- * v1.12.0.
+ * indicate that no value is set.
+ *
+ * .. version-added:: 1.12.0
  */
 typedef uint64_t nghttp3_tstamp;
 
@@ -96,8 +97,9 @@ typedef uint64_t nghttp3_tstamp;
  *
  * :type:`nghttp3_duration` is a period of time in nanosecond
  * resolution.  ``UINT64_MAX`` is an invalid value, and it is often
- * used to indicate that no value is set.  This type is available
- * since v1.12.0.
+ * used to indicate that no value is set.
+ *
+ * .. version-added:: 1.12.0.
  */
 typedef uint64_t nghttp3_duration;
 
@@ -105,7 +107,9 @@ typedef uint64_t nghttp3_duration;
  * @macro
  *
  * :macro:`NGHTTP3_NANOSECONDS` is a count of tick which corresponds
- * to 1 nanosecond.  This macro is available since v1.12.0.
+ * to 1 nanosecond.
+ *
+ * .. version-added:: 1.12.0
  */
 #define NGHTTP3_NANOSECONDS ((nghttp3_duration)1ULL)
 
@@ -113,7 +117,9 @@ typedef uint64_t nghttp3_duration;
  * @macro
  *
  * :macro:`NGHTTP3_MICROSECONDS` is a count of tick which corresponds
- * to 1 microsecond.  This macro is available since v1.12.0.
+ * to 1 microsecond.
+ *
+ * .. version-added:: 1.12.0
  */
 #define NGHTTP3_MICROSECONDS ((nghttp3_duration)(1000ULL * NGHTTP3_NANOSECONDS))
 
@@ -121,7 +127,9 @@ typedef uint64_t nghttp3_duration;
  * @macro
  *
  * :macro:`NGHTTP3_MILLISECONDS` is a count of tick which corresponds
- * to 1 millisecond.  This macro is available since v1.12.0.
+ * to 1 millisecond.
+ *
+ * .. version-added:: 1.12.0
  */
 #define NGHTTP3_MILLISECONDS                                                   \
   ((nghttp3_duration)(1000ULL * NGHTTP3_MICROSECONDS))
@@ -130,7 +138,9 @@ typedef uint64_t nghttp3_duration;
  * @macro
  *
  * :macro:`NGHTTP3_SECONDS` is a count of tick which corresponds to 1
- * second.  This macro is available since v1.12.0.
+ * second.
+ *
+ * .. version-added:: 1.12.0
  */
 #define NGHTTP3_SECONDS ((nghttp3_duration)(1000ULL * NGHTTP3_MILLISECONDS))
 
@@ -1156,8 +1166,9 @@ typedef struct nghttp3_qpack_nv {
  *
  * :type:`nghttp3_qpack_indexing_strat` defines the QPACK dynamic
  * table indexing strategies for fields not defined in
- * :type:`nghttp3_qpack_token`.  This type is available since v1.13.0.
-
+ * :type:`nghttp3_qpack_token`.
+ *
+ * .. version-added:: 1.13.0
  */
 typedef enum nghttp3_qpack_indexing_strat {
   /**
@@ -1165,14 +1176,16 @@ typedef enum nghttp3_qpack_indexing_strat {
    * fields not defined in :type:`nghttp3_qpack_token`.  This is the
    * default strategy.  You can still use
    * :macro:`NGHTTP3_NV_FLAG_TRY_INDEX` to index a particular field.
-   * This enum is available since v1.13.0.
+   *
+   * .. version-added:: 1.13.0
    */
   NGHTTP3_QPACK_INDEXING_STRAT_NONE,
   /**
    * :enum:`NGHTTP3_QPACK_INDEXING_STRAT_EAGER` indexes all fields not
    * defined in :type:`nghttp3_qpack_token`.  Please note that QPACK
-   * encoder might not index the field in various reasons.  This enum
-   * is available since v1.13.0.
+   * encoder might not index the field in various reasons.
+   *
+   * .. version-added:: 1.13.0
    */
   NGHTTP3_QPACK_INDEXING_STRAT_EAGER
 } nghttp3_qpack_indexing_strat;
@@ -1233,7 +1246,7 @@ NGHTTP3_EXTERN int nghttp3_qpack_encoder_new(nghttp3_qpack_encoder **pencoder,
  * :macro:`NGHTTP3_ERR_NOMEM`
  *     Out of memory.
  *
- * This function is available since v1.11.0.
+ * .. version-added:: 1.11.0
  */
 NGHTTP3_EXTERN int nghttp3_qpack_encoder_new2(nghttp3_qpack_encoder **pencoder,
                                               size_t hard_max_dtable_capacity,
@@ -1329,9 +1342,9 @@ nghttp3_qpack_encoder_set_max_blocked_streams(nghttp3_qpack_encoder *encoder,
  * @function
  *
  * `nghttp3_qpack_encoder_set_indexing_strat` sets the dynamic table
- * indexing strategy |strat| to |encoder|.  This function is available
- * since v1.13.0.
-
+ * indexing strategy |strat| to |encoder|.
+ *
+ * .. version-added:: 1.13.0
  */
 NGHTTP3_EXTERN void
 nghttp3_qpack_encoder_set_indexing_strat(nghttp3_qpack_encoder *encoder,
@@ -1352,11 +1365,13 @@ nghttp3_qpack_encoder_ack_everything(nghttp3_qpack_encoder *encoder);
 /**
  * @function
  *
+ * .. warning::
+ *
+ *   .. version-deprecated:: 1.16.0
+ *     Use `nghttp3_qpack_encoder_get_num_blocked_streams2` instead.
+ *
  * `nghttp3_qpack_encoder_get_num_blocked_streams` returns the number
  * of streams which are potentially blocked at decoder side.
- *
- * Deprecated since v1.16.0.  Use
- * `nghttp3_qpack_encoder_get_num_blocked_streams2` instead.
  */
 NGHTTP3_EXTERN size_t
 nghttp3_qpack_encoder_get_num_blocked_streams(nghttp3_qpack_encoder *encoder);
@@ -1367,7 +1382,7 @@ nghttp3_qpack_encoder_get_num_blocked_streams(nghttp3_qpack_encoder *encoder);
  * `nghttp3_qpack_encoder_get_num_blocked_streams2` returns the number
  * of streams which are potentially blocked at decoder side.
  *
- * This function has been available since v1.16.0.
+ * .. version-added:: 1.16.0
  */
 NGHTTP3_EXTERN size_t nghttp3_qpack_encoder_get_num_blocked_streams2(
   const nghttp3_qpack_encoder *encoder);
@@ -1415,11 +1430,13 @@ nghttp3_qpack_stream_context_del(nghttp3_qpack_stream_context *sctx);
 /**
  * @function
  *
+ * .. warning::
+ *
+ *   .. version-deprecated:: 1.16.0
+ *     Use `nghttp3_qpack_stream_context_get_ricnt2` instead.
+ *
  * `nghttp3_qpack_stream_context_get_ricnt` returns required insert
  * count.
- *
- * Deprecated since v1.16.0.  Use
- * `nghttp3_qpack_stream_context_get_ricnt2` instead.
  */
 NGHTTP3_EXTERN uint64_t
 nghttp3_qpack_stream_context_get_ricnt(nghttp3_qpack_stream_context *sctx);
@@ -1615,11 +1632,13 @@ nghttp3_qpack_decoder_write_decoder(nghttp3_qpack_decoder *decoder,
 /**
  * @function
  *
+ * .. warning::
+ *
+ *   .. version-deprecated:: 1.16.0
+ *     Use `nghttp3_qpack_decoder_get_decoder_streamlen2` instead.
+ *
  * `nghttp3_qpack_decoder_get_decoder_streamlen` returns the length of
  * decoder stream that is currently pending.
- *
- * Deprecated since v1.16.0.  Use
- * `nghttp3_qpack_decoder_get_decoder_streamlen2` instead.
  */
 NGHTTP3_EXTERN size_t
 nghttp3_qpack_decoder_get_decoder_streamlen(nghttp3_qpack_decoder *decoder);
@@ -1630,7 +1649,7 @@ nghttp3_qpack_decoder_get_decoder_streamlen(nghttp3_qpack_decoder *decoder);
  * `nghttp3_qpack_decoder_get_decoder_streamlen2` returns the length
  * of decoder stream that is currently pending.
  *
- * This function has been available since v1.16.0.
+ * .. version-added:: 1.16.0
  */
 NGHTTP3_EXTERN size_t nghttp3_qpack_decoder_get_decoder_streamlen2(
   const nghttp3_qpack_decoder *decoder);
@@ -1830,7 +1849,8 @@ typedef struct nghttp3_settings {
    * Datagrams (see :rfc:`9297`).
    */
   uint8_t h3_datagram;
-  /* The following fields have been added since NGHTTP3_SETTINGS_V2. */
+  /* The following fields have been added since
+     NGHTTP3_SETTINGS_V2. */
   /**
    * :member:`origin_list`, if set, must contain a serialized HTTP/3
    * ORIGIN frame (see :rfc:`9412`) payload.  The ORIGIN frame payload
@@ -1842,10 +1862,13 @@ typedef struct nghttp3_settings {
    * until the :type:`nghttp3_conn` to which this field was passed is
    * freed by `nghttp3_conn_del`.  The object pointed to by this field
    * is copied internally, and does not need to be kept alive.  Only
-   * server uses this field.  This field is available since v1.11.0.
+   * server uses this field.
+   *
+   * .. version-added:: 1.11.0
    */
   const nghttp3_vec *origin_list;
-  /* The following fields have been added since NGHTTP3_SETTINGS_V3. */
+  /* The following fields have been added since
+     NGHTTP3_SETTINGS_V3. */
   /**
    * :member:`glitch_ratelim_burst` is the maximum number of tokens
    * available to "glitch" rate limiter.  "glitch" is a suspicious
@@ -1853,22 +1876,27 @@ typedef struct nghttp3_settings {
    * tokens are consumed.  If no tokens are available to consume, the
    * connection is closed.  The rate of token generation is specified
    * by :member:`glitch_ratelim_rate`.  This feature is enabled only
-   * when `nghttp3_conn_read_stream2` is used.  This field has been
-   * available since v1.12.0.
+   * when `nghttp3_conn_read_stream2` is used.
+   *
+   * .. version-added:: 1.12.0
    */
   uint64_t glitch_ratelim_burst;
   /**
    * :member:`glitch_ratelim_rate` is the number of tokens generated
    * per second.  See :member:`glitch_ratelim_burst` for "glitch" rate
-   * limiter.  This field has been available since v1.12.0.
+   * limiter.
+   *
+   * .. version-added:: 1.12.0
    */
   uint64_t glitch_ratelim_rate;
-  /* The following fields have been added since NGHTTP3_SETTINGS_V4. */
+  /* The following fields have been added since
+     NGHTTP3_SETTINGS_V4. */
   /**
    * :member:`qpack_indexing_strat` defines the QPACK dynamic table
    * indexing strategy for those fields that are not defined in
-   * :type:`nghttp3_qpack_token`.  This field has been available since
-   * v1.13.0.
+   * :type:`nghttp3_qpack_token`.
+   *
+   * .. version-added:: 1.13.0
    */
   nghttp3_qpack_indexing_strat qpack_indexing_strat;
 } nghttp3_settings;
@@ -1880,7 +1908,9 @@ typedef struct nghttp3_settings {
  * @struct
  *
  * :type:`nghttp3_proto_settings` contains HTTP/3 settings that this
- * library can recognize.  This field is available since v1.14.0.
+ * library can recognize.
+ *
+ * .. version-added:: 1.14.0
  */
 typedef struct nghttp3_proto_settings {
   /**
@@ -2137,8 +2167,9 @@ typedef int (*nghttp3_shutdown)(nghttp3_conn *conn, int64_t id,
  *
  * .. warning::
  *
- *   Deprecated since v1.14.0.  Use :type:`nghttp3_recv_settings2`
- *   instead.  New settings will not be notified with this callback.
+ *   .. version-deprecated:: 1.14.0
+ *     Use :type:`nghttp3_recv_settings2` instead.  New settings will
+ *     not be notified with this callback.
  *
  * :type:`nghttp3_recv_settings` is a callback function which is
  * invoked when SETTINGS frame is received.  |settings| is a received
@@ -2201,8 +2232,9 @@ typedef void (*nghttp3_rand)(uint8_t *dest, size_t destlen);
  * The implementation of this callback must return 0 if it succeeds.
  * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
  * caller immediately.  Any values other than 0 is treated as
- * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.  This callback is available
- * since v1.14.0.
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ *
+ * .. version-added:: 1.14.0
  */
 typedef int (*nghttp3_recv_settings2)(nghttp3_conn *conn,
                                       const nghttp3_proto_settings *settings,
@@ -2303,24 +2335,27 @@ typedef struct nghttp3_callbacks {
   /**
    * .. warning::
    *
-   *   Deprecated since v1.14.0.  Use :member:`recv_settings2`
-   *   instead.
+   *   .. version-deprecated:: 1.14.0
+   *     Use :member:`recv_settings2` instead.
    *
    * :member:`recv_settings` is a callback function which is invoked
    * when SETTINGS frame is received.
    */
   nghttp3_recv_settings recv_settings;
-  /* The following fields have been added since NGHTTP3_CALLBACKS_V2. */
+  /* The following fields have been added since
+     NGHTTP3_CALLBACKS_V2. */
   /**
    * :member:`recv_origin` is a callback function which is invoked
-   * when a single origin in an ORIGIN frame is received.  This field
-   * is available since v1.11.0.
+   * when a single origin in an ORIGIN frame is received.
+   *
+   * .. version-added:: 1.11.0
    */
   nghttp3_recv_origin recv_origin;
   /**
    * :member:`end_origin` is a callback function which is invoked when
-   * an ORIGIN frame has been completely processed.  This field is
-   * available since v1.11.0.
+   * an ORIGIN frame has been completely processed.
+   *
+   * .. version-added:: 1.11.0
    */
   nghttp3_end_origin end_origin;
   /**
@@ -2328,14 +2363,16 @@ typedef struct nghttp3_callbacks {
    * unpredictable data are needed.  Although this field is optional
    * due to the backward compatibility, it is recommended to specify
    * this field to harden the runtime behavior against suspicious
-   * activities of a remote endpoint.  This field is available since
-   * v1.11.0.
+   * activities of a remote endpoint.
+   *
+   * .. version-added:: 1.11.0
    */
   nghttp3_rand rand;
   /**
    * :member:`recv_settings2` is a callback function which is invoked
-   * when SETTINGS frame is received.  This field is available since
-   * v1.14.0.
+   * when SETTINGS frame is received.
+   *
+   * .. version-added:: 1.14.0
    */
   nghttp3_recv_settings2 recv_settings2;
 } nghttp3_callbacks;
@@ -2458,8 +2495,8 @@ NGHTTP3_EXTERN int nghttp3_conn_bind_qpack_streams(nghttp3_conn *conn,
  *
  * .. warning::
  *
- *   Deprecated since v1.12.0.  Use `nghttp3_conn_read_stream2`
- *   instead.
+ *   .. version-deprecated:: 1.12.0
+ *     Use `nghttp3_conn_read_stream2` instead.
  *
  * `nghttp3_conn_read_stream` reads data |src| of length |srclen| on
  * stream identified by |stream_id|.  It returns the number of bytes
@@ -2517,7 +2554,7 @@ NGHTTP3_EXTERN nghttp3_ssize nghttp3_conn_read_stream(nghttp3_conn *conn,
  * be closed.  Calling nghttp3 API other than `nghttp3_conn_del`
  * causes undefined behavior.
  *
- * This function is available since v1.12.0.
+ * .. version-added:: 1.12.0
  */
 NGHTTP3_EXTERN nghttp3_ssize nghttp3_conn_read_stream2(nghttp3_conn *conn,
                                                        int64_t stream_id,
@@ -2665,6 +2702,11 @@ NGHTTP3_EXTERN int nghttp3_conn_unblock_stream(nghttp3_conn *conn,
 /**
  * @function
  *
+ * .. warning::
+ *
+ *   .. version-deprecated:: 1.16.0
+ *     Use `nghttp3_conn_is_stream_writable2` instead.
+ *
  * `nghttp3_conn_is_stream_writable` returns nonzero if a stream
  * identified by |stream_id| is writable.  It is not writable if:
  *
@@ -2678,9 +2720,6 @@ NGHTTP3_EXTERN int nghttp3_conn_unblock_stream(nghttp3_conn *conn,
  *   :type:`nghttp3_read_data_callback`); or,
  * - the stream is half-closed local (e.g.,
  *   `nghttp3_conn_shutdown_stream_write` is called).
- *
- * Deprecated since v1.16.0.  Use `nghttp3_conn_is_stream_writable2`
- * instead.
  */
 NGHTTP3_EXTERN int nghttp3_conn_is_stream_writable(nghttp3_conn *conn,
                                                    int64_t stream_id);
@@ -2702,7 +2741,7 @@ NGHTTP3_EXTERN int nghttp3_conn_is_stream_writable(nghttp3_conn *conn,
  * - the stream is half-closed local (e.g.,
  *   `nghttp3_conn_shutdown_stream_write` is called).
  *
- * This function has been available since v1.16.0.
+ * .. version-added:: 1.16.0
  */
 NGHTTP3_EXTERN int nghttp3_conn_is_stream_writable2(const nghttp3_conn *conn,
                                                     int64_t stream_id);
@@ -3040,7 +3079,7 @@ NGHTTP3_EXTERN int nghttp3_conn_set_stream_user_data(nghttp3_conn *conn,
  * - `nghttp3_conn_set_stream_user_data`
  * - `nghttp3_conn_submit_request`
  *
- * This function has been available since v1.16.0.
+ * .. version-added:: 1.16.0
  */
 NGHTTP3_EXTERN void *nghttp3_conn_get_stream_user_data(const nghttp3_conn *conn,
                                                        int64_t stream_id);
@@ -3048,14 +3087,16 @@ NGHTTP3_EXTERN void *nghttp3_conn_get_stream_user_data(const nghttp3_conn *conn,
 /**
  * @function
  *
+ * .. warning::
+ *
+ *   .. version-deprecated:: 1.16.0
+ *     Use `nghttp3_conn_get_frame_payload_left2` instead.
+ *
  * `nghttp3_conn_get_frame_payload_left` returns the number of bytes
  * left to read current frame payload for a stream denoted by
  * |stream_id|.  If no such stream is found, or |stream_id| identifies
  * neither client bidirectional stream nor remote control stream, it
  * returns 0.
- *
- * Deprecated since v1.16.0.  Use
- * `nghttp3_conn_get_frame_payload_left2` instead.
  */
 NGHTTP3_EXTERN uint64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
                                                             int64_t stream_id);
@@ -3069,7 +3110,7 @@ NGHTTP3_EXTERN uint64_t nghttp3_conn_get_frame_payload_left(nghttp3_conn *conn,
  * neither client bidirectional stream nor remote control stream, it
  * returns 0.
  *
- * This function has been available since v1.16.0.
+ * .. version-added:: 1.16.0
  */
 NGHTTP3_EXTERN uint64_t nghttp3_conn_get_frame_payload_left2(
   const nghttp3_conn *conn, int64_t stream_id);
@@ -3135,6 +3176,11 @@ typedef struct NGHTTP3_ALIGN(8) nghttp3_pri {
 /**
  * @function
  *
+ * .. warning::
+ *
+ *   .. version-deprecated:: 1.16.0
+ *     Use `nghttp3_conn_get_stream_priority2` instead.
+ *
  * `nghttp3_conn_get_stream_priority` stores stream priority of a
  * stream denoted by |stream_id| into |*dest|.  |stream_id| must
  * identify client initiated bidirectional stream.  Only server can
@@ -3150,9 +3196,6 @@ typedef struct NGHTTP3_ALIGN(8) nghttp3_pri {
  *     |stream_id| is not a client initiated bidirectional stream ID.
  * :macro:`NGHTTP3_ERR_STREAM_NOT_FOUND`
  *     Stream not found.
- *
- * Deprecated since v1.16.0.  Use `nghttp3_conn_get_stream_priority2`
- * instead.
  */
 NGHTTP3_EXTERN int nghttp3_conn_get_stream_priority_versioned(
   nghttp3_conn *conn, int pri_version, nghttp3_pri *dest, int64_t stream_id);
@@ -3176,7 +3219,7 @@ NGHTTP3_EXTERN int nghttp3_conn_get_stream_priority_versioned(
  * :macro:`NGHTTP3_ERR_STREAM_NOT_FOUND`
  *     Stream not found.
  *
- * This function has been available since v1.16.0.
+ * .. version-added:: 1.16.0
  */
 NGHTTP3_EXTERN int
 nghttp3_conn_get_stream_priority2_versioned(const nghttp3_conn *conn,
@@ -3269,11 +3312,14 @@ NGHTTP3_EXTERN int nghttp3_check_header_value(const uint8_t *value, size_t len);
 /**
  * @function
  *
+ * .. warning::
+ *
+ *   .. version-deprecated:: 1.16.0
+ *     Use `nghttp3_conn_is_drained2` instead.
+ *
  * `nghttp3_conn_is_drained` returns nonzero if
  * `nghttp3_conn_shutdown` has been called, and there is no active
  * remote streams.  This function is for server use only.
- *
- * Deprecated since v1.16.0.  Use `nghttp3_conn_is_drained2` instead.
  */
 NGHTTP3_EXTERN int nghttp3_conn_is_drained(nghttp3_conn *conn);
 
@@ -3284,7 +3330,7 @@ NGHTTP3_EXTERN int nghttp3_conn_is_drained(nghttp3_conn *conn);
  * `nghttp3_conn_shutdown` has been called, and there is no active
  * remote streams.  This function is for server use only.
  *
- * This function has been available since v1.16.0.
+ * .. version-added:: 1.16.0
  */
 NGHTTP3_EXTERN int nghttp3_conn_is_drained2(const nghttp3_conn *conn);
 
