@@ -577,10 +577,13 @@ int nghttp3_http_on_request_headers(nghttp3_http_state *http) {
          (NGHTTP3_HTTP_FLAG__AUTHORITY | NGHTTP3_HTTP_FLAG_HOST)) == 0) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    if ((http->flags & NGHTTP3_HTTP_FLAG__PROTOCOL) &&
-        ((http->flags & NGHTTP3_HTTP_FLAG_METH_CONNECT) == 0 ||
-         (http->flags & NGHTTP3_HTTP_FLAG__AUTHORITY) == 0)) {
-      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+    if (http->flags & NGHTTP3_HTTP_FLAG__PROTOCOL) {
+      if ((http->flags & NGHTTP3_HTTP_FLAG_METH_CONNECT) == 0 ||
+          (http->flags & NGHTTP3_HTTP_FLAG__AUTHORITY) == 0) {
+        return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
+      }
+
+      http->content_length = -1;
     }
     if (!check_path_flags(http)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
