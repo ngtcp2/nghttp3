@@ -92,41 +92,13 @@
 #    define STIN static inline
 #  endif /* !defined(_MSC_VER) */
 
-STIN uint32_t htonl(uint32_t hostlong) {
-  uint32_t res;
-  unsigned char *p = (unsigned char *)&res;
-  *p++ = (unsigned char)(hostlong >> 24);
-  *p++ = (hostlong >> 16) & 0xFFU;
-  *p++ = (hostlong >> 8) & 0xFFU;
-  *p = hostlong & 0xFFU;
-  return res;
-}
+STIN uint32_t htonl(uint32_t hostlong) { return _byteswap_ulong(hostlong); }
 
-STIN uint16_t htons(uint16_t hostshort) {
-  uint16_t res;
-  unsigned char *p = (unsigned char *)&res;
-  *p++ = (unsigned char)(hostshort >> 8);
-  *p = hostshort & 0xFFU;
-  return res;
-}
+STIN uint16_t htons(uint16_t hostshort) { return _byteswap_ushort(hostshort); }
 
-STIN uint32_t ntohl(uint32_t netlong) {
-  uint32_t res;
-  unsigned char *p = (unsigned char *)&netlong;
-  res = (uint32_t)(*p++ << 24);
-  res += (uint32_t)(*p++ << 16);
-  res += (uint32_t)(*p++ << 8);
-  res += *p;
-  return res;
-}
+STIN uint32_t ntohl(uint32_t netlong) { return _byteswap_ulong(netlong); }
 
-STIN uint16_t ntohs(uint16_t netshort) {
-  uint16_t res;
-  unsigned char *p = (unsigned char *)&netshort;
-  res = (uint16_t)(*p++ << 8);
-  res += *p;
-  return res;
-}
+STIN uint16_t ntohs(uint16_t netshort) { return _byteswap_ushort(netshort); }
 
 #endif /* defined(WIN32) */
 
