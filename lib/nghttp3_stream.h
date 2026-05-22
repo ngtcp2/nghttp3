@@ -83,7 +83,7 @@ typedef enum nghttp3_req_stream_state {
 } nghttp3_req_stream_state;
 
 typedef struct nghttp3_varint_read_state {
-  int64_t acc;
+  uint64_t acc;
   size_t left;
 } nghttp3_varint_read_state;
 
@@ -91,7 +91,7 @@ typedef struct nghttp3_stream_read_state {
   nghttp3_varint_read_state rvint;
   nghttp3_settings_entry iv;
   nghttp3_frame fr;
-  int64_t left;
+  uint64_t left;
   int state;
 } nghttp3_stream_read_state;
 
@@ -294,8 +294,8 @@ int nghttp3_stream_write_header_block(nghttp3_stream *stream,
                                       nghttp3_qpack_encoder *qenc,
                                       nghttp3_stream *qenc_stream,
                                       nghttp3_buf *rbuf, nghttp3_buf *ebuf,
-                                      int64_t frame_type, const nghttp3_nv *nva,
-                                      size_t nvlen);
+                                      uint64_t frame_type,
+                                      const nghttp3_nv *nva, size_t nvlen);
 
 int nghttp3_stream_write_data(nghttp3_stream *stream, int *peof,
                               const nghttp3_frame_data *fr);
