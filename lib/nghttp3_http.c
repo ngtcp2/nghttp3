@@ -812,7 +812,7 @@ int nghttp3_check_header_value(const uint8_t *value, size_t len) {
 
 #ifdef __AVX2__
   if (len >= 32) {
-    last32 = value + (len & ~0x1FU);
+    last32 = value + (len & ~(size_t)0x1FU);
     if (contains_bad_header_value_char_avx2(value, last32)) {
       return 0;
     }

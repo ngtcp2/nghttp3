@@ -85,7 +85,7 @@ int nghttp3_balloc_get(nghttp3_balloc *balloc, void **pbuf, size_t n) {
   assert(((uintptr_t)balloc->buf.last & 0xFU) == 0);
 
   *pbuf = balloc->buf.last;
-  balloc->buf.last += (n + 0xFU) & ~(uintptr_t)0xFU;
+  balloc->buf.last += (n + 0xFU) & ~(size_t)0xFU;
 
   return 0;
 }

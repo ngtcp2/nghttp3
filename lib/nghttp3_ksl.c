@@ -56,13 +56,12 @@ void nghttp3_ksl_init(nghttp3_ksl *ksl, nghttp3_ksl_compar compar,
 
   assert(keylen >= sizeof(uint64_t));
 
-  aligned_keylen = (keylen + 0x7U) & ~0x7U;
+  aligned_keylen = (keylen + 0x7U) & ~(size_t)0x7U;
 
   assert(aligned_keylen <= UINT16_MAX);
 
-  nghttp3_objalloc_init(&ksl->blkalloc,
-                        (ksl_blklen(aligned_keylen) + 0xFU) & ~(uintptr_t)0xFU,
-                        mem);
+  nghttp3_objalloc_init(
+    &ksl->blkalloc, (ksl_blklen(aligned_keylen) + 0xFU) & ~(size_t)0xFU, mem);
 
   ksl->root = NULL;
   ksl->front = ksl->back = NULL;
