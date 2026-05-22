@@ -55,7 +55,7 @@ void test_nghttp3_read_varint(void) {
 
     assert_ptrdiff(1, ==, nread);
     assert_size(0, ==, rvint.left);
-    assert_int64(63, ==, rvint.acc);
+    assert_uint64(63, ==, rvint.acc);
   }
 
   {
@@ -69,7 +69,7 @@ void test_nghttp3_read_varint(void) {
 
     assert_ptrdiff((nghttp3_ssize)sizeof(input), ==, nread);
     assert_size(0, ==, rvint.left);
-    assert_int64(63, ==, rvint.acc);
+    assert_uint64(63, ==, rvint.acc);
   }
 
   {
@@ -83,7 +83,7 @@ void test_nghttp3_read_varint(void) {
 
     assert_ptrdiff((nghttp3_ssize)sizeof(input), ==, nread);
     assert_size(0, ==, rvint.left);
-    assert_int64(0x2D << 24 | 0xA5 << 16 | 0xCB << 8 | 0x03, ==, rvint.acc);
+    assert_uint64(0x2D << 24 | 0xA5 << 16 | 0xCB << 8 | 0x03, ==, rvint.acc);
   }
 
   {
@@ -103,7 +103,7 @@ void test_nghttp3_read_varint(void) {
 
     assert_ptrdiff(1, ==, nread);
     assert_size(0, ==, rvint.left);
-    assert_int64(0x2D << 24 | 0xA5 << 16 | 0xCB << 8 | 0x03, ==, rvint.acc);
+    assert_uint64(0x2D << 24 | 0xA5 << 16 | 0xCB << 8 | 0x03, ==, rvint.acc);
   }
 
   {
@@ -148,7 +148,7 @@ void test_nghttp3_read_varint(void) {
 
     assert_ptrdiff((nghttp3_ssize)(sizeof(input) - 1), ==, nread);
     assert_size(0, ==, rvint.left);
-    assert_int64(0x2D << 24 | 0xA5 << 16 | 0xCB << 8 | 0x03, ==, rvint.acc);
+    assert_uint64(0x2D << 24 | 0xA5 << 16 | 0xCB << 8 | 0x03, ==, rvint.acc);
   }
 
   {
@@ -162,9 +162,9 @@ void test_nghttp3_read_varint(void) {
 
     assert_ptrdiff((nghttp3_ssize)sizeof(input), ==, nread);
     assert_size(0, ==, rvint.left);
-    assert_int64(0x2DLL << 56 | 0xA5LL << 48 | 0xCBLL << 40 | 0x03LL << 32 |
-                   0x90LL << 24 | 0xFCLL << 16 | 0x13LL << 8 | 0xD8LL,
-                 ==, rvint.acc);
+    assert_uint64(0x2DLL << 56 | 0xA5LL << 48 | 0xCBLL << 40 | 0x03LL << 32 |
+                    0x90LL << 24 | 0xFCLL << 16 | 0x13LL << 8 | 0xD8LL,
+                  ==, rvint.acc);
   }
 
   {

@@ -637,7 +637,7 @@ static void conn_read_control_stream(nghttp3_conn *conn, int64_t stream_id,
 
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   nghttp3_write_frame(&buf, fr);
 
@@ -669,7 +669,7 @@ void test_nghttp3_conn_read_control(void) {
 
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -746,7 +746,7 @@ void test_nghttp3_conn_read_control(void) {
   /* Receive empty SETTINGS */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -777,7 +777,7 @@ void test_nghttp3_conn_read_control(void) {
   /* Receiver should enforce its own limits for QPACK parameters. */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -818,7 +818,7 @@ void test_nghttp3_conn_read_control(void) {
      treated as error. */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -854,7 +854,7 @@ void test_nghttp3_conn_read_control(void) {
      treated as error. */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -889,7 +889,7 @@ void test_nghttp3_conn_read_control(void) {
   /* Receive ENABLE_CONNECT_PROTOCOL = 1 */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -922,7 +922,7 @@ void test_nghttp3_conn_read_control(void) {
      ENABLE_CONNECT_PROTOCOL = 1 */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -956,7 +956,7 @@ void test_nghttp3_conn_read_control(void) {
   /* Receive H3_DATAGRAM = 1 */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -988,7 +988,7 @@ void test_nghttp3_conn_read_control(void) {
   /* Receive H3_DATAGRAM = 0 */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -1019,7 +1019,7 @@ void test_nghttp3_conn_read_control(void) {
   /* Receive H3_DATAGRAM which is neither 0 nor 1 */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -1050,7 +1050,7 @@ void test_nghttp3_conn_read_control(void) {
   /* Receive SETTINGS in 1 byte at a time */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -1086,7 +1086,7 @@ void test_nghttp3_conn_read_control(void) {
   /* Receive SETTINGS in 2 calls */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -1128,14 +1128,14 @@ void test_nghttp3_conn_read_control(void) {
   /* Receive SETTINGS frame that lacks value */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_SETTINGS);
-  buf.last = nghttp3_put_varint(buf.last,
-                                (int64_t)nghttp3_put_varintlen(
-                                  NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL));
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_FRAME_SETTINGS);
+  buf.last = nghttp3_put_uvarint(
+    buf.last,
+    nghttp3_put_uvarintlen(NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL));
   buf.last =
-    nghttp3_put_varint(buf.last, NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL);
+    nghttp3_put_uvarint(buf.last, NGHTTP3_SETTINGS_ID_ENABLE_CONNECT_PROTOCOL);
 
   setup_default_server(&conn);
 
@@ -1149,12 +1149,11 @@ void test_nghttp3_conn_read_control(void) {
   /* Receive SETTINGS frame that lacks value in 2 calls */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_SETTINGS);
-  buf.last =
-    nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(0xFFFF));
-  buf.last = nghttp3_put_varint(buf.last, 0xFFFF);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_FRAME_SETTINGS);
+  buf.last = nghttp3_put_uvarint(buf.last, nghttp3_put_uvarintlen(0xFFFF));
+  buf.last = nghttp3_put_uvarint(buf.last, 0xFFFF);
 
   setup_default_server(&conn);
 
@@ -1175,12 +1174,12 @@ void test_nghttp3_conn_read_control(void) {
   /* Receive a frame other than SETTINGS as a first frame */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   /* unknown frame */
-  buf.last = nghttp3_put_varint(buf.last, 1000000007);
+  buf.last = nghttp3_put_uvarint(buf.last, 1000000007);
   /* and its length */
-  buf.last = nghttp3_put_varint(buf.last, 1000000009);
+  buf.last = nghttp3_put_uvarint(buf.last, 1000000009);
 
   setup_default_server(&conn);
 
@@ -1194,7 +1193,7 @@ void test_nghttp3_conn_read_control(void) {
   /* Receive SETTINGS frame more than once */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -1215,7 +1214,7 @@ void test_nghttp3_conn_read_control(void) {
   /* Receive an unknown frame */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -1224,9 +1223,9 @@ void test_nghttp3_conn_read_control(void) {
   nghttp3_write_frame(&buf, &fr);
 
   /* unknown frame */
-  buf.last = nghttp3_put_varint(buf.last, 1000000007);
+  buf.last = nghttp3_put_uvarint(buf.last, 1000000007);
   /* and its length */
-  buf.last = nghttp3_put_varint(buf.last, 100);
+  buf.last = nghttp3_put_uvarint(buf.last, 100);
 
   setup_default_server(&conn);
 
@@ -1249,9 +1248,9 @@ void test_nghttp3_conn_read_control(void) {
   conn_read_control_stream(conn, 2, &fr);
 
   /* unknown frame */
-  buf.last = nghttp3_put_varint(buf.last, 1000000007);
+  buf.last = nghttp3_put_uvarint(buf.last, 1000000007);
   /* and its length */
-  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_put_uvarint(buf.last, 0);
 
   for (i = 0; i < conn->local.settings.glitch_ratelim_burst; ++i) {
     nconsumed = nghttp3_conn_read_stream2(
@@ -1272,7 +1271,7 @@ void test_nghttp3_conn_read_control(void) {
   /* Deprecated recv_settings */
   nghttp3_buf_reset(&buf);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -3680,7 +3679,7 @@ void test_nghttp3_conn_http_error(void) {
   assert_size(0, !=, nghttp3_ringbuf_len(&stream->inq));
 
   nghttp3_buf_reset(&buf);
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_QPACK_ENCODER);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_QPACK_ENCODER);
 
   sconsumed = nghttp3_conn_read_stream2(conn, 6, buf.pos, nghttp3_buf_len(&buf),
                                         /* fin = */ 0, 0);
@@ -4177,7 +4176,7 @@ void test_nghttp3_conn_recv_goaway(void) {
 
   setup_default_client_with_options(&conn, opts);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4220,7 +4219,7 @@ void test_nghttp3_conn_recv_goaway(void) {
 
   setup_default_client_with_options(&conn, opts);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4264,7 +4263,7 @@ void test_nghttp3_conn_recv_goaway(void) {
 
   setup_default_server_with_options(&conn, opts);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4296,7 +4295,7 @@ void test_nghttp3_conn_recv_goaway(void) {
   nghttp3_buf_reset(&buf);
   setup_default_server(&conn);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4304,8 +4303,8 @@ void test_nghttp3_conn_recv_goaway(void) {
 
   nghttp3_write_frame(&buf, &fr);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_GOAWAY);
-  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_FRAME_GOAWAY);
+  buf.last = nghttp3_put_uvarint(buf.last, 0);
 
   nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                         /* fin = */ 0, 0);
@@ -4318,7 +4317,7 @@ void test_nghttp3_conn_recv_goaway(void) {
   nghttp3_buf_reset(&buf);
   setup_default_client(&conn);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4344,7 +4343,7 @@ void test_nghttp3_conn_recv_goaway(void) {
   nghttp3_buf_reset(&buf);
   setup_default_server(&conn);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4564,7 +4563,7 @@ void test_nghttp3_conn_priority_update(void) {
     MAKE_NV("priority", "u=5, i"),
   };
   size_t i;
-  int64_t payloadlen;
+  uint64_t payloadlen;
 
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
@@ -4573,7 +4572,7 @@ void test_nghttp3_conn_priority_update(void) {
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4631,7 +4630,7 @@ void test_nghttp3_conn_priority_update(void) {
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4689,7 +4688,7 @@ void test_nghttp3_conn_priority_update(void) {
 
   assert_int(0, ==, rv);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4720,7 +4719,7 @@ void test_nghttp3_conn_priority_update(void) {
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4749,7 +4748,7 @@ void test_nghttp3_conn_priority_update(void) {
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4794,7 +4793,7 @@ void test_nghttp3_conn_priority_update(void) {
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4829,7 +4828,7 @@ void test_nghttp3_conn_priority_update(void) {
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4866,7 +4865,7 @@ void test_nghttp3_conn_priority_update(void) {
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4907,7 +4906,7 @@ void test_nghttp3_conn_priority_update(void) {
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4938,7 +4937,7 @@ void test_nghttp3_conn_priority_update(void) {
   nghttp3_buf_reset(&buf);
   setup_default_client(&conn);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4963,7 +4962,7 @@ void test_nghttp3_conn_priority_update(void) {
   nghttp3_buf_reset(&buf);
   setup_default_server(&conn);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -4971,8 +4970,8 @@ void test_nghttp3_conn_priority_update(void) {
 
   nghttp3_write_frame(&buf, &fr);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_PRIORITY_UPDATE);
-  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_FRAME_PRIORITY_UPDATE);
+  buf.last = nghttp3_put_uvarint(buf.last, 0);
 
   nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                         /* fin = */ 0, 0);
@@ -4986,7 +4985,7 @@ void test_nghttp3_conn_priority_update(void) {
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 129);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -5026,7 +5025,7 @@ void test_nghttp3_conn_priority_update(void) {
   setup_default_server(&conn);
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -5094,7 +5093,7 @@ void test_nghttp3_conn_request_priority(void) {
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -5137,7 +5136,7 @@ void test_nghttp3_conn_request_priority(void) {
   nghttp3_conn_set_max_client_streams_bidi(conn, 1);
   nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -5345,7 +5344,7 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   consumed_total += (size_t)sconsumed;
 
   nghttp3_buf_reset(&buf);
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_QPACK_ENCODER);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_QPACK_ENCODER);
 
   sconsumed = nghttp3_conn_read_stream2(conn, 7, buf.pos, nghttp3_buf_len(&buf),
                                         /* fin = */ 0, 0);
@@ -5434,7 +5433,7 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
 
   assert_uint64(0, ==, nghttp3_conn_get_frame_payload_left2(conn, 2));
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   fr.settings = (nghttp3_frame_settings){
     .type = NGHTTP3_FRAME_SETTINGS,
@@ -5649,7 +5648,7 @@ void test_nghttp3_conn_set_client_stream_priority(void) {
 
   assert_ptrdiff((nghttp3_ssize)nghttp3_vec_len(vec, (size_t)sveccnt), ==,
                  nread);
-  assert_int64(NGHTTP3_FRAME_PRIORITY_UPDATE, ==, fr.type);
+  assert_uint64(NGHTTP3_FRAME_PRIORITY_UPDATE, ==, fr.type);
   assert_memn_equal(prihd, nghttp3_strlen_lit(prihd), fr.data, fr.datalen);
 
   rv = nghttp3_conn_add_write_offset(
@@ -6041,13 +6040,13 @@ void test_nghttp3_conn_push(void) {
   /* MAX_PUSH_ID from client is ignored. */
   setup_default_server(&conn);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   nghttp3_write_frame(&buf, &fr);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
-  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(64));
-  buf.last = nghttp3_put_varint(buf.last, 64);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
+  buf.last = nghttp3_put_uvarint(buf.last, nghttp3_put_uvarintlen(64));
+  buf.last = nghttp3_put_uvarint(buf.last, 64);
 
   nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                         /* fin = */ 0, 0);
@@ -6064,13 +6063,13 @@ void test_nghttp3_conn_push(void) {
   nghttp3_buf_reset(&buf);
   setup_default_server(&conn);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   nghttp3_write_frame(&buf, &fr);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
-  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(64));
-  buf.last = nghttp3_put_varint(buf.last, 64);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
+  buf.last = nghttp3_put_uvarint(buf.last, nghttp3_put_uvarintlen(64));
+  buf.last = nghttp3_put_uvarint(buf.last, 64);
 
   for (i = 0; i < nghttp3_buf_len(&buf); ++i) {
     nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos + i, 1,
@@ -6089,17 +6088,17 @@ void test_nghttp3_conn_push(void) {
   nghttp3_buf_reset(&buf);
   setup_default_server(&conn);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   nghttp3_write_frame(&buf, &fr);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
-  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(64));
-  buf.last = nghttp3_put_varint(buf.last, 64);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
+  buf.last = nghttp3_put_uvarint(buf.last, nghttp3_put_uvarintlen(64));
+  buf.last = nghttp3_put_uvarint(buf.last, 64);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
-  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(63));
-  buf.last = nghttp3_put_varint(buf.last, 63);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
+  buf.last = nghttp3_put_uvarint(buf.last, nghttp3_put_uvarintlen(63));
+  buf.last = nghttp3_put_uvarint(buf.last, 63);
 
   nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                         /* fin = */ 0, 0);
@@ -6112,12 +6111,12 @@ void test_nghttp3_conn_push(void) {
   nghttp3_buf_reset(&buf);
   setup_default_server(&conn);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   nghttp3_write_frame(&buf, &fr);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
-  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
+  buf.last = nghttp3_put_uvarint(buf.last, 0);
 
   nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                         /* fin = */ 0, 0);
@@ -6130,13 +6129,13 @@ void test_nghttp3_conn_push(void) {
   nghttp3_buf_reset(&buf);
   setup_default_client(&conn);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   nghttp3_write_frame(&buf, &fr);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
-  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(64));
-  buf.last = nghttp3_put_varint(buf.last, 64);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
+  buf.last = nghttp3_put_uvarint(buf.last, nghttp3_put_uvarintlen(64));
+  buf.last = nghttp3_put_uvarint(buf.last, 64);
 
   nconsumed = nghttp3_conn_read_stream2(conn, 3, buf.pos, nghttp3_buf_len(&buf),
                                         /* fin = */ 0, 0);
@@ -6149,13 +6148,13 @@ void test_nghttp3_conn_push(void) {
   nghttp3_buf_reset(&buf);
   setup_default_server(&conn);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
 
   nghttp3_write_frame(&buf, &fr);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_CANCEL_PUSH);
-  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(0));
-  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_FRAME_CANCEL_PUSH);
+  buf.last = nghttp3_put_uvarint(buf.last, nghttp3_put_uvarintlen(0));
+  buf.last = nghttp3_put_uvarint(buf.last, 0);
 
   nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                         /* fin = */ 0, 0);
@@ -6180,8 +6179,8 @@ void test_nghttp3_conn_push(void) {
   assert_int64(0, ==, stream_id);
   assert_ptrdiff(1, ==, sveccnt);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_PUSH_PROMISE);
-  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(107));
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_FRAME_PUSH_PROMISE);
+  buf.last = nghttp3_put_uvarint(buf.last, nghttp3_put_uvarintlen(107));
 
   nconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
                                         /* fin = */ 0, 0);
@@ -6197,9 +6196,9 @@ void test_nghttp3_conn_push(void) {
 
   conn_read_control_stream(conn, 2, &fr);
 
-  buf.last = nghttp3_put_varint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
-  buf.last = nghttp3_put_varint(buf.last, (int64_t)nghttp3_put_varintlen(64));
-  buf.last = nghttp3_put_varint(buf.last, 64);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
+  buf.last = nghttp3_put_uvarint(buf.last, nghttp3_put_uvarintlen(64));
+  buf.last = nghttp3_put_uvarint(buf.last, 64);
 
   /* The first MAX_PUSH_ID is not counted toward glitch counter. */
   for (i = 0; i < conn->local.settings.glitch_ratelim_burst + 1; ++i) {
@@ -6705,9 +6704,9 @@ void test_nghttp3_conn_recv_unknown_frame(void) {
   setup_default_server(&conn);
 
   /* unknown frame */
-  buf.last = nghttp3_put_varint(buf.last, 1000000009);
+  buf.last = nghttp3_put_uvarint(buf.last, 1000000009);
   /* and its length */
-  buf.last = nghttp3_put_varint(buf.last, 0);
+  buf.last = nghttp3_put_uvarint(buf.last, 0);
 
   for (i = 0; i < conn->local.settings.glitch_ratelim_burst; ++i) {
     nconsumed = nghttp3_conn_read_stream2(

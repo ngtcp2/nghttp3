@@ -48,8 +48,8 @@
 #define NGHTTP3_TEST_MAP_SEED 0
 
 typedef struct nghttp3_raw_frame_hd {
-  int64_t type;
-  int64_t length;
+  uint64_t type;
+  uint64_t length;
 } nghttp3_raw_frame_hd;
 
 /*
