@@ -43,21 +43,21 @@ const uint8_t *nghttp3_get_varint(int64_t *dest, const uint8_t *p) {
   case 1:
     memcpy(&n16, p, 2);
     n16 = ntohs(n16);
-    n16 &= 0x3FFF;
+    n16 &= 0x3FFFU;
     *dest = n16;
 
     return p + 2;
   case 2:
     memcpy(&n32, p, 4);
     n32 = ntohl(n32);
-    n32 &= 0x3FFFFFFF;
+    n32 &= 0x3FFFFFFFU;
     *dest = n32;
 
     return p + 4;
   case 3:
     memcpy(&n64, p, 8);
     n64 = nghttp3_ntohl64(n64);
-    n64 &= 0x3FFFFFFFFFFFFFFF;
+    n64 &= 0x3FFFFFFFFFFFFFFFU;
     *dest = (int64_t)n64;
 
     return p + 8;
@@ -93,17 +93,17 @@ uint8_t *nghttp3_put_varint(uint8_t *p, int64_t n) {
   }
   if (n < 16384) {
     rv = nghttp3_put_uint16be(p, (uint16_t)n);
-    *p |= 0x40;
+    *p |= 0x40U;
     return rv;
   }
   if (n < 1073741824) {
     rv = nghttp3_put_uint32be(p, (uint32_t)n);
-    *p |= 0x80;
+    *p |= 0x80U;
     return rv;
   }
   assert(n < 4611686018427387904LL);
   rv = nghttp3_put_uint64be(p, (uint64_t)n);
-  *p |= 0xC0;
+  *p |= 0xC0U;
   return rv;
 }
 
