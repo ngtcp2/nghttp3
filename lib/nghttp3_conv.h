@@ -174,10 +174,4 @@ static inline size_t nghttp3_put_varintlen(int64_t n) {
  */
 uint64_t nghttp3_ord_stream_id(int64_t stream_id);
 
-/*
- * NGHTTP3_PRI_INC_MASK is a bit mask to retrieve incremental bit from
- * a value produced by nghttp3_pri_to_uint8.
- */
-#define NGHTTP3_PRI_INC_MASK (1 << 7)
-
 #endif /* !defined(NGHTTP3_CONV_H) */
