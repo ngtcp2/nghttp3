@@ -76,14 +76,14 @@ size_t nghttp3_frame_write_settings_len(uint64_t *ppayloadlen,
 uint8_t *nghttp3_frame_write_goaway(uint8_t *p, const nghttp3_frame_goaway *fr,
                                     uint64_t payloadlen) {
   p = nghttp3_frame_write_hd(p, fr->type, payloadlen);
-  p = nghttp3_put_varint(p, fr->id);
+  p = nghttp3_put_uvarint(p, (uint64_t)fr->id);
 
   return p;
 }
 
 size_t nghttp3_frame_write_goaway_len(uint64_t *ppayloadlen,
                                       const nghttp3_frame_goaway *fr) {
-  size_t payloadlen = nghttp3_put_varintlen(fr->id);
+  size_t payloadlen = nghttp3_put_uvarintlen((uint64_t)fr->id);
 
   *ppayloadlen = payloadlen;
 
@@ -94,7 +94,7 @@ size_t nghttp3_frame_write_goaway_len(uint64_t *ppayloadlen,
 uint8_t *nghttp3_frame_write_priority_update(
   uint8_t *p, const nghttp3_frame_priority_update *fr, uint64_t payloadlen) {
   p = nghttp3_frame_write_hd(p, fr->type, payloadlen);
-  p = nghttp3_put_varint(p, fr->pri_elem_id);
+  p = nghttp3_put_uvarint(p, (uint64_t)fr->pri_elem_id);
   if (fr->datalen) {
     p = nghttp3_cpymem(p, fr->data, fr->datalen);
   }
@@ -104,7 +104,8 @@ uint8_t *nghttp3_frame_write_priority_update(
 
 size_t nghttp3_frame_write_priority_update_len(
   uint64_t *ppayloadlen, const nghttp3_frame_priority_update *fr) {
-  size_t payloadlen = nghttp3_put_varintlen(fr->pri_elem_id) + fr->datalen;
+  size_t payloadlen =
+    nghttp3_put_uvarintlen((uint64_t)fr->pri_elem_id) + fr->datalen;
 
   *ppayloadlen = payloadlen;
 

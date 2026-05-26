@@ -154,22 +154,6 @@ uint8_t *nghttp3_put_uvarint(uint8_t *p, uint64_t n);
 size_t nghttp3_put_uvarintlen(uint64_t n);
 
 /*
- * nghttp3_put_varint writes |n| in |p| using variable-length integer
- * encoding.  It returns the one beyond of the last written position.
- */
-static inline uint8_t *nghttp3_put_varint(uint8_t *p, int64_t n) {
-  return nghttp3_put_uvarint(p, (uint64_t)n);
-}
-
-/*
- * nghttp3_put_varintlen returns the required number of bytes to
- * encode |n|.
- */
-static inline size_t nghttp3_put_varintlen(int64_t n) {
-  return nghttp3_put_uvarintlen((uint64_t)n);
-}
-
-/*
  * nghttp3_ord_stream_id returns the ordinal number of |stream_id|.
  */
 uint64_t nghttp3_ord_stream_id(int64_t stream_id);
