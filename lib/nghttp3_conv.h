@@ -82,24 +82,14 @@
 #endif   /* !HAVE_DECL_BE64TOH */
 
 #ifdef WIN32
-/* Windows requires ws2_32 library for ntonl family of functions.  We
-   define inline functions for those functions so that we don't have
-   dependency on that lib. */
-
-#  ifdef _MSC_VER
-#    define STIN static __inline
-#  else /* !defined(_MSC_VER) */
-#    define STIN static inline
-#  endif /* !defined(_MSC_VER) */
-
-STIN uint32_t htonl(uint32_t hostlong) { return _byteswap_ulong(hostlong); }
-
-STIN uint16_t htons(uint16_t hostshort) { return _byteswap_ushort(hostshort); }
-
-STIN uint32_t ntohl(uint32_t netlong) { return _byteswap_ulong(netlong); }
-
-STIN uint16_t ntohs(uint16_t netshort) { return _byteswap_ushort(netshort); }
-
+/* Windows requires ws2_32 library for ntonl family of functions.
+   Instead of using them, use _byteswap_* functions.  This is fine
+   because all platforms that can run Windows these days are little
+   endian. */
+#  define htonl(N) _byteswap_ulong(N)
+#  define htons(N) _byteswap_ushort(N)
+#  define ntohl(N) _byteswap_ulong(N)
+#  define ntohs(N) _byteswap_ushort(N)
 #endif /* defined(WIN32) */
 
 /*
