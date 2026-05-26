@@ -67,11 +67,11 @@
 #    define nghttp3_htonl64(N) (N)
 #  else /* !defined(WORDS_BIGENDIAN) */
 #    if HAVE_DECL_BSWAP_64
-#      define nghttp3_bswap64 bswap_64
+#      define nghttp3_bswap64(N) bswap_64(N)
 #    elif defined(WIN32)
-#      define nghttp3_bswap64 _byteswap_uint64
+#      define nghttp3_bswap64(N) _byteswap_uint64(N)
 #    elif defined(__APPLE__)
-#      define nghttp3_bswap64 OSSwapInt64
+#      define nghttp3_bswap64(N) OSSwapInt64(N)
 #    else /* !(HAVE_DECL_BSWAP_64 || defined(WIN32) || defined(__APPLE__)) */
 #      define nghttp3_bswap64(N)                                               \
         ((uint64_t)(ntohl((uint32_t)(N))) << 32 | ntohl((uint32_t)((N) >> 32)))
