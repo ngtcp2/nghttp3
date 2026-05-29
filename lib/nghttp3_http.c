@@ -63,26 +63,29 @@ static int memieq(const void *a, const void *b, size_t n) {
   (nghttp3_strlen_lit((A)) == (N) && memieq((A), (B), (N)))
 
 static int64_t parse_uint(const uint8_t *s, size_t len) {
-  int64_t n = 0;
+  uint64_t n = 0;
+  uint32_t c;
   size_t i;
+
   if (len == 0) {
     return -1;
   }
+
   for (i = 0; i < len; ++i) {
-    if ('0' <= s[i] && s[i] <= '9') {
-      if (n > (int64_t)NGHTTP3_MAX_VARINT / 10) {
-        return -1;
-      }
-      n *= 10;
-      if (n > (int64_t)NGHTTP3_MAX_VARINT - (s[i] - '0')) {
-        return -1;
-      }
-      n += s[i] - '0';
-      continue;
+    if ('0' > s[i] || s[i] > '9') {
+      return -1;
     }
-    return -1;
+
+    c = s[i] - '0';
+
+    if (n > (NGHTTP3_MAX_VARINT - c) / 10) {
+      return -1;
+    }
+
+    n = n * 10 + c;
   }
-  return n;
+
+  return (int64_t)n;
 }
 
 static int check_pseudo_header(nghttp3_http_state *http,
