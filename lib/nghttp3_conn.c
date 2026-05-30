@@ -2099,11 +2099,11 @@ int nghttp3_conn_create_stream(nghttp3_conn *conn, nghttp3_stream **pstream,
                                int64_t stream_id) {
   nghttp3_stream *stream;
   int rv;
+  static const nghttp3_stream_callbacks callbacks = {
+    .acked_data = conn_stream_acked_data,
+  };
 
-  rv = nghttp3_stream_new(&stream, stream_id,
-                          &(nghttp3_stream_callbacks){
-                            .acked_data = conn_stream_acked_data,
-                          },
+  rv = nghttp3_stream_new(&stream, stream_id, &callbacks,
                           &conn->out_chunk_objalloc, &conn->stream_objalloc,
                           conn->mem);
   if (rv != 0) {

@@ -159,7 +159,7 @@ void test_nghttp3_qpack_encoder_encode(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_qpack_encoder enc;
   nghttp3_qpack_decoder dec;
-  nghttp3_nv nva[] = {
+  static const nghttp3_nv nva[] = {
     MAKE_NV(":path", "/rsrc.php/v3/yn/r/rIPZ9Qkrdd9.png"),
     MAKE_NV(":authority", "static.xx.fbcdn.net"),
     MAKE_NV(":scheme", "https"),
@@ -349,7 +349,7 @@ void test_nghttp3_qpack_encoder_encode_try_encode(void) {
 void test_nghttp3_qpack_encoder_encode_indexing_strat_eager(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_qpack_encoder enc;
-  const nghttp3_nv nva[] = {
+  static const nghttp3_nv nva[] = {
     MAKE_NV(":path", "/foo"),
     MAKE_NV(":authority", "example.com"),
     MAKE_NV("nonstd", "non-standard-cookie"),
@@ -387,11 +387,11 @@ void test_nghttp3_qpack_encoder_encode_indexing_strat_eager(void) {
 void test_nghttp3_qpack_encoder_still_blocked(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_qpack_encoder enc;
-  nghttp3_nv nva1[] = {
+  static const nghttp3_nv nva1[] = {
     MAKE_NV(":status", "103"),
     MAKE_NV("link", "foo"),
   };
-  nghttp3_nv nva2[] = {
+  static const nghttp3_nv nva2[] = {
     MAKE_NV(":status", "200"),
     MAKE_NV("content-type", "text/foo"),
   };
@@ -462,11 +462,11 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   nghttp3_qpack_encoder enc;
   nghttp3_qpack_decoder dec;
   nghttp3_buf pbuf, rbuf, ebuf;
-  const nghttp3_nv nva1[] = {
+  static const nghttp3_nv nva1[] = {
     MAKE_NV(":path", "/"),
     MAKE_NV("date", "bar1"),
   };
-  const nghttp3_nv nva2[] = {
+  static const nghttp3_nv nva2[] = {
     MAKE_NV(":path", "/"),
     MAKE_NV("vary", "bar2"),
   };
@@ -693,15 +693,15 @@ void test_nghttp3_qpack_decoder_feedback(void) {
   nghttp3_qpack_encoder enc;
   nghttp3_qpack_decoder dec;
   nghttp3_buf pbuf1, rbuf1, pbuf2, rbuf2, pbuf3, rbuf3, ebuf, dbuf;
-  const nghttp3_nv nva1[] = {
+  static const nghttp3_nv nva1[] = {
     MAKE_NV(":path", "/"),
     MAKE_NV("date", "bar1"),
   };
-  const nghttp3_nv nva2[] = {
+  static const nghttp3_nv nva2[] = {
     MAKE_NV(":path", "/"),
     MAKE_NV("vary", "bar2"),
   };
-  const nghttp3_nv nva3[] = {
+  static const nghttp3_nv nva3[] = {
     MAKE_NV(":path", "/"),
     MAKE_NV("link", "bar3"),
   };
@@ -882,7 +882,7 @@ void test_nghttp3_qpack_huffman(void) {
 
 void test_nghttp3_qpack_huffman_decode_failure_state(void) {
   nghttp3_qpack_huffman_decode_context ctx;
-  const uint8_t data[] = {0xFF, 0xFF, 0xFF, 0xFF};
+  static const uint8_t data[] = {0xFF, 0xFF, 0xFF, 0xFF};
   uint8_t buf[4096];
   nghttp3_ssize nwrite;
 
@@ -924,7 +924,7 @@ void test_nghttp3_qpack_decoder_read_encoder(void) {
   uint8_t b = 0x20; /* Set Dynamic Table Capacity */
   size_t i;
   nghttp3_ssize nread;
-  const nghttp3_nv nva[] = {
+  static const nghttp3_nv nva[] = {
     MAKE_NV("foo", "bar"),
   };
   nghttp3_buf pbuf, rbuf, ebuf;
@@ -990,7 +990,7 @@ void test_nghttp3_qpack_encoder_read_decoder(void) {
   uint8_t b = 0x40; /* Stream Cancellation */
   size_t i;
   nghttp3_ssize nread;
-  const nghttp3_nv nva[] = {
+  static const nghttp3_nv nva[] = {
     MAKE_NV("foo", "bar"),
   };
   nghttp3_buf pbuf, rbuf, ebuf;
