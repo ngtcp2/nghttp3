@@ -463,8 +463,8 @@ static void rand_cb(uint8_t *data, size_t datalen) {
 }
 
 typedef struct conn_options {
-  nghttp3_callbacks *callbacks;
-  nghttp3_settings *settings;
+  const nghttp3_callbacks *callbacks;
+  const nghttp3_settings *settings;
   int64_t control_stream_id;
   int64_t qenc_stream_id;
   int64_t qdec_stream_id;
@@ -649,11 +649,11 @@ static void conn_read_control_stream(nghttp3_conn *conn, int64_t stream_id,
 
 void test_nghttp3_conn_read_control(void) {
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {
+  static const nghttp3_callbacks callbacks = {
     .recv_settings2 = recv_settings2,
     .rand = rand_cb,
   };
-  nghttp3_callbacks deprecated_callbacks = {
+  static const nghttp3_callbacks deprecated_callbacks = {
     .recv_settings = recv_settings,
     .rand = rand_cb,
   };
@@ -1407,14 +1407,14 @@ void test_nghttp3_conn_write_control(void) {
 
 void test_nghttp3_conn_submit_request(void) {
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {
+  static const nghttp3_callbacks callbacks = {
     .acked_stream_data = acked_stream_data,
   };
   nghttp3_vec vec[256];
   nghttp3_ssize sveccnt;
   int rv;
   int64_t stream_id;
-  const nghttp3_nv large_nva[] = {
+  static const nghttp3_nv large_nva[] = {
     MAKE_NV(":path", "/alpha/bravo/charlie/delta/echo/foxtrot/golf/hotel"),
     MAKE_NV(":authority", "example.com"),
     MAKE_NV(":scheme", "https"),
@@ -1426,7 +1426,7 @@ void test_nghttp3_conn_submit_request(void) {
             "quebec=romeo; sierra=tango; uniform=vector; whiskey=xray; "
             "yankee=zulu"),
   };
-  const nghttp3_nv trailer_nva[] = {
+  static const nghttp3_nv trailer_nva[] = {
     MAKE_NV("digest", "foo"),
   };
   uint64_t len;
@@ -1817,7 +1817,7 @@ void test_nghttp3_conn_submit_request(void) {
 
 void test_nghttp3_conn_http_request(void) {
   nghttp3_conn *cl, *sv;
-  nghttp3_callbacks callbacks = {
+  static const nghttp3_callbacks callbacks = {
     .begin_headers = begin_headers,
     .recv_header = recv_header,
     .end_headers = end_headers,
@@ -1828,7 +1828,7 @@ void test_nghttp3_conn_http_request(void) {
   nghttp3_ssize sconsumed;
   int rv;
   int64_t stream_id;
-  const nghttp3_nv respnva[] = {
+  static const nghttp3_nv respnva[] = {
     MAKE_NV(":status", "200"),
     MAKE_NV("server", "nghttp3"),
     MAKE_NV("content-length", "1999"),
@@ -2018,100 +2018,100 @@ static void check_http_req_header(const nghttp3_nv *nva, size_t nvlen,
 void test_nghttp3_conn_http_resp_header(void) {
   /* test case for response */
   /* response header lacks :status */
-  const nghttp3_nv nostatus_resnv[] = {
+  static const nghttp3_nv nostatus_resnv[] = {
     MAKE_NV("server", "foo"),
   };
   /* response header has 2 :status */
-  const nghttp3_nv dupstatus_resnv[] = {
+  static const nghttp3_nv dupstatus_resnv[] = {
     MAKE_NV(":status", "200"),
     MAKE_NV(":status", "200"),
   };
   /* response header has bad pseudo header :scheme */
-  const nghttp3_nv badpseudo_resnv[] = {
+  static const nghttp3_nv badpseudo_resnv[] = {
     MAKE_NV(":status", "200"),
     MAKE_NV(":scheme", "https"),
   };
   /* response header has :status after regular header field */
-  const nghttp3_nv latepseudo_resnv[] = {
+  static const nghttp3_nv latepseudo_resnv[] = {
     MAKE_NV("server", "foo"),
     MAKE_NV(":status", "200"),
   };
   /* response header has bad status code */
-  const nghttp3_nv badstatus_resnv[] = {
+  static const nghttp3_nv badstatus_resnv[] = {
     MAKE_NV(":status", "2000"),
   };
   /* response header has bad content-length */
-  const nghttp3_nv badcl_resnv[] = {
+  static const nghttp3_nv badcl_resnv[] = {
     MAKE_NV(":status", "200"),
     MAKE_NV("content-length", "-1"),
   };
   /* response header has multiple content-length */
-  const nghttp3_nv dupcl_resnv[] = {
+  static const nghttp3_nv dupcl_resnv[] = {
     MAKE_NV(":status", "200"),
     MAKE_NV("content-length", "0"),
     MAKE_NV("content-length", "0"),
   };
   /* response header has disallowed header field */
-  const nghttp3_nv badhd_resnv[] = {
+  static const nghttp3_nv badhd_resnv[] = {
     MAKE_NV(":status", "200"),
     MAKE_NV("connection", "close"),
   };
   /* response header has content-length with 100 status code */
-  const nghttp3_nv cl1xx_resnv[] = {
+  static const nghttp3_nv cl1xx_resnv[] = {
     MAKE_NV(":status", "100"),
     MAKE_NV("content-length", "0"),
   };
   /* response header has 0 content-length with 204 status code */
-  const nghttp3_nv cl204_resnv[] = {
+  static const nghttp3_nv cl204_resnv[] = {
     MAKE_NV(":status", "204"),
     MAKE_NV("content-length", "0"),
   };
   /* response header has nonzero content-length with 204 status
      code */
-  const nghttp3_nv clnonzero204_resnv[] = {
+  static const nghttp3_nv clnonzero204_resnv[] = {
     MAKE_NV(":status", "204"),
     MAKE_NV("content-length", "100"),
   };
   /* status code 101 should not be used in HTTP/3 because it is used
      for HTTP Upgrade which HTTP/3 removes. */
-  const nghttp3_nv status101_resnv[] = {
+  static const nghttp3_nv status101_resnv[] = {
     MAKE_NV(":status", "101"),
   };
   /* response header has te header field that contains invalid
      value. */
-  const nghttp3_nv invalidte_resnv[] = {
+  static const nghttp3_nv invalidte_resnv[] = {
     MAKE_NV(":status", "200"),
     MAKE_NV("te", "trailer2"),
   };
   /* response header has te header field that contains TRAiLERS. */
-  const nghttp3_nv te_resnv[] = {
+  static const nghttp3_nv te_resnv[] = {
     MAKE_NV(":status", "200"),
     MAKE_NV("te", "TRAiLERS"),
   };
   /* response header has a bad header value. */
-  const nghttp3_nv badvalue_resnv[] = {
+  static const nghttp3_nv badvalue_resnv[] = {
     MAKE_NV(":status", "200"),
     MAKE_NV("foo", "\x7F"),
   };
   /* response header has empty header name followed by a pseudo
      header. */
-  const nghttp3_nv emptynamepseudo_resnv[] = {
+  static const nghttp3_nv emptynamepseudo_resnv[] = {
     MAKE_NV("", "foo"),
     MAKE_NV(":status", "200"),
   };
   /* response header contains a upper-cased header name. */
-  const nghttp3_nv upcasename_resnv[] = {
+  static const nghttp3_nv upcasename_resnv[] = {
     MAKE_NV(":status", "200"),
     MAKE_NV("Cookie", "foo=bar"),
   };
   /* response header contains status code that includes the leading
      zero. */
-  const nghttp3_nv lzstatus_resnv[] = {
+  static const nghttp3_nv lzstatus_resnv[] = {
     MAKE_NV(":status", "022"),
   };
   /* response header contains status code that consists of 2
      digits. */
-  const nghttp3_nv twodigstatus_resnv[] = {
+  static const nghttp3_nv twodigstatus_resnv[] = {
     MAKE_NV(":status", "20"),
   };
 
@@ -2159,27 +2159,27 @@ void test_nghttp3_conn_http_resp_header(void) {
 void test_nghttp3_conn_http_req_header(void) {
   /* test case for request */
   /* request header has no :path */
-  const nghttp3_nv nopath_reqnv[] = {
+  static const nghttp3_nv nopath_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"),
   };
   /* request header has CONNECT method, but followed by :path */
-  const nghttp3_nv earlyconnect_reqnv[] = {
+  static const nghttp3_nv earlyconnect_reqnv[] = {
     MAKE_NV(":method", "CONNECT"),
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":path", "/"),
     MAKE_NV(":authority", "localhost"),
   };
   /* request header has CONNECT method following :path */
-  const nghttp3_nv lateconnect_reqnv[] = {
+  static const nghttp3_nv lateconnect_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":path", "/"),
     MAKE_NV(":method", "CONNECT"),
     MAKE_NV(":authority", "localhost"),
   };
   /* request header has multiple :path */
-  const nghttp3_nv duppath_reqnv[] = {
+  static const nghttp3_nv duppath_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"),
@@ -2187,26 +2187,26 @@ void test_nghttp3_conn_http_req_header(void) {
     MAKE_NV(":path", "/"),
   };
   /* request header has bad content-length */
-  const nghttp3_nv badcl_reqnv[] = {
+  static const nghttp3_nv badcl_reqnv[] = {
     MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "POST"),
     MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
     MAKE_NV("content-length", "-1"),
   };
   /* request header has multiple content-length */
-  const nghttp3_nv dupcl_reqnv[] = {
+  static const nghttp3_nv dupcl_reqnv[] = {
     MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "POST"),
     MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
     MAKE_NV("content-length", "0"),     MAKE_NV("content-length", "0"),
   };
   /* request header has content-length that is empty string */
-  const nghttp3_nv emptycl_reqnv[] = {
+  static const nghttp3_nv emptycl_reqnv[] = {
     MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "POST"),
     MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
     MAKE_NV("content-length", ""),
   };
   /* request header has content-length that is greater than
      NGHTTP3_MAX_VARINT */
-  const nghttp3_nv toolargecl_reqnv[] = {
+  static const nghttp3_nv toolargecl_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":method", "POST"),
     MAKE_NV(":authority", "localhost"),
@@ -2215,7 +2215,7 @@ void test_nghttp3_conn_http_req_header(void) {
   };
   /* request header has content-length that is much greater than
      NGHTTP3_MAX_VARINT */
-  const nghttp3_nv fartoolargecl_reqnv[] = {
+  static const nghttp3_nv fartoolargecl_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":method", "POST"),
     MAKE_NV(":authority", "localhost"),
@@ -2224,7 +2224,7 @@ void test_nghttp3_conn_http_req_header(void) {
   };
   /* request header has content-length that is equal to
      NGHTTP3_MAX_VARINT */
-  const nghttp3_nv largestcl_reqnv[] = {
+  static const nghttp3_nv largestcl_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":method", "POST"),
     MAKE_NV(":authority", "localhost"),
@@ -2232,14 +2232,14 @@ void test_nghttp3_conn_http_req_header(void) {
     MAKE_NV("content-length", "4611686018427387903"),
   };
   /* request header has disallowed header field */
-  const nghttp3_nv badhd_reqnv[] = {
+  static const nghttp3_nv badhd_reqnv[] = {
     MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
     MAKE_NV("connection", "close"),
   };
   /* request header has :authority header field containing illegal
      characters */
-  const nghttp3_nv badauthority_reqnv[] = {
+  static const nghttp3_nv badauthority_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "\x0D\x0Alocalhost"),
@@ -2247,14 +2247,14 @@ void test_nghttp3_conn_http_req_header(void) {
   };
   /* request header has regular header field containing illegal
      character before all mandatory header fields are seen. */
-  const nghttp3_nv badhdbtw_reqnv[] = {
+  static const nghttp3_nv badhdbtw_reqnv[] = {
     MAKE_NV(":scheme", "https"), MAKE_NV(":method", "GET"),
     MAKE_NV("foo", "\x0D\x0A"),  MAKE_NV(":authority", "localhost"),
     MAKE_NV(":path", "/"),
   };
   /* request header has "*" in :path header field while method is GET.
      :path is received before :method */
-  const nghttp3_nv asteriskget1_reqnv[] = {
+  static const nghttp3_nv asteriskget1_reqnv[] = {
     MAKE_NV(":path", "*"),
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":authority", "localhost"),
@@ -2262,7 +2262,7 @@ void test_nghttp3_conn_http_req_header(void) {
   };
   /* request header has "*" in :path header field while method is GET.
      :method is received before :path */
-  const nghttp3_nv asteriskget2_reqnv[] = {
+  static const nghttp3_nv asteriskget2_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":authority", "localhost"),
     MAKE_NV(":method", "GET"),
@@ -2270,7 +2270,7 @@ void test_nghttp3_conn_http_req_header(void) {
   };
   /* OPTIONS method can include "*" in :path header field.  :path is
      received before :method. */
-  const nghttp3_nv asteriskoptions1_reqnv[] = {
+  static const nghttp3_nv asteriskoptions1_reqnv[] = {
     MAKE_NV(":path", "*"),
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":authority", "localhost"),
@@ -2278,20 +2278,20 @@ void test_nghttp3_conn_http_req_header(void) {
   };
   /* OPTIONS method can include "*" in :path header field.  :method is
      received before :path. */
-  const nghttp3_nv asteriskoptions2_reqnv[] = {
+  static const nghttp3_nv asteriskoptions2_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":authority", "localhost"),
     MAKE_NV(":method", "OPTIONS"),
     MAKE_NV(":path", "*"),
   };
   /* header name contains invalid character */
-  const nghttp3_nv invalidname_reqnv[] = {
+  static const nghttp3_nv invalidname_reqnv[] = {
     MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
     MAKE_NV("\x0Foo", "zzz"),
   };
   /* header value contains invalid character */
-  const nghttp3_nv invalidvalue_reqnv[] = {
+  static const nghttp3_nv invalidvalue_reqnv[] = {
     MAKE_NV(":scheme", "https"),        MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"), MAKE_NV(":path", "/"),
     MAKE_NV("foo", "\x0zzz"),
@@ -2300,38 +2300,38 @@ void test_nghttp3_conn_http_req_header(void) {
      endpoint. */
   /* :protocol is allowed if SETTINGS_CONNECT_PROTOCOL is enabled by
      the local endpoint. */
-  const nghttp3_nv connectproto_reqnv[] = {
+  static const nghttp3_nv connectproto_reqnv[] = {
     MAKE_NV(":scheme", "https"),       MAKE_NV(":path", "/"),
     MAKE_NV(":method", "CONNECT"),     MAKE_NV(":authority", "localhost"),
     MAKE_NV(":protocol", "websocket"),
   };
   /* :protocol is only allowed with CONNECT method. */
-  const nghttp3_nv connectprotoget_reqnv[] = {
+  static const nghttp3_nv connectprotoget_reqnv[] = {
     MAKE_NV(":scheme", "https"),       MAKE_NV(":path", "/"),
     MAKE_NV(":method", "GET"),         MAKE_NV(":authority", "localhost"),
     MAKE_NV(":protocol", "websocket"),
   };
   /* CONNECT method with :protocol requires :path. */
-  const nghttp3_nv connectprotonopath_reqnv[] = {
+  static const nghttp3_nv connectprotonopath_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":method", "CONNECT"),
     MAKE_NV(":authority", "localhost"),
     MAKE_NV(":protocol", "websocket"),
   };
   /* CONNECT method with :protocol requires :authority. */
-  const nghttp3_nv connectprotonoauth_reqnv[] = {
+  static const nghttp3_nv connectprotonoauth_reqnv[] = {
     MAKE_NV(":scheme", "http"),        MAKE_NV(":path", "/"),
     MAKE_NV(":method", "CONNECT"),     MAKE_NV("host", "localhost"),
     MAKE_NV(":protocol", "websocket"),
   };
   /* regular CONNECT method should succeed with
      SETTINGS_CONNECT_PROTOCOL */
-  const nghttp3_nv regularconnect_reqnv[] = {
+  static const nghttp3_nv regularconnect_reqnv[] = {
     MAKE_NV(":method", "CONNECT"),
     MAKE_NV(":authority", "localhost"),
   };
   /* scheme is an empty string. */
-  const nghttp3_nv emptyscheme_reqnv[] = {
+  static const nghttp3_nv emptyscheme_reqnv[] = {
     MAKE_NV(":scheme", ""),
     MAKE_NV(":path", "/"),
     MAKE_NV(":method", "GET"),
@@ -2339,21 +2339,21 @@ void test_nghttp3_conn_http_req_header(void) {
   };
   /* scheme contains a string that starts with a character that is not
      in [a-zA-Z]. */
-  const nghttp3_nv badprefixscheme_reqnv[] = {
+  static const nghttp3_nv badprefixscheme_reqnv[] = {
     MAKE_NV(":scheme", "@"),
     MAKE_NV(":path", "/"),
     MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"),
   };
   /* scheme contains a bad character. */
-  const nghttp3_nv badcharscheme_reqnv[] = {
+  static const nghttp3_nv badcharscheme_reqnv[] = {
     MAKE_NV(":scheme", "http*"),
     MAKE_NV(":path", "/"),
     MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"),
   };
   /* scheme contains all allowed characters. */
-  const nghttp3_nv allcharscheme_reqnv[] = {
+  static const nghttp3_nv allcharscheme_reqnv[] = {
     MAKE_NV(
       ":scheme",
       "aabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-."),
@@ -2362,100 +2362,100 @@ void test_nghttp3_conn_http_req_header(void) {
     MAKE_NV(":authority", "localhost"),
   };
   /* method is an empty string. */
-  const nghttp3_nv emptymethod_reqnv[] = {
+  static const nghttp3_nv emptymethod_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":path", "/"),
     MAKE_NV(":method", ""),
     MAKE_NV(":authority", "localhost"),
   };
   /* method contains a bad character. */
-  const nghttp3_nv badcharmethod_reqnv[] = {
+  static const nghttp3_nv badcharmethod_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":path", "/"),
     MAKE_NV(":method", "GET\xB2"),
     MAKE_NV(":authority", "localhost"),
   };
   /* empty :path for https URI. */
-  const nghttp3_nv emptyhttpspath_reqnv[] = {
+  static const nghttp3_nv emptyhttpspath_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":path", ""),
     MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"),
   };
   /* empty :path for http URI. */
-  const nghttp3_nv emptyhttppath_reqnv[] = {
+  static const nghttp3_nv emptyhttppath_reqnv[] = {
     MAKE_NV(":scheme", "http"),
     MAKE_NV(":path", ""),
     MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"),
   };
   /* empty :path for non-https/http URI. */
-  const nghttp3_nv emptypath_reqnv[] = {
+  static const nghttp3_nv emptypath_reqnv[] = {
     MAKE_NV(":scheme", "something"),
     MAKE_NV(":path", ""),
     MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"),
   };
   /* :path contains a bad character. */
-  const nghttp3_nv badcharpath_reqnv[] = {
+  static const nghttp3_nv badcharpath_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":path", "/\x01"),
     MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"),
   };
   /* HEAD method is used. */
-  const nghttp3_nv headmethod_reqnv[] = {
+  static const nghttp3_nv headmethod_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":path", "/"),
     MAKE_NV(":method", "HEAD"),
     MAKE_NV(":authority", "localhost"),
   };
   /* :protocol is given twice. */
-  const nghttp3_nv dupproto_reqnv[] = {
+  static const nghttp3_nv dupproto_reqnv[] = {
     MAKE_NV(":scheme", "https"),       MAKE_NV(":path", "/"),
     MAKE_NV(":method", "CONNECT"),     MAKE_NV(":authority", "localhost"),
     MAKE_NV(":protocol", "websocket"), MAKE_NV(":protocol", "websocket"),
   };
   /* host contains a bad character. */
-  const nghttp3_nv badcharhost_reqnv[] = {
+  static const nghttp3_nv badcharhost_reqnv[] = {
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":path", "/"),
     MAKE_NV(":method", "HEAD"),
     MAKE_NV("host", "localhost\x99"),
   };
   /* host is given twice. */
-  const nghttp3_nv duphost_reqnv[] = {
+  static const nghttp3_nv duphost_reqnv[] = {
     MAKE_NV(":scheme", "https"),  MAKE_NV(":path", "/"),
     MAKE_NV(":method", "HEAD"),   MAKE_NV("host", "localhost"),
     MAKE_NV("host", "localhost"),
   };
   /* request header has te header field that contains invalid
      value. */
-  const nghttp3_nv invalidte_reqnv[] = {
+  static const nghttp3_nv invalidte_reqnv[] = {
     MAKE_NV(":scheme", "https"), MAKE_NV(":path", "/"),
     MAKE_NV(":method", "GET"),   MAKE_NV(":authority", "localhost"),
     MAKE_NV("te", "trailer2"),
   };
   /* request header has te header field that contains TRAiLERS. */
-  const nghttp3_nv te_reqnv[] = {
+  static const nghttp3_nv te_reqnv[] = {
     MAKE_NV(":scheme", "https"), MAKE_NV(":path", "/"),
     MAKE_NV(":method", "GET"),   MAKE_NV(":authority", "localhost"),
     MAKE_NV("te", "TRAiLERS"),
   };
   /* priority header has a bad character. */
-  const nghttp3_nv badcharpriority_reqnv[] = {
+  static const nghttp3_nv badcharpriority_reqnv[] = {
     MAKE_NV(":scheme", "https"), MAKE_NV(":path", "/"),
     MAKE_NV(":method", "GET"),   MAKE_NV(":authority", "localhost"),
     MAKE_NV("priority", "\x7F"),
   };
   /* priority header is followed by bad priority header. */
-  const nghttp3_nv dupbadcharpriority_reqnv[] = {
+  static const nghttp3_nv dupbadcharpriority_reqnv[] = {
     MAKE_NV(":scheme", "https"), MAKE_NV(":path", "/"),
     MAKE_NV(":method", "GET"),   MAKE_NV(":authority", "localhost"),
     MAKE_NV("priority", "\x7F"), MAKE_NV("priority", "i"),
   };
   /* request header has :status header. */
-  const nghttp3_nv unknownpseudohd_reqnv[] = {
+  static const nghttp3_nv unknownpseudohd_reqnv[] = {
     MAKE_NV(":scheme", "https"),     MAKE_NV(":path", "/"),
     MAKE_NV(":method", "GET"),       MAKE_NV(":authority", "localhost"),
     MAKE_NV(":status", "localhost"),
@@ -2571,12 +2571,12 @@ void test_nghttp3_conn_http_content_length(void) {
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
   nghttp3_stream *stream;
-  const nghttp3_nv reqnv[] = {
+  static const nghttp3_nv reqnv[] = {
     MAKE_NV(":path", "/"),        MAKE_NV(":method", "PUT"),
     MAKE_NV(":scheme", "https"),  MAKE_NV("te", "trailers"),
     MAKE_NV("host", "localhost"), MAKE_NV("content-length", "9000000000"),
   };
-  const nghttp3_nv resnv[] = {
+  static const nghttp3_nv resnv[] = {
     MAKE_NV(":status", "200"),
     MAKE_NV("te", "trailers"),
     MAKE_NV("content-length", "9000000000"),
@@ -2644,14 +2644,14 @@ void test_nghttp3_conn_http_content_length_mismatch(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
-  const nghttp3_nv reqnv[] = {
+  static const nghttp3_nv reqnv[] = {
     MAKE_NV(":path", "/"),
     MAKE_NV(":method", "PUT"),
     MAKE_NV(":authority", "localhost"),
     MAKE_NV(":scheme", "https"),
     MAKE_NV("content-length", "20"),
   };
-  const nghttp3_nv resnv[] = {
+  static const nghttp3_nv resnv[] = {
     MAKE_NV(":status", "200"),
     MAKE_NV("content-length", "20"),
   };
@@ -2830,13 +2830,13 @@ void test_nghttp3_conn_http_non_final_response(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
-  const nghttp3_nv infonv[] = {
+  static const nghttp3_nv infonv[] = {
     MAKE_NV(":status", "103"),
   };
-  const nghttp3_nv resnv[] = {
+  static const nghttp3_nv resnv[] = {
     MAKE_NV(":status", "204"),
   };
-  const nghttp3_nv trnv[] = {
+  static const nghttp3_nv trnv[] = {
     MAKE_NV("my-status", "ok"),
   };
   nghttp3_stream *stream;
@@ -2942,20 +2942,20 @@ void test_nghttp3_conn_http_trailers(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
-  const nghttp3_nv reqnv[] = {
+  static const nghttp3_nv reqnv[] = {
     MAKE_NV(":path", "/"),
     MAKE_NV(":method", "PUT"),
     MAKE_NV(":authority", "localhost"),
     MAKE_NV(":scheme", "https"),
   };
-  const nghttp3_nv connect_reqnv[] = {
+  static const nghttp3_nv connect_reqnv[] = {
     MAKE_NV(":method", "CONNECT"),
     MAKE_NV(":authority", "localhost"),
   };
-  const nghttp3_nv trnv[] = {
+  static const nghttp3_nv trnv[] = {
     MAKE_NV("foo", "bar"),
   };
-  const nghttp3_nv clnv[] = {
+  static const nghttp3_nv clnv[] = {
     MAKE_NV("content-length", "0"),
   };
   nghttp3_stream *stream;
@@ -3380,16 +3380,16 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
-  const nghttp3_nv reqnv[] = {
+  static const nghttp3_nv reqnv[] = {
     MAKE_NV(":authority", "localhost"),
     MAKE_NV(":method", "CONNECT"),
     MAKE_NV("content-length", "999999"),
   };
-  const nghttp3_nv resnv[] = {
+  static const nghttp3_nv resnv[] = {
     MAKE_NV(":status", "304"),
     MAKE_NV("content-length", "20"),
   };
-  const nghttp3_nv cl_resnv[] = {
+  static const nghttp3_nv cl_resnv[] = {
     MAKE_NV(":status", "200"),
     MAKE_NV("content-length", "0"),
   };
@@ -3495,17 +3495,17 @@ void test_nghttp3_conn_http_record_request_method(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
-  const nghttp3_nv connect_reqnv[] = {
+  static const nghttp3_nv connect_reqnv[] = {
     MAKE_NV(":authority", "localhost"),
     MAKE_NV(":method", "CONNECT"),
   };
-  const nghttp3_nv head_reqnv[] = {
+  static const nghttp3_nv head_reqnv[] = {
     MAKE_NV(":authority", "localhost"),
     MAKE_NV(":method", "HEAD"),
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":path", "/"),
   };
-  const nghttp3_nv resnv[] = {
+  static const nghttp3_nv resnv[] = {
     MAKE_NV(":status", "200"),
     MAKE_NV("content-length", "1000000007"),
   };
@@ -3573,7 +3573,7 @@ void test_nghttp3_conn_http_error(void) {
   nghttp3_buf buf, ebuf;
   nghttp3_frame fr;
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {
+  static const nghttp3_callbacks callbacks = {
     .stop_sending = stop_sending,
     .reset_stream = reset_stream,
   };
@@ -3581,14 +3581,14 @@ void test_nghttp3_conn_http_error(void) {
   nghttp3_ssize sconsumed;
   nghttp3_qpack_encoder qenc;
   nghttp3_settings settings;
-  const nghttp3_nv dupschemenv[] = {
+  static const nghttp3_nv dupschemenv[] = {
     MAKE_NV(":path", "/"),
     MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"),
     MAKE_NV(":scheme", "https"),
     MAKE_NV(":scheme", "https"),
   };
-  const nghttp3_nv noschemenv[] = {
+  static const nghttp3_nv noschemenv[] = {
     MAKE_NV(":path", "/"),
     MAKE_NV(":method", "GET"),
     MAKE_NV(":authority", "localhost"),
@@ -3984,7 +3984,7 @@ void test_nghttp3_conn_submit_response_read_blocked(void) {
   int fin;
   int64_t stream_id;
   nghttp3_ssize sveccnt;
-  nghttp3_data_reader dr = {step_then_block_read_data};
+  static const nghttp3_data_reader dr = {step_then_block_read_data};
   userdata ud;
   conn_options opts;
 
@@ -4028,7 +4028,7 @@ void test_nghttp3_conn_submit_response_read_blocked(void) {
 
 void test_nghttp3_conn_submit_info(void) {
   nghttp3_conn *conn;
-  const nghttp3_nv nva[] = {
+  static const nghttp3_nv nva[] = {
     MAKE_NV("foo", "bar"),
   };
   nghttp3_stream *stream;
@@ -4168,7 +4168,7 @@ void test_nghttp3_conn_recv_uni(void) {
 
 void test_nghttp3_conn_recv_goaway(void) {
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {
+  static const nghttp3_callbacks callbacks = {
     .shutdown = conn_shutdown,
   };
   nghttp3_frame fr;
@@ -4425,7 +4425,7 @@ void test_nghttp3_conn_recv_goaway(void) {
 void test_nghttp3_conn_shutdown_server(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {
+  static const nghttp3_callbacks callbacks = {
     .stop_sending = stop_sending,
     .reset_stream = reset_stream,
   };
@@ -4517,7 +4517,7 @@ void test_nghttp3_conn_shutdown_server(void) {
 
 void test_nghttp3_conn_shutdown_client(void) {
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {
+  static const nghttp3_callbacks callbacks = {
     .stop_sending = stop_sending,
     .reset_stream = reset_stream,
   };
@@ -4572,7 +4572,7 @@ void test_nghttp3_conn_priority_update(void) {
   nghttp3_stream *stream;
   int rv;
   nghttp3_qpack_encoder qenc;
-  const nghttp3_nv nva[] = {
+  static const nghttp3_nv nva[] = {
     MAKE_NV(":path", "/"),         MAKE_NV(":authority", "example.com"),
     MAKE_NV(":scheme", "https"),   MAKE_NV(":method", "GET"),
     MAKE_NV("priority", "u=5, i"),
@@ -5090,12 +5090,12 @@ void test_nghttp3_conn_request_priority(void) {
   nghttp3_buf buf;
   nghttp3_stream *stream;
   nghttp3_qpack_encoder qenc;
-  const nghttp3_nv nva[] = {
+  static const nghttp3_nv nva[] = {
     MAKE_NV(":path", "/"),         MAKE_NV(":authority", "example.com"),
     MAKE_NV(":scheme", "https"),   MAKE_NV(":method", "GET"),
     MAKE_NV("priority", "u=5, i"),
   };
-  const nghttp3_nv badpri_nva[] = {
+  static const nghttp3_nv badpri_nva[] = {
     MAKE_NV(":path", "/"),         MAKE_NV(":authority", "example.com"),
     MAKE_NV(":scheme", "https"),   MAKE_NV(":method", "GET"),
     MAKE_NV("priority", "u=5, i"), MAKE_NV("priority", "i, u=x"),
@@ -5274,7 +5274,7 @@ void test_nghttp3_conn_set_stream_priority(void) {
 void test_nghttp3_conn_shutdown_stream_read(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {
+  static const nghttp3_callbacks callbacks = {
     .deferred_consume = deferred_consume,
   };
   nghttp3_settings settings;
@@ -5527,7 +5527,7 @@ void test_nghttp3_conn_get_frame_payload_left(void) {
 
 void test_nghttp3_conn_update_ack_offset(void) {
   nghttp3_conn *conn;
-  nghttp3_callbacks callbacks = {
+  static const nghttp3_callbacks callbacks = {
     .acked_stream_data = acked_stream_data,
   };
   nghttp3_vec vec[256];
@@ -5682,14 +5682,14 @@ void test_nghttp3_conn_set_client_stream_priority(void) {
 
 void test_nghttp3_conn_rx_http_state(void) {
   const nghttp3_mem *mem = nghttp3_mem_default();
-  const nghttp3_nv req_connect_nva[] = {
+  static const nghttp3_nv req_connect_nva[] = {
     MAKE_NV(":method", "CONNECT"),
     MAKE_NV(":authority", "localhost:4433"),
   };
-  const nghttp3_nv resp_not_found_nva[] = {
+  static const nghttp3_nv resp_not_found_nva[] = {
     MAKE_NV(":status", "404"),
   };
-  const nghttp3_nv trailer_nva[] = {
+  static const nghttp3_nv trailer_nva[] = {
     MAKE_NV("alpha", "bravo"),
   };
   nghttp3_conn *conn;
@@ -6040,7 +6040,7 @@ void test_nghttp3_conn_push(void) {
   nghttp3_buf buf;
   nghttp3_ssize nconsumed;
   nghttp3_stream *stream;
-  nghttp3_frame fr = {
+  static const nghttp3_frame fr = {
     .settings.type = NGHTTP3_FRAME_SETTINGS,
   };
   int fin;
@@ -6236,7 +6236,7 @@ void test_nghttp3_conn_push(void) {
 
 void test_nghttp3_conn_recv_origin(void) {
   nghttp3_conn *conn;
-  nghttp3_frame settings = {
+  static const nghttp3_frame settings = {
     .settings.type = NGHTTP3_FRAME_SETTINGS,
   };
   nghttp3_frame fr = {
@@ -6263,13 +6263,13 @@ void test_nghttp3_conn_recv_origin(void) {
 
   {
     /* Receive ORIGIN frame */
-    const uint8_t origin_list[] = "\x0\x13"
-                                  "https://example.com"
-                                  "\x0\x17"
-                                  "https://www.example.com"
-                                  "\x0\x18"
-                                  "https://www2.example.com";
-    nghttp3_vec expected[] = {
+    static const uint8_t origin_list[] = "\x0\x13"
+                                         "https://example.com"
+                                         "\x0\x17"
+                                         "https://www.example.com"
+                                         "\x0\x18"
+                                         "https://www2.example.com";
+    static const nghttp3_vec expected[] = {
       {
         .base = (uint8_t *)"https://example.com",
         .len = 0x13,
@@ -6451,7 +6451,7 @@ void test_nghttp3_conn_recv_origin(void) {
 
   {
     /* Receive 0 length ASCII-ORIGIN */
-    const uint8_t origin_list[] = "\x0\x0";
+    static const uint8_t origin_list[] = "\x0\x0";
 
     nghttp3_buf_reset(&buf);
     setup_default_client_with_options(&conn, opts);
@@ -6546,8 +6546,8 @@ void test_nghttp3_conn_recv_origin(void) {
 
   {
     /* Receive too many ORIGIN frames */
-    const uint8_t origin_list[] = "\x0\x13"
-                                  "https://example.com";
+    static const uint8_t origin_list[] = "\x0\x13"
+                                         "https://example.com";
 
     nghttp3_buf_reset(&buf);
     setup_default_client(&conn);
@@ -6579,7 +6579,7 @@ void test_nghttp3_conn_recv_origin(void) {
 void test_nghttp3_conn_write_origin(void) {
   nghttp3_conn *conn;
   nghttp3_settings settings;
-  const uint8_t origins[] = "\x0\x13https://example.com";
+  static const uint8_t origins[] = "\x0\x13https://example.com";
   uint8_t long_origin[sizeof(uint16_t) + UINT16_MAX] = {0};
   nghttp3_vec origin_list;
   conn_options opts;

@@ -43,8 +43,8 @@ const MunitSuite settings_suite = {
 void test_nghttp3_settings_convert_to_latest(void) {
   nghttp3_settings *src, srcbuf, settingsbuf;
   const nghttp3_settings *dest;
-  const uint8_t origins[] = "foo";
-  nghttp3_vec origin_list = {
+  static const uint8_t origins[] = "foo";
+  static const nghttp3_vec origin_list = {
     .base = (uint8_t *)origins,
     .len = nghttp3_strlen_lit(origins),
   };
@@ -93,8 +93,8 @@ void test_nghttp3_settings_convert_to_latest(void) {
 
 void test_nghttp3_settings_convert_to_old(void) {
   nghttp3_settings src, *dest, destbuf = {0};
-  const uint8_t origins[] = "foo";
-  nghttp3_vec origin_list = {
+  static const uint8_t origins[] = "foo";
+  static const nghttp3_vec origin_list = {
     .base = (uint8_t *)origins,
     .len = nghttp3_strlen_lit(origins),
   };

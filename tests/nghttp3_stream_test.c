@@ -46,7 +46,7 @@ void test_nghttp3_read_varint(void) {
 
   {
     /* 1 byte integer */
-    const uint8_t input[] = {0x3F};
+    static const uint8_t input[] = {0x3F};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -60,7 +60,7 @@ void test_nghttp3_read_varint(void) {
 
   {
     /* 1 byte integer with fin */
-    const uint8_t input[] = {0x3F};
+    static const uint8_t input[] = {0x3F};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -74,7 +74,7 @@ void test_nghttp3_read_varint(void) {
 
   {
     /* 4 bytes integer */
-    const uint8_t input[] = {0xAD, 0xA5, 0xCB, 0x03};
+    static const uint8_t input[] = {0xAD, 0xA5, 0xCB, 0x03};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -88,7 +88,7 @@ void test_nghttp3_read_varint(void) {
 
   {
     /* 4 bytes integer but incomplete */
-    const uint8_t input[] = {0xAD, 0xA5, 0xCB, 0x03};
+    static const uint8_t input[] = {0xAD, 0xA5, 0xCB, 0x03};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -108,7 +108,7 @@ void test_nghttp3_read_varint(void) {
 
   {
     /* 4 bytes integer prematurely ended by fin */
-    const uint8_t input[] = {0xAD, 0xA5, 0xCB};
+    static const uint8_t input[] = {0xAD, 0xA5, 0xCB};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -120,7 +120,7 @@ void test_nghttp3_read_varint(void) {
 
   {
     /* 4 bytes integer prematurely ended by fin in the second input */
-    const uint8_t input[] = {0xAD, 0xA5, 0xCB};
+    static const uint8_t input[] = {0xAD, 0xA5, 0xCB};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -139,7 +139,7 @@ void test_nghttp3_read_varint(void) {
 
   {
     /* 4 bytes integer + extra byte */
-    const uint8_t input[] = {0xAD, 0xA5, 0xCB, 0x03, 0xFF};
+    static const uint8_t input[] = {0xAD, 0xA5, 0xCB, 0x03, 0xFF};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -153,7 +153,8 @@ void test_nghttp3_read_varint(void) {
 
   {
     /* 8 bytes integer */
-    const uint8_t input[] = {0xED, 0xA5, 0xCB, 0x03, 0x90, 0xFC, 0x13, 0xD8};
+    static const uint8_t input[] = {0xED, 0xA5, 0xCB, 0x03,
+                                    0x90, 0xFC, 0x13, 0xD8};
 
     nghttp3_varint_read_state_reset(&rvint);
 
@@ -169,7 +170,7 @@ void test_nghttp3_read_varint(void) {
 
   {
     /* 8 bytes integer prematurely ended by fin at the first byte */
-    const uint8_t input[] = {0xED};
+    static const uint8_t input[] = {0xED};
 
     nghttp3_varint_read_state_reset(&rvint);
 

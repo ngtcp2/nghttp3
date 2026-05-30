@@ -51,7 +51,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "";
+    static const uint8_t v[] = "";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -65,7 +65,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "";
+    static const uint8_t v[] = "";
 
     rv = nghttp3_pri_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -79,7 +79,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "u=1";
+    static const uint8_t v[] = "u=1";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -93,7 +93,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "i";
+    static const uint8_t v[] = "i";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -107,7 +107,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "i=?0";
+    static const uint8_t v[] = "i=?0";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -121,7 +121,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "u=7,i";
+    static const uint8_t v[] = "u=7,i";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -135,7 +135,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "u=0,i=?0";
+    static const uint8_t v[] = "u=0,i=?0";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -149,7 +149,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "u=3, i";
+    static const uint8_t v[] = "u=3, i";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -163,7 +163,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "u=0, i, i=?0, u=6";
+    static const uint8_t v[] = "u=0, i, i=?0, u=6";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -177,7 +177,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "u=0,";
+    static const uint8_t v[] = "u=0,";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -189,7 +189,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "u=0, ";
+    static const uint8_t v[] = "u=0, ";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -201,7 +201,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "u=";
+    static const uint8_t v[] = "u=";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -213,7 +213,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "u";
+    static const uint8_t v[] = "u";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -225,7 +225,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "i=?1";
+    static const uint8_t v[] = "i=?1";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -239,7 +239,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "i=?2";
+    static const uint8_t v[] = "i=?2";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -251,7 +251,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "i=?";
+    static const uint8_t v[] = "i=?";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -263,7 +263,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "i=";
+    static const uint8_t v[] = "i=";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -275,7 +275,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "u=-1";
+    static const uint8_t v[] = "u=-1";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -287,7 +287,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "u=8";
+    static const uint8_t v[] = "u=8";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -299,7 +299,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] =
+    static const uint8_t v[] =
       "i=?0, u=1, a=(x y z), u=2; i=?0;foo=\",,,\", i=?1;i=?0; u=6";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
@@ -314,7 +314,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = {'u', '='};
+    static const uint8_t v[] = {'u', '='};
 
     rv = nghttp3_http_parse_priority(&pri, v, sizeof(v));
 
@@ -326,7 +326,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "i=1";
+    static const uint8_t v[] = "i=1";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -338,7 +338,7 @@ void test_nghttp3_http_parse_priority(void) {
       .urgency = (uint32_t)-1,
       .inc = UINT8_MAX,
     };
-    const uint8_t v[] = "ii=1, u=7";
+    static const uint8_t v[] = "ii=1, u=7";
 
     rv = nghttp3_http_parse_priority(&pri, v, nghttp3_strlen_lit(v));
 
@@ -352,9 +352,9 @@ void test_nghttp3_http_parse_priority(void) {
   nghttp3_check_header_value((const uint8_t *)(S), nghttp3_strlen_lit(S))
 
 void test_nghttp3_check_header_value(void) {
-  uint8_t goodval[] = {'a', 'b', 0x80U, 'c', 0xFFU, 'd'};
-  uint8_t badval1[] = {'a', 0x1FU, 'b'};
-  uint8_t badval2[] = {'a', 0x7FU, 'b'};
+  static const uint8_t goodval[] = {'a', 'b', 0x80U, 'c', 0xFFU, 'd'};
+  static const uint8_t badval1[] = {'a', 0x1FU, 'b'};
+  static const uint8_t badval2[] = {'a', 0x7FU, 'b'};
   uint8_t tmpl[65], t[sizeof(tmpl)];
   uint8_t b;
 
