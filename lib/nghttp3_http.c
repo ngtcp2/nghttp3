@@ -63,7 +63,7 @@ static int memieq(const void *a, const void *b, size_t n) {
   (nghttp3_strlen_lit((A)) == (N) && memieq((A), (B), (N)))
 
 static int32_t parse_status_code(const uint8_t *s, size_t len) {
-  if (len != 3 || '0' > s[0] || s[0] > '9' || '0' > s[1] || s[1] > '9' ||
+  if (len != 3 || '1' > s[0] || s[0] > '9' || '0' > s[1] || s[1] > '9' ||
       '0' > s[2] || s[2] > '9') {
     return -1;
   }
@@ -467,12 +467,11 @@ static int http_response_on_header(nghttp3_http_state *http,
                                    const nghttp3_qpack_nv *nv, int trailers) {
   switch (nv->token) {
   case NGHTTP3_QPACK_TOKEN__STATUS: {
-    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__STATUS) ||
-        nv->value->len != 3) {
+    if (!check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__STATUS)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     http->status_code = parse_status_code(nv->value->base, nv->value->len);
-    if (http->status_code < 100 || http->status_code == 101) {
+    if (http->status_code == -1 || http->status_code == 101) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     break;

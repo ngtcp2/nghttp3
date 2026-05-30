@@ -2104,6 +2104,16 @@ void test_nghttp3_conn_http_resp_header(void) {
     MAKE_NV(":status", "200"),
     MAKE_NV("Cookie", "foo=bar"),
   };
+  /* response header contains status code that includes the leading
+     zero. */
+  const nghttp3_nv lzstatus_resnv[] = {
+    MAKE_NV(":status", "022"),
+  };
+  /* response header contains status code that consists of 2
+     digits. */
+  const nghttp3_nv twodigstatus_resnv[] = {
+    MAKE_NV(":status", "20"),
+  };
 
   check_http_resp_header(nostatus_resnv, nghttp3_arraylen(nostatus_resnv),
                          NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
@@ -2138,6 +2148,11 @@ void test_nghttp3_conn_http_resp_header(void) {
                          nghttp3_arraylen(emptynamepseudo_resnv),
                          NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
   check_http_resp_header(upcasename_resnv, nghttp3_arraylen(upcasename_resnv),
+                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_resp_header(lzstatus_resnv, nghttp3_arraylen(lzstatus_resnv),
+                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_resp_header(twodigstatus_resnv,
+                         nghttp3_arraylen(twodigstatus_resnv),
                          NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
 }
 
