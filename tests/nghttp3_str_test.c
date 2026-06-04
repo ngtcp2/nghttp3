@@ -1,9 +1,7 @@
 /*
  * nghttp3
  *
- * Copyright (c) 2019 nghttp3 contributors
- * Copyright (c) 2016 ngtcp2 contributors
- * Copyright (c) 2012 nghttp2 contributors
+ * Copyright (c) 2026 nghttp3 contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -24,33 +22,33 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif /* defined(HAVE_CONFIG_H) */
-
-#include "munit.h"
-
-/* include test cases' include files here */
-#include "nghttp3_qpack_test.h"
-#include "nghttp3_conn_test.h"
-#include "nghttp3_stream_test.h"
-#include "nghttp3_tnode_test.h"
-#include "nghttp3_http_test.h"
-#include "nghttp3_conv_test.h"
-#include "nghttp3_settings_test.h"
-#include "nghttp3_callbacks_test.h"
 #include "nghttp3_str_test.h"
 
-int main(int argc, char **argv) {
-  const MunitSuite suites[] = {
-    qpack_suite,    conn_suite,      stream_suite, tnode_suite, http_suite,
-    settings_suite, callbacks_suite, str_suite,    {0},
-  };
-  const MunitSuite suite = {
-    .prefix = "",
-    .suites = suites,
-    .iterations = 1,
-  };
+#include <stdio.h>
 
-  return munit_suite_main(&suite, NULL, argc, argv);
+#include "nghttp3_str.h"
+#include "nghttp3_macro.h"
+#include "nghttp3_test_helper.h"
+
+static const MunitTest tests[] = {
+  munit_void_test(test_nghttp3_downcase_byte),
+  munit_test_end(),
+};
+
+const MunitSuite str_suite = {
+  .prefix = "/str",
+  .tests = tests,
+};
+
+void test_nghttp3_downcase_byte(void) {
+  size_t i;
+
+  for (i = 0; i < 256; ++i) {
+    if ('A' <= i && i <= 'Z') {
+      assert_uint8((uint8_t)(i - 'A' + 'a'), ==,
+                   nghttp3_downcase_byte((uint8_t)i));
+    } else {
+      assert_uint8((uint8_t)i, ==, nghttp3_downcase_byte((uint8_t)i));
+    }
+  }
 }
