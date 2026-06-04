@@ -701,7 +701,7 @@ int nghttp3_check_header_name(const uint8_t *name, size_t len) {
     --len;
   }
   for (last = name + len; name != last; ++name) {
-    if (!VALID_HD_NAME_CHARS[*name]) {
+    if (VALID_HD_NAME_CHARS[*name] != 1) {
       return 0;
     }
   }
