@@ -419,4 +419,6 @@ void test_nghttp3_check_header_name(void) {
   assert_false(check_header_name("000\xFC"));
   assert_false(check_header_name(":\xFC"));
   assert_false(check_header_name(":000\xFC"));
+  assert_false(check_header_name("foO"));
+  assert_false(check_header_name(":Foo"));
 }
