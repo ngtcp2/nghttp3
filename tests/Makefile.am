@@ -36,6 +36,7 @@ OBJECTS = \
 	nghttp3_conv_test.c \
 	nghttp3_settings_test.c \
 	nghttp3_callbacks_test.c \
+	nghttp3_str_test.c \
 	nghttp3_test_helper.c \
 	munit/munit.c
 HFILES = \
@@ -47,6 +48,7 @@ HFILES = \
 	nghttp3_conv_test.h \
 	nghttp3_settings_test.h \
 	nghttp3_callbacks_test.h \
+	nghttp3_str_test.h \
 	nghttp3_test_helper.h \
 	munit/munit.h
 

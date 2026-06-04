@@ -36,11 +36,8 @@
 #include "nghttp3_macro.h"
 #include "nghttp3_conv.h"
 #include "nghttp3_unreachable.h"
+#include "nghttp3_str.h"
 #include "sfparse/sfparse.h"
-
-static uint8_t downcase(uint8_t c) {
-  return 'A' <= c && c <= 'Z' ? (uint8_t)(c - 'A' + 'a') : c;
-}
 
 /*
  * memieq returns 1 if the data pointed by |a| of length |n| equals to
@@ -52,7 +49,7 @@ static int memieq(const void *a, const void *b, size_t n) {
   const uint8_t *aa = a, *bb = b;
 
   for (i = 0; i < n; ++i) {
-    if (aa[i] != downcase(bb[i])) {
+    if (aa[i] != nghttp3_downcase_byte(bb[i])) {
       return 0;
     }
   }
