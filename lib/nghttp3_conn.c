@@ -2979,3 +2979,14 @@ int nghttp3_conn_is_drained2(const nghttp3_conn *conn) {
          nghttp3_stream_outq_write_done(conn->tx.ctrl) &&
          nghttp3_ringbuf_len(&conn->tx.ctrl->frq) == 0;
 }
+
+int nghttp3_conn_is_stream_flushed(const nghttp3_conn *conn,
+                                   int64_t stream_id) {
+  const nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
+
+  if (stream == NULL) {
+    return 0;
+  }
+
+  return nghttp3_stream_outq_write_done(stream);
+}
