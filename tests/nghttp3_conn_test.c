@@ -74,6 +74,7 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_conn_write_origin),
   munit_void_test(test_nghttp3_conn_recv_unknown_frame),
   munit_void_test(test_nghttp3_conn_get_stream_user_data),
+  munit_void_test(test_nghttp3_conn_is_stream_flushed),
   munit_test_end(),
 };
 
@@ -6780,6 +6781,145 @@ void test_nghttp3_conn_get_stream_user_data(void) {
                    nghttp3_conn_get_stream_user_data(conn, 0));
 
   assert_null(nghttp3_conn_get_stream_user_data(conn, 100));
+
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_is_stream_flushed(void) {
+  nghttp3_conn *conn;
+  userdata ud;
+  conn_options opts;
+  nghttp3_vec vec[16];
+  int64_t stream_id;
+  int fin;
+  nghttp3_ssize sveccnt;
+  int rv;
+  static const nghttp3_nv trailer_nva[] = {
+    MAKE_NV("digest", "foo"),
+  };
+
+  /* Without request body */
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+  assert_false(nghttp3_conn_is_stream_flushed(conn, 0));
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, <, sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_true(fin);
+  assert_false(nghttp3_conn_is_stream_flushed(conn, 0));
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, 0, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+  assert_true(nghttp3_conn_is_stream_flushed(conn, 0));
+
+  nghttp3_conn_del(conn);
+
+  /* With request body */
+  opts = (conn_options){
+    .user_data = &ud,
+  };
+
+  setup_default_client_with_options(&conn, opts);
+  conn_write_initial_streams(conn);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   &(nghttp3_data_reader){
+                                     .read_data = step_read_data,
+                                   },
+                                   NULL);
+
+  assert_int(0, ==, rv);
+  assert_false(nghttp3_conn_is_stream_flushed(conn, 0));
+
+  ud.data.left = 2000;
+  ud.data.step = 1200;
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, <, sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_false(fin);
+  assert_false(nghttp3_conn_is_stream_flushed(conn, 0));
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, 0, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+  assert_true(nghttp3_conn_is_stream_flushed(conn, 0));
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, <, sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_true(fin);
+  assert_false(nghttp3_conn_is_stream_flushed(conn, 0));
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, 0, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+  assert_true(nghttp3_conn_is_stream_flushed(conn, 0));
+
+  nghttp3_conn_del(conn);
+
+  /* With trailers */
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   &(nghttp3_data_reader){
+                                     .read_data = empty_read_data,
+                                   },
+                                   NULL);
+
+  assert_int(0, ==, rv);
+  assert_false(nghttp3_conn_is_stream_flushed(conn, 0));
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, <, sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_false(fin);
+  assert_false(nghttp3_conn_is_stream_flushed(conn, 0));
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, 0, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+  assert_true(nghttp3_conn_is_stream_flushed(conn, 0));
+
+  rv = nghttp3_conn_submit_trailers(conn, 0, trailer_nva,
+                                    nghttp3_arraylen(trailer_nva));
+
+  assert_int(0, ==, rv);
+  assert_false(nghttp3_conn_is_stream_flushed(conn, 0));
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, <, sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_true(fin);
+  assert_false(nghttp3_conn_is_stream_flushed(conn, 0));
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, 0, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+  assert_true(nghttp3_conn_is_stream_flushed(conn, 0));
 
   nghttp3_conn_del(conn);
 }

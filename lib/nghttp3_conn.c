@@ -2982,11 +2982,18 @@ int nghttp3_conn_is_drained2(const nghttp3_conn *conn) {
 
 int nghttp3_conn_is_stream_flushed(const nghttp3_conn *conn,
                                    int64_t stream_id) {
-  const nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
+  nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
+  const nghttp3_frame *fr;
 
-  if (stream == NULL) {
+  if (!stream || !nghttp3_stream_outq_write_done(stream)) {
     return 0;
   }
 
-  return nghttp3_stream_outq_write_done(stream);
+  if (nghttp3_ringbuf_len(&stream->frq) == 0) {
+    return 1;
+  }
+
+  fr = nghttp3_ringbuf_get(&stream->frq, 0);
+
+  return fr->hd.type == NGHTTP3_FRAME_DATA;
 }
