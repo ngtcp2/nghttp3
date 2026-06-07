@@ -356,8 +356,8 @@ def _build_transition_table(ctx, node):
 def huffman_tree_build_transition_table(ctx):
     _build_transition_table(ctx, ctx.root)
 
-NGHTTP3_QPACK_HUFFMAN_ACCEPTED = 1
-NGHTTP3_QPACK_HUFFMAN_SYM = 1 << 1
+NGHTTP3_QPACK_HUFFMAN_FLAG_ACCEPTED = 1
+NGHTTP3_QPACK_HUFFMAN_FLAG_SYM = 1 << 1
 
 def _print_transition_table(node):
     if node.term is not None:
@@ -370,7 +370,7 @@ def _print_transition_table(node):
             out = 0
         else:
             out = sym
-            flags |= NGHTTP3_QPACK_HUFFMAN_SYM
+            flags |= NGHTTP3_QPACK_HUFFMAN_FLAG_SYM
         if nd is None:
             id = 256
         else:
@@ -378,10 +378,10 @@ def _print_transition_table(node):
             if id is None:
                 # if nd.id is None, it is a leaf node
                 id = 0
-                flags |= NGHTTP3_QPACK_HUFFMAN_ACCEPTED
+                flags |= NGHTTP3_QPACK_HUFFMAN_FLAG_ACCEPTED
             elif nd.accept:
-                flags |= NGHTTP3_QPACK_HUFFMAN_ACCEPTED
-        print('  {{0x{:02x}, {}, {}}},'.format(id, flags, out))
+                flags |= NGHTTP3_QPACK_HUFFMAN_FLAG_ACCEPTED
+        print('  {{0x{:02X}, 0x{:02X}, 0x{:02X}}},'.format(id, flags, out))
     print('},')
     _print_transition_table(node.left)
     _print_transition_table(node.right)
@@ -390,22 +390,22 @@ def huffman_tree_print_transition_table(ctx):
     _print_transition_table(ctx.root)
     print('/* 256 */')
     print('{')
-    print('  {0x100, 0, 0},')
-    print('  {0x100, 0, 0},')
-    print('  {0x100, 0, 0},')
-    print('  {0x100, 0, 0},')
-    print('  {0x100, 0, 0},')
-    print('  {0x100, 0, 0},')
-    print('  {0x100, 0, 0},')
-    print('  {0x100, 0, 0},')
-    print('  {0x100, 0, 0},')
-    print('  {0x100, 0, 0},')
-    print('  {0x100, 0, 0},')
-    print('  {0x100, 0, 0},')
-    print('  {0x100, 0, 0},')
-    print('  {0x100, 0, 0},')
-    print('  {0x100, 0, 0},')
-    print('  {0x100, 0, 0},')
+    print('  {0x100, 0x00, 0x00},')
+    print('  {0x100, 0x00, 0x00},')
+    print('  {0x100, 0x00, 0x00},')
+    print('  {0x100, 0x00, 0x00},')
+    print('  {0x100, 0x00, 0x00},')
+    print('  {0x100, 0x00, 0x00},')
+    print('  {0x100, 0x00, 0x00},')
+    print('  {0x100, 0x00, 0x00},')
+    print('  {0x100, 0x00, 0x00},')
+    print('  {0x100, 0x00, 0x00},')
+    print('  {0x100, 0x00, 0x00},')
+    print('  {0x100, 0x00, 0x00},')
+    print('  {0x100, 0x00, 0x00},')
+    print('  {0x100, 0x00, 0x00},')
+    print('  {0x100, 0x00, 0x00},')
+    print('  {0x100, 0x00, 0x00},')
     print('},')
 
 if __name__ == '__main__':
@@ -443,17 +443,15 @@ const nghttp3_qpack_huffman_sym huffman_sym_table[] = {''')
         k = int(symbol_tbl[i][1], 16)
         k = k << (32 - nbits)
         print('''\
-  {{ {}, 0x{}u }}{}\
-'''.format(symbol_tbl[i][0], hex(k)[2:], ',' if i < 256 else ''))
+  {{{}, 0x{}U}},\
+'''.format(symbol_tbl[i][0], hex(k)[2:].upper()))
     print('};')
     print('')
 
     print('''\
-enum {{
-  NGHTTP3_QPACK_HUFFMAN_ACCEPTED = {},
-  NGHTTP3_QPACK_HUFFMAN_SYM = {},
-}} nghttp3_qpack_huffman_decode_flag;
-'''.format(NGHTTP3_QPACK_HUFFMAN_ACCEPTED, NGHTTP3_QPACK_HUFFMAN_SYM))
+#define NGHTTP3_QPACK_HUFFMAN_FLAG_ACCEPTED 0x{:02X}U
+#define NGHTTP3_QPACK_HUFFMAN_FLAG_SYM 0x{:02X}U
+'''.format(NGHTTP3_QPACK_HUFFMAN_FLAG_ACCEPTED, NGHTTP3_QPACK_HUFFMAN_FLAG_SYM))
 
     print('''\
 typedef struct {
