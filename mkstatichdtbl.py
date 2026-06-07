@@ -77,7 +77,7 @@ print()
 
 print('static nghttp3_qpack_static_entry token_stable[] = {')
 for i, ent in enumerate(token_entries):
-    print('MAKE_STATIC_ENT({}, {}, {}u),'\
+    print('MAKE_STATIC_ENT({}, {}, {}U),'
           .format(ent.idx, to_enum_hd(ent.name), hd_map_hash(ent.name)))
 print('};')
 
@@ -85,6 +85,6 @@ print()
 
 print('static nghttp3_qpack_static_header stable[] = {')
 for ent in entries:
-    print('MAKE_STATIC_HD("{}", "{}", {}),'\
+    print('MAKE_STATIC_HD("{}", "{}", {}),'
           .format(ent.name, ent.value, to_enum_hd(ent.name)))
 print('};')

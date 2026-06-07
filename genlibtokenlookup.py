@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 HEADERS = [
     (':authority', 0),
@@ -136,50 +136,35 @@ def build_header(headers):
 
     return res
 
-def gen_enum():
-    name = ''
-    print 'typedef enum {'
-    for k, token in HEADERS:
-        if token is None:
-            print '  {},'.format(to_enum_hd(k))
-        else:
-            if name != k:
-                name = k
-                print '  {} = {},'.format(to_enum_hd(k), token)
-    print '} nghttp3_qpack_token;'
-
 def gen_index_header():
-    print '''\
+    print('''\
 static int32_t lookup_token(const uint8_t *name, size_t namelen) {
-  switch (namelen) {'''
+  switch (namelen) {''')
     b = build_header(HEADERS)
     for size in sorted(b.keys()):
         ents = b[size]
-        print '''\
-  case {}:'''.format(size)
-        print '''\
-    switch (name[{}]) {{'''.format(size - 1)
+        print('''\
+  case {}:'''.format(size))
+        print('''\
+    switch (name[{}]) {{'''.format(size - 1))
         for c in sorted(ents.keys()):
             headers = sorted(ents[c])
-            print '''\
-    case '{}':'''.format(c)
+            print('''\
+    case '{}':'''.format(c))
             for k in headers:
-                print '''\
+                print('''\
       if (memeq("{}", name, {})) {{
         return {};
-      }}'''.format(k[:-1], size - 1, to_enum_hd(k))
-            print '''\
-      break;'''
-        print '''\
+      }}'''.format(k[:-1], size - 1, to_enum_hd(k)))
+            print('''\
+      break;''')
+        print('''\
     }
-    break;'''
-    print '''\
+    break;''')
+    print('''\
   }
   return -1;
-}'''
+}''')
 
 if __name__ == '__main__':
-    print '''/* Don't use nghttp3_qpack_token below.  Use mkstatichdtbl.py instead */'''
-    gen_enum()
-    print ''
     gen_index_header()
