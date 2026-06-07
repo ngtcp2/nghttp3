@@ -2628,6 +2628,23 @@ NGHTTP3_EXTERN int nghttp3_conn_add_write_offset(nghttp3_conn *conn,
 /**
  * @function
  *
+ * `nghttp3_conn_is_stream_flushed` returns nonzero if all stream data
+ * for a stream identified by |stream_id| so far have been accepted by
+ * QUIC stack.  This means that the cumulative number of bytes that
+ * `nghttp3_conn_add_write_offset` notified covers all stream data
+ * currently held.  This does not mean more stream data cannot be
+ * submitted to this stream via :type:`nghttp3_read_data_callback` and
+ * all stream data have been acknowledged.
+ *
+ * If there is no stream identified by |stream_id|, this function
+ * returns 0.
+ */
+NGHTTP3_EXTERN int nghttp3_conn_is_stream_flushed(const nghttp3_conn *conn,
+                                                  int64_t stream_id);
+
+/**
+ * @function
+ *
  * `nghttp3_conn_add_ack_offset` tells |conn| the number of bytes |n|
  * for stream denoted by |stream_id| QUIC stack has acknowledged.
  *

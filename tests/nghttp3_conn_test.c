@@ -1543,12 +1543,19 @@ void test_nghttp3_conn_submit_request(void) {
 
   assert_int64(0, ==, stream_id);
   assert_ptrdiff(2, ==, sveccnt);
+  assert_false(nghttp3_conn_is_stream_flushed(conn, stream_id));
 
   len = nghttp3_vec_len(vec, (size_t)sveccnt);
   for (i = 0; i < len; ++i) {
     rv = nghttp3_conn_add_write_offset(conn, 0, 1);
 
     assert_int(0, ==, rv);
+
+    if (i == len - 1) {
+      assert_true(nghttp3_conn_is_stream_flushed(conn, stream_id));
+    } else {
+      assert_false(nghttp3_conn_is_stream_flushed(conn, stream_id));
+    }
 
     rv = nghttp3_conn_add_ack_offset(conn, 0, 1);
 
@@ -1567,6 +1574,12 @@ void test_nghttp3_conn_submit_request(void) {
     rv = nghttp3_conn_add_write_offset(conn, 0, 1);
 
     assert_int(0, ==, rv);
+
+    if (i == len - 1) {
+      assert_true(nghttp3_conn_is_stream_flushed(conn, stream_id));
+    } else {
+      assert_false(nghttp3_conn_is_stream_flushed(conn, stream_id));
+    }
 
     rv = nghttp3_conn_add_ack_offset(conn, 0, 1);
 
