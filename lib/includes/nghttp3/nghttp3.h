@@ -2638,6 +2638,8 @@ NGHTTP3_EXTERN int nghttp3_conn_add_write_offset(nghttp3_conn *conn,
  *
  * If there is no stream identified by |stream_id|, this function
  * returns 0.
+ *
+ * .. version-added:: 1.17.0
  */
 NGHTTP3_EXTERN int nghttp3_conn_is_stream_flushed(const nghttp3_conn *conn,
                                                   int64_t stream_id);
