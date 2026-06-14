@@ -2637,7 +2637,7 @@ NGHTTP3_EXTERN int nghttp3_conn_add_write_offset(nghttp3_conn *conn,
  * all stream data have been acknowledged.
  *
  * If there is no stream identified by |stream_id|, this function
- * returns 0.
+ * returns nonzero.
  *
  * .. version-added:: 1.17.0
  */
