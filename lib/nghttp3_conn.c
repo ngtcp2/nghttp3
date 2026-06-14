@@ -2985,7 +2985,11 @@ int nghttp3_conn_is_stream_flushed(const nghttp3_conn *conn,
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
   const nghttp3_frame *fr;
 
-  if (!stream || !nghttp3_stream_outq_write_done(stream)) {
+  if (!stream) {
+    return 1;
+  }
+
+  if (!nghttp3_stream_outq_write_done(stream)) {
     return 0;
   }
 
