@@ -566,6 +566,14 @@ nghttp3_ssize nghttp3_conn_read_stream2(nghttp3_conn *conn, int64_t stream_id,
                                 ts);
 }
 
+/* conn_h3_datagram_negotiated returns nonzero if HTTP/3 Datagrams have
+   been enabled by both endpoints.  RFC 9297, Section 2.1.1 requires the
+   H3_DATAGRAM setting to have been both sent and received with a value
+   of 1 before HTTP/3 Datagrams may be sent or received. */
+static int conn_h3_datagram_negotiated(const nghttp3_conn *conn) {
+  return conn->local.settings.h3_datagram && conn->remote.settings.h3_datagram;
+}
+
 int nghttp3_conn_read_datagram(nghttp3_conn *conn, const uint8_t *data,
                                size_t datalen) {
   nghttp3_stream *stream;
@@ -576,7 +584,7 @@ int nghttp3_conn_read_datagram(nghttp3_conn *conn, const uint8_t *data,
 
   /* HTTP/3 Datagrams are unreliable, so anything that cannot be
      delivered is dropped rather than treated as a connection error. */
-  if (!conn->local.settings.h3_datagram || !conn->callbacks.recv_datagram ||
+  if (!conn_h3_datagram_negotiated(conn) || !conn->callbacks.recv_datagram ||
       datalen == 0) {
     return 0;
   }
@@ -625,7 +633,7 @@ nghttp3_ssize nghttp3_conn_write_datagram_prefix(nghttp3_conn *conn,
     return NGHTTP3_ERR_INVALID_ARGUMENT;
   }
 
-  if (!conn->remote.settings.h3_datagram) {
+  if (!conn_h3_datagram_negotiated(conn)) {
     return NGHTTP3_ERR_INVALID_STATE;
   }
 

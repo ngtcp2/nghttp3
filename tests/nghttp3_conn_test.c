@@ -6976,6 +6976,7 @@ void test_nghttp3_conn_recv_datagram(void) {
   /* HTTP/3 Datagram is delivered to the associated request stream */
   memset(&ud, 0, sizeof(ud));
   setup_default_client_with_options(&conn, opts);
+  conn->remote.settings.h3_datagram = 1;
 
   rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
                                    NULL, &stream_user_data);
@@ -7002,6 +7003,7 @@ void test_nghttp3_conn_recv_datagram(void) {
   /* Zero-length HTTP Datagram payload is delivered */
   memset(&ud, 0, sizeof(ud));
   setup_default_client_with_options(&conn, opts);
+  conn->remote.settings.h3_datagram = 1;
 
   rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
                                    NULL, NULL);
@@ -7022,6 +7024,7 @@ void test_nghttp3_conn_recv_datagram(void) {
   /* HTTP/3 Datagram for an unopened stream is silently dropped */
   memset(&ud, 0, sizeof(ud));
   setup_default_client_with_options(&conn, opts);
+  conn->remote.settings.h3_datagram = 1;
 
   p = buf;
   p = nghttp3_put_uvarint(p, 0);
@@ -7038,6 +7041,7 @@ void test_nghttp3_conn_recv_datagram(void) {
   /* Empty QUIC DATAGRAM payload is silently dropped */
   memset(&ud, 0, sizeof(ud));
   setup_default_client_with_options(&conn, opts);
+  conn->remote.settings.h3_datagram = 1;
 
   rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
                                    NULL, NULL);
@@ -7054,6 +7058,7 @@ void test_nghttp3_conn_recv_datagram(void) {
   /* Truncated Quarter Stream ID is silently dropped */
   memset(&ud, 0, sizeof(ud));
   setup_default_client_with_options(&conn, opts);
+  conn->remote.settings.h3_datagram = 1;
 
   rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
                                    NULL, NULL);
@@ -7087,6 +7092,29 @@ void test_nghttp3_conn_recv_datagram(void) {
 
     setup_default_client_with_options(&conn, opts_off);
   }
+
+  conn->remote.settings.h3_datagram = 1;
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  p = buf;
+  p = nghttp3_put_uvarint(p, 0);
+  memcpy(p, "hello", 5);
+  p += 5;
+
+  rv = nghttp3_conn_read_datagram(conn, buf, (size_t)(p - buf));
+
+  assert_int(0, ==, rv);
+  assert_size(0, ==, ud.recv_datagram_cb.ncalled);
+
+  nghttp3_conn_del(conn);
+
+  /* HTTP/3 Datagram is dropped when not enabled remotely */
+  memset(&ud, 0, sizeof(ud));
+  setup_default_client_with_options(&conn, opts);
 
   rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
                                    NULL, NULL);
@@ -7153,6 +7181,28 @@ void test_nghttp3_conn_write_datagram_prefix(void) {
   n = nghttp3_conn_write_datagram_prefix(conn, 400, buf, 1);
 
   assert_ptrdiff(NGHTTP3_ERR_INVALID_ARGUMENT, ==, n);
+
+  nghttp3_conn_del(conn);
+
+  /* Sending is not allowed when not enabled by the local endpoint */
+  {
+    nghttp3_settings settings_off;
+    conn_options opts_off;
+
+    nghttp3_settings_default(&settings_off);
+
+    opts_off = (conn_options){
+      .settings = &settings_off,
+    };
+
+    setup_default_client_with_options(&conn, opts_off);
+  }
+
+  conn->remote.settings.h3_datagram = 1;
+
+  n = nghttp3_conn_write_datagram_prefix(conn, 0, buf, sizeof(buf));
+
+  assert_ptrdiff(NGHTTP3_ERR_INVALID_STATE, ==, n);
 
   nghttp3_conn_del(conn);
 }

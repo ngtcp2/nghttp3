@@ -2613,7 +2613,7 @@ NGHTTP3_EXTERN nghttp3_ssize nghttp3_conn_read_stream2(nghttp3_conn *conn,
  * error.  This includes the cases where |datalen| is 0, the Quarter
  * Stream ID field is truncated or maps to an invalid stream ID, the
  * referenced request stream is not open, HTTP/3 Datagrams have not
- * been enabled in the local settings, or no :type:`nghttp3_recv_datagram`
+ * been enabled by both endpoints, or no :type:`nghttp3_recv_datagram`
  * callback has been installed.
  *
  * This function returns 0 if it succeeds, or one of the following
@@ -2649,8 +2649,8 @@ NGHTTP3_EXTERN int nghttp3_conn_read_datagram(nghttp3_conn *conn,
  *     |stream_id| does not identify a client-initiated bidirectional
  *     (request) stream, or |destlen| is too small.
  * :macro:`NGHTTP3_ERR_INVALID_STATE`
- *     The remote endpoint has not enabled HTTP/3 Datagrams; sending an
- *     HTTP/3 Datagram is not allowed.
+ *     HTTP/3 Datagrams have not been enabled by both endpoints; sending
+ *     an HTTP/3 Datagram is not allowed.
  *
  * .. version-added:: 1.17.0
  */
