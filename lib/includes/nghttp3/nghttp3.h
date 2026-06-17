@@ -2240,10 +2240,34 @@ typedef int (*nghttp3_recv_settings2)(nghttp3_conn *conn,
                                       const nghttp3_proto_settings *settings,
                                       void *conn_user_data);
 
+/**
+ * @functypedef
+ *
+ * :type:`nghttp3_recv_datagram` is a callback function which is
+ * invoked when an HTTP/3 Datagram (see :rfc:`9297`) associated with a
+ * request stream identified by |stream_id| is received.  |data|
+ * points to the HTTP Datagram payload (that is, the bytes that follow
+ * the Quarter Stream ID field), and its length is |datalen|.  The
+ * payload may be zero length.  This callback is invoked from
+ * `nghttp3_conn_read_datagram`.
+ *
+ * The implementation of this callback must return 0 if it succeeds.
+ * Returning :macro:`NGHTTP3_ERR_CALLBACK_FAILURE` will return to the
+ * caller immediately.  Any values other than 0 is treated as
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`.
+ *
+ * .. version-added:: 1.17.0
+ */
+typedef int (*nghttp3_recv_datagram)(nghttp3_conn *conn, int64_t stream_id,
+                                     const uint8_t *data, size_t datalen,
+                                     void *conn_user_data,
+                                     void *stream_user_data);
+
 #define NGHTTP3_CALLBACKS_V1 1
 #define NGHTTP3_CALLBACKS_V2 2
 #define NGHTTP3_CALLBACKS_V3 3
-#define NGHTTP3_CALLBACKS_VERSION NGHTTP3_CALLBACKS_V3
+#define NGHTTP3_CALLBACKS_V4 4
+#define NGHTTP3_CALLBACKS_VERSION NGHTTP3_CALLBACKS_V4
 
 /**
  * @struct
@@ -2375,6 +2399,15 @@ typedef struct nghttp3_callbacks {
    * .. version-added:: 1.14.0
    */
   nghttp3_recv_settings2 recv_settings2;
+  /* The following fields have been added since
+     NGHTTP3_CALLBACKS_V3. */
+  /**
+   * :member:`recv_datagram` is a callback function which is invoked
+   * when an HTTP/3 Datagram (see :rfc:`9297`) is received.
+   *
+   * .. version-added:: 1.17.0
+   */
+  nghttp3_recv_datagram recv_datagram;
 } nghttp3_callbacks;
 
 /**
@@ -2561,6 +2594,68 @@ NGHTTP3_EXTERN nghttp3_ssize nghttp3_conn_read_stream2(nghttp3_conn *conn,
                                                        const uint8_t *src,
                                                        size_t srclen, int fin,
                                                        nghttp3_tstamp ts);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_read_datagram` processes a single HTTP/3 Datagram (see
+ * :rfc:`9297`).  |data| of length |datalen| is the payload of a QUIC
+ * DATAGRAM frame as received from the underlying QUIC stack; that is,
+ * the Quarter Stream ID field followed by the HTTP Datagram payload.
+ *
+ * The function decodes the Quarter Stream ID, maps it to the
+ * associated request stream, and, if the datagram is valid, invokes
+ * :type:`nghttp3_recv_datagram` with the request stream ID and the
+ * remaining payload.
+ *
+ * Because HTTP/3 Datagrams are unreliable, a datagram that cannot be
+ * delivered is silently dropped rather than treated as a connection
+ * error.  This includes the cases where |datalen| is 0, the Quarter
+ * Stream ID field is truncated or maps to an invalid stream ID, the
+ * referenced request stream is not open, HTTP/3 Datagrams have not
+ * been enabled in the local settings, or no :type:`nghttp3_recv_datagram`
+ * callback has been installed.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`
+ *     User callback failed.
+ *
+ * .. version-added:: 1.17.0
+ */
+NGHTTP3_EXTERN int nghttp3_conn_read_datagram(nghttp3_conn *conn,
+                                              const uint8_t *data,
+                                              size_t datalen);
+
+/**
+ * @function
+ *
+ * `nghttp3_conn_write_datagram_prefix` writes the Quarter Stream ID
+ * field that prefixes an HTTP/3 Datagram (see :rfc:`9297`) for the
+ * request stream identified by |stream_id| into the buffer |dest| of
+ * length |destlen|.  This is a framing helper: an application sends an
+ * HTTP/3 Datagram by passing the written prefix together with its own
+ * payload to the QUIC stack as the payload of a single QUIC DATAGRAM
+ * frame (e.g. as two iovecs to avoid copying the payload).
+ *
+ * |dest| should be able to hold at least 8 bytes, which is the maximum
+ * length of the Quarter Stream ID field.
+ *
+ * This function returns the number of bytes written to |dest|, or one
+ * of the following negative error codes:
+ *
+ * :macro:`NGHTTP3_ERR_INVALID_ARGUMENT`
+ *     |stream_id| does not identify a client-initiated bidirectional
+ *     (request) stream, or |destlen| is too small.
+ * :macro:`NGHTTP3_ERR_INVALID_STATE`
+ *     The remote endpoint has not enabled HTTP/3 Datagrams; sending an
+ *     HTTP/3 Datagram is not allowed.
+ *
+ * .. version-added:: 1.17.0
+ */
+NGHTTP3_EXTERN nghttp3_ssize nghttp3_conn_write_datagram_prefix(
+  nghttp3_conn *conn, int64_t stream_id, uint8_t *dest, size_t destlen);
 
 /**
  * @function

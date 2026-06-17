@@ -75,6 +75,8 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_conn_recv_unknown_frame),
   munit_void_test(test_nghttp3_conn_get_stream_user_data),
   munit_void_test(test_nghttp3_conn_is_stream_flushed),
+  munit_void_test(test_nghttp3_conn_recv_datagram),
+  munit_void_test(test_nghttp3_conn_write_datagram_prefix),
   munit_test_end(),
 };
 
@@ -140,6 +142,13 @@ typedef struct {
     size_t origin_listlen;
     size_t offset;
   } recv_origin_cb;
+  struct {
+    size_t ncalled;
+    int64_t stream_id;
+    void *stream_user_data;
+    uint8_t data[256];
+    size_t datalen;
+  } recv_datagram_cb;
 } userdata;
 
 typedef struct {
@@ -461,6 +470,24 @@ static int recv_origin(nghttp3_conn *conn, const uint8_t *origin,
 
 static void rand_cb(uint8_t *data, size_t datalen) {
   memset(data, 0xFE, datalen);
+}
+
+static int recv_datagram(nghttp3_conn *conn, int64_t stream_id,
+                         const uint8_t *data, size_t datalen,
+                         void *conn_user_data, void *stream_user_data) {
+  userdata *ud = conn_user_data;
+  (void)conn;
+
+  ++ud->recv_datagram_cb.ncalled;
+  ud->recv_datagram_cb.stream_id = stream_id;
+  ud->recv_datagram_cb.stream_user_data = stream_user_data;
+
+  assert(datalen <= sizeof(ud->recv_datagram_cb.data));
+
+  memcpy(ud->recv_datagram_cb.data, data, datalen);
+  ud->recv_datagram_cb.datalen = datalen;
+
+  return 0;
 }
 
 typedef struct conn_options {
@@ -6920,6 +6947,212 @@ void test_nghttp3_conn_is_stream_flushed(void) {
 
   assert_int(0, ==, rv);
   assert_true(nghttp3_conn_is_stream_flushed(conn, 0));
+
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_recv_datagram(void) {
+  nghttp3_conn *conn;
+  userdata ud;
+  nghttp3_callbacks callbacks = {
+    .recv_datagram = recv_datagram,
+  };
+  nghttp3_settings settings;
+  conn_options opts;
+  uint8_t buf[256];
+  uint8_t *p;
+  int stream_user_data;
+  int rv;
+
+  nghttp3_settings_default(&settings);
+  settings.h3_datagram = 1;
+
+  opts = (conn_options){
+    .callbacks = &callbacks,
+    .settings = &settings,
+    .user_data = &ud,
+  };
+
+  /* HTTP/3 Datagram is delivered to the associated request stream */
+  memset(&ud, 0, sizeof(ud));
+  setup_default_client_with_options(&conn, opts);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, &stream_user_data);
+
+  assert_int(0, ==, rv);
+
+  p = buf;
+  /* Quarter Stream ID of stream 0 is 0 */
+  p = nghttp3_put_uvarint(p, 0);
+  memcpy(p, "hello", 5);
+  p += 5;
+
+  rv = nghttp3_conn_read_datagram(conn, buf, (size_t)(p - buf));
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, ud.recv_datagram_cb.ncalled);
+  assert_int64(0, ==, ud.recv_datagram_cb.stream_id);
+  assert_ptr_equal(&stream_user_data, ud.recv_datagram_cb.stream_user_data);
+  assert_memn_equal((const uint8_t *)"hello", 5, ud.recv_datagram_cb.data,
+                    ud.recv_datagram_cb.datalen);
+
+  nghttp3_conn_del(conn);
+
+  /* Zero-length HTTP Datagram payload is delivered */
+  memset(&ud, 0, sizeof(ud));
+  setup_default_client_with_options(&conn, opts);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  p = buf;
+  p = nghttp3_put_uvarint(p, 0);
+
+  rv = nghttp3_conn_read_datagram(conn, buf, (size_t)(p - buf));
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, ud.recv_datagram_cb.ncalled);
+  assert_size(0, ==, ud.recv_datagram_cb.datalen);
+
+  nghttp3_conn_del(conn);
+
+  /* HTTP/3 Datagram for an unopened stream is silently dropped */
+  memset(&ud, 0, sizeof(ud));
+  setup_default_client_with_options(&conn, opts);
+
+  p = buf;
+  p = nghttp3_put_uvarint(p, 0);
+  memcpy(p, "hello", 5);
+  p += 5;
+
+  rv = nghttp3_conn_read_datagram(conn, buf, (size_t)(p - buf));
+
+  assert_int(0, ==, rv);
+  assert_size(0, ==, ud.recv_datagram_cb.ncalled);
+
+  nghttp3_conn_del(conn);
+
+  /* Empty QUIC DATAGRAM payload is silently dropped */
+  memset(&ud, 0, sizeof(ud));
+  setup_default_client_with_options(&conn, opts);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_read_datagram(conn, buf, 0);
+
+  assert_int(0, ==, rv);
+  assert_size(0, ==, ud.recv_datagram_cb.ncalled);
+
+  nghttp3_conn_del(conn);
+
+  /* Truncated Quarter Stream ID is silently dropped */
+  memset(&ud, 0, sizeof(ud));
+  setup_default_client_with_options(&conn, opts);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  /* 0x40 encodes a 2-byte varint, but only 1 byte is provided */
+  buf[0] = 0x40;
+
+  rv = nghttp3_conn_read_datagram(conn, buf, 1);
+
+  assert_int(0, ==, rv);
+  assert_size(0, ==, ud.recv_datagram_cb.ncalled);
+
+  nghttp3_conn_del(conn);
+
+  /* HTTP/3 Datagram is dropped when not enabled in local settings */
+  memset(&ud, 0, sizeof(ud));
+
+  {
+    nghttp3_settings settings_off;
+    conn_options opts_off;
+
+    nghttp3_settings_default(&settings_off);
+
+    opts_off = (conn_options){
+      .callbacks = &callbacks,
+      .settings = &settings_off,
+      .user_data = &ud,
+    };
+
+    setup_default_client_with_options(&conn, opts_off);
+  }
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  p = buf;
+  p = nghttp3_put_uvarint(p, 0);
+  memcpy(p, "hello", 5);
+  p += 5;
+
+  rv = nghttp3_conn_read_datagram(conn, buf, (size_t)(p - buf));
+
+  assert_int(0, ==, rv);
+  assert_size(0, ==, ud.recv_datagram_cb.ncalled);
+
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_write_datagram_prefix(void) {
+  nghttp3_conn *conn;
+  nghttp3_settings settings;
+  conn_options opts;
+  uint8_t buf[8];
+  nghttp3_ssize n;
+  int64_t qstream_id;
+
+  nghttp3_settings_default(&settings);
+  settings.h3_datagram = 1;
+
+  opts = (conn_options){
+    .settings = &settings,
+  };
+
+  setup_default_client_with_options(&conn, opts);
+
+  /* Sending is not allowed until the remote endpoint enables it */
+  n = nghttp3_conn_write_datagram_prefix(conn, 0, buf, sizeof(buf));
+
+  assert_ptrdiff(NGHTTP3_ERR_INVALID_STATE, ==, n);
+
+  conn->remote.settings.h3_datagram = 1;
+
+  /* Quarter Stream ID of stream 0 is 0 (1 byte) */
+  n = nghttp3_conn_write_datagram_prefix(conn, 0, buf, sizeof(buf));
+
+  assert_ptrdiff(1, ==, n);
+  nghttp3_get_varint(&qstream_id, buf);
+  assert_int64(0, ==, qstream_id);
+
+  /* Quarter Stream ID of stream 400 is 100 (2 bytes) */
+  n = nghttp3_conn_write_datagram_prefix(conn, 400, buf, sizeof(buf));
+
+  assert_ptrdiff(2, ==, n);
+  nghttp3_get_varint(&qstream_id, buf);
+  assert_int64(100, ==, qstream_id);
+
+  /* Non-request stream is rejected */
+  n = nghttp3_conn_write_datagram_prefix(conn, 3, buf, sizeof(buf));
+
+  assert_ptrdiff(NGHTTP3_ERR_INVALID_ARGUMENT, ==, n);
+
+  /* Destination buffer too small is rejected */
+  n = nghttp3_conn_write_datagram_prefix(conn, 400, buf, 1);
+
+  assert_ptrdiff(NGHTTP3_ERR_INVALID_ARGUMENT, ==, n);
 
   nghttp3_conn_del(conn);
 }

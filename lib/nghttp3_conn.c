@@ -566,6 +566,81 @@ nghttp3_ssize nghttp3_conn_read_stream2(nghttp3_conn *conn, int64_t stream_id,
                                 ts);
 }
 
+int nghttp3_conn_read_datagram(nghttp3_conn *conn, const uint8_t *data,
+                               size_t datalen) {
+  nghttp3_stream *stream;
+  uint64_t qstream_id;
+  int64_t stream_id;
+  size_t prefixlen;
+  int rv;
+
+  /* HTTP/3 Datagrams are unreliable, so anything that cannot be
+     delivered is dropped rather than treated as a connection error. */
+  if (!conn->local.settings.h3_datagram || !conn->callbacks.recv_datagram ||
+      datalen == 0) {
+    return 0;
+  }
+
+  prefixlen = nghttp3_get_uvarintlen(data);
+  if (prefixlen > datalen) {
+    return 0;
+  }
+
+  nghttp3_get_uvarint(&qstream_id, data);
+
+  /* Quarter Stream ID is the request stream ID divided by four; reject
+     values that would map to a stream ID greater than the maximum. */
+  if (qstream_id > NGHTTP3_MAX_VARINT >> 2) {
+    return 0;
+  }
+
+  stream_id = (int64_t)(qstream_id << 2);
+
+  stream = nghttp3_conn_find_stream(conn, stream_id);
+  if (stream == NULL) {
+    return 0;
+  }
+
+  rv = conn->callbacks.recv_datagram(conn, stream_id, data + prefixlen,
+                                     datalen - prefixlen, conn->user_data,
+                                     stream->user_data);
+  if (rv != 0) {
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
+  return 0;
+}
+
+nghttp3_ssize nghttp3_conn_write_datagram_prefix(nghttp3_conn *conn,
+                                                 int64_t stream_id,
+                                                 uint8_t *dest,
+                                                 size_t destlen) {
+  uint64_t qstream_id;
+  size_t prefixlen;
+
+  assert(stream_id >= 0);
+  assert(stream_id <= (int64_t)NGHTTP3_MAX_VARINT);
+
+  if (!nghttp3_client_stream_bidi(stream_id)) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  if (!conn->remote.settings.h3_datagram) {
+    return NGHTTP3_ERR_INVALID_STATE;
+  }
+
+  qstream_id = (uint64_t)stream_id >> 2;
+
+  prefixlen = nghttp3_put_uvarintlen(qstream_id);
+  if (prefixlen > destlen) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  nghttp3_put_uvarint(dest, qstream_id);
+
+  return (nghttp3_ssize)prefixlen;
+}
+
 static nghttp3_ssize conn_read_type(nghttp3_conn *conn, nghttp3_stream *stream,
                                     const uint8_t *src, size_t srclen,
                                     int fin) {
