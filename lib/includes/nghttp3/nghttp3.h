@@ -3437,6 +3437,65 @@ NGHTTP3_EXTERN const nghttp3_info *nghttp3_version(int least_version);
  */
 NGHTTP3_EXTERN int nghttp3_err_is_fatal(int liberr);
 
+/**
+ * @function
+ *
+ * `nghttp3_get_uvarint` reads variable-length unsigned integer from
+ * the buffer pointed by |p|, and stores it in the object pointed by
+ * |dest| in host byte order.  It returns |p| plus the number of bytes
+ * read from |p|.  This function assumes that |p| points to the buffer
+ * that contains a valid variable-length unsigned integer.  Use
+ * `nghttp3_get_uvarintlen` to get the number of bytes to successfully
+ * decode an integer.
+ */
+NGHTTP3_EXTERN const uint8_t *nghttp3_get_uvarint(uint64_t *dest,
+                                                  const uint8_t *p);
+
+/**
+ * @function
+ *
+ * `nghttp3_get_uvarintlen` returns the required number of bytes to
+ * read variable-length unsigned integer starting at |p|.  |p| must
+ * not be NULL.  This function only reads the single byte from the
+ * buffer pointed by |p|, and determines the number of bytes to read.
+ */
+NGHTTP3_EXTERN size_t nghttp3_get_uvarintlen(const uint8_t *p);
+
+/**
+ * @function
+ *
+ * `nghttp3_get_varint` reads variable-length unsigned integer from
+ * the buffer pointed by |p|, and stores it in the object pointed by
+ * |dest| in host byte order.  It returns |p| plus the number of bytes
+ * read from |p|.  This function assumes that |p| points to the buffer
+ * that contains a valid variable-length unsigned integer.  Use
+ * `nghttp3_get_uvarintlen` to get the number of bytes to successfully
+ * decode an integer.
+ */
+NGHTTP3_EXTERN const uint8_t *nghttp3_get_varint(int64_t *dest,
+                                                 const uint8_t *p);
+
+/**
+ * @function
+ *
+ * `nghttp3_put_uvarint` writes |n| to the buffer pointed by |p| using
+ * variable-length unsigned integer encoding.  It returns the one
+ * beyond of the last written position.  This function assumes that
+ * the buffer pointed by |p| has sufficient capacity to encode |n|.
+ * To know the required capacity, use `nghttp3_put_uvarintlen`.  |n|
+ * must be less than or equal to (1 << 62) - 1.
+ */
+NGHTTP3_EXTERN uint8_t *nghttp3_put_uvarint(uint8_t *p, uint64_t n);
+
+/**
+ * @function
+ *
+ * `nghttp3_put_uvarintlen` returns the required number of bytes to
+ * encode |n| in variable-length unsigned integer encoding.  |n| must
+ * be less than or equal to (1 << 62) - 1.
+ */
+NGHTTP3_EXTERN size_t nghttp3_put_uvarintlen(uint64_t n);
+
 /*
  * Versioned function wrappers
  */
