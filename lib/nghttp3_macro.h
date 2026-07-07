@@ -68,6 +68,13 @@ nghttp3_max_def(unsigned_int, unsigned int)
 nghttp3_max_def(unsigned_short_int, unsigned short int)
 nghttp3_max_def(unsigned_char, unsigned char)
 
+#ifdef _MSC_VER
+#  define nghttp3_max_signed_char_assoc
+#else /* !defined(_MSC_VER) */
+#  define nghttp3_max_signed_char_assoc                                    \
+    signed char: nghttp3_max_signed_char,
+#endif /* !defined(_MSC_VER) */
+
 #define nghttp3_max(A, B)                                                      \
   _Generic((A),                                                                \
     long long int: nghttp3_max_long_long_int,                                  \
@@ -77,7 +84,7 @@ nghttp3_max_def(unsigned_char, unsigned char)
       long int: nghttp3_max_long_int,                                          \
       int: nghttp3_max_int,                                                    \
       short int: nghttp3_max_short_int,                                        \
-      signed char: nghttp3_max_signed_char,                                    \
+      nghttp3_max_signed_char_assoc                                           \
       char: nghttp3_max_char,                                                  \
       unsigned long long int: nghttp3_max_unsigned_long_long_int,              \
       unsigned long int: nghttp3_max_unsigned_long_int,                        \
@@ -85,7 +92,7 @@ nghttp3_max_def(unsigned_char, unsigned char)
       unsigned short int: nghttp3_max_unsigned_short_int,                      \
       unsigned char: nghttp3_max_unsigned_char),                               \
     short int: nghttp3_max_short_int,                                          \
-    signed char: nghttp3_max_signed_char,                                      \
+    nghttp3_max_signed_char_assoc                                             \
     char: nghttp3_max_char,                                                    \
     unsigned long long int: nghttp3_max_unsigned_long_long_int,                \
     unsigned long int: nghttp3_max_unsigned_long_int,                          \
@@ -108,6 +115,13 @@ nghttp3_min_def(unsigned_int, unsigned int)
 nghttp3_min_def(unsigned_short_int, unsigned short int)
 nghttp3_min_def(unsigned_char, unsigned char)
 
+#ifdef _MSC_VER
+#  define nghttp3_min_signed_char_assoc
+#else /* !defined(_MSC_VER) */
+#  define nghttp3_min_signed_char_assoc                                    \
+    signed char: nghttp3_min_signed_char,
+#endif /* !defined(_MSC_VER) */
+
 #define nghttp3_min(A, B)                                                      \
   _Generic((A),                                                                \
     long long int: nghttp3_min_long_long_int,                                  \
@@ -117,7 +131,7 @@ nghttp3_min_def(unsigned_char, unsigned char)
       long int: nghttp3_min_long_int,                                          \
       int: nghttp3_min_int,                                                    \
       short int: nghttp3_min_short_int,                                        \
-      signed char: nghttp3_min_signed_char,                                    \
+      nghttp3_min_signed_char_assoc                                           \
       char: nghttp3_min_char,                                                  \
       unsigned long long int: nghttp3_min_unsigned_long_long_int,              \
       unsigned long int: nghttp3_min_unsigned_long_int,                        \
@@ -125,7 +139,7 @@ nghttp3_min_def(unsigned_char, unsigned char)
       unsigned short int: nghttp3_min_unsigned_short_int,                      \
       unsigned char: nghttp3_min_unsigned_char),                               \
     short int: nghttp3_min_short_int,                                          \
-    signed char: nghttp3_min_signed_char,                                      \
+    nghttp3_min_signed_char_assoc                                             \
     char: nghttp3_min_char,                                                    \
     unsigned long long int: nghttp3_min_unsigned_long_long_int,                \
     unsigned long int: nghttp3_min_unsigned_long_int,                          \
