@@ -68,12 +68,12 @@ nghttp3_max_def(unsigned_int, unsigned int)
 nghttp3_max_def(unsigned_short_int, unsigned short int)
 nghttp3_max_def(unsigned_char, unsigned char)
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__) && _MSC_VER < 1944
 #  define nghttp3_max_signed_char_assoc
-#else /* !defined(_MSC_VER) */
+#else /* !(defined(_MSC_VER) && !defined(__clang__) && _MSC_VER < 1944) */
 #  define nghttp3_max_signed_char_assoc                                    \
     signed char: nghttp3_max_signed_char,
-#endif /* !defined(_MSC_VER) */
+#endif /* !(defined(_MSC_VER) && !defined(__clang__) && _MSC_VER < 1944) */
 
 #define nghttp3_max(A, B)                                                      \
   _Generic((A),                                                                \
@@ -115,12 +115,12 @@ nghttp3_min_def(unsigned_int, unsigned int)
 nghttp3_min_def(unsigned_short_int, unsigned short int)
 nghttp3_min_def(unsigned_char, unsigned char)
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__) && _MSC_VER < 1944
 #  define nghttp3_min_signed_char_assoc
-#else /* !defined(_MSC_VER) */
+#else /* !(defined(_MSC_VER) && !defined(__clang__) && _MSC_VER < 1944) */
 #  define nghttp3_min_signed_char_assoc                                    \
     signed char: nghttp3_min_signed_char,
-#endif /* !defined(_MSC_VER) */
+#endif /* !(defined(_MSC_VER) && !defined(__clang__) && _MSC_VER < 1944) */
 
 #define nghttp3_min(A, B)                                                      \
   _Generic((A),                                                                \
