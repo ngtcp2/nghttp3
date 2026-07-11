@@ -1961,7 +1961,7 @@ typedef int (*nghttp3_acked_stream_data)(nghttp3_conn *conn, int64_t stream_id,
 /**
  * @functypedef
  *
- * :type:`nghttp3_conn_stream_close` is a callback function which is
+ * :type:`nghttp3_stream_close` is a callback function which is
  * invoked when a stream identified by |stream_id| is closed.  QUIC
  * application error code |app_error_code| indicates the reason of
  * this closure.
@@ -2368,6 +2368,8 @@ typedef struct nghttp3_callbacks {
    * .. version-added:: 1.11.0
    */
   nghttp3_rand rand;
+  /* The following fields have been added since
+     NGHTTP3_CALLBACKS_V3. */
   /**
    * :member:`recv_settings2` is a callback function which is invoked
    * when SETTINGS frame is received.
