@@ -41,7 +41,7 @@ effectively required to do HTTP/3 transaction below:
   until they are no longer used by :type:`nghttp3_conn`.  This
   callback functions tells the largest offset of HTTP payload
   acknowledged by a remote endpoint, and no longer used.
-* :member:`stream_close <nghttp3_callbacks.stream_close>`: It is
+* :member:`stream_close2 <nghttp3_callbacks.stream_close2>`: It is
   called when a stream is closed.  It is useful to free resources
   allocated for a stream.
 * :member:`recv_data <nghttp3_callbacks.recv_data>`: It is called when
@@ -194,7 +194,8 @@ be called with the largest offset of acknowledged HTTP stream data.
 Handling QUIC stream events
 ---------------------------
 
-If underlying QUIC stream is closed, call `nghttp3_conn_close_stream`.
+If underlying QUIC stream is closed, call
+`nghttp3_conn_close_stream2`.
 
 If underlying QUIC stream is reset by a remote endpoint (that is when
 RESET_STREAM is received) or no longer read by a local endpoint (that

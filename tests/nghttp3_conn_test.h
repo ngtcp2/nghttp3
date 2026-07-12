@@ -72,5 +72,7 @@ munit_void_test_decl(test_nghttp3_conn_write_origin)
 munit_void_test_decl(test_nghttp3_conn_recv_unknown_frame)
 munit_void_test_decl(test_nghttp3_conn_get_stream_user_data)
 munit_void_test_decl(test_nghttp3_conn_is_stream_flushed)
+munit_void_test_decl(test_nghttp3_conn_close_stream)
+munit_void_test_decl(test_nghttp3_conn_close_stream2)
 
 #endif /* !defined(NGHTTP3_CONN_TEST_H) */

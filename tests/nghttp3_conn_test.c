@@ -75,6 +75,8 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_conn_recv_unknown_frame),
   munit_void_test(test_nghttp3_conn_get_stream_user_data),
   munit_void_test(test_nghttp3_conn_is_stream_flushed),
+  munit_void_test(test_nghttp3_conn_close_stream),
+  munit_void_test(test_nghttp3_conn_close_stream2),
   munit_test_end(),
 };
 
@@ -140,6 +142,18 @@ typedef struct {
     size_t origin_listlen;
     size_t offset;
   } recv_origin_cb;
+  struct {
+    int64_t stream_id;
+    uint64_t app_error_code;
+    size_t ncalled;
+  } stream_close;
+  struct {
+    uint32_t flags;
+    int64_t stream_id;
+    uint64_t rx_app_error_code;
+    uint64_t tx_app_error_code;
+    size_t ncalled;
+  } stream_close2;
 } userdata;
 
 typedef struct {
@@ -461,6 +475,44 @@ static int recv_origin(nghttp3_conn *conn, const uint8_t *origin,
 
 static void rand_cb(uint8_t *data, size_t datalen) {
   memset(data, 0xFE, datalen);
+}
+
+static int stream_close(nghttp3_conn *conn, int64_t stream_id,
+                        uint64_t app_error_code, void *user_data,
+                        void *stream_user_data) {
+  userdata *ud = user_data;
+  (void)conn;
+  (void)stream_user_data;
+
+  if (!ud) {
+    return 0;
+  }
+
+  ud->stream_close.stream_id = stream_id;
+  ud->stream_close.app_error_code = app_error_code;
+  ++ud->stream_close.ncalled;
+
+  return 0;
+}
+
+static int stream_close2(nghttp3_conn *conn, uint32_t flags, int64_t stream_id,
+                         uint64_t rx_app_error_code, uint64_t tx_app_error_code,
+                         void *user_data, void *stream_user_data) {
+  userdata *ud = user_data;
+  (void)conn;
+  (void)stream_user_data;
+
+  if (!ud) {
+    return 0;
+  }
+
+  ud->stream_close2.flags = flags;
+  ud->stream_close2.stream_id = stream_id;
+  ud->stream_close2.rx_app_error_code = rx_app_error_code;
+  ud->stream_close2.tx_app_error_code = tx_app_error_code;
+  ++ud->stream_close2.ncalled;
+
+  return 0;
 }
 
 typedef struct conn_options {
@@ -4080,10 +4132,15 @@ void test_nghttp3_conn_submit_info(void) {
 }
 
 void test_nghttp3_conn_recv_uni(void) {
+  static const nghttp3_callbacks callbacks = {
+    .stream_close2 = stream_close2,
+  };
   nghttp3_conn *conn;
   nghttp3_ssize nread;
   uint8_t buf[256];
   size_t i;
+  userdata ud;
+  conn_options opts;
 
   /* 0 length unidirectional stream must be ignored */
   setup_default_client(&conn);
@@ -4097,17 +4154,26 @@ void test_nghttp3_conn_recv_uni(void) {
 
   /* 0 length unidirectional stream; first get 0 length without fin,
      and then get 0 length with fin. */
-  setup_default_client(&conn);
+  opts = (conn_options){
+    .callbacks = &callbacks,
+    .user_data = &ud,
+  };
+
+  setup_default_client_with_options(&conn, opts);
 
   nread = nghttp3_conn_read_stream2(conn, 3, NULL, 0, /* fin = */ 0, 0);
 
   assert_ptrdiff(0, ==, nread);
   assert_not_null(nghttp3_conn_find_stream(conn, 3));
 
+  ud = (userdata){0};
   nread = nghttp3_conn_read_stream2(conn, 3, NULL, 0, /* fin = */ 1, 0);
 
   assert_ptrdiff(0, ==, nread);
   assert_null(nghttp3_conn_find_stream(conn, 3));
+  assert_size(1, ==, ud.stream_close2.ncalled);
+  assert_uint32(NGHTTP3_STREAM_CLOSE_FLAG_NONE, ==, ud.stream_close2.flags);
+  assert_int64(3, ==, ud.stream_close2.stream_id);
 
   nghttp3_conn_del(conn);
 
@@ -6920,6 +6986,201 @@ void test_nghttp3_conn_is_stream_flushed(void) {
 
   assert_int(0, ==, rv);
   assert_true(nghttp3_conn_is_stream_flushed(conn, 0));
+
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_close_stream(void) {
+  nghttp3_callbacks callbacks;
+  nghttp3_conn *conn;
+  nghttp3_stream *stream;
+  userdata ud;
+  int rv;
+  conn_options opts;
+
+  /* stream_close2 callback */
+  callbacks = (nghttp3_callbacks){
+    .stream_close2 = stream_close2,
+  };
+
+  opts = (conn_options){
+    .callbacks = &callbacks,
+    .user_data = &ud,
+  };
+
+  setup_default_server_with_options(&conn, opts);
+
+  rv = nghttp3_conn_create_stream(conn, &stream, 0);
+
+  assert_int(0, ==, rv);
+
+  ud = (userdata){0};
+  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_INTERNAL_ERROR);
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, ud.stream_close2.ncalled);
+  assert_uint32(NGHTTP3_STREAM_CLOSE_FLAG_RX_APP_ERROR_CODE_SET |
+                  NGHTTP3_STREAM_CLOSE_FLAG_TX_APP_ERROR_CODE_SET,
+                ==, ud.stream_close2.flags);
+  assert_int64(0, ==, ud.stream_close2.stream_id);
+  assert_uint64(NGHTTP3_H3_INTERNAL_ERROR, ==,
+                ud.stream_close2.rx_app_error_code);
+  assert_uint64(NGHTTP3_H3_INTERNAL_ERROR, ==,
+                ud.stream_close2.tx_app_error_code);
+
+  nghttp3_conn_del(conn);
+
+  /* stream_close callback */
+  callbacks = (nghttp3_callbacks){
+    .stream_close = stream_close,
+  };
+
+  opts = (conn_options){
+    .callbacks = &callbacks,
+    .user_data = &ud,
+  };
+
+  setup_default_server_with_options(&conn, opts);
+
+  rv = nghttp3_conn_create_stream(conn, &stream, 0);
+
+  assert_int(0, ==, rv);
+
+  ud = (userdata){0};
+  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_INTERNAL_ERROR);
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, ud.stream_close.ncalled);
+  assert_int64(0, ==, ud.stream_close.stream_id);
+  assert_uint64(NGHTTP3_H3_INTERNAL_ERROR, ==, ud.stream_close.app_error_code);
+
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_close_stream2(void) {
+  nghttp3_callbacks callbacks;
+  nghttp3_conn *conn;
+  nghttp3_stream *stream;
+  userdata ud;
+  int rv;
+  conn_options opts;
+
+  /* Stream closed without errors */
+  callbacks = (nghttp3_callbacks){
+    .stream_close2 = stream_close2,
+  };
+
+  opts = (conn_options){
+    .callbacks = &callbacks,
+    .user_data = &ud,
+  };
+
+  setup_default_server_with_options(&conn, opts);
+
+  rv = nghttp3_conn_create_stream(conn, &stream, 0);
+
+  assert_int(0, ==, rv);
+
+  ud = (userdata){0};
+  rv =
+    nghttp3_conn_close_stream2(conn, NGHTTP3_STREAM_CLOSE_FLAG_NONE, 0, 1, 2);
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, ud.stream_close2.ncalled);
+  assert_uint32(NGHTTP3_STREAM_CLOSE_FLAG_NONE, ==, ud.stream_close2.flags);
+  assert_int64(0, ==, ud.stream_close2.stream_id);
+
+  nghttp3_conn_del(conn);
+
+  /* Stream closed with errors */
+  callbacks = (nghttp3_callbacks){
+    .stream_close2 = stream_close2,
+  };
+
+  opts = (conn_options){
+    .callbacks = &callbacks,
+    .user_data = &ud,
+  };
+
+  setup_default_server_with_options(&conn, opts);
+
+  rv = nghttp3_conn_create_stream(conn, &stream, 0);
+
+  assert_int(0, ==, rv);
+
+  ud = (userdata){0};
+  rv = nghttp3_conn_close_stream2(
+    conn,
+    NGHTTP3_STREAM_CLOSE_FLAG_RX_APP_ERROR_CODE_SET |
+      NGHTTP3_STREAM_CLOSE_FLAG_TX_APP_ERROR_CODE_SET,
+    0, NGHTTP3_H3_INTERNAL_ERROR, NGHTTP3_H3_NO_ERROR);
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, ud.stream_close2.ncalled);
+  assert_uint32(NGHTTP3_STREAM_CLOSE_FLAG_RX_APP_ERROR_CODE_SET |
+                  NGHTTP3_STREAM_CLOSE_FLAG_TX_APP_ERROR_CODE_SET,
+                ==, ud.stream_close2.flags);
+  assert_int64(0, ==, ud.stream_close2.stream_id);
+  assert_uint64(NGHTTP3_H3_INTERNAL_ERROR, ==,
+                ud.stream_close2.rx_app_error_code);
+  assert_uint64(NGHTTP3_H3_NO_ERROR, ==, ud.stream_close2.tx_app_error_code);
+
+  nghttp3_conn_del(conn);
+
+  /* stream_close callback without errors */
+  callbacks = (nghttp3_callbacks){
+    .stream_close = stream_close,
+  };
+
+  opts = (conn_options){
+    .callbacks = &callbacks,
+    .user_data = &ud,
+  };
+
+  setup_default_server_with_options(&conn, opts);
+
+  rv = nghttp3_conn_create_stream(conn, &stream, 0);
+
+  assert_int(0, ==, rv);
+
+  ud = (userdata){0};
+  rv =
+    nghttp3_conn_close_stream2(conn, NGHTTP3_STREAM_CLOSE_FLAG_NONE, 0, 0, 0);
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, ud.stream_close.ncalled);
+  assert_int64(0, ==, ud.stream_close.stream_id);
+  assert_uint64(NGHTTP3_H3_NO_ERROR, ==, ud.stream_close.app_error_code);
+
+  nghttp3_conn_del(conn);
+
+  /* stream_close callback with errors */
+  callbacks = (nghttp3_callbacks){
+    .stream_close = stream_close,
+  };
+
+  opts = (conn_options){
+    .callbacks = &callbacks,
+    .user_data = &ud,
+  };
+
+  setup_default_server_with_options(&conn, opts);
+
+  rv = nghttp3_conn_create_stream(conn, &stream, 0);
+
+  assert_int(0, ==, rv);
+
+  ud = (userdata){0};
+  rv = nghttp3_conn_close_stream2(
+    conn,
+    NGHTTP3_STREAM_CLOSE_FLAG_RX_APP_ERROR_CODE_SET |
+      NGHTTP3_STREAM_CLOSE_FLAG_TX_APP_ERROR_CODE_SET,
+    0, NGHTTP3_H3_INTERNAL_ERROR, NGHTTP3_H3_NO_ERROR);
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, ud.stream_close.ncalled);
+  assert_int64(0, ==, ud.stream_close.stream_id);
+  assert_uint64(NGHTTP3_H3_INTERNAL_ERROR, ==, ud.stream_close.app_error_code);
 
   nghttp3_conn_del(conn);
 }
