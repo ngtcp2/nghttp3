@@ -13,6 +13,12 @@ Documentation
 
 `Online documentation <https://nghttp2.org/nghttp3/>`_ is available.
 
+Requirements
+------------
+
+nghttp3 requires a C11 compiler to build.  The modern compilers such
+as clang >= 19, gcc >= 15, and MSVC 2022 (1944) are known to work.
+
 Build from git
 ---------------
 
