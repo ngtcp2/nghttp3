@@ -1203,7 +1203,7 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
         for (; conn->rx.originlen_offset < sizeof(conn->rx.originlen) &&
                (size_t)nread < len;
              ++conn->rx.originlen_offset, ++nread) {
-          conn->rx.originlen <<= 8;
+          conn->rx.originlen *= 256;
           conn->rx.originlen += *p++;
         }
 
