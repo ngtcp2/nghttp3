@@ -555,13 +555,14 @@ nghttp3_ssize nghttp3_conn_read_stream2(nghttp3_conn *conn, int64_t stream_id,
     return 0;
   }
 
+  if (fin) {
+    stream->flags |= NGHTTP3_STREAM_FLAG_READ_EOF;
+  }
+
   if (nghttp3_stream_uni(stream_id)) {
     return nghttp3_conn_read_uni(conn, stream, src, srclen, fin, ts);
   }
 
-  if (fin) {
-    stream->flags |= NGHTTP3_STREAM_FLAG_READ_EOF;
-  }
   return nghttp3_conn_read_bidi(conn, &bidi_nproc, stream, src, srclen, fin,
                                 ts);
 }
@@ -1975,6 +1976,12 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
       break;
     }
 
+#if SIZE_MAX < UINT64_MAX
+    if (ent->value > SIZE_MAX) {
+      return NGHTTP3_ERR_H3_SETTINGS_ERROR;
+    }
+#endif /* SIZE_MAX < UINT64_MAX */
+
     dest->qpack_max_dtable_capacity = (size_t)ent->value;
 
     nghttp3_qpack_encoder_set_max_dtable_capacity(&conn->qenc,
@@ -1988,6 +1995,12 @@ int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
     if (ent->value == 0) {
       break;
     }
+
+#if SIZE_MAX < UINT64_MAX
+    if (ent->value > SIZE_MAX) {
+      return NGHTTP3_ERR_H3_SETTINGS_ERROR;
+    }
+#endif /* SIZE_MAX < UINT64_MAX */
 
     dest->qpack_blocked_streams = (size_t)ent->value;
 
