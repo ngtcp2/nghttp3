@@ -18,6 +18,7 @@ extern "C" {
 #endif // defined(__cplusplus)
 
 #include "nghttp3_macro.h"
+#include "nghttp3_buf.h"
 
 #ifdef __cplusplus
 }
@@ -247,10 +248,14 @@ int decode(const uint8_t *data, size_t datalen) {
     auto chunk_size = fuzzed_data_provider.ConsumeIntegral<size_t>();
     auto chunk = fuzzed_data_provider.ConsumeBytes<uint8_t>(chunk_size);
 
-    nghttp3_buf buf{
-      .begin = chunk.data(),
-      .end = chunk.data() + chunk.size(),
-    };
+    nghttp3_buf buf;
+
+    if (chunk.empty()) {
+      nghttp3_buf_init(&buf);
+    } else {
+      nghttp3_buf_wrap_init(&buf, chunk.data(), chunk.size());
+      buf.last += chunk.size();
+    }
 
     if (stream_id == encoder_stream_id) {
       if (auto rv = dec.read_encoder(&buf); rv != 0) {
