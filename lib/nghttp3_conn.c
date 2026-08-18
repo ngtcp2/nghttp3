@@ -555,13 +555,14 @@ nghttp3_ssize nghttp3_conn_read_stream2(nghttp3_conn *conn, int64_t stream_id,
     return 0;
   }
 
+  if (fin) {
+    stream->flags |= NGHTTP3_STREAM_FLAG_READ_EOF;
+  }
+
   if (nghttp3_stream_uni(stream_id)) {
     return nghttp3_conn_read_uni(conn, stream, src, srclen, fin, ts);
   }
 
-  if (fin) {
-    stream->flags |= NGHTTP3_STREAM_FLAG_READ_EOF;
-  }
   return nghttp3_conn_read_bidi(conn, &bidi_nproc, stream, src, srclen, fin,
                                 ts);
 }
