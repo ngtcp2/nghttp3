@@ -8,6 +8,7 @@
 #include <utility>
 #include <memory>
 #include <string>
+#include <span>
 
 #include <fuzzer/FuzzedDataProvider.h>
 
@@ -18,7 +19,6 @@ extern "C" {
 #endif // defined(__cplusplus)
 
 #include "nghttp3_macro.h"
-#include "nghttp3_buf.h"
 
 #ifdef __cplusplus
 }
@@ -27,12 +27,13 @@ extern "C" {
 #define nghttp3_ntohl64(N) be64toh(N)
 
 struct Request {
-  Request(int64_t stream_id, const nghttp3_buf *buf);
+  Request(int64_t stream_id, std::span<const uint8_t> data);
   ~Request();
 
   int init(const nghttp3_mem &mem);
 
-  nghttp3_buf buf;
+  std::vector<uint8_t> data_store;
+  std::span<const uint8_t> data;
   nghttp3_qpack_stream_context *sctx;
   int64_t stream_id;
 };
@@ -55,8 +56,9 @@ public:
   ~Decoder();
 
   int init();
-  int read_encoder(nghttp3_buf *buf);
-  std::tuple<Headers, int> read_request(nghttp3_buf *buf, int64_t stream_id);
+  int read_encoder(std::span<const uint8_t> data);
+  std::tuple<Headers, int> read_request(std::span<const uint8_t> data,
+                                        int64_t stream_id);
   std::tuple<Headers, int> read_request(Request &req);
   std::tuple<int64_t, Headers, int> process_blocked();
   size_t get_num_blocked() const;
@@ -72,8 +74,11 @@ private:
   size_t max_blocked_;
 };
 
-Request::Request(int64_t stream_id, const nghttp3_buf *buf)
-  : buf(*buf), sctx(nullptr), stream_id(stream_id) {}
+Request::Request(int64_t stream_id, std::span<const uint8_t> data)
+  : data_store(std::ranges::begin(data), std::ranges::end(data)),
+    data{data_store},
+    sctx(nullptr),
+    stream_id(stream_id) {}
 
 int Request::init(const nghttp3_mem &mem) {
   auto rv = nghttp3_qpack_stream_context_new(&sctx, stream_id, &mem);
@@ -107,21 +112,21 @@ int Decoder::init() {
   return 0;
 }
 
-int Decoder::read_encoder(nghttp3_buf *buf) {
+int Decoder::read_encoder(std::span<const uint8_t> data) {
   auto nread =
-    nghttp3_qpack_decoder_read_encoder(dec_, buf->pos, nghttp3_buf_len(buf));
+    nghttp3_qpack_decoder_read_encoder(dec_, data.data(), data.size());
   if (nread < 0) {
     return -1;
   }
 
-  assert(static_cast<size_t>(nread) == nghttp3_buf_len(buf));
+  assert(static_cast<size_t>(nread) == data.size());
 
   return 0;
 }
 
-std::tuple<Headers, int> Decoder::read_request(nghttp3_buf *buf,
+std::tuple<Headers, int> Decoder::read_request(std::span<const uint8_t> data,
                                                int64_t stream_id) {
-  auto req = std::make_shared<Request>(stream_id, buf);
+  auto req = std::make_shared<Request>(stream_id, data);
 
   if (req->init(mem_) != 0) {
     return {{}, -1};
@@ -148,12 +153,12 @@ std::tuple<Headers, int> Decoder::read_request(Request &req) {
 
   for (;;) {
     auto nread = nghttp3_qpack_decoder_read_request(
-      dec_, req.sctx, &nv, &flags, req.buf.pos, nghttp3_buf_len(&req.buf), 1);
+      dec_, req.sctx, &nv, &flags, req.data.data(), req.data.size(), 1);
     if (nread < 0) {
       return {Headers{}, -1};
     }
 
-    req.buf.pos += nread;
+    req.data = req.data.subspan(nread);
 
     if (flags & NGHTTP3_QPACK_DECODE_FLAG_FINAL) {
       break;
@@ -248,17 +253,8 @@ int decode(const uint8_t *data, size_t datalen) {
     auto chunk_size = fuzzed_data_provider.ConsumeIntegral<size_t>();
     auto chunk = fuzzed_data_provider.ConsumeBytes<uint8_t>(chunk_size);
 
-    nghttp3_buf buf;
-
-    if (chunk.empty()) {
-      nghttp3_buf_init(&buf);
-    } else {
-      nghttp3_buf_wrap_init(&buf, chunk.data(), chunk.size());
-      buf.last += chunk.size();
-    }
-
     if (stream_id == encoder_stream_id) {
-      if (auto rv = dec.read_encoder(&buf); rv != 0) {
+      if (auto rv = dec.read_encoder(chunk); rv != 0) {
         return rv;
       }
 
@@ -276,7 +272,7 @@ int decode(const uint8_t *data, size_t datalen) {
       continue;
     }
 
-    auto [_, rv] = dec.read_request(&buf, stream_id);
+    auto [_, rv] = dec.read_request(chunk, stream_id);
     if (rv == -1) {
       return rv;
     }
