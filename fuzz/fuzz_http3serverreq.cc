@@ -454,7 +454,7 @@ void run_fuzzer(const uint8_t *data, size_t size, size_t step) {
           goto fin;
         }
 
-        v = v.subspan(1);
+        v = v.subspan(len);
       }
     }
 
