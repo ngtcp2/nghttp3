@@ -1,5 +1,6 @@
 #include <array>
 #include <span>
+#include <expected>
 
 #include <fuzzer/FuzzedDataProvider.h>
 
@@ -223,8 +224,12 @@ void *fuzzed_realloc(void *ptr, size_t size, void *user_data) {
 }
 }; // namespace
 
+enum class Error {
+  HTTP3,
+};
+
 namespace {
-int send_data(nghttp3_conn *conn) {
+std::expected<void, Error> send_data(nghttp3_conn *conn) {
   std::array<nghttp3_vec, 16> vec;
   int64_t stream_id;
   int fin;
@@ -233,29 +238,29 @@ int send_data(nghttp3_conn *conn) {
     auto veccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec.data(),
                                              vec.size());
     if (veccnt < 0) {
-      return veccnt;
+      return std::unexpected{Error::HTTP3};
     }
 
     if (veccnt || fin) {
       auto ndatalen = nghttp3_vec_len(vec.data(), veccnt);
 
-      if (nghttp3_conn_add_write_offset(conn, stream_id, ndatalen) < 0) {
-        return 0;
+      if (nghttp3_conn_add_write_offset(conn, stream_id, ndatalen) != 0) {
+        return std::unexpected{Error::HTTP3};
       }
 
-      if (nghttp3_conn_add_ack_offset(conn, stream_id, ndatalen) < 0) {
-        return 0;
+      if (nghttp3_conn_add_ack_offset(conn, stream_id, ndatalen) != 0) {
+        return std::unexpected{Error::HTTP3};
       }
     } else {
-      return 0;
+      return {};
     }
   }
 }
 }; // namespace
 
 namespace {
-int send_requests(nghttp3_conn *conn,
-                  FuzzedDataProvider &fuzzed_data_provider) {
+std::expected<void, Error>
+send_requests(nghttp3_conn *conn, FuzzedDataProvider &fuzzed_data_provider) {
   for (; fuzzed_data_provider.ConsumeBool();) {
     auto stream_id = fuzzed_data_provider.ConsumeIntegralInRange<int64_t>(
       0, NGHTTP3_MAX_VARINT);
@@ -278,17 +283,17 @@ int send_requests(nghttp3_conn *conn,
     auto rv = nghttp3_conn_submit_request(
       conn, stream_id, nva, nghttp3_arraylen(nva), nullptr, nullptr);
     if (rv != 0) {
-      return rv;
+      return std::unexpected{Error::HTTP3};
     }
   }
 
-  return 0;
+  return {};
 }
 }; // namespace
 
 namespace {
-int shutdown_streams(nghttp3_conn *conn,
-                     FuzzedDataProvider &fuzzed_data_provider) {
+std::expected<void, Error>
+shutdown_streams(nghttp3_conn *conn, FuzzedDataProvider &fuzzed_data_provider) {
   for (; fuzzed_data_provider.ConsumeBool();) {
     auto stream_id = fuzzed_data_provider.ConsumeIntegralInRange<int64_t>(
       0, NGHTTP3_MAX_VARINT);
@@ -296,20 +301,21 @@ int shutdown_streams(nghttp3_conn *conn,
     if (fuzzed_data_provider.ConsumeBool()) {
       auto rv = nghttp3_conn_shutdown_stream_read(conn, stream_id);
       if (rv != 0) {
-        return rv;
+        return std::unexpected{Error::HTTP3};
       }
     } else {
       nghttp3_conn_shutdown_stream_write(conn, stream_id);
     }
   }
 
-  return 0;
+  return {};
 }
 }; // namespace
 
 namespace {
-int set_stream_priorities(nghttp3_conn *conn,
-                          FuzzedDataProvider &fuzzed_data_provider) {
+std::expected<void, Error>
+set_stream_priorities(nghttp3_conn *conn,
+                      FuzzedDataProvider &fuzzed_data_provider) {
   for (; fuzzed_data_provider.ConsumeBool();) {
     auto stream_id = fuzzed_data_provider.ConsumeIntegralInRange<int64_t>(
       0, NGHTTP3_MAX_VARINT);
@@ -322,11 +328,11 @@ int set_stream_priorities(nghttp3_conn *conn,
 
     auto rv = nghttp3_conn_set_server_stream_priority(conn, stream_id, &pri);
     if (rv != 0) {
-      return rv;
+      return std::unexpected{Error::HTTP3};
     }
   }
 
-  return 0;
+  return {};
 }
 }; // namespace
 
@@ -334,7 +340,7 @@ namespace {
 void run_fuzzer(const uint8_t *data, size_t size, size_t step) {
   FuzzedDataProvider fuzzed_data_provider(data, size);
 
-  nghttp3_callbacks callbacks{
+  static constexpr nghttp3_callbacks callbacks{
     .acked_stream_data = acked_stream_data,
     .stream_close = stream_close,
     .recv_data = recv_data,
@@ -418,7 +424,7 @@ void run_fuzzer(const uint8_t *data, size_t size, size_t step) {
     }
   }
 
-  if (send_data(conn) != 0) {
+  if (!send_data(conn)) {
     goto fin;
   }
 
@@ -432,11 +438,8 @@ void run_fuzzer(const uint8_t *data, size_t size, size_t step) {
         goto fin;
       }
 
-      if (!server) {
-        auto rv = send_requests(conn, fuzzed_data_provider);
-        if (rv != 0) {
-          goto fin;
-        }
+      if (!server && !send_requests(conn, fuzzed_data_provider)) {
+        goto fin;
       }
 
       auto chunk_size = fuzzed_data_provider.ConsumeIntegral<size_t>();
@@ -458,13 +461,12 @@ void run_fuzzer(const uint8_t *data, size_t size, size_t step) {
       }
     }
 
-    if (server && !shutdown_started && fuzzed_data_provider.ConsumeBool()) {
-      if (nghttp3_conn_submit_shutdown_notice(conn) != 0) {
-        goto fin;
-      }
+    if (server && !shutdown_started && fuzzed_data_provider.ConsumeBool() &&
+        nghttp3_conn_submit_shutdown_notice(conn) != 0) {
+      goto fin;
     }
 
-    if (shutdown_streams(conn, fuzzed_data_provider) != 0) {
+    if (!shutdown_streams(conn, fuzzed_data_provider)) {
       goto fin;
     }
 
@@ -476,11 +478,11 @@ void run_fuzzer(const uint8_t *data, size_t size, size_t step) {
       }
     }
 
-    if (server && set_stream_priorities(conn, fuzzed_data_provider) != 0) {
+    if (server && !set_stream_priorities(conn, fuzzed_data_provider)) {
       goto fin;
     }
 
-    if (send_data(conn) != 0) {
+    if (!send_data(conn)) {
       goto fin;
     }
   }

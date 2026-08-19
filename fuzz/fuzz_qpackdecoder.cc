@@ -9,6 +9,8 @@
 #include <memory>
 #include <string>
 #include <span>
+#include <ranges>
+#include <expected>
 
 #include <fuzzer/FuzzedDataProvider.h>
 
@@ -26,11 +28,16 @@ extern "C" {
 
 #define nghttp3_ntohl64(N) be64toh(N)
 
+enum class Error {
+  QPACK,
+  BLOCKED,
+};
+
 struct Request {
   Request(int64_t stream_id, std::span<const uint8_t> data);
   ~Request();
 
-  int init(const nghttp3_mem &mem);
+  std::expected<void, Error> init(const nghttp3_mem &mem);
 
   std::vector<uint8_t> data_store;
   std::span<const uint8_t> data;
@@ -55,12 +62,12 @@ public:
   Decoder(size_t max_dtable_size, size_t max_blocked, const nghttp3_mem &mem);
   ~Decoder();
 
-  int init();
-  int read_encoder(std::span<const uint8_t> data);
-  std::tuple<Headers, int> read_request(std::span<const uint8_t> data,
-                                        int64_t stream_id);
-  std::tuple<Headers, int> read_request(Request &req);
-  std::tuple<int64_t, Headers, int> process_blocked();
+  std::expected<void, Error> init();
+  std::expected<void, Error> read_encoder(std::span<const uint8_t> data);
+  std::expected<Headers, Error> read_request(std::span<const uint8_t> data,
+                                             int64_t stream_id);
+  std::expected<Headers, Error> read_request(Request &req);
+  std::expected<Headers, Error> process_blocked();
   size_t get_num_blocked() const;
 
 private:
@@ -75,18 +82,18 @@ private:
 };
 
 Request::Request(int64_t stream_id, std::span<const uint8_t> data)
-  : data_store(std::ranges::begin(data), std::ranges::end(data)),
+  : data_store{std::ranges::to<std::vector>(data)},
     data{data_store},
     sctx(nullptr),
     stream_id(stream_id) {}
 
-int Request::init(const nghttp3_mem &mem) {
+std::expected<void, Error> Request::init(const nghttp3_mem &mem) {
   auto rv = nghttp3_qpack_stream_context_new(&sctx, stream_id, &mem);
   if (rv != 0) {
-    return -1;
+    return std::unexpected{Error::QPACK};
   }
 
-  return 0;
+  return {};
 }
 
 Request::~Request() { nghttp3_qpack_stream_context_del(sctx); }
@@ -100,53 +107,51 @@ Decoder::Decoder(size_t max_dtable_size, size_t max_blocked,
 
 Decoder::~Decoder() { nghttp3_qpack_decoder_del(dec_); }
 
-int Decoder::init() {
+std::expected<void, Error> Decoder::init() {
   if (auto rv =
         nghttp3_qpack_decoder_new(&dec_, max_dtable_size_, max_blocked_, &mem_);
       rv != 0) {
-    return -1;
+    return std::unexpected{Error::QPACK};
   }
 
   nghttp3_qpack_decoder_set_max_dtable_capacity(dec_, max_dtable_size_);
 
-  return 0;
+  return {};
 }
 
-int Decoder::read_encoder(std::span<const uint8_t> data) {
+std::expected<void, Error>
+Decoder::read_encoder(std::span<const uint8_t> data) {
   auto nread =
     nghttp3_qpack_decoder_read_encoder(dec_, data.data(), data.size());
   if (nread < 0) {
-    return -1;
+    return std::unexpected{Error::QPACK};
   }
 
   assert(static_cast<size_t>(nread) == data.size());
 
-  return 0;
+  return {};
 }
 
-std::tuple<Headers, int> Decoder::read_request(std::span<const uint8_t> data,
-                                               int64_t stream_id) {
+std::expected<Headers, Error>
+Decoder::read_request(std::span<const uint8_t> data, int64_t stream_id) {
   auto req = std::make_shared<Request>(stream_id, data);
-
-  if (req->init(mem_) != 0) {
-    return {{}, -1};
+  if (auto rv = req->init(mem_); !rv) {
+    return std::unexpected{rv.error()};
   }
 
-  auto [headers, rv] = read_request(*req);
-  if (rv == -1) {
-    return {Headers{}, -1};
-  }
-  if (rv == 1) {
+  auto maybe_headers = read_request(*req);
+  if (!maybe_headers && maybe_headers.error() == Error::BLOCKED) {
     if (blocked_reqs_.size() >= max_blocked_) {
-      return {Headers{}, -1};
+      return std::unexpected{Error::QPACK};
     }
+
     blocked_reqs_.emplace(std::move(req));
-    return {Headers{}, 1};
   }
-  return {headers, 0};
+
+  return maybe_headers;
 }
 
-std::tuple<Headers, int> Decoder::read_request(Request &req) {
+std::expected<Headers, Error> Decoder::read_request(Request &req) {
   nghttp3_qpack_nv nv;
   uint8_t flags;
   Headers headers;
@@ -155,7 +160,7 @@ std::tuple<Headers, int> Decoder::read_request(Request &req) {
     auto nread = nghttp3_qpack_decoder_read_request(
       dec_, req.sctx, &nv, &flags, req.data.data(), req.data.size(), 1);
     if (nread < 0) {
-      return {Headers{}, -1};
+      return std::unexpected{Error::QPACK};
     }
 
     req.data = req.data.subspan(nread);
@@ -163,9 +168,11 @@ std::tuple<Headers, int> Decoder::read_request(Request &req) {
     if (flags & NGHTTP3_QPACK_DECODE_FLAG_FINAL) {
       break;
     }
+
     if (flags & NGHTTP3_QPACK_DECODE_FLAG_BLOCKED) {
-      return {Headers{}, 1};
+      return std::unexpected{Error::BLOCKED};
     }
+
     if (flags & NGHTTP3_QPACK_DECODE_FLAG_EMIT) {
       auto name = nghttp3_rcbuf_get_buf(nv.name);
       auto value = nghttp3_rcbuf_get_buf(nv.value);
@@ -176,29 +183,24 @@ std::tuple<Headers, int> Decoder::read_request(Request &req) {
     }
   }
 
-  return {headers, 0};
+  return headers;
 }
 
-std::tuple<int64_t, Headers, int> Decoder::process_blocked() {
-  if (!blocked_reqs_.empty()) {
-    auto &top = blocked_reqs_.top();
-    if (nghttp3_qpack_stream_context_get_ricnt2(top->sctx) >
-        nghttp3_qpack_decoder_get_icnt(dec_)) {
-      return {-1, {}, 0};
-    }
-
-    auto req = top;
-    blocked_reqs_.pop();
-
-    auto [headers, rv] = read_request(*req);
-    if (rv < 0) {
-      return {-1, {}, -1};
-    }
-    assert(rv == 0);
-
-    return {req->stream_id, headers, 0};
+std::expected<Headers, Error> Decoder::process_blocked() {
+  if (blocked_reqs_.empty()) {
+    return std::unexpected{Error::BLOCKED};
   }
-  return {-1, {}, 0};
+
+  auto &top = blocked_reqs_.top();
+  if (nghttp3_qpack_stream_context_get_ricnt2(top->sctx) >
+      nghttp3_qpack_decoder_get_icnt(dec_)) {
+    return std::unexpected{Error::BLOCKED};
+  }
+
+  auto req = top;
+  blocked_reqs_.pop();
+
+  return read_request(*req);
 }
 
 namespace {
@@ -225,7 +227,7 @@ void *fuzzed_realloc(void *ptr, size_t size, void *user_data) {
 }
 } // namespace
 
-int decode(const uint8_t *data, size_t datalen) {
+std::expected<void, Error> decode(const uint8_t *data, size_t datalen) {
   FuzzedDataProvider fuzzed_data_provider(data, datalen);
 
   auto mem = *nghttp3_mem_default();
@@ -240,7 +242,7 @@ int decode(const uint8_t *data, size_t datalen) {
     fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, NGHTTP3_MAX_VARINT);
 
   auto dec = Decoder(max_dtable_size, max_blocked, mem);
-  if (auto rv = dec.init(); rv != 0) {
+  if (auto rv = dec.init(); !rv) {
     return rv;
   }
 
@@ -254,34 +256,35 @@ int decode(const uint8_t *data, size_t datalen) {
     auto chunk = fuzzed_data_provider.ConsumeBytes<uint8_t>(chunk_size);
 
     if (stream_id == encoder_stream_id) {
-      if (auto rv = dec.read_encoder(chunk); rv != 0) {
+      if (auto rv = dec.read_encoder(chunk); !rv) {
         return rv;
       }
 
       for (;;) {
-        auto [stream_id, _, rv] = dec.process_blocked();
-        if (rv != 0) {
-          return rv;
-        }
+        auto maybe_headers = dec.process_blocked();
+        if (!maybe_headers) {
+          auto err = maybe_headers.error();
+          if (err == Error::BLOCKED) {
+            break;
+          }
 
-        if (stream_id == -1) {
-          break;
+          return std::unexpected{err};
         }
       }
 
       continue;
     }
 
-    auto [_, rv] = dec.read_request(chunk, stream_id);
-    if (rv == -1) {
-      return rv;
+    auto maybe_headers = dec.read_request(chunk, stream_id);
+    if (!maybe_headers && maybe_headers.error() != Error::BLOCKED) {
+      return std::unexpected{maybe_headers.error()};
     }
   }
 
-  return 0;
+  return {};
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
-  decode(data, size);
+  (void)decode(data, size);
   return 0;
 }
