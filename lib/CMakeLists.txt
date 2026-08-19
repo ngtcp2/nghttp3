@@ -66,15 +66,17 @@ set(nghttp3_SOURCES
   sfparse/sfparse.c
 )
 
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
+
 set(NGHTTP3_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(NGHTTP3_VERSION_CONFIG "${NGHTTP3_GENERATED_DIR}/${PROJECT_NAME}ConfigVersion.cmake")
 set(NGHTTP3_PROJECT_CONFIG "${NGHTTP3_GENERATED_DIR}/${PROJECT_NAME}Config.cmake")
 set(NGHTTP3_TARGETS_EXPORT_NAME "${PROJECT_NAME}Targets")
-set(NGHTTP3_CONFIG_INSTALL_DIR "lib/cmake/${PROJECT_NAME}")
+set(NGHTTP3_CONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
 set(NGHTTP3_NAMESPACE "${PROJECT_NAME}::")
 set(NGHTTP3_VERSION ${PROJECT_VERSION})
 
-include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
   "${NGHTTP3_VERSION_CONFIG}" VERSION ${NGHTTP3_VERSION} COMPATIBILITY SameMajorVersion
 )
