@@ -914,6 +914,16 @@ void test_nghttp3_qpack_decoder_reconstruct_ricnt(void) {
   assert_uint64(8, ==, ricnt);
 
   nghttp3_qpack_decoder_free(&dec);
+
+  /* A nonzero Required Insert Count is invalid when the dynamic table
+     cannot hold even one entry. */
+  nghttp3_qpack_decoder_init(&dec, 0, 1, mem);
+
+  rv = nghttp3_qpack_decoder_reconstruct_ricnt(&dec, &ricnt, 1);
+
+  assert_int(NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED, ==, rv);
+
+  nghttp3_qpack_decoder_free(&dec);
 }
 
 void test_nghttp3_qpack_decoder_read_encoder(void) {

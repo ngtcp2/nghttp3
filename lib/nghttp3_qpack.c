@@ -3925,6 +3925,10 @@ int nghttp3_qpack_decoder_reconstruct_ricnt(
     decoder->ctx.hard_max_dtable_capacity / NGHTTP3_QPACK_ENTRY_OVERHEAD;
   full = 2 * max_ents;
 
+  if (full == 0) {
+    return NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
+  }
+
   if (encricnt > full) {
     return NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
   }
