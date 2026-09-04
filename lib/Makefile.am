@@ -66,6 +66,7 @@ OBJECTS = \
 	nghttp3_settings.c \
 	nghttp3_callbacks.c \
 	nghttp3_ratelim.c \
+	nghttp3_wt.c \
 	sfparse/sfparse.c
 HFILES = \
 	nghttp3_rcbuf.h \
@@ -97,6 +98,7 @@ HFILES = \
 	nghttp3_settings.h \
 	nghttp3_callbacks.h \
 	nghttp3_ratelim.h \
+	nghttp3_wt.h \
 	sfparse/sfparse.h \
 	nghttp3_macro.h
 
