@@ -99,6 +99,11 @@ static const nghttp3_nv resp_nva[] = {
   MAKE_NV("server", "nghttp3"),
 };
 
+static const nghttp3_nv resp_not_found_nva[] = {
+  MAKE_NV(":status", "404"),
+  MAKE_NV("server", "nghttp3"),
+};
+
 typedef struct {
   struct {
     size_t nblock;
@@ -3161,6 +3166,41 @@ void test_nghttp3_conn_http_trailers(void) {
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
 
+  /* The response trailers in CONNECT stream after HEADERS are
+     acceptable if the status code is not 2xx. */
+  nghttp3_buf_reset(&buf);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_not_found_nva,
+    .nvlen = nghttp3_arraylen(resp_not_found_nva),
+  };
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)trnv,
+    .nvlen = nghttp3_arraylen(trnv),
+  };
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  setup_default_client(&conn);
+  nghttp3_conn_create_stream(conn, &stream, 0);
+  stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
+  nghttp3_http_record_request_method(stream, connect_reqnv,
+                                     nghttp3_arraylen(connect_reqnv));
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+
   /* We don't expect response trailers after DATA with CONNECT
      request */
   nghttp3_buf_reset(&buf);
@@ -3193,6 +3233,42 @@ void test_nghttp3_conn_http_trailers(void) {
                                         /* fin = */ 0, 0);
 
   assert_ptrdiff(NGHTTP3_ERR_H3_FRAME_UNEXPECTED, ==, sconsumed);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* The response trailers after DATA in CONNECT stream are acceptable
+     if the status code is not 2xx. */
+  nghttp3_buf_reset(&buf);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_not_found_nva,
+    .nvlen = nghttp3_arraylen(resp_not_found_nva),
+  };
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+  nghttp3_write_frame_data(&buf, 99);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)trnv,
+    .nvlen = nghttp3_arraylen(trnv),
+  };
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  setup_default_client(&conn);
+  nghttp3_conn_create_stream(conn, &stream, 0);
+  stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
+  nghttp3_http_record_request_method(stream, connect_reqnv,
+                                     nghttp3_arraylen(connect_reqnv));
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf) - 99, ==, sconsumed);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
@@ -5766,9 +5842,6 @@ void test_nghttp3_conn_rx_http_state(void) {
     MAKE_NV(":method", "CONNECT"),
     MAKE_NV(":authority", "localhost:4433"),
   };
-  static const nghttp3_nv resp_not_found_nva[] = {
-    MAKE_NV(":status", "404"),
-  };
   static const nghttp3_nv trailer_nva[] = {
     MAKE_NV("alpha", "bravo"),
   };
@@ -5858,6 +5931,68 @@ void test_nghttp3_conn_rx_http_state(void) {
                                         /* fin = */ 0, 0);
 
   assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)trailer_nva,
+    .nvlen = nghttp3_arraylen(trailer_nva),
+  };
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 1, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_enum(nghttp3_stream_http_state, NGHTTP3_HTTP_STATE_RESP_END, ==,
+              stream->rx.hstate);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* Client sends CONNECT request, and gets non-2xx response with data
+     and trailers. */
+  nghttp3_buf_reset(&buf);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  rv = nghttp3_conn_submit_request(
+    conn, 0, req_connect_nva, nghttp3_arraylen(req_connect_nva), NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(0, ==, stream_id);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_not_found_nva,
+    .nvlen = nghttp3_arraylen(resp_not_found_nva),
+  };
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_data(&buf, 10);
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff(1 + 1, ==, sconsumed);
 
   fr.headers = (nghttp3_frame_headers){
     .type = NGHTTP3_FRAME_HEADERS,
