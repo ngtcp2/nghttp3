@@ -4946,8 +4946,7 @@ void test_nghttp3_conn_priority_update(void) {
   stream = nghttp3_conn_find_stream(conn, 2);
 
   assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf) - 10, ==, nconsumed);
-  assert_int(NGHTTP3_CTRL_STREAM_STATE_PRIORITY_UPDATE, ==,
-             stream->rstate.state);
+  assert_int(NGHTTP3_CTRL_STREAM_STATE_IGN_FRAME, ==, stream->rstate.state);
 
   nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos + nconsumed, 10,
                                         /* fin = */ 0, 0);
