@@ -149,13 +149,25 @@ int nghttp3_nva_copy(nghttp3_nv **pnva, const nghttp3_nv *nva, size_t nvlen,
   for (i = 0; i < nvlen; ++i) {
     /* + 1 for null-termination */
     if ((nva[i].flags & NGHTTP3_NV_FLAG_NO_COPY_NAME) == 0) {
+      if (nva[i].namelen == SIZE_MAX ||
+          buflen > SIZE_MAX - (nva[i].namelen + 1)) {
+        return NGHTTP3_ERR_INVALID_ARGUMENT;
+      }
       buflen += nva[i].namelen + 1;
     }
     if ((nva[i].flags & NGHTTP3_NV_FLAG_NO_COPY_VALUE) == 0) {
+      if (nva[i].valuelen == SIZE_MAX ||
+          buflen > SIZE_MAX - (nva[i].valuelen + 1)) {
+        return NGHTTP3_ERR_INVALID_ARGUMENT;
+      }
       buflen += nva[i].valuelen + 1;
     }
   }
 
+  if (nvlen > SIZE_MAX / sizeof(nghttp3_nv) ||
+      buflen > SIZE_MAX - sizeof(nghttp3_nv) * nvlen) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
   buflen += sizeof(nghttp3_nv) * nvlen;
 
   *pnva = nghttp3_mem_malloc(mem, buflen);
