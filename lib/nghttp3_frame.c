@@ -136,8 +136,8 @@ size_t nghttp3_frame_write_origin_len(uint64_t *ppayloadlen,
 int nghttp3_nva_copy(nghttp3_nv **pnva, const nghttp3_nv *nva, size_t nvlen,
                      const nghttp3_mem *mem) {
   size_t i;
-  uint8_t *data = NULL;
-  size_t buflen = 0;
+  uint8_t *data;
+  size_t buflen;
   nghttp3_nv *p;
 
   if (nvlen == 0) {
@@ -146,17 +146,31 @@ int nghttp3_nva_copy(nghttp3_nv **pnva, const nghttp3_nv *nva, size_t nvlen,
     return 0;
   }
 
+  if (sizeof(nghttp3_nv) > SIZE_MAX / nvlen) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
+  buflen = sizeof(nghttp3_nv) * nvlen;
+
   for (i = 0; i < nvlen; ++i) {
     /* + 1 for null-termination */
     if ((nva[i].flags & NGHTTP3_NV_FLAG_NO_COPY_NAME) == 0) {
+      if (nva[i].namelen == SIZE_MAX ||
+          buflen > SIZE_MAX - nva[i].namelen - 1) {
+        return NGHTTP3_ERR_INVALID_ARGUMENT;
+      }
+
       buflen += nva[i].namelen + 1;
     }
     if ((nva[i].flags & NGHTTP3_NV_FLAG_NO_COPY_VALUE) == 0) {
+      if (nva[i].valuelen == SIZE_MAX ||
+          buflen > SIZE_MAX - nva[i].valuelen - 1) {
+        return NGHTTP3_ERR_INVALID_ARGUMENT;
+      }
+
       buflen += nva[i].valuelen + 1;
     }
   }
-
-  buflen += sizeof(nghttp3_nv) * nvlen;
 
   *pnva = nghttp3_mem_malloc(mem, buflen);
 
