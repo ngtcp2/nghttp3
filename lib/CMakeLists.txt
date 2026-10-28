@@ -63,6 +63,7 @@ set(nghttp3_SOURCES
   nghttp3_settings.c
   nghttp3_callbacks.c
   nghttp3_ratelim.c
+  nghttp3_wt.c
   sfparse/sfparse.c
 )
 
