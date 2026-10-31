@@ -110,17 +110,17 @@ void nghttp3_map_print_distance(const nghttp3_map *map) {
     }
 
     idx = map_index(map, map->keys[i]);
-    fprintf(stderr, "@%zu key=%" PRIu64 " base=%zu distance=%u\n", i,
+    fprintf(stderr, "@%zu key=%" PRIu64 " base=%zu distance=%zu\n", i,
             map->keys[i], idx, map->psl[i] - 1);
   }
 }
 #endif /* !defined(WIN32) */
 
 static void map_set_entry(nghttp3_map *map, size_t idx,
-                          nghttp3_map_key_type key, void *data, size_t psl) {
+                          nghttp3_map_key_type key, size_t psl, void *data) {
   map->keys[idx] = key;
+  map->psl[idx] = psl;
   map->data[idx] = data;
-  map->psl[idx] = (uint8_t)psl;
 }
 
 #define NGHTTP3_SWAP(TYPE, A, B)                                               \
@@ -132,36 +132,34 @@ static void map_set_entry(nghttp3_map *map, size_t idx,
   } while (0)
 
 /*
- * map_insert inserts |key| and |data| to |map|, and returns the
- * largest psl ever found if it succeeds.  Otherwise, it returns one
- * of the following negative error codes:
+ * map_insert inserts |key| and |data| to |map|.
+ *
+ * It returns 0 if it succeeds, or one of the following negative error
+ * codes:
  *
  * NGHTTP3_ERR_INVALID_ARGUMENT
  *     The another data associated to |key| is already present.
  */
-static nghttp3_ssize map_insert(nghttp3_map *map, nghttp3_map_key_type key,
-                                void *data) {
+static int map_insert(nghttp3_map *map, nghttp3_map_key_type key, void *data) {
   size_t idx = map_index(map, key);
   size_t mask = ((size_t)1 << map->hashbits) - 1;
   size_t psl = 1;
   size_t kpsl;
-  size_t max_psl = 0;
 
   for (;;) {
     kpsl = map->psl[idx];
 
     if (kpsl == 0) {
-      map_set_entry(map, idx, key, data, psl);
+      map_set_entry(map, idx, key, psl, data);
       ++map->size;
 
-      return (nghttp3_ssize)nghttp3_max(max_psl, psl);
+      return 0;
     }
 
     if (psl > kpsl) {
-      max_psl = nghttp3_max(max_psl, psl);
       NGHTTP3_SWAP(nghttp3_map_key_type, &key, &map->keys[idx]);
+      NGHTTP3_SWAP(size_t, &psl, &map->psl[idx]);
       NGHTTP3_SWAP(void *, &data, &map->data[idx]);
-      NGHTTP3_SWAP(uint8_t, &psl, &map->psl[idx]);
     } else if (map->keys[idx] == key) {
       /* This check ensures that no duplicate keys are inserted.  But
          it is just a waste after first swap or if this function is
@@ -183,14 +181,14 @@ static nghttp3_ssize map_insert(nghttp3_map *map, nghttp3_map_key_type key,
 static int map_resize(nghttp3_map *map, size_t new_hashbits) {
   size_t i;
   size_t tablelen;
-  nghttp3_ssize max_psl;
   nghttp3_map new_map = {
     .mem = map->mem,
     .seed = map->seed,
     .hashbits = new_hashbits,
   };
   void *buf;
-  (void)max_psl;
+  int rv;
+  (void)rv;
 
   if (new_hashbits > NGHTTP3_MAP_MAX_HASHBITS) {
     return NGHTTP3_ERR_NOMEM;
@@ -199,16 +197,16 @@ static int map_resize(nghttp3_map *map, size_t new_hashbits) {
   tablelen = (size_t)1 << new_hashbits;
 
   buf = nghttp3_mem_calloc(map->mem, tablelen,
-                           sizeof(nghttp3_map_key_type) + sizeof(void *) +
-                             sizeof(uint8_t));
-  if (buf == NULL) {
+                           sizeof(nghttp3_map_key_type) + sizeof(size_t) +
+                             sizeof(void *));
+  if (!buf) {
     return NGHTTP3_ERR_NOMEM;
   }
 
   new_map.keys = buf;
-  new_map.data =
-    (void *)((uint8_t *)new_map.keys + tablelen * sizeof(nghttp3_map_key_type));
-  new_map.psl = (uint8_t *)new_map.data + tablelen * sizeof(void *);
+  new_map.psl = (size_t *)(void *)((uint8_t *)new_map.keys +
+                                   tablelen * sizeof(nghttp3_map_key_type));
+  new_map.data = (void *)((uint8_t *)new_map.psl + tablelen * sizeof(size_t));
 
   if (map->size) {
     tablelen = (size_t)1 << map->hashbits;
@@ -218,31 +216,26 @@ static int map_resize(nghttp3_map *map, size_t new_hashbits) {
         continue;
       }
 
-      max_psl = map_insert(&new_map, map->keys[i], map->data[i]);
+      rv = map_insert(&new_map, map->keys[i], map->data[i]);
 
       /* map_insert must not fail because all keys are unique during
          resize. */
-      assert(max_psl >= 0);
+      assert(0 == rv);
     }
   }
 
   nghttp3_mem_free(map->mem, map->keys);
   map->keys = new_map.keys;
-  map->data = new_map.data;
   map->psl = new_map.psl;
+  map->data = new_map.data;
   map->hashbits = new_hashbits;
 
   return 0;
 }
 
-/* NGHTTP3_MAX_PSL_RESIZE_THRESH is the maximum psl threshold.  If
-   reached, resize the table. */
-#define NGHTTP3_MAX_PSL_RESIZE_THRESH 128
-
 int nghttp3_map_insert(nghttp3_map *map, nghttp3_map_key_type key, void *data) {
   int rv;
   size_t tablelen;
-  nghttp3_ssize max_psl;
 
   assert(data);
 
@@ -259,32 +252,9 @@ int nghttp3_map_insert(nghttp3_map *map, nghttp3_map_key_type key, void *data) {
     if (rv != 0) {
       return rv;
     }
-
-    max_psl = map_insert(map, key, data);
-    if (max_psl < 0) {
-      return (int)max_psl;
-    }
-
-    return 0;
   }
 
-  max_psl = map_insert(map, key, data);
-  if (max_psl < 0) {
-    return (int)max_psl;
-  }
-
-  /* Resize if psl reaches really large value which is almost
-     improbable, but just in case. */
-  if (max_psl - 1 < NGHTTP3_MAX_PSL_RESIZE_THRESH) {
-    return 0;
-  }
-
-  rv = map_resize(map, map->hashbits + 1);
-  if (rv != 0) {
-    nghttp3_map_remove(map, key);
-  }
-
-  return rv;
+  return map_insert(map, key, data);
 }
 
 void *nghttp3_map_find(const nghttp3_map *map, nghttp3_map_key_type key) {
@@ -342,7 +312,7 @@ int nghttp3_map_remove(nghttp3_map *map, nghttp3_map_key_type key) {
           break;
         }
 
-        map_set_entry(map, dest, map->keys[idx], map->data[idx], kpsl - 1);
+        map_set_entry(map, dest, map->keys[idx], kpsl - 1, map->data[idx]);
 
         dest = idx;
 
