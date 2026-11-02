@@ -12,7 +12,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-26.04, macos-26, macos-15]
+        os: [ubuntu-26.04, macos-26]
         compiler: [gcc, clang]
         buildtool: [autotools, cmake]
         include:
