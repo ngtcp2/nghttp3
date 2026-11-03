@@ -1388,6 +1388,20 @@ NGHTTP3_EXTERN size_t nghttp3_qpack_encoder_get_num_blocked_streams2(
   const nghttp3_qpack_encoder *encoder);
 
 /**
+ * @function
+ *
+ * `nghttp3_qpack_encoder_set_max_concurrent_streams` tells |encoder|
+ * the maximum number of concurrent request streams that |encoder|
+ * encodes QPACK field block concurrently.  This limits the number of
+ * streams that waits for acknowledgement from the decoder.
+ *
+ * .. version-added:: 1.20.0
+ */
+NGHTTP3_EXTERN void
+nghttp3_qpack_encoder_set_max_concurrent_streams(nghttp3_qpack_encoder *encoder,
+                                                 size_t max_concurrent_streams);
+
+/**
  * @struct
  *
  * :type:`nghttp3_qpack_stream_context` is a decoder context for an
@@ -1698,10 +1712,9 @@ nghttp3_qpack_decoder_set_max_dtable_capacity(nghttp3_qpack_decoder *decoder,
  * @function
  *
  * `nghttp3_qpack_decoder_set_max_concurrent_streams` tells |decoder|
- * the maximum number of concurrent streams that a remote endpoint can
- * open, including both bidirectional and unidirectional streams which
- * potentially receive QPACK encoded HEADERS frame.  This value is
- * used as a hint to limit the length of decoder stream.
+ * the maximum number of concurrent request streams that |decoder|
+ * decodes QPACK field block concurrently.  This value is used as a
+ * hint to limit the length of decoder stream.
  */
 NGHTTP3_EXTERN void
 nghttp3_qpack_decoder_set_max_concurrent_streams(nghttp3_qpack_decoder *decoder,
