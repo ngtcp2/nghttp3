@@ -171,6 +171,9 @@ typedef struct nghttp3_qpack_context {
   /* max_blocked_streams is the maximum number of stream which can be
      blocked. */
   size_t max_blocked_streams;
+  /* max_concurrent_streams is the number of concurrent request
+     streams that are encoded/decoded concurrently. */
+  size_t max_concurrent_streams;
   /* next_absidx is the next absolute index for nghttp3_qpack_entry.
      It is equivalent to insert count. */
   uint64_t next_absidx;
@@ -780,11 +783,6 @@ struct nghttp3_qpack_decoder {
   nghttp3_buf dbuf;
   /* written_icnt is Insert Count written to decoder stream so far. */
   uint64_t written_icnt;
-  /* max_concurrent_streams is the number of concurrent streams that a
-     remote endpoint can open, including both bidirectional and
-     unidirectional streams which potentially receives QPACK encoded
-     HEADER frame. */
-  size_t max_concurrent_streams;
   /* uninterrupted_encoderlen is the number of bytes read from encoder
      stream without completing a single field section. */
   size_t uninterrupted_encoderlen;
