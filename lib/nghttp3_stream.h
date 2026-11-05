@@ -209,6 +209,9 @@ struct nghttp3_stream {
          stream is blocked by QPACK decoder. */
       nghttp3_ringbuf inq;
       nghttp3_qpack_stream_context qpack_sctx;
+      /* field_blocklen is the sum of the decoded field name and value
+         length. */
+      size_t field_blocklen;
       /* conn is a reference to underlying connection.  It could be NULL
          if stream is not a request stream. */
       nghttp3_conn *conn;

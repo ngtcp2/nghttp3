@@ -77,6 +77,7 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_conn_is_stream_flushed),
   munit_void_test(test_nghttp3_conn_close_stream),
   munit_void_test(test_nghttp3_conn_close_stream2),
+  munit_void_test(test_nghttp3_conn_max_field_section_size),
   munit_test_end(),
 };
 
@@ -7350,5 +7351,69 @@ void test_nghttp3_conn_close_stream2(void) {
   assert_int64(0, ==, ud.stream_close.stream_id);
   assert_uint64(NGHTTP3_H3_INTERNAL_ERROR, ==, ud.stream_close.app_error_code);
 
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_max_field_section_size(void) {
+  static const nghttp3_callbacks callbacks = {
+    .stop_sending = stop_sending,
+    .reset_stream = reset_stream,
+  };
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_conn *conn;
+  nghttp3_qpack_encoder qenc;
+  uint8_t rawbuf[4096];
+  nghttp3_buf buf;
+  nghttp3_settings settings;
+  conn_options opts;
+  userdata ud;
+  nghttp3_ssize sconsumed;
+  nghttp3_frame fr;
+  nghttp3_stream *stream;
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  nghttp3_settings_default(&settings);
+  settings.max_field_section_size = 12 + 32;
+
+  opts = (conn_options){
+    .callbacks = &callbacks,
+    .settings = &settings,
+    .user_data = &ud,
+  };
+
+  setup_default_server_with_options(&conn, opts);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 1);
+
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)req_nva,
+    .nvlen = nghttp3_arraylen(req_nva),
+  };
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  ud = (userdata){0};
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_size(1, ==, ud.stop_sending_cb.ncalled);
+  assert_int64(0, ==, ud.stop_sending_cb.stream_id);
+  assert_uint64(NGHTTP3_H3_EXCESSIVE_LOAD, ==,
+                ud.stop_sending_cb.app_error_code);
+  assert_size(1, ==, ud.reset_stream_cb.ncalled);
+  assert_int64(0, ==, ud.reset_stream_cb.stream_id);
+  assert_uint64(NGHTTP3_H3_EXCESSIVE_LOAD, ==,
+                ud.stop_sending_cb.app_error_code);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_not_null(stream);
+  assert_int(NGHTTP3_REQ_STREAM_STATE_IGN_REST, ==, stream->rstate.state);
+
+  nghttp3_qpack_encoder_free(&qenc);
   nghttp3_conn_del(conn);
 }
