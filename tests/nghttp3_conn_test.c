@@ -3535,6 +3535,10 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
     MAKE_NV(":status", "200"),
     MAKE_NV("content-length", "0"),
   };
+  static const nghttp3_nv cl_404_resnv[] = {
+    MAKE_NV(":status", "404"),
+    MAKE_NV("content-length", "100"),
+  };
   int rv;
   nghttp3_stream *stream;
 
@@ -3620,6 +3624,36 @@ void test_nghttp3_conn_http_ignore_content_length(void) {
 
   assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
   assert_int64(-1, ==, stream->rx.http.content_length);
+
+  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
+
+  assert_int(0, ==, rv);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* Content-Length in non-2xx response to CONNECT is not ignored */
+  nghttp3_buf_reset(&buf);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)cl_404_resnv,
+    .nvlen = nghttp3_arraylen(cl_404_resnv),
+  };
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  setup_default_client(&conn);
+  nghttp3_conn_create_stream(conn, &stream, 0);
+  stream->rx.hstate = NGHTTP3_HTTP_STATE_RESP_INITIAL;
+  stream->rx.http.flags |= NGHTTP3_HTTP_FLAG_METH_CONNECT;
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_int64(100, ==, stream->rx.http.content_length);
 
   rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
 
