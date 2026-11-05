@@ -1685,6 +1685,12 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       nread =
         nghttp3_conn_on_headers(conn, stream, p, len, len == rstate->left);
       if (nread < 0) {
+        if (nread == NGHTTP3_ERR_MAX_FIELD_SECTION_SIZE_EXCEEDED) {
+          rstate->state = NGHTTP3_REQ_STREAM_STATE_IGN_REST;
+          busy = 1;
+          break;
+        }
+
         return nread;
       }
 
@@ -1849,6 +1855,7 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
   nghttp3_buf buf;
   nghttp3_recv_header recv_header = NULL;
   nghttp3_http_state *http;
+  size_t fieldlen;
   int request = 0;
   int trailers = 0;
 
@@ -1901,6 +1908,7 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
 
     if (flags & NGHTTP3_QPACK_DECODE_FLAG_FINAL) {
       nghttp3_qpack_stream_context_reset(&stream->qpack_sctx);
+      stream->field_blocklen = 0;
       break;
     }
 
@@ -1909,6 +1917,29 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
     }
 
     if (flags & NGHTTP3_QPACK_DECODE_FLAG_EMIT) {
+      fieldlen = nv.name->len + nv.value->len + 32;
+
+      if (fieldlen > conn->local.settings.max_field_section_size ||
+          stream->field_blocklen >
+            conn->local.settings.max_field_section_size - fieldlen) {
+        nghttp3_rcbuf_decref(nv.name);
+        nghttp3_rcbuf_decref(nv.value);
+
+        rv = conn_call_stop_sending(conn, stream, NGHTTP3_H3_EXCESSIVE_LOAD);
+        if (rv != 0) {
+          return rv;
+        }
+
+        rv = conn_call_reset_stream(conn, stream, NGHTTP3_H3_EXCESSIVE_LOAD);
+        if (rv != 0) {
+          return rv;
+        }
+
+        return NGHTTP3_ERR_MAX_FIELD_SECTION_SIZE_EXCEEDED;
+      }
+
+      stream->field_blocklen += fieldlen;
+
       rv = nghttp3_http_on_header(
         http, &nv, request, trailers,
         conn->server && conn->local.settings.enable_connect_protocol);

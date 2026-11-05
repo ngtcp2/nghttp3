@@ -246,6 +246,13 @@ typedef uint64_t nghttp3_duration;
 /**
  * @macro
  *
+ * :macro:`NGHTTP3_ERR_MAX_FIELD_SECTION_SIZE_EXCEEDED` indicates that
+ * the incoming field block exceeds max_field_section_size limit.
+ */
+#define NGHTTP3_ERR_MAX_FIELD_SECTION_SIZE_EXCEEDED -113
+/**
+ * @macro
+ *
  * :macro:`NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED` indicates that a
  * QPACK decompression failed.
  */
@@ -1821,8 +1828,7 @@ typedef struct nghttp3_conn nghttp3_conn;
 typedef struct nghttp3_settings {
   /**
    * :member:`max_field_section_size` specifies the maximum header
-   * section (block) size.  nghttp3 library does not enforce this
-   * limit.  Applications are responsible for imposing their own
+   * section (block) size.  Applications should also impose their own
    * limits to protect against resource exhaustion.  See
    * https://datatracker.ietf.org/doc/html/rfc9114#section-4.2.2 for
    * details.
