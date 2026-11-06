@@ -5290,6 +5290,13 @@ void test_nghttp3_conn_request_priority(void) {
     MAKE_NV(":scheme", "https"),   MAKE_NV(":method", "GET"),
     MAKE_NV("priority", "u=5, i"), MAKE_NV("priority", "i, u=x"),
   };
+  static const nghttp3_nv toolongpri_nva[] = {
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV("priority", "u=5, i, a"),
+  };
 
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
@@ -5360,6 +5367,49 @@ void test_nghttp3_conn_request_priority(void) {
     .type = NGHTTP3_FRAME_HEADERS,
     .nva = (nghttp3_nv *)badpri_nva,
     .nvlen = nghttp3_arraylen(badpri_nva),
+  };
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 1, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_not_null(stream);
+  assert_uint32(NGHTTP3_DEFAULT_URGENCY, ==, stream->node.pri.urgency);
+  assert_uint8(0, ==, stream->node.pri.inc);
+
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_conn_del(conn);
+
+  /* Too long priority in request */
+  nghttp3_buf_reset(&buf);
+  setup_default_server(&conn);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 1);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  nghttp3_buf_reset(&buf);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)toolongpri_nva,
+    .nvlen = nghttp3_arraylen(toolongpri_nva),
   };
 
   nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
