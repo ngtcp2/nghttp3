@@ -39,6 +39,12 @@
 #include "nghttp3_str.h"
 #include "sfparse/sfparse.h"
 
+/* NGHTTP3_HTTP_MAX_PRIORITY_VALUELEN is the maximum length of
+   priority header field value that is parsed.  A longer value is
+   treated as a value that cannot be parsed.  This is the same limit
+   we impose against PRIORITY_UPDATE frame. */
+#define NGHTTP3_HTTP_MAX_PRIORITY_VALUELEN 8
+
 /*
  * memieq returns 1 if the data pointed by |a| of length |n| equals to
  * |b| of the same length in case-insensitive manner.  The data
@@ -436,8 +442,9 @@ static int http_request_on_header(nghttp3_http_state *http,
 
     pri = http->pri;
 
-    if (nghttp3_http_parse_priority(&pri, nv->value->base, nv->value->len) ==
-        0) {
+    if (nv->value->len <= NGHTTP3_HTTP_MAX_PRIORITY_VALUELEN &&
+        nghttp3_http_parse_priority(&pri, nv->value->base, nv->value->len) ==
+          0) {
       http->pri = pri;
       http->flags |= NGHTTP3_HTTP_FLAG_PRIORITY;
       break;
