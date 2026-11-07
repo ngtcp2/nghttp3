@@ -2176,6 +2176,12 @@ void test_nghttp3_conn_http_resp_header(void) {
     MAKE_NV(":status", "200"),
     MAKE_NV("Cookie", "foo=bar"),
   };
+  /* response header contains a name that contains upper-cased char
+     after invalid char. */
+  static const nghttp3_nv upcasenameafterbadchar_resnv[] = {
+    MAKE_NV(":status", "200"),
+    MAKE_NV("cookie A", "foo=bar"),
+  };
   /* response header contains status code that includes the leading
      zero. */
   static const nghttp3_nv lzstatus_resnv[] = {
@@ -2220,6 +2226,9 @@ void test_nghttp3_conn_http_resp_header(void) {
                          nghttp3_arraylen(emptynamepseudo_resnv),
                          NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
   check_http_resp_header(upcasename_resnv, nghttp3_arraylen(upcasename_resnv),
+                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_resp_header(upcasenameafterbadchar_resnv,
+                         nghttp3_arraylen(upcasenameafterbadchar_resnv),
                          NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
   check_http_resp_header(lzstatus_resnv, nghttp3_arraylen(lzstatus_resnv),
                          NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
