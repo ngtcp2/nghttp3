@@ -403,8 +403,11 @@ static int http_request_on_header(nghttp3_http_state *http,
     /* https://tools.ietf.org/html/rfc7230#section-4.1.2: A sender
        MUST NOT generate a trailer that contains a field necessary for
        message framing (e.g., Transfer-Encoding and Content-Length),
-       ... */
-    if (trailers) {
+       ...
+
+       Also do not emit content-length for CONNECT request.
+    */
+    if (trailers || (http->flags & NGHTTP3_HTTP_FLAG_METH_CONNECT)) {
       return NGHTTP3_ERR_REMOVE_HTTP_HEADER;
     }
     if (http->content_length != -1) {
@@ -584,7 +587,6 @@ int nghttp3_http_on_request_headers(nghttp3_http_state *http) {
         (http->flags & NGHTTP3_HTTP_FLAG__AUTHORITY) == 0) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    http->content_length = -1;
   } else {
     if ((http->flags & NGHTTP3_HTTP_FLAG_REQ_HEADERS) !=
           NGHTTP3_HTTP_FLAG_REQ_HEADERS ||
@@ -592,13 +594,10 @@ int nghttp3_http_on_request_headers(nghttp3_http_state *http) {
          (NGHTTP3_HTTP_FLAG__AUTHORITY | NGHTTP3_HTTP_FLAG_HOST)) == 0) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
-    if (http->flags & NGHTTP3_HTTP_FLAG__PROTOCOL) {
-      if ((http->flags & NGHTTP3_HTTP_FLAG_METH_CONNECT) == 0 ||
-          (http->flags & NGHTTP3_HTTP_FLAG__AUTHORITY) == 0) {
-        return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
-      }
-
-      http->content_length = -1;
+    if ((http->flags & NGHTTP3_HTTP_FLAG__PROTOCOL) &&
+        ((http->flags & NGHTTP3_HTTP_FLAG_METH_CONNECT) == 0 ||
+         (http->flags & NGHTTP3_HTTP_FLAG__AUTHORITY) == 0)) {
+      return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
     if (!check_path_flags(http)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
