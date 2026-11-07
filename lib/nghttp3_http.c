@@ -719,16 +719,19 @@ int nghttp3_check_header_name(const uint8_t *name, size_t len) {
    contains a character in [A-Z], otherwise 0. */
 static int http_check_nonempty_header_name(const uint8_t *name, size_t len) {
   const uint8_t *last;
-  int rv;
+  int rv = 1;
 
   for (last = name + len; name != last; ++name) {
-    rv = VALID_HD_NAME_CHARS[*name];
-    if (rv != 1) {
-      return rv;
+    switch (VALID_HD_NAME_CHARS[*name]) {
+    case -1:
+      return -1;
+    case 0:
+      rv = 0;
+      break;
     }
   }
 
-  return 1;
+  return rv;
 }
 
 static const int8_t VALID_HD_VALUE_CHARS[256] = {
