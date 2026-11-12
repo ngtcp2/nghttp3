@@ -1491,7 +1491,7 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
     sres = nghttp3_qpack_lookup_stable(nv, token, indexing_mode);
     if (sres.index != -1 && sres.name_value_match) {
       return nghttp3_qpack_encoder_write_static_indexed(encoder, rbuf,
-                                                        (size_t)sres.index);
+                                                        (uint64_t)sres.index);
     }
   }
 
@@ -1526,39 +1526,39 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
 
   if (dres.index != -1 && dres.name_value_match) {
     if (allow_blocking &&
-        qpack_context_check_draining(&encoder->ctx, (size_t)dres.index) &&
-        qpack_encoder_can_index_duplicate(encoder, (size_t)dres.index,
+        qpack_context_check_draining(&encoder->ctx, (uint64_t)dres.index) &&
+        qpack_encoder_can_index_duplicate(encoder, (uint64_t)dres.index,
                                           *pmin_cnt)) {
       rv = nghttp3_qpack_encoder_write_duplicate_insert(encoder, ebuf,
-                                                        (size_t)dres.index);
+                                                        (uint64_t)dres.index);
       if (rv != 0) {
         return rv;
       }
-      rv =
-        nghttp3_qpack_encoder_dtable_duplicate_add(encoder, (size_t)dres.index);
+      rv = nghttp3_qpack_encoder_dtable_duplicate_add(encoder,
+                                                      (uint64_t)dres.index);
       if (rv != 0) {
         return rv;
       }
 
       new_ent = nghttp3_qpack_context_dtable_top(&encoder->ctx);
-      dres.index = (nghttp3_ssize)new_ent->absidx;
+      dres.index = (int64_t)new_ent->absidx;
     }
     *pmax_cnt = nghttp3_max(*pmax_cnt, (uint64_t)(dres.index + 1));
     *pmin_cnt = nghttp3_min(*pmin_cnt, (uint64_t)(dres.index + 1));
 
     return nghttp3_qpack_encoder_write_dynamic_indexed(
-      encoder, rbuf, (size_t)dres.index, base);
+      encoder, rbuf, (uint64_t)dres.index, base);
   }
 
   if (sres.index != -1) {
     if (just_index && qpack_encoder_can_index_nv(encoder, nv, *pmin_cnt)) {
       rv = nghttp3_qpack_encoder_write_static_insert(encoder, ebuf,
-                                                     (size_t)sres.index, nv);
+                                                     (uint64_t)sres.index, nv);
       if (rv != 0) {
         return rv;
       }
-      rv = nghttp3_qpack_encoder_dtable_static_add(encoder, (size_t)sres.index,
-                                                   nv, hash);
+      rv = nghttp3_qpack_encoder_dtable_static_add(
+        encoder, (uint64_t)sres.index, nv, hash);
       if (rv != 0) {
         return rv;
       }
@@ -1573,7 +1573,7 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
     }
 
     return nghttp3_qpack_encoder_write_static_indexed_name(
-      encoder, rbuf, (size_t)sres.index, nv);
+      encoder, rbuf, (uint64_t)sres.index, nv);
   }
 
   if (dres.index != -1) {
@@ -1583,7 +1583,7 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
           allow_blocking ? *pmin_cnt
                          : nghttp3_min((uint64_t)dres.index + 1, *pmin_cnt))) {
       rv = nghttp3_qpack_encoder_write_dynamic_insert(encoder, ebuf,
-                                                      (size_t)dres.index, nv);
+                                                      (uint64_t)dres.index, nv);
       if (rv != 0) {
         return rv;
       }
@@ -1592,8 +1592,8 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
         *pmin_cnt = nghttp3_min(*pmin_cnt, (uint64_t)dres.index + 1);
       }
 
-      rv = nghttp3_qpack_encoder_dtable_dynamic_add(encoder, (size_t)dres.index,
-                                                    nv, hash);
+      rv = nghttp3_qpack_encoder_dtable_dynamic_add(
+        encoder, (uint64_t)dres.index, nv, hash);
       if (rv != 0) {
         return rv;
       }
@@ -1612,7 +1612,7 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
     *pmin_cnt = nghttp3_min(*pmin_cnt, (uint64_t)(dres.index + 1));
 
     return nghttp3_qpack_encoder_write_dynamic_indexed_name(
-      encoder, rbuf, (size_t)dres.index, base, nv);
+      encoder, rbuf, (uint64_t)dres.index, base, nv);
   }
 
   if (just_index && qpack_encoder_can_index_nv(encoder, nv, *pmin_cnt)) {
@@ -1641,7 +1641,7 @@ nghttp3_qpack_lookup_result
 nghttp3_qpack_lookup_stable(const nghttp3_nv *nv, int32_t token,
                             nghttp3_qpack_indexing_mode indexing_mode) {
   nghttp3_qpack_lookup_result res = {
-    .index = (nghttp3_ssize)token_stable[token].absidx,
+    .index = (int64_t)token_stable[token].absidx,
     .pb_index = -1,
   };
   nghttp3_qpack_static_entry *ent;
@@ -1661,7 +1661,7 @@ nghttp3_qpack_lookup_stable(const nghttp3_nv *nv, int32_t token,
     hdr = &stable[ent->absidx];
     if (hdr->value.len == nv->valuelen &&
         memeq(hdr->value.base, nv->value, nv->valuelen)) {
-      res.index = (nghttp3_ssize)ent->absidx;
+      res.index = (int64_t)ent->absidx;
       res.name_value_match = 1;
       return res;
     }
@@ -1684,11 +1684,11 @@ nghttp3_qpack_lookup_result nghttp3_qpack_encoder_lookup_dtable(
                          hash, krcnt, allow_blocking,
                          indexing_mode == NGHTTP3_QPACK_INDEXING_MODE_NEVER);
   if (match) {
-    res.index = (nghttp3_ssize)match->absidx;
+    res.index = (int64_t)match->absidx;
     res.name_value_match = exact_match;
   }
   if (pb_match) {
-    res.pb_index = (nghttp3_ssize)pb_match->absidx;
+    res.pb_index = (int64_t)pb_match->absidx;
   }
 
   return res;
