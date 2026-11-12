@@ -2801,8 +2801,21 @@ int nghttp3_conn_close_stream2(nghttp3_conn *conn, uint32_t flags,
                                int64_t stream_id, uint64_t rx_app_error_code,
                                uint64_t tx_app_error_code) {
   nghttp3_stream *stream = nghttp3_conn_find_stream(conn, stream_id);
+  int rv;
 
   if (stream == NULL) {
+    if (conn->server && nghttp3_client_stream_bidi(stream_id)) {
+      /* The stream has been closed without reading any stream data
+         (e.g., it is reset before stream data is delivered).
+         Remember that this stream ID has been used so that
+         PRIORITY_UPDATE frame which arrives later does not create a
+         stream which is never closed. */
+      rv = conn_bidi_idtr_open(conn, stream_id);
+      if (nghttp3_err_is_fatal(rv)) {
+        return rv;
+      }
+    }
+
     return NGHTTP3_ERR_STREAM_NOT_FOUND;
   }
 
