@@ -5383,6 +5383,47 @@ void test_nghttp3_conn_priority_update(void) {
   assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nconsumed);
 
   nghttp3_conn_del(conn);
+
+  /* Receive PRIORITY_UPDATE that exceeds max_concurrent_streams limit */
+  nghttp3_buf_reset(&buf);
+  setup_default_server(&conn);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 10);
+  nghttp3_conn_set_max_concurrent_streams(conn, 1);
+
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  fr.priority_update = (nghttp3_frame_priority_update){
+    .type = NGHTTP3_FRAME_PRIORITY_UPDATE,
+    .data = (uint8_t *)"u=2,i",
+    .datalen = strlen("u=2,i"),
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  fr.priority_update = (nghttp3_frame_priority_update){
+    .type = NGHTTP3_FRAME_PRIORITY_UPDATE,
+    .pri_elem_id = 4,
+    .data = (uint8_t *)"u=2,i",
+    .datalen = strlen("u=2,i"),
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  assert_not_null(nghttp3_conn_find_stream(conn, 0));
+  assert_null(nghttp3_conn_find_stream(conn, 4));
+  assert_size(1, ==, conn->remote.bidi.num_streams);
+
+  nghttp3_conn_del(conn);
 }
 
 void test_nghttp3_conn_request_priority(void) {
