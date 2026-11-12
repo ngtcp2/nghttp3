@@ -506,6 +506,10 @@ int nghttp3_stream_write_header_block(nghttp3_stream *stream,
 
   nghttp3_buf_wrap_init(&pbuf, raw_pbuf, sizeof(raw_pbuf));
 
+  nghttp3_qpack_encoder_set_no_insert(
+    qenc, qenc_stream && qenc_stream->tx.offset - qenc_stream->ack_offset >=
+                           NGHTTP3_MAX_QENC_UNACKED_BYTES);
+
   rv = nghttp3_qpack_encoder_encode(qenc, &pbuf, rbuf, ebuf, stream->node.id,
                                     nva, nvlen);
   if (rv != 0) {

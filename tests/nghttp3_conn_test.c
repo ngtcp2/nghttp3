@@ -78,6 +78,7 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_conn_close_stream),
   munit_void_test(test_nghttp3_conn_close_stream2),
   munit_void_test(test_nghttp3_conn_max_field_section_size),
+  munit_void_test(test_nghttp3_conn_qpack_encoder_stream_limit),
   munit_test_end(),
 };
 
@@ -7543,5 +7544,169 @@ void test_nghttp3_conn_max_field_section_size(void) {
   assert_int(NGHTTP3_REQ_STREAM_STATE_IGN_REST, ==, stream->rstate.state);
 
   nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_qpack_encoder_stream_limit(void) {
+  nghttp3_conn *conn;
+  nghttp3_frame fr;
+  nghttp3_settings_entry ents[1];
+  uint8_t value[256];
+  const nghttp3_nv nva[] = {
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
+    {
+      .name = (uint8_t *)"nonce",
+      .value = value,
+      .namelen = strlen("nonce"),
+      .valuelen = sizeof(value),
+      .flags = NGHTTP3_NV_FLAG_TRY_INDEX,
+    },
+  };
+  nghttp3_vec vec[256];
+  nghttp3_ssize sveccnt;
+  nghttp3_stream *qenc_stream;
+  int64_t stream_id;
+  int64_t next_stream_id = 0;
+  uint64_t len;
+  int fin;
+  int rv;
+  size_t i;
+
+  /* A remote endpoint does not give flow control credit to QPACK
+     encoder stream. */
+  setup_default_client(&conn);
+  conn_write_initial_streams(conn);
+
+  qenc_stream = conn->tx.qenc;
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+    .niv = 1,
+    .iv = ents,
+  };
+  ents[0] = (nghttp3_settings_entry){
+    .id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY,
+    .value = 4096,
+  };
+
+  conn_read_control_stream(conn, 3, &fr);
+
+  nghttp3_conn_block_stream(conn, qenc_stream->node.id);
+
+  for (i = 0; i < 1000; ++i, next_stream_id += 4) {
+    /* Each request carries a field which is not in the dynamic table
+       yet. */
+    memset(value, 0, sizeof(value));
+    memcpy(value, &i, sizeof(i));
+
+    rv = nghttp3_conn_submit_request(conn, next_stream_id, nva,
+                                     nghttp3_arraylen(nva), NULL, NULL);
+
+    assert_int(0, ==, rv);
+
+    for (;;) {
+      sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                           nghttp3_arraylen(vec));
+
+      assert_ptrdiff(0, <=, sveccnt);
+
+      if (sveccnt == 0 && stream_id == -1) {
+        break;
+      }
+
+      assert_int64(next_stream_id, ==, stream_id);
+
+      len = nghttp3_vec_len(vec, (size_t)sveccnt);
+      rv = nghttp3_conn_add_write_offset(conn, stream_id, (size_t)len);
+
+      assert_int(0, ==, rv);
+
+      rv = nghttp3_conn_add_ack_offset(conn, stream_id, len);
+
+      assert_int(0, ==, rv);
+    }
+
+    assert_uint64(NGHTTP3_MAX_QENC_UNACKED_BYTES + sizeof(value) + 32, >,
+                  qenc_stream->tx.offset - qenc_stream->ack_offset);
+  }
+
+  assert_uint64(NGHTTP3_MAX_QENC_UNACKED_BYTES, <=,
+                qenc_stream->tx.offset - qenc_stream->ack_offset);
+  assert_uint64(qenc_stream->tx.offset - qenc_stream->ack_offset, ==,
+                qenc_stream->unsent_bytes);
+
+  /* The remote endpoint gives flow control credit, but does not
+     acknowledge data. */
+  rv = nghttp3_conn_unblock_stream(conn, qenc_stream->node.id);
+
+  assert_int(0, ==, rv);
+
+  for (;;) {
+    sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                         nghttp3_arraylen(vec));
+
+    assert_ptrdiff(0, <=, sveccnt);
+
+    if (sveccnt == 0) {
+      break;
+    }
+
+    assert_int64(qenc_stream->node.id, ==, stream_id);
+
+    rv = nghttp3_conn_add_write_offset(
+      conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+    assert_int(0, ==, rv);
+  }
+
+  assert_uint64(0, ==, qenc_stream->unsent_bytes);
+
+  len = qenc_stream->tx.offset;
+
+  assert_uint64(NGHTTP3_MAX_QENC_UNACKED_BYTES, <=,
+                len - qenc_stream->ack_offset);
+
+  memset(value, 0xff, sizeof(value));
+
+  rv = nghttp3_conn_submit_request(conn, next_stream_id, nva,
+                                   nghttp3_arraylen(nva), NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, <, sveccnt);
+  assert_int64(next_stream_id, ==, stream_id);
+  assert_uint64(len, ==, qenc_stream->tx.offset);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+
+  next_stream_id += 4;
+
+  /* Insertion resumes when the remote endpoint acknowledges data. */
+  rv = nghttp3_conn_update_ack_offset(conn, qenc_stream->node.id, len);
+
+  assert_int(0, ==, rv);
+  assert_size(0, ==, nghttp3_ringbuf_len(&qenc_stream->outq));
+
+  rv = nghttp3_conn_submit_request(conn, next_stream_id, nva,
+                                   nghttp3_arraylen(nva), NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(0, <, sveccnt);
+  assert_int64(qenc_stream->node.id, ==, stream_id);
+  assert_uint64(len, <, qenc_stream->tx.offset);
+
   nghttp3_conn_del(conn);
 }

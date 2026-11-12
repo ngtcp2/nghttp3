@@ -236,6 +236,10 @@ typedef enum nghttp3_qpack_decoder_stream_opcode {
 /* NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP indicates that
    Set Dynamic Table Capacity is required. */
 #define NGHTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP 0x01U
+/* NGHTTP3_QPACK_ENCODER_FLAG_NO_INSERT indicates that no new entry is
+   inserted into the dynamic table for the moment, so that no more
+   insert instructions are produced for the encoder stream. */
+#define NGHTTP3_QPACK_ENCODER_FLAG_NO_INSERT 0x02U
 
 struct nghttp3_qpack_encoder {
   nghttp3_qpack_context ctx;
@@ -293,6 +297,17 @@ void nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
  * This function does not free memory pointed by |encoder|.
  */
 void nghttp3_qpack_encoder_free(nghttp3_qpack_encoder *encoder);
+
+/*
+ * nghttp3_qpack_encoder_set_no_insert tells |encoder| whether it is
+ * allowed to insert new entries into the dynamic table.  If
+ * |no_insert| is nonzero, |encoder| stops inserting new entries, and
+ * thus stops producing insert instructions for the encoder stream,
+ * until this function is called with zero |no_insert|.  The existing
+ * entries can still be referenced.
+ */
+void nghttp3_qpack_encoder_set_no_insert(nghttp3_qpack_encoder *encoder,
+                                         int no_insert);
 
 /*
  * nghttp3_qpack_encoder_encode_nv encodes |nv|.  It writes request
