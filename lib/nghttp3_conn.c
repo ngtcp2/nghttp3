@@ -1684,7 +1684,7 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
     case NGHTTP3_REQ_STREAM_STATE_HEADERS:
       len = (size_t)nghttp3_min(rstate->left, (uint64_t)(end - p));
       nread =
-        nghttp3_conn_on_headers(conn, stream, p, len, len == rstate->left);
+        nghttp3_conn_on_headers(conn, stream, p, len, len == rstate->left, ts);
       if (nread < 0) {
         if (nread == NGHTTP3_ERR_MAX_FIELD_SECTION_SIZE_EXCEEDED) {
           rstate->state = NGHTTP3_REQ_STREAM_STATE_IGN_REST;
@@ -1847,7 +1847,7 @@ static nghttp3_pq *conn_get_sched_pq(nghttp3_conn *conn, nghttp3_tnode *tnode) {
 static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
                                          nghttp3_stream *stream,
                                          const uint8_t *src, size_t srclen,
-                                         int fin) {
+                                         int fin, nghttp3_tstamp ts) {
   nghttp3_ssize nread;
   int rv;
   nghttp3_qpack_decoder *qdec = &conn->qdec;
@@ -1948,6 +1948,13 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
       case NGHTTP3_ERR_MALFORMED_HTTP_HEADER:
         break;
       case NGHTTP3_ERR_REMOVE_HTTP_HEADER:
+        /* The field is dropped without notifying application.  We do
+           not expect too frequent invalid fields. */
+        if (conn_glitch_ratelim_drain(conn, 1, ts) != 0) {
+          rv = NGHTTP3_ERR_H3_EXCESSIVE_LOAD;
+          break;
+        }
+
         rv = 0;
         break;
       case 0:
@@ -1978,12 +1985,12 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
 nghttp3_ssize nghttp3_conn_on_headers(nghttp3_conn *conn,
                                       nghttp3_stream *stream,
                                       const uint8_t *src, size_t srclen,
-                                      int fin) {
+                                      int fin, nghttp3_tstamp ts) {
   if (srclen == 0 && !fin) {
     return 0;
   }
 
-  return conn_decode_headers(conn, stream, src, srclen, fin);
+  return conn_decode_headers(conn, stream, src, srclen, fin, ts);
 }
 
 int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,

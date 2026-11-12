@@ -214,7 +214,7 @@ int nghttp3_conn_on_priority_update(nghttp3_conn *conn,
 nghttp3_ssize nghttp3_conn_on_headers(nghttp3_conn *conn,
                                       nghttp3_stream *stream,
                                       const uint8_t *data, size_t datalen,
-                                      int fin);
+                                      int fin, nghttp3_tstamp ts);
 
 int nghttp3_conn_on_settings_entry_received(nghttp3_conn *conn,
                                             const nghttp3_frame_settings *fr);
