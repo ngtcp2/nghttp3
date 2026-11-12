@@ -523,6 +523,21 @@ static int stream_close2(nghttp3_conn *conn, uint32_t flags, int64_t stream_id,
   return 0;
 }
 
+static int resume_stream_close2(nghttp3_conn *conn, uint32_t flags,
+                                int64_t stream_id, uint64_t rx_app_error_code,
+                                uint64_t tx_app_error_code, void *user_data,
+                                void *stream_user_data) {
+  int rv;
+
+  rv = nghttp3_conn_resume_stream(conn, stream_id);
+  if (rv != 0) {
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
+  return stream_close2(conn, flags, stream_id, rx_app_error_code,
+                       tx_app_error_code, user_data, stream_user_data);
+}
+
 typedef struct conn_options {
   const nghttp3_callbacks *callbacks;
   const nghttp3_settings *settings;
@@ -7205,10 +7220,8 @@ void test_nghttp3_conn_recv_invalid_field(void) {
   nghttp3_ssize nconsumed;
   size_t i;
   static const nghttp3_nv reqnv[] = {
-    MAKE_NV(":path", "/"),
-    MAKE_NV(":authority", "example.com"),
-    MAKE_NV(":scheme", "https"),
-    MAKE_NV(":method", "GET"),
+    MAKE_NV(":path", "/"),       MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"), MAKE_NV(":method", "GET"),
     MAKE_NV("foo", "\x01"),
   };
 
@@ -7229,18 +7242,17 @@ void test_nghttp3_conn_recv_invalid_field(void) {
     conn, conn->local.settings.glitch_ratelim_burst + 1);
 
   for (i = 0; i < conn->local.settings.glitch_ratelim_burst; ++i) {
-    nconsumed = nghttp3_conn_read_stream2(conn, (int64_t)(i << 2), buf.pos,
-                                          nghttp3_buf_len(&buf), /* fin = */ 1,
-                                          0);
+    nconsumed =
+      nghttp3_conn_read_stream2(conn, (int64_t)(i << 2), buf.pos,
+                                nghttp3_buf_len(&buf), /* fin = */ 1, 0);
 
     assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
   }
 
   assert_uint64(0, ==, conn->glitch_rlim.tokens);
 
-  nconsumed = nghttp3_conn_read_stream2(conn, (int64_t)(i << 2), buf.pos,
-                                        nghttp3_buf_len(&buf), /* fin = */ 1,
-                                        0);
+  nconsumed = nghttp3_conn_read_stream2(
+    conn, (int64_t)(i << 2), buf.pos, nghttp3_buf_len(&buf), /* fin = */ 1, 0);
 
   assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nconsumed);
 
@@ -7492,6 +7504,12 @@ void test_nghttp3_conn_close_stream2(void) {
   userdata ud;
   int rv;
   conn_options opts;
+  nghttp3_data_reader dr;
+  nghttp3_vec vec[256];
+  nghttp3_ssize sveccnt;
+  int64_t stream_id;
+  int fin;
+  size_t i;
 
   /* Stream closed without errors */
   callbacks = (nghttp3_callbacks){
@@ -7609,6 +7627,67 @@ void test_nghttp3_conn_close_stream2(void) {
   assert_size(1, ==, ud.stream_close.ncalled);
   assert_int64(0, ==, ud.stream_close.stream_id);
   assert_uint64(NGHTTP3_H3_INTERNAL_ERROR, ==, ud.stream_close.app_error_code);
+
+  nghttp3_conn_del(conn);
+
+  /* Resuming a stream from stream_close2 callback must not leave the
+     stream, which is about to be deleted, in the scheduler. */
+  callbacks = (nghttp3_callbacks){
+    .stream_close2 = resume_stream_close2,
+  };
+
+  opts = (conn_options){
+    .callbacks = &callbacks,
+    .user_data = &ud,
+  };
+
+  setup_default_server_with_options(&conn, opts);
+  conn_write_initial_streams(conn);
+
+  rv = nghttp3_conn_create_stream(conn, &stream, 0);
+
+  assert_int(0, ==, rv);
+
+  ud = (userdata){
+    .data.nblock = 1,
+  };
+  dr.read_data = block_then_step_read_data;
+  rv = nghttp3_conn_submit_response(conn, 0, resp_nva,
+                                    nghttp3_arraylen(resp_nva), &dr);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(0, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_false(fin);
+
+  rv = nghttp3_conn_add_write_offset(
+    conn, stream_id, (size_t)nghttp3_vec_len(vec, (size_t)sveccnt));
+
+  assert_int(0, ==, rv);
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED);
+  assert_false(nghttp3_tnode_is_scheduled(&stream->node));
+
+  rv =
+    nghttp3_conn_close_stream2(conn, NGHTTP3_STREAM_CLOSE_FLAG_NONE, 0, 0, 0);
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, ud.stream_close2.ncalled);
+  assert_int64(0, ==, ud.stream_close2.stream_id);
+  assert_null(nghttp3_conn_find_stream(conn, 0));
+
+  for (i = 0; i < NGHTTP3_URGENCY_LEVELS; ++i) {
+    assert_true(nghttp3_pq_empty(&conn->sched[i].spq));
+  }
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(-1, ==, stream_id);
+  assert_ptrdiff(0, ==, sveccnt);
 
   nghttp3_conn_del(conn);
 }
