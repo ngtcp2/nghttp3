@@ -716,6 +716,11 @@ int nghttp3_stream_write_qpack_decoder_stream(nghttp3_stream *stream) {
 
   assert(qdec);
 
+  if (stream->tx.offset - stream->ack_offset >=
+      NGHTTP3_QPACK_MAX_UNACKED_DECODERLEN) {
+    return 0;
+  }
+
   len = nghttp3_qpack_decoder_get_decoder_streamlen2(qdec);
   if (len == 0) {
     return 0;

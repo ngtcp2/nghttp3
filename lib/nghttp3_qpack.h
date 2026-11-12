@@ -56,6 +56,12 @@
    that an encoder accepts without completely encoding a single field
    section. */
 #define NGHTTP3_QPACK_MAX_DECODERLEN (4 * 1024)
+/* NGHTTP3_QPACK_MAX_UNACKED_DECODERLEN is the maximum decoder stream
+   length that is kept in the outgoing queue of QPACK decoder stream
+   without being acknowledged by a remote endpoint.  After this limit,
+   the pending decoder stream data stays in a decoder, which has its
+   own limit, until a remote endpoint acknowledges the queued data. */
+#define NGHTTP3_QPACK_MAX_UNACKED_DECODERLEN (16 * 1024)
 
 /* nghttp3_qpack_indexing_mode is a indexing strategy. */
 typedef enum nghttp3_qpack_indexing_mode {
