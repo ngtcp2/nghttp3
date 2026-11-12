@@ -4999,6 +4999,41 @@ void test_nghttp3_conn_priority_update(void) {
 
   nghttp3_conn_del(conn);
 
+  /* Receive PRIORITY_UPDATE after stream has been closed without
+     reading any stream data */
+  nghttp3_buf_reset(&buf);
+  setup_default_server(&conn);
+  nghttp3_conn_set_max_client_streams_bidi(conn, 1);
+
+  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_REQUEST_CANCELLED);
+
+  assert_int(NGHTTP3_ERR_STREAM_NOT_FOUND, ==, rv);
+
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  fr.priority_update = (nghttp3_frame_priority_update){
+    .type = NGHTTP3_FRAME_PRIORITY_UPDATE,
+    .data = (uint8_t *)"u=2,i",
+    .datalen = strlen("u=2,i"),
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  assert_null(nghttp3_conn_find_stream(conn, 0));
+  assert_size(0, ==, conn->remote.bidi.num_streams);
+
+  nghttp3_conn_del(conn);
+
   /* Receive PRIORITY_UPDATE against non-existent push_promise */
   nghttp3_buf_reset(&buf);
   setup_default_server(&conn);

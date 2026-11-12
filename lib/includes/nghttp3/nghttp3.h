@@ -2942,6 +2942,8 @@ NGHTTP3_EXTERN int nghttp3_conn_resume_stream(nghttp3_conn *conn,
  *     Stream not found.
  * :macro:`NGHTTP3_ERR_H3_CLOSED_CRITICAL_STREAM`
  *     A critical stream is closed.
+ * :macro:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
  * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`
  *     User callback failed
  *
@@ -2975,6 +2977,8 @@ NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
  *     Stream not found.
  * :macro:`NGHTTP3_ERR_H3_CLOSED_CRITICAL_STREAM`
  *     A critical stream is closed.
+ * :macro:`NGHTTP3_ERR_NOMEM`
+ *     Out of memory.
  * :macro:`NGHTTP3_ERR_CALLBACK_FAILURE`
  *     User callback failed
  *
