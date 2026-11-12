@@ -73,6 +73,7 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_conn_recv_origin),
   munit_void_test(test_nghttp3_conn_write_origin),
   munit_void_test(test_nghttp3_conn_recv_unknown_frame),
+  munit_void_test(test_nghttp3_conn_recv_invalid_field),
   munit_void_test(test_nghttp3_conn_get_stream_user_data),
   munit_void_test(test_nghttp3_conn_is_stream_flushed),
   munit_void_test(test_nghttp3_conn_close_stream),
@@ -7192,6 +7193,59 @@ void test_nghttp3_conn_recv_unknown_frame(void) {
   assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nconsumed);
 
   nghttp3_conn_del(conn);
+}
+
+void test_nghttp3_conn_recv_invalid_field(void) {
+  nghttp3_conn *conn;
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  uint8_t rawbuf[1024];
+  nghttp3_buf buf;
+  nghttp3_frame fr;
+  nghttp3_qpack_encoder qenc;
+  nghttp3_ssize nconsumed;
+  size_t i;
+  static const nghttp3_nv reqnv[] = {
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":authority", "example.com"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":method", "GET"),
+    MAKE_NV("foo", "\x01"),
+  };
+
+  /* Receiving too many invalid fields that are silently dropped */
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)reqnv,
+    .nvlen = nghttp3_arraylen(reqnv),
+  };
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  setup_default_server(&conn);
+  nghttp3_conn_set_max_client_streams_bidi(
+    conn, conn->local.settings.glitch_ratelim_burst + 1);
+
+  for (i = 0; i < conn->local.settings.glitch_ratelim_burst; ++i) {
+    nconsumed = nghttp3_conn_read_stream2(conn, (int64_t)(i << 2), buf.pos,
+                                          nghttp3_buf_len(&buf), /* fin = */ 1,
+                                          0);
+
+    assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  }
+
+  assert_uint64(0, ==, conn->glitch_rlim.tokens);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, (int64_t)(i << 2), buf.pos,
+                                        nghttp3_buf_len(&buf), /* fin = */ 1,
+                                        0);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nconsumed);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
 }
 
 void test_nghttp3_conn_get_stream_user_data(void) {
