@@ -35,6 +35,7 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_qpack_encoder_encode),
   munit_void_test(test_nghttp3_qpack_encoder_encode_try_encode),
   munit_void_test(test_nghttp3_qpack_encoder_encode_indexing_strat_eager),
+  munit_void_test(test_nghttp3_qpack_encoder_encode_large_absidx),
   munit_void_test(test_nghttp3_qpack_encoder_still_blocked),
   munit_void_test(test_nghttp3_qpack_encoder_set_dtable_cap),
   munit_void_test(test_nghttp3_qpack_decoder_feedback),
@@ -378,6 +379,92 @@ void test_nghttp3_qpack_encoder_encode_indexing_strat_eager(void) {
   assert_size(nva[2].namelen, ==, ent->nv.name->len);
   assert_memory_equal(ent->nv.name->len, nva[2].name, ent->nv.name->base);
 
+  nghttp3_qpack_encoder_free(&enc);
+  nghttp3_buf_free(&ebuf, mem);
+  nghttp3_buf_free(&rbuf, mem);
+  nghttp3_buf_free(&pbuf, mem);
+}
+
+void test_nghttp3_qpack_encoder_encode_large_absidx(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_qpack_encoder enc;
+  nghttp3_qpack_decoder dec;
+  static const nghttp3_nv nva[] = {
+    MAKE_NV(":authority", "example.org"),
+  };
+  /* The absolute index which does not fit in 32-bit signed
+     integer. */
+  const uint64_t absidx = 1ULL << 31;
+  int rv;
+  nghttp3_buf pbuf, rbuf, ebuf;
+  nghttp3_qpack_stream *stream;
+  nghttp3_qpack_header_block_ref *ref;
+
+  nghttp3_buf_init(&pbuf);
+  nghttp3_buf_init(&rbuf);
+  nghttp3_buf_init(&ebuf);
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
+
+  nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 1);
+
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 4096);
+
+  nghttp3_qpack_decoder_init(&dec, 4096, 1, mem);
+
+  /* Pretend that a large number of entries have been inserted, and
+     then evicted. */
+  enc.ctx.next_absidx = absidx;
+  enc.krcnt = absidx;
+  dec.ctx.next_absidx = absidx;
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 0, nva,
+                                    nghttp3_arraylen(nva));
+
+  assert_int(0, ==, rv);
+  assert_uint64(absidx + 1, ==, enc.ctx.next_absidx);
+
+  stream = nghttp3_qpack_encoder_find_stream(&enc, 0);
+
+  assert_not_null(stream);
+
+  ref =
+    *(nghttp3_qpack_header_block_ref **)nghttp3_ringbuf_get(&stream->refs, 0);
+
+  assert_uint64(absidx + 1, ==, ref->max_cnt);
+  assert_uint64(absidx + 1, ==, ref->min_cnt);
+
+  check_decode_header(&dec, &pbuf, &rbuf, &ebuf, 0, nva, nghttp3_arraylen(nva),
+                      mem);
+
+  nghttp3_qpack_encoder_ack_header(&enc, 0);
+
+  assert_uint64(absidx + 1, ==, enc.krcnt);
+
+  /* This field section refers to the existing dynamic table entry. */
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 4, nva,
+                                    nghttp3_arraylen(nva));
+
+  assert_int(0, ==, rv);
+  assert_uint64(absidx + 1, ==, enc.ctx.next_absidx);
+  assert_size(0, ==, nghttp3_buf_len(&ebuf));
+  assert_size(2, ==, nghttp3_buf_len(&pbuf));
+  assert_size(1, ==, nghttp3_buf_len(&rbuf));
+
+  stream = nghttp3_qpack_encoder_find_stream(&enc, 4);
+
+  assert_not_null(stream);
+
+  ref =
+    *(nghttp3_qpack_header_block_ref **)nghttp3_ringbuf_get(&stream->refs, 0);
+
+  assert_uint64(absidx + 1, ==, ref->max_cnt);
+  assert_uint64(absidx + 1, ==, ref->min_cnt);
+  assert_uint64(absidx + 1, ==, nghttp3_qpack_encoder_get_min_cnt(&enc));
+
+  check_decode_header(&dec, &pbuf, &rbuf, &ebuf, 4, nva, nghttp3_arraylen(nva),
+                      mem);
+
+  nghttp3_qpack_decoder_free(&dec);
   nghttp3_qpack_encoder_free(&enc);
   nghttp3_buf_free(&ebuf, mem);
   nghttp3_buf_free(&rbuf, mem);

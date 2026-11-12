@@ -316,13 +316,13 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
 /* nghttp3_qpack_lookup_result stores a result of table lookup. */
 typedef struct nghttp3_qpack_lookup_result {
   /* index is an index of matched entry.  -1 if no match is made. */
-  nghttp3_ssize index;
+  int64_t index;
   /* name_value_match is nonzero if both name and value are
      matched. */
   int name_value_match;
   /* pb_index is the absolute index of matched post-based dynamic
      table entry.  -1 if no such entry exists. */
-  nghttp3_ssize pb_index;
+  int64_t pb_index;
 } nghttp3_qpack_lookup_result;
 
 /*
