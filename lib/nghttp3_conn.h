@@ -120,6 +120,9 @@ struct nghttp3_conn {
          streams that are currently open.  This field is for server
          use only. */
       size_t num_streams;
+      /* max_concurrent_streams is the maximum number of bidirectional
+         streams that the remote endpoint can create concurrently. */
+      size_t max_concurrent_streams;
     } bidi;
     nghttp3_proto_settings settings;
   } remote;

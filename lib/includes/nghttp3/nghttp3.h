@@ -3038,10 +3038,9 @@ nghttp3_conn_set_max_client_streams_bidi(nghttp3_conn *conn,
  * @function
  *
  * `nghttp3_conn_set_max_concurrent_streams` tells |conn| the maximum
- * number of concurrent streams that a remote endpoint can open,
- * including both bidirectional and unidirectional streams which
- * potentially receive QPACK encoded HEADERS frame.  This value is
- * used as a hint to limit the internal resource consumption.
+ * number of concurrent bidirectional streams that a client can open.
+ * This value is used as a hint to limit the internal resource
+ * consumption.
  */
 NGHTTP3_EXTERN void
 nghttp3_conn_set_max_concurrent_streams(nghttp3_conn *conn,

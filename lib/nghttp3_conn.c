@@ -355,6 +355,7 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
     conn->local.settings.origin_list = NULL;
   }
   conn->remote.settings.max_field_section_size = NGHTTP3_VARINT_MAX;
+  conn->remote.bidi.max_concurrent_streams = SIZE_MAX;
   conn->mem = mem;
   conn->user_data = user_data;
   conn->server = server;
@@ -2099,6 +2100,13 @@ conn_on_priority_update_stream(nghttp3_conn *conn,
       return 0;
     }
 
+    /* Limiting streams under max_concurrent_streams is a good
+       defence. */
+    if (conn->remote.bidi.num_streams >=
+        conn->remote.bidi.max_concurrent_streams) {
+      return 0;
+    }
+
     rv = conn_bidi_idtr_open(conn, stream_id);
     if (rv != 0) {
       if (nghttp3_err_is_fatal(rv)) {
@@ -2883,6 +2891,8 @@ void nghttp3_conn_set_max_client_streams_bidi(nghttp3_conn *conn,
 
 void nghttp3_conn_set_max_concurrent_streams(nghttp3_conn *conn,
                                              size_t max_concurrent_streams) {
+  conn->remote.bidi.max_concurrent_streams = max_concurrent_streams;
+
   nghttp3_qpack_decoder_set_max_concurrent_streams(&conn->qdec,
                                                    max_concurrent_streams);
 }
