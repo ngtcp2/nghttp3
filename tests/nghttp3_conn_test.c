@@ -4041,6 +4041,7 @@ void test_nghttp3_conn_qpack_decoder_cancel_stream(void) {
   nghttp3_buf *buf;
   int64_t stream_id;
   int fin;
+  uint64_t len;
   size_t i;
   int rv;
 
@@ -4075,6 +4076,74 @@ void test_nghttp3_conn_qpack_decoder_cancel_stream(void) {
                                    nghttp3_vec_len(vec, (size_t)sveccnt));
 
   assert_int(0, ==, rv);
+
+  nghttp3_conn_del(conn);
+
+  /* QPACK decoder buffer is not drained while too much QPACK decoder
+     stream data is left unacknowledged, so that the limit of QPACK
+     decoder buffer is effective. */
+  setup_default_server(&conn);
+  conn_write_initial_streams(conn);
+
+  /* Each Stream Cancellation is at least 1 byte long. */
+  for (i = 0; i < NGHTTP3_QPACK_MAX_UNACKED_DECODERLEN; ++i) {
+    rv = nghttp3_qpack_decoder_cancel_stream(&conn->qdec, (int64_t)(i * 4));
+
+    assert_int(0, ==, rv);
+
+    sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                         nghttp3_arraylen(vec));
+
+    if (sveccnt == 0) {
+      break;
+    }
+
+    assert_int64(conn->tx.qdec->node.id, ==, stream_id);
+    assert_ptrdiff(1, ==, sveccnt);
+    assert_size(0, ==, nghttp3_buf_len(&conn->qdec.dbuf));
+
+    rv = nghttp3_conn_add_write_offset(conn, stream_id, vec[0].len);
+
+    assert_int(0, ==, rv);
+  }
+
+  assert_ptrdiff(0, ==, sveccnt);
+
+  len = conn->tx.qdec->tx.offset - conn->tx.qdec->ack_offset;
+
+  assert_uint64(NGHTTP3_QPACK_MAX_UNACKED_DECODERLEN, <=, len);
+  assert_uint64(NGHTTP3_QPACK_MAX_UNACKED_DECODERLEN + 10, >, len);
+  assert_size(0, <, nghttp3_buf_len(&conn->qdec.dbuf));
+
+  /* QPACK decoder buffer overflows if a remote endpoint keeps not
+     acknowledging QPACK decoder stream. */
+  for (;; ++i) {
+    rv = nghttp3_qpack_decoder_cancel_stream(&conn->qdec, (int64_t)(i * 4));
+    if (rv != 0) {
+      break;
+    }
+
+    sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                         nghttp3_arraylen(vec));
+
+    assert_ptrdiff(0, ==, sveccnt);
+  }
+
+  assert_int(NGHTTP3_ERR_QPACK_FATAL, ==, rv);
+  assert_uint64(len, ==, conn->tx.qdec->tx.offset - conn->tx.qdec->ack_offset);
+
+  /* Draining QPACK decoder buffer is resumed when the data is
+     acknowledged. */
+  rv = nghttp3_conn_add_ack_offset(conn, conn->tx.qdec->node.id, len);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_int64(conn->tx.qdec->node.id, ==, stream_id);
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_size(0, ==, nghttp3_buf_len(&conn->qdec.dbuf));
 
   nghttp3_conn_del(conn);
 }
