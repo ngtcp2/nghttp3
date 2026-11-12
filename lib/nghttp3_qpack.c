@@ -975,6 +975,15 @@ void nghttp3_qpack_encoder_set_indexing_strat(
   encoder->indexing_strat = strat;
 }
 
+void nghttp3_qpack_encoder_set_no_insert(nghttp3_qpack_encoder *encoder,
+                                         int no_insert) {
+  if (no_insert) {
+    encoder->flags |= NGHTTP3_QPACK_ENCODER_FLAG_NO_INSERT;
+  } else {
+    encoder->flags &= (uint8_t)~NGHTTP3_QPACK_ENCODER_FLAG_NO_INSERT;
+  }
+}
+
 uint64_t
 nghttp3_qpack_encoder_get_min_cnt(const nghttp3_qpack_encoder *encoder) {
   assert(!nghttp3_pq_empty(&encoder->min_cnts));
@@ -1391,6 +1400,10 @@ static int qpack_encoder_can_index(nghttp3_qpack_encoder *encoder, size_t need,
   uint64_t gmin_cnt;
   nghttp3_qpack_entry *min_ent, *last_ent;
   nghttp3_ringbuf *dtable = &encoder->ctx.dtable;
+
+  if (encoder->flags & NGHTTP3_QPACK_ENCODER_FLAG_NO_INSERT) {
+    return 0;
+  }
 
   if (encoder->ctx.max_dtable_capacity > encoder->ctx.dtable_size) {
     avail = encoder->ctx.max_dtable_capacity - encoder->ctx.dtable_size;

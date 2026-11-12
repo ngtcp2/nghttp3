@@ -46,6 +46,12 @@
    QMux (Cut 2 bytes for QMux record length). */
 #define NGHTTP3_MIN_UNSENT_BYTES 16382
 
+/* NGHTTP3_MAX_QENC_UNACKED_BYTES is the number of bytes buffered in
+   QPACK encoder stream, and not yet acknowledged by a remote
+   endpoint, at which QPACK encoder stops inserting new entries into
+   the dynamic table. */
+#define NGHTTP3_MAX_QENC_UNACKED_BYTES 16384
+
 /* NGHTTP3_STREAM_MIN_WRITELEN is the minimum length of write to cause
    the stream to reschedule. */
 #define NGHTTP3_STREAM_MIN_WRITELEN 800

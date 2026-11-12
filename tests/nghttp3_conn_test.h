@@ -75,5 +75,6 @@ munit_void_test_decl(test_nghttp3_conn_is_stream_flushed)
 munit_void_test_decl(test_nghttp3_conn_close_stream)
 munit_void_test_decl(test_nghttp3_conn_close_stream2)
 munit_void_test_decl(test_nghttp3_conn_max_field_section_size)
+munit_void_test_decl(test_nghttp3_conn_qpack_encoder_stream_limit)
 
 #endif /* !defined(NGHTTP3_CONN_TEST_H) */
