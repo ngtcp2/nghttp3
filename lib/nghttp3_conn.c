@@ -1384,6 +1384,12 @@ static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream,
     }
   }
 
+  /* The stream is still visible to an application during the
+     callbacks above, and they might have scheduled it again (e.g., by
+     calling nghttp3_conn_resume_stream).  Unschedule it here, so that
+     the scheduler never refers to the deleted stream. */
+  nghttp3_conn_unschedule_stream(conn, stream);
+
   if (conn->server && nghttp3_client_stream_bidi(stream->node.id)) {
     assert(conn->remote.bidi.num_streams > 0);
 
@@ -2838,8 +2844,6 @@ int nghttp3_conn_close_stream2(nghttp3_conn *conn, uint32_t flags,
       stream->type != NGHTTP3_STREAM_TYPE_UNKNOWN) {
     return NGHTTP3_ERR_H3_CLOSED_CRITICAL_STREAM;
   }
-
-  nghttp3_conn_unschedule_stream(conn, stream);
 
   return conn_delete_stream(conn, stream, flags, rx_app_error_code,
                             tx_app_error_code);
