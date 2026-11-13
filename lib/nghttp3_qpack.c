@@ -1010,6 +1010,12 @@ void nghttp3_qpack_encoder_shrink_dtable(nghttp3_qpack_encoder *encoder) {
     min_cnt = nghttp3_qpack_encoder_get_min_cnt(encoder);
   }
 
+  /* An entry cannot be evicted until its insertion is acknowledged by
+     decoder.  See RFC 9204, Section 2.1.1. */
+  if (encoder->krcnt < encoder->ctx.next_absidx) {
+    min_cnt = nghttp3_min(min_cnt, encoder->krcnt + 1);
+  }
+
   for (; encoder->ctx.dtable_size > encoder->ctx.max_dtable_capacity;) {
     len = nghttp3_ringbuf_len(dtable);
     ent = *(nghttp3_qpack_entry **)nghttp3_ringbuf_get(dtable, len - 1);
@@ -1417,6 +1423,12 @@ static int qpack_encoder_can_index(nghttp3_qpack_encoder *encoder, size_t need,
   if (!nghttp3_pq_empty(&encoder->min_cnts)) {
     gmin_cnt = nghttp3_qpack_encoder_get_min_cnt(encoder);
     min_cnt = nghttp3_min(min_cnt, gmin_cnt);
+  }
+
+  /* An entry cannot be evicted until its insertion is acknowledged by
+     decoder.  See RFC 9204, Section 2.1.1. */
+  if (encoder->krcnt < encoder->ctx.next_absidx) {
+    min_cnt = nghttp3_min(min_cnt, encoder->krcnt + 1);
   }
 
   if (min_cnt == UINT64_MAX) {
