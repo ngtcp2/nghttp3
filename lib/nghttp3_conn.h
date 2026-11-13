@@ -85,6 +85,11 @@ struct nghttp3_conn {
   nghttp3_qpack_decoder qdec;
   nghttp3_qpack_encoder qenc;
   nghttp3_pq qpack_blocked_streams;
+  /* qpack_blocked_streams_cancelled is the number of streams in
+     qpack_blocked_streams for which QPACK Stream Cancellation has
+     been sent.  A remote endpoint no longer counts them as blocked
+     streams. */
+  size_t qpack_blocked_streams_cancelled;
   nghttp3_ratelim glitch_rlim;
   struct {
     nghttp3_pq spq;
