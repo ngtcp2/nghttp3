@@ -39,6 +39,7 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_qpack_encoder_still_blocked),
   munit_void_test(test_nghttp3_qpack_encoder_set_dtable_cap),
   munit_void_test(test_nghttp3_qpack_encoder_write_field_section_prefix),
+  munit_void_test(test_nghttp3_qpack_encoder_unacked_entry),
   munit_void_test(test_nghttp3_qpack_decoder_feedback),
   munit_void_test(test_nghttp3_qpack_decoder_stream_overflow),
   munit_void_test(test_nghttp3_qpack_huffman),
@@ -911,6 +912,171 @@ void test_nghttp3_qpack_encoder_write_field_section_prefix(void) {
 
   nghttp3_qpack_decoder_free(&dec);
   nghttp3_qpack_encoder_free(&enc);
+  nghttp3_buf_free(&pbuf, mem);
+}
+
+void test_nghttp3_qpack_encoder_unacked_entry(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_qpack_encoder enc;
+  nghttp3_buf pbuf, rbuf, ebuf;
+  static const nghttp3_nv nva1[] = {
+    MAKE_NV("date", "bar1"),
+    MAKE_NV("date", "bar2"),
+  };
+  static const nghttp3_nv nva2[] = {
+    MAKE_NV("date", "bar3"),
+  };
+  static const nghttp3_nv nva3[] = {
+    MAKE_NV("date", "bar4"),
+    MAKE_NV("date", "bar5"),
+  };
+  const size_t space =
+    strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD;
+  nghttp3_qpack_entry *ent;
+  int rv;
+
+  nghttp3_buf_init(&pbuf);
+  nghttp3_buf_init(&rbuf);
+  nghttp3_buf_init(&ebuf);
+
+  /* An entry cannot be evicted until its insertion is acknowledged
+     even if a stream that references it is cancelled. */
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
+  nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 1);
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 2 * space);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 0, nva1,
+                                    nghttp3_arraylen(nva1));
+
+  assert_int(0, ==, rv);
+  assert_uint64(2, ==, enc.ctx.next_absidx);
+  assert_uint64(0, ==, enc.krcnt);
+  assert_size(2 * space, ==, enc.ctx.dtable_size);
+  assert_size(1, ==, nghttp3_qpack_encoder_get_num_blocked_streams2(&enc));
+
+  nghttp3_buf_reset(&pbuf);
+  nghttp3_buf_reset(&rbuf);
+  nghttp3_buf_reset(&ebuf);
+
+  nghttp3_qpack_encoder_cancel_stream(&enc, 0);
+
+  assert_uint64(0, ==, enc.krcnt);
+  assert_size(0, ==, nghttp3_qpack_encoder_get_num_blocked_streams2(&enc));
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 4, nva2,
+                                    nghttp3_arraylen(nva2));
+
+  assert_int(0, ==, rv);
+  assert_uint64(2, ==, enc.ctx.next_absidx);
+  assert_size(2 * space, ==, enc.ctx.dtable_size);
+  assert_size(0, ==, nghttp3_buf_len(&ebuf));
+  assert_size(0, ==, nghttp3_qpack_encoder_get_num_blocked_streams2(&enc));
+
+  nghttp3_buf_reset(&pbuf);
+  nghttp3_buf_reset(&rbuf);
+  nghttp3_buf_reset(&ebuf);
+
+  /* Acknowledging the first entry makes it evictable. */
+  rv = nghttp3_qpack_encoder_add_icnt(&enc, 1);
+
+  assert_int(0, ==, rv);
+  assert_uint64(1, ==, enc.krcnt);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 8, nva3,
+                                    nghttp3_arraylen(nva3));
+
+  assert_int(0, ==, rv);
+  assert_uint64(3, ==, enc.ctx.next_absidx);
+  assert_size(2 * space, ==, enc.ctx.dtable_size);
+  assert_size(2, ==, nghttp3_ringbuf_len(&enc.ctx.dtable));
+
+  ent = *(nghttp3_qpack_entry **)nghttp3_ringbuf_get(&enc.ctx.dtable, 1);
+
+  assert_uint64(1, ==, ent->absidx);
+
+  nghttp3_buf_reset(&pbuf);
+  nghttp3_buf_reset(&rbuf);
+  nghttp3_buf_reset(&ebuf);
+
+  nghttp3_qpack_encoder_free(&enc);
+
+  /* An entry which is never referenced cannot be evicted until its
+     insertion is acknowledged. */
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 2 * space);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 0, nva1,
+                                    nghttp3_arraylen(nva1));
+
+  assert_int(0, ==, rv);
+  assert_uint64(2, ==, enc.ctx.next_absidx);
+  assert_uint64(0, ==, enc.krcnt);
+  assert_size(2 * space, ==, enc.ctx.dtable_size);
+  assert_null(nghttp3_qpack_encoder_find_stream(&enc, 0));
+
+  nghttp3_buf_reset(&pbuf);
+  nghttp3_buf_reset(&rbuf);
+  nghttp3_buf_reset(&ebuf);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 4, nva2,
+                                    nghttp3_arraylen(nva2));
+
+  assert_int(0, ==, rv);
+  assert_uint64(2, ==, enc.ctx.next_absidx);
+  assert_size(2 * space, ==, enc.ctx.dtable_size);
+  assert_size(0, ==, nghttp3_buf_len(&ebuf));
+
+  nghttp3_buf_reset(&pbuf);
+  nghttp3_buf_reset(&rbuf);
+  nghttp3_buf_reset(&ebuf);
+
+  /* Unacknowledged entries are not evicted when dynamic table
+     capacity is reduced. */
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 0);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 8, nva2,
+                                    nghttp3_arraylen(nva2));
+
+  assert_int(0, ==, rv);
+  assert_uint64(2, ==, enc.ctx.next_absidx);
+  assert_size(2 * space, ==, enc.ctx.dtable_size);
+  assert_size(0, ==, nghttp3_buf_len(&ebuf));
+
+  nghttp3_buf_reset(&pbuf);
+  nghttp3_buf_reset(&rbuf);
+  nghttp3_buf_reset(&ebuf);
+
+  rv = nghttp3_qpack_encoder_add_icnt(&enc, 1);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 12, nva2,
+                                    nghttp3_arraylen(nva2));
+
+  assert_int(0, ==, rv);
+  assert_uint64(2, ==, enc.ctx.next_absidx);
+  assert_size(space, ==, enc.ctx.dtable_size);
+  assert_size(0, ==, nghttp3_buf_len(&ebuf));
+
+  nghttp3_buf_reset(&pbuf);
+  nghttp3_buf_reset(&rbuf);
+  nghttp3_buf_reset(&ebuf);
+
+  rv = nghttp3_qpack_encoder_add_icnt(&enc, 1);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 16, nva2,
+                                    nghttp3_arraylen(nva2));
+
+  assert_int(0, ==, rv);
+  assert_uint64(2, ==, enc.ctx.next_absidx);
+  assert_size(0, ==, enc.ctx.dtable_size);
+  assert_size(0, <, nghttp3_buf_len(&ebuf));
+
+  nghttp3_qpack_encoder_free(&enc);
+  nghttp3_buf_free(&ebuf, mem);
+  nghttp3_buf_free(&rbuf, mem);
   nghttp3_buf_free(&pbuf, mem);
 }
 
