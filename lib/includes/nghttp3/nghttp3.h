@@ -3198,6 +3198,9 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_trailers(nghttp3_conn *conn,
  * to stop creating new stream.  After a couple of RTTs later, call
  * `nghttp3_conn_shutdown` to start graceful shutdown.
  *
+ * This function does nothing if `nghttp3_conn_shutdown` has been
+ * called.
+ *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
@@ -3214,6 +3217,8 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn);
  * RTTs.  After calling this function, the local endpoint starts
  * rejecting new incoming streams.  The existing streams are processed
  * normally.  See also `nghttp3_conn_is_drained`.
+ *
+ * Calling this function more than once does nothing, and returns 0.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
