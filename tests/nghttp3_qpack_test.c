@@ -38,6 +38,7 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_qpack_encoder_encode_large_absidx),
   munit_void_test(test_nghttp3_qpack_encoder_still_blocked),
   munit_void_test(test_nghttp3_qpack_encoder_set_dtable_cap),
+  munit_void_test(test_nghttp3_qpack_encoder_write_field_section_prefix),
   munit_void_test(test_nghttp3_qpack_decoder_feedback),
   munit_void_test(test_nghttp3_qpack_decoder_stream_overflow),
   munit_void_test(test_nghttp3_qpack_huffman),
@@ -707,6 +708,79 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   nghttp3_qpack_decoder_free(&dec);
   nghttp3_qpack_encoder_free(&enc);
 
+  /* A capacity below one entry must not produce a dynamic reference,
+     even while an outstanding field section prevents eviction. */
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
+  nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 3);
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 4096);
+  nghttp3_qpack_decoder_init(&dec, 4096, 3, mem);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 0, nva1,
+                                    nghttp3_arraylen(nva1));
+
+  assert_int(0, ==, rv);
+  assert_uint64(1, ==, enc.ctx.next_absidx);
+
+  nread =
+    nghttp3_qpack_decoder_read_encoder(&dec, ebuf.pos, nghttp3_buf_len(&ebuf));
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&ebuf), ==, nread);
+
+  decode_header_block(&dec, &pbuf, &rbuf, 0, mem);
+  nghttp3_buf_reset(&pbuf);
+  nghttp3_buf_reset(&rbuf);
+  nghttp3_buf_reset(&ebuf);
+
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 1);
+
+  assert_size(1, ==, enc.decoder_max_dtable_capacity);
+  assert_size(1, ==, enc.ctx.max_dtable_capacity);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 4, nva1,
+                                    nghttp3_arraylen(nva1));
+
+  assert_int(0, ==, rv);
+  assert_uint64(1, ==, enc.ctx.next_absidx);
+  assert_size(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD,
+              ==, enc.ctx.dtable_size);
+  assert_size(0, ==, nghttp3_buf_len(&ebuf));
+  assert_size(2, ==, nghttp3_buf_len(&pbuf));
+  assert_uint8(0, ==, pbuf.pos[0]);
+  assert_size(1, ==, nghttp3_qpack_encoder_get_num_blocked_streams2(&enc));
+
+  decode_header_block(&dec, &pbuf, &rbuf, 4, mem);
+  nghttp3_buf_reset(&pbuf);
+  nghttp3_buf_reset(&rbuf);
+
+  nghttp3_qpack_encoder_ack_header(&enc, 0);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 8, nva1,
+                                    nghttp3_arraylen(nva1));
+
+  assert_int(0, ==, rv);
+  assert_uint64(1, ==, enc.ctx.next_absidx);
+  assert_size(0, ==, enc.ctx.dtable_size);
+  assert_size(1, ==, enc.ctx.max_dtable_capacity);
+  assert_size(SIZE_MAX, ==, enc.min_dtable_update);
+  assert_size(2, ==, nghttp3_buf_len(&pbuf));
+  assert_uint8(0, ==, pbuf.pos[0]);
+  assert_size(0, ==, nghttp3_qpack_encoder_get_num_blocked_streams2(&enc));
+
+  nread =
+    nghttp3_qpack_decoder_read_encoder(&dec, ebuf.pos, nghttp3_buf_len(&ebuf));
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&ebuf), ==, nread);
+  assert_size(1, ==, dec.ctx.max_dtable_capacity);
+  assert_size(0, ==, dec.ctx.dtable_size);
+
+  decode_header_block(&dec, &pbuf, &rbuf, 8, mem);
+  nghttp3_buf_reset(&pbuf);
+  nghttp3_buf_reset(&rbuf);
+  nghttp3_buf_reset(&ebuf);
+
+  nghttp3_qpack_decoder_free(&dec);
+  nghttp3_qpack_encoder_free(&enc);
+
   /* Check that minimum size is emitted */
   nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
   nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 1);
@@ -772,6 +846,71 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
   nghttp3_qpack_encoder_free(&enc);
   nghttp3_buf_free(&ebuf, mem);
   nghttp3_buf_free(&rbuf, mem);
+  nghttp3_buf_free(&pbuf, mem);
+}
+
+void test_nghttp3_qpack_encoder_write_field_section_prefix(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_qpack_encoder enc;
+  nghttp3_qpack_decoder dec;
+  nghttp3_buf pbuf;
+  uint64_t ricnt;
+  int rv;
+
+  nghttp3_buf_init(&pbuf);
+
+  /* Required Insert Count is encoded with the capacity that the
+     decoder advertised even if it is larger than the capacity that
+     the encoder is willing to use. */
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 65536);
+  nghttp3_qpack_decoder_init(&dec, 65536, 1, mem);
+
+  assert_size(4096, ==, enc.ctx.max_dtable_capacity);
+
+  rv = nghttp3_qpack_encoder_write_field_section_prefix(&enc, &pbuf, 258, 255);
+
+  assert_int(0, ==, rv);
+  assert_size(3, ==, nghttp3_buf_len(&pbuf));
+  /* Encoded Required Insert Count = 258 % (2 * (65536 / 32)) + 1 */
+  assert_uint8(0xff, ==, pbuf.pos[0]);
+  assert_uint8(259 - 0xff, ==, pbuf.pos[1]);
+  /* Sign bit and Delta Base */
+  assert_uint8(0x80 | 2, ==, pbuf.pos[2]);
+
+  dec.ctx.next_absidx = 258;
+
+  rv = nghttp3_qpack_decoder_reconstruct_ricnt(&dec, &ricnt, 259);
+
+  assert_int(0, ==, rv);
+  assert_uint64(258, ==, ricnt);
+
+  nghttp3_qpack_decoder_free(&dec);
+  nghttp3_qpack_encoder_free(&enc);
+  nghttp3_buf_reset(&pbuf);
+
+  /* dynamic table size = 4096 */
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 4096);
+  nghttp3_qpack_decoder_init(&dec, 4096, 1, mem);
+
+  rv = nghttp3_qpack_encoder_write_field_section_prefix(&enc, &pbuf, 258, 255);
+
+  assert_int(0, ==, rv);
+  assert_size(2, ==, nghttp3_buf_len(&pbuf));
+  /* Encoded Required Insert Count = 258 % (2 * (4096 / 32)) + 1 */
+  assert_uint8(3, ==, pbuf.pos[0]);
+  assert_uint8(0x80 | 2, ==, pbuf.pos[1]);
+
+  dec.ctx.next_absidx = 258;
+
+  rv = nghttp3_qpack_decoder_reconstruct_ricnt(&dec, &ricnt, 3);
+
+  assert_int(0, ==, rv);
+  assert_uint64(258, ==, ricnt);
+
+  nghttp3_qpack_decoder_free(&dec);
+  nghttp3_qpack_encoder_free(&enc);
   nghttp3_buf_free(&pbuf, mem);
 }
 

@@ -788,6 +788,7 @@ void test_nghttp3_conn_read_control(void) {
   assert_size(99, ==, conn->remote.settings.qpack_blocked_streams);
   assert_size(4096, ==, conn->qenc.ctx.hard_max_dtable_capacity);
   assert_size(4096, ==, conn->qenc.ctx.max_dtable_capacity);
+  assert_size(4096, ==, conn->qenc.decoder_max_dtable_capacity);
   assert_size(99, ==, conn->qenc.ctx.max_blocked_streams);
   assert_size(1, ==, ud.recv_settings2_cb.ncalled);
   assert_uint64(65536, ==,
@@ -886,6 +887,7 @@ void test_nghttp3_conn_read_control(void) {
   assert_size(101, ==, conn->remote.settings.qpack_blocked_streams);
   assert_size(4096, ==, conn->qenc.ctx.hard_max_dtable_capacity);
   assert_size(4096, ==, conn->qenc.ctx.max_dtable_capacity);
+  assert_size(4097, ==, conn->qenc.decoder_max_dtable_capacity);
   assert_size(100, ==, conn->qenc.ctx.max_blocked_streams);
 
   nghttp3_conn_del(conn);
