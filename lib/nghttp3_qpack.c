@@ -924,6 +924,7 @@ void nghttp3_qpack_encoder_init(nghttp3_qpack_encoder *encoder,
   encoder->opcode = 0;
   encoder->min_dtable_update = SIZE_MAX;
   encoder->last_max_dtable_update = 0;
+  encoder->decoder_max_dtable_capacity = 0;
   encoder->uninterrupted_decoderlen = 0;
   encoder->indexing_strat = NGHTTP3_QPACK_INDEXING_STRAT_NONE;
   encoder->flags = NGHTTP3_QPACK_ENCODER_FLAG_NONE;
@@ -949,6 +950,7 @@ void nghttp3_qpack_encoder_free(nghttp3_qpack_encoder *encoder) {
 
 void nghttp3_qpack_encoder_set_max_dtable_capacity(
   nghttp3_qpack_encoder *encoder, size_t max_dtable_capacity) {
+  encoder->decoder_max_dtable_capacity = max_dtable_capacity;
   max_dtable_capacity =
     nghttp3_min(max_dtable_capacity, encoder->ctx.hard_max_dtable_capacity);
 
@@ -2454,7 +2456,7 @@ int nghttp3_qpack_encoder_write_field_section_prefix(
   const nghttp3_qpack_encoder *encoder, nghttp3_buf *pbuf, uint64_t ricnt,
   uint64_t base) {
   size_t max_ents =
-    encoder->ctx.hard_max_dtable_capacity / NGHTTP3_QPACK_ENTRY_OVERHEAD;
+    encoder->decoder_max_dtable_capacity / NGHTTP3_QPACK_ENTRY_OVERHEAD;
   uint64_t encricnt = ricnt == 0 ? 0 : (ricnt % (2 * max_ents)) + 1;
   int sign = base < ricnt;
   uint64_t delta_base = sign ? ricnt - base - 1 : base - ricnt;

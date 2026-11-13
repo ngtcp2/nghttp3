@@ -271,6 +271,13 @@ struct nghttp3_qpack_encoder {
   /* last_max_dtable_update is the dynamic table size last
      requested. */
   size_t last_max_dtable_update;
+  /* decoder_max_dtable_capacity is the maximum dynamic table capacity
+     that the decoder advertised (e.g.,
+     SETTINGS_QPACK_MAX_TABLE_CAPACITY).  Required Insert Count is
+     encoded with MaxEntries derived from this value.  Unlike
+     ctx.hard_max_dtable_capacity, this is not the capacity that this
+     encoder is willing to use. */
+  size_t decoder_max_dtable_capacity;
   /* uninterrupted_decoderlen is the number of bytes read from decoder
      stream without encoding a single field section. */
   size_t uninterrupted_decoderlen;
