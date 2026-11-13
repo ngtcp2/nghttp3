@@ -245,7 +245,7 @@ static int check_scheme(const uint8_t *value, size_t len) {
   return 1;
 }
 
-static const int8_t VALID_METHOD_CHARS[256] = {
+static const int8_t VALID_TOKEN_CHARS[256] = {
   ['!'] = 1, ['#'] = 1, ['$'] = 1, ['%'] = 1, ['&'] = 1, ['\''] = 1, ['*'] = 1,
   ['+'] = 1, ['-'] = 1, ['.'] = 1, ['0'] = 1, ['1'] = 1, ['2'] = 1,  ['3'] = 1,
   ['4'] = 1, ['5'] = 1, ['6'] = 1, ['7'] = 1, ['8'] = 1, ['9'] = 1,  ['A'] = 1,
@@ -259,13 +259,13 @@ static const int8_t VALID_METHOD_CHARS[256] = {
   ['v'] = 1, ['w'] = 1, ['x'] = 1, ['y'] = 1, ['z'] = 1, ['|'] = 1,  ['~'] = 1,
 };
 
-static int check_method(const uint8_t *value, size_t len) {
+static int check_token(const uint8_t *value, size_t len) {
   const uint8_t *last;
   if (len == 0) {
     return 0;
   }
   for (last = value + len; value != last; ++value) {
-    if (!VALID_METHOD_CHARS[*value]) {
+    if (!VALID_TOKEN_CHARS[*value]) {
       return 0;
     }
   }
@@ -335,7 +335,7 @@ static int http_request_on_header(nghttp3_http_state *http,
     }
     break;
   case NGHTTP3_QPACK_TOKEN__METHOD:
-    if (!check_method(nv->value->base, nv->value->len) ||
+    if (!check_token(nv->value->base, nv->value->len) ||
         !check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__METHOD)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
@@ -385,8 +385,10 @@ static int http_request_on_header(nghttp3_http_state *http,
     }
     break;
   case NGHTTP3_QPACK_TOKEN__PROTOCOL:
-    if (!connect_protocol ||
-        !nghttp3_check_header_value(nv->value->base, nv->value->len) ||
+    /* https://datatracker.ietf.org/doc/html/rfc8441#section-4:
+       :protocol contains a single value from HTTP Upgrade Token
+       Registry, which is a token. */
+    if (!connect_protocol || !check_token(nv->value->base, nv->value->len) ||
         !check_pseudo_header(http, nv, NGHTTP3_HTTP_FLAG__PROTOCOL)) {
       return NGHTTP3_ERR_MALFORMED_HTTP_HEADER;
     }
