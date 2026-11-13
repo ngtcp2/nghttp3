@@ -2671,6 +2671,10 @@ int nghttp3_conn_submit_shutdown_notice(nghttp3_conn *conn) {
 
   assert(conn->tx.ctrl);
 
+  if (conn->flags & NGHTTP3_CONN_FLAG_SHUTDOWN_COMMENCED) {
+    return 0;
+  }
+
   rv = nghttp3_stream_frq_emplace(conn->tx.ctrl, &fr);
   if (rv != 0) {
     return rv;
@@ -2695,6 +2699,10 @@ int nghttp3_conn_shutdown(nghttp3_conn *conn) {
   int rv;
 
   assert(conn->tx.ctrl);
+
+  if (conn->flags & NGHTTP3_CONN_FLAG_SHUTDOWN_COMMENCED) {
+    return 0;
+  }
 
   rv = nghttp3_stream_frq_emplace(conn->tx.ctrl, &fr);
   if (rv != 0) {
