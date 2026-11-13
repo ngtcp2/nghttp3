@@ -7793,10 +7793,19 @@ void test_nghttp3_conn_qpack_encoder_stream_limit(void) {
   int fin;
   int rv;
   size_t i;
+  nghttp3_settings settings;
+  conn_options opts;
 
   /* A remote endpoint does not give flow control credit to QPACK
      encoder stream. */
-  setup_default_client(&conn);
+  nghttp3_settings_default(&settings);
+  settings.qpack_encoder_max_dtable_capacity = 65536;
+
+  opts = (conn_options){
+    .settings = &settings,
+  };
+
+  setup_default_client_with_options(&conn, opts);
   conn_write_initial_streams(conn);
 
   qenc_stream = conn->tx.qenc;
@@ -7808,7 +7817,7 @@ void test_nghttp3_conn_qpack_encoder_stream_limit(void) {
   };
   ents[0] = (nghttp3_settings_entry){
     .id = NGHTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY,
-    .value = 4096,
+    .value = 65536,
   };
 
   conn_read_control_stream(conn, 3, &fr);
