@@ -4799,6 +4799,14 @@ void test_nghttp3_conn_shutdown_server(void) {
 
   assert_int(NGHTTP3_REQ_STREAM_STATE_IGN_REST, ==, stream->rstate.state);
 
+  /* Calling nghttp3_conn_shutdown again does not send another GOAWAY,
+     and the rejected stream does not increase the ID. */
+  rv = nghttp3_conn_shutdown(conn);
+
+  assert_int(0, ==, rv);
+  assert_int64(8, ==, conn->tx.goaway_id);
+  assert_size(0, ==, nghttp3_ringbuf_len(&conn->tx.ctrl->frq));
+
   nghttp3_qpack_encoder_free(&qenc);
   nghttp3_conn_del(conn);
 }
