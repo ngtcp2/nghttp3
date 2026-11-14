@@ -5273,6 +5273,7 @@ void test_nghttp3_conn_shutdown_server(void) {
   int64_t stream_id;
   int fin;
   conn_options opts;
+  size_t i;
 
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
@@ -5349,6 +5350,51 @@ void test_nghttp3_conn_shutdown_server(void) {
   assert_int(0, ==, rv);
   assert_int64(8, ==, conn->tx.goaway_id);
   assert_size(0, ==, nghttp3_ringbuf_len(&conn->tx.ctrl->frq));
+
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_conn_del(conn);
+
+  /* Receiving too many streams that are rejected after GOAWAY */
+  nghttp3_buf_reset(&buf);
+
+  setup_default_server_with_options(&conn, opts);
+  conn_write_initial_streams(conn);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  rv = nghttp3_conn_shutdown(conn);
+
+  assert_int(0, ==, rv);
+  assert_int64(0, ==, conn->tx.goaway_id);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)req_nva,
+    .nvlen = nghttp3_arraylen(req_nva),
+  };
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  ud = (userdata){0};
+
+  for (i = 0; i < conn->local.settings.glitch_ratelim_burst; ++i) {
+    nconsumed = nghttp3_conn_read_stream2(conn, (int64_t)(i << 2), buf.pos,
+                                          nghttp3_buf_len(&buf),
+                                          /* fin = */ 1, 0);
+
+    assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  }
+
+  assert_uint64(0, ==, conn->glitch_rlim.tokens);
+  assert_size(i, ==, ud.stop_sending_cb.ncalled);
+  assert_size(i, ==, ud.reset_stream_cb.ncalled);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, (int64_t)(i << 2), buf.pos,
+                                        nghttp3_buf_len(&buf),
+                                        /* fin = */ 1, 0);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nconsumed);
+  assert_size(i, ==, ud.stop_sending_cb.ncalled);
+  assert_size(i, ==, ud.reset_stream_cb.ncalled);
 
   nghttp3_qpack_encoder_free(&qenc);
   nghttp3_conn_del(conn);
