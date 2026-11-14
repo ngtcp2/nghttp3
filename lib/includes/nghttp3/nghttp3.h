@@ -3113,7 +3113,8 @@ typedef struct nghttp3_data_reader {
  * :macro:`NGHTTP3_ERR_NOMEM`
  *     Out of memory.
  * :macro:`NGHTTP3_ERR_INVALID_ARGUMENT`
- *     The required memory for |nva| of length |nvlen| is too large.
+ *     The required memory for |nva| of length |nvlen| is too large;
+ *     or |nvlen| == 0.
  */
 NGHTTP3_EXTERN int nghttp3_conn_submit_request(
   nghttp3_conn *conn, int64_t stream_id, const nghttp3_nv *nva, size_t nvlen,
@@ -3158,7 +3159,8 @@ NGHTTP3_EXTERN int nghttp3_conn_submit_info(nghttp3_conn *conn,
  * :macro:`NGHTTP3_ERR_NOMEM`
  *     Out of memory.
  * :macro:`NGHTTP3_ERR_INVALID_ARGUMENT`
- *     The required memory for |nva| of length |nvlen| is too large.
+ *     The required memory for |nva| of length |nvlen| is too large;
+ *     or |nvlen| == 0.
  */
 NGHTTP3_EXTERN int nghttp3_conn_submit_response(nghttp3_conn *conn,
                                                 int64_t stream_id,
