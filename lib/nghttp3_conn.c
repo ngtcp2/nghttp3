@@ -504,6 +504,13 @@ nghttp3_ssize nghttp3_conn_read_stream2(nghttp3_conn *conn, int64_t stream_id,
 
         if ((conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_QUEUED) &&
             conn->tx.goaway_id <= stream_id) {
+          /* A few requests might have been sent before a remote
+             endpoint received GOAWAY, but receiving too many of them
+             is suspicious. */
+          if (conn_glitch_ratelim_drain(conn, 1, ts) != 0) {
+            return NGHTTP3_ERR_H3_EXCESSIVE_LOAD;
+          }
+
           stream->rstate.state = NGHTTP3_REQ_STREAM_STATE_IGN_REST;
 
           rv = nghttp3_conn_reject_stream(conn, stream);
