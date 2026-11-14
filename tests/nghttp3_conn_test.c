@@ -146,6 +146,12 @@ typedef struct {
     size_t ncalled;
   } recv_trailer_cb;
   struct {
+    size_t ncalled;
+  } end_trailers_cb;
+  struct {
+    size_t ncalled;
+  } end_stream_cb;
+  struct {
     const nghttp3_vec *origin_list;
     size_t origin_listlen;
     size_t offset;
@@ -231,6 +237,31 @@ static int recv_trailer(nghttp3_conn *conn, int64_t stream_id, int32_t token,
   (void)stream_user_data;
 
   ++ud->recv_trailer_cb.ncalled;
+
+  return 0;
+}
+
+static int end_trailers(nghttp3_conn *conn, int64_t stream_id, int fin,
+                        void *user_data, void *stream_user_data) {
+  userdata *ud = user_data;
+  (void)conn;
+  (void)stream_id;
+  (void)fin;
+  (void)stream_user_data;
+
+  ++ud->end_trailers_cb.ncalled;
+
+  return 0;
+}
+
+static int end_stream(nghttp3_conn *conn, int64_t stream_id, void *user_data,
+                      void *stream_user_data) {
+  userdata *ud = user_data;
+  (void)conn;
+  (void)stream_id;
+  (void)stream_user_data;
+
+  ++ud->end_stream_cb.ncalled;
 
   return 0;
 }
@@ -3949,6 +3980,8 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   static const nghttp3_callbacks callbacks = {
     .deferred_consume = deferred_consume,
     .stream_close2 = stream_close2,
+    .end_trailers = end_trailers,
+    .end_stream = end_stream,
   };
   nghttp3_settings settings;
   nghttp3_qpack_encoder qenc;
@@ -3962,6 +3995,7 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   nghttp3_stream *stream;
   userdata ud = {0};
   conn_options opts;
+  uint8_t *p;
 
   nghttp3_settings_default(&settings);
   settings.qpack_max_dtable_capacity = 4096;
@@ -4181,8 +4215,177 @@ void test_nghttp3_conn_qpack_blocked_stream(void) {
   sconsumed = nghttp3_conn_read_stream2(
     conn, 7, ebuf.pos, nghttp3_buf_len(&ebuf), /* fin = */ 0, 0);
 
-  assert_ptrdiff(NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED, ==, sconsumed);
+  assert_ptrdiff(NGHTTP3_ERR_MALFORMED_HTTP_HEADER, ==, sconsumed);
   assert_not_null(nghttp3_conn_find_stream(conn, 0));
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_buf_free(&ebuf, mem);
+
+  /* Stream that is blocked at the end of HEADERS which has empty
+     representation (that is only include Header Block Prefix) is
+     resumed when it is unblocked even if no stream data is
+     buffered. */
+  nghttp3_buf_init(&ebuf);
+  nghttp3_buf_reset(&buf);
+
+  nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_dtable_capacity,
+                             NGHTTP3_TEST_MAP_SEED, mem);
+  nghttp3_qpack_encoder_set_max_blocked_streams(&qenc,
+                                                settings.qpack_blocked_streams);
+
+  ud = (userdata){0};
+  opts = (conn_options){
+    .callbacks = &callbacks,
+    .settings = &settings,
+    .user_data = &ud,
+  };
+
+  setup_default_client_with_options(&conn, opts);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
+
+  /* Response HEADERS does not refer to dynamic table. */
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  nghttp3_qpack_encoder_set_max_dtable_capacity(
+    &qenc, settings.qpack_max_dtable_capacity);
+
+  p = buf.last;
+
+  /* Trailer HEADERS refers to dynamic table. */
+  nghttp3_write_frame_qpack_dyn(&buf, &ebuf, &qenc, 0, &fr);
+
+  assert(buf.last - p > 4);
+
+  /* Craft empty HEADERS (just leave Header Block Prefix) */
+  p[1] = 2;
+  buf.last = p + 4;
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 1, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED);
+  assert_size(0, ==, nghttp3_stream_get_buffered_datalen(stream));
+  assert_size(0, ==, ud.end_trailers_cb.ncalled);
+  assert_size(0, ==, ud.end_stream_cb.ncalled);
+
+  nghttp3_buf_reset(&buf);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_QPACK_ENCODER);
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 7, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+
+  sconsumed = nghttp3_conn_read_stream2(
+    conn, 7, ebuf.pos, nghttp3_buf_len(&ebuf), /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&ebuf), ==, sconsumed);
+  assert_false(stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED);
+  assert_size(1, ==, ud.end_trailers_cb.ncalled);
+  assert_size(1, ==, ud.end_stream_cb.ncalled);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_buf_free(&ebuf, mem);
+
+  /* Closing a stream blocked at the end of a prefix-only HEADERS
+     frame defers deletion until it is unblocked, even with no
+     buffered stream data. */
+  nghttp3_buf_init(&ebuf);
+  nghttp3_buf_reset(&buf);
+
+  nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_dtable_capacity,
+                             NGHTTP3_TEST_MAP_SEED, mem);
+  nghttp3_qpack_encoder_set_max_blocked_streams(&qenc,
+                                                settings.qpack_blocked_streams);
+
+  ud = (userdata){0};
+  opts = (conn_options){
+    .callbacks = &callbacks,
+    .settings = &settings,
+    .user_data = &ud,
+  };
+
+  setup_default_client_with_options(&conn, opts);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
+
+  /* Response HEADERS does not refer to dynamic table. */
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  nghttp3_qpack_encoder_set_max_dtable_capacity(
+    &qenc, settings.qpack_max_dtable_capacity);
+
+  p = buf.last;
+
+  /* Trailer HEADERS refers to dynamic table. */
+  nghttp3_write_frame_qpack_dyn(&buf, &ebuf, &qenc, 0, &fr);
+
+  assert(buf.last - p > 4);
+
+  /* Craft empty HEADERS (just leave Header Block Prefix) */
+  p[1] = 2;
+  buf.last = p + 4;
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 1, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 0);
+
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED);
+  assert_size(0, ==, nghttp3_stream_get_buffered_datalen(stream));
+  assert_size(0, ==, ud.end_trailers_cb.ncalled);
+  assert_size(0, ==, ud.end_stream_cb.ncalled);
+
+  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
+
+  assert_int(0, ==, rv);
+  assert_not_null(nghttp3_conn_find_stream(conn, 0));
+  assert_true(stream->flags & NGHTTP3_STREAM_FLAG_CLOSED);
+  assert_size(0, ==, ud.stream_close2.ncalled);
+
+  nghttp3_buf_reset(&buf);
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_QPACK_ENCODER);
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 7, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+
+  sconsumed = nghttp3_conn_read_stream2(
+    conn, 7, ebuf.pos, nghttp3_buf_len(&ebuf), /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&ebuf), ==, sconsumed);
+  assert_null(nghttp3_conn_find_stream(conn, 0));
+  assert_size(1, ==, ud.stream_close2.ncalled);
+  assert_size(1, ==, ud.end_trailers_cb.ncalled);
+  assert_size(1, ==, ud.end_stream_cb.ncalled);
 
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
