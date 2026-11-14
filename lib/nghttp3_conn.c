@@ -1435,35 +1435,50 @@ static int conn_process_blocked_stream_data(nghttp3_conn *conn,
 
   assert(nghttp3_client_stream_bidi(stream->node.id));
 
-  for (;;) {
-    len = nghttp3_ringbuf_len(&stream->inq);
-    if (len == 0) {
-      break;
-    }
-
-    buf = nghttp3_ringbuf_get(&stream->inq, 0);
-
+  if (nghttp3_ringbuf_len(&stream->inq) == 0) {
+    /* No stream data was buffered while stream was blocked.  We still
+       need to resume stream because HEADERS frame that ends with the
+       field section prefix must be completed, and fin might have been
+       received. */
     nconsumed = nghttp3_conn_read_bidi(
-      conn, &nproc, stream, buf->pos, nghttp3_buf_len(buf),
-      len == 1 && (stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF), ts);
+      conn, &nproc, stream, NULL, 0,
+      (stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF) != 0, ts);
     if (nconsumed < 0) {
       return (int)nconsumed;
     }
 
-    buf->pos += nproc;
+    assert(0 == nconsumed);
+  } else {
+    for (;;) {
+      len = nghttp3_ringbuf_len(&stream->inq);
+      if (len == 0) {
+        break;
+      }
 
-    rv = conn_call_deferred_consume(conn, stream, (size_t)nconsumed);
-    if (rv != 0) {
-      return rv;
-    }
+      buf = nghttp3_ringbuf_get(&stream->inq, 0);
 
-    if (nghttp3_buf_len(buf) == 0) {
-      nghttp3_buf_free(buf, stream->mem);
-      nghttp3_ringbuf_pop_front(&stream->inq);
-    }
+      nconsumed = nghttp3_conn_read_bidi(
+        conn, &nproc, stream, buf->pos, nghttp3_buf_len(buf),
+        len == 1 && (stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF), ts);
+      if (nconsumed < 0) {
+        return (int)nconsumed;
+      }
 
-    if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
-      break;
+      buf->pos += nproc;
+
+      rv = conn_call_deferred_consume(conn, stream, (size_t)nconsumed);
+      if (rv != 0) {
+        return rv;
+      }
+
+      if (nghttp3_buf_len(buf) == 0) {
+        nghttp3_buf_free(buf, stream->mem);
+        nghttp3_ringbuf_pop_front(&stream->inq);
+      }
+
+      if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
+        break;
+      }
     }
   }
 
@@ -1552,14 +1567,23 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
                                      nghttp3_stream *stream, const uint8_t *src,
                                      size_t srclen, int fin,
                                      nghttp3_tstamp ts) {
-  const uint8_t *p = src, *end = src ? src + srclen : src;
+  const uint8_t *p, *end;
   int rv;
   nghttp3_stream_read_state *rstate = &stream->rstate;
   nghttp3_varint_read_state *rvint = &rstate->rvint;
   nghttp3_ssize nread;
   size_t nconsumed = 0;
-  int busy = 0;
+  int busy;
   size_t len;
+
+  if (srclen) {
+    p = src;
+    end = p + srclen;
+  } else {
+    src = (const uint8_t *)"";
+    p = src;
+    end = p;
+  }
 
   if (stream->flags & NGHTTP3_STREAM_FLAG_SHUT_RD) {
     *pnproc = srclen;
@@ -1580,6 +1604,12 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
     }
     return 0;
   }
+
+  /* If stream was blocked by QPACK decoder at the end of HEADERS
+     frame, we have no more frame payload to read, but the field
+     section is not completed yet.  Complete it without waiting for
+     the further stream data. */
+  busy = rstate->state == NGHTTP3_REQ_STREAM_STATE_HEADERS && rstate->left == 0;
 
   for (; p != end || busy;) {
     busy = 0;

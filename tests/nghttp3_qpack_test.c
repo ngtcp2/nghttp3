@@ -46,6 +46,7 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_qpack_huffman_decode_failure_state),
   munit_void_test(test_nghttp3_qpack_decoder_reconstruct_ricnt),
   munit_void_test(test_nghttp3_qpack_decoder_read_encoder),
+  munit_void_test(test_nghttp3_qpack_decoder_read_request),
   munit_void_test(test_nghttp3_qpack_encoder_read_decoder),
   munit_test_end(),
 };
@@ -1373,6 +1374,62 @@ void test_nghttp3_qpack_decoder_read_encoder(void) {
   nghttp3_buf_free(&ebuf, mem);
   nghttp3_buf_free(&rbuf, mem);
   nghttp3_buf_free(&pbuf, mem);
+}
+
+void test_nghttp3_qpack_decoder_read_request(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_qpack_decoder dec;
+  nghttp3_qpack_stream_context sctx;
+  nghttp3_qpack_nv qnv;
+  uint8_t flags;
+  nghttp3_ssize nread;
+  /* Set Dynamic Table Capacity (4096) */
+  static const uint8_t set_dtable_cap[] = {0x3f, 0xe1, 0x1f};
+  /* Insert With Literal Name (foo: bar) */
+  static const uint8_t insert[] = {0x43, 'f', 'o', 'o', 0x03, 'b', 'a', 'r'};
+  /* Required Insert Count = 1, Base = 1 */
+  static const uint8_t prefix[] = {0x02, 0x00};
+
+  /* Field section that is blocked and only contains Encoded Field
+     Section Prefix is completed without further input once it is
+     unblocked. */
+  nghttp3_qpack_decoder_init(&dec, 4096, 1, mem);
+  nghttp3_qpack_stream_context_init(&sctx, 0, mem);
+
+  nread = nghttp3_qpack_decoder_read_request(&dec, &sctx, &qnv, &flags, prefix,
+                                             sizeof(prefix), /* fin = */ 1);
+
+  assert_ptrdiff((nghttp3_ssize)sizeof(prefix), ==, nread);
+  assert_uint8(NGHTTP3_QPACK_DECODE_FLAG_BLOCKED, ==, flags);
+
+  /* Still blocked */
+  nread = nghttp3_qpack_decoder_read_request(&dec, &sctx, &qnv, &flags, NULL, 0,
+                                             /* fin = */ 1);
+
+  assert_ptrdiff(0, ==, nread);
+  assert_uint8(NGHTTP3_QPACK_DECODE_FLAG_BLOCKED, ==, flags);
+  assert_size(0, ==, nghttp3_qpack_decoder_get_decoder_streamlen2(&dec));
+
+  nread = nghttp3_qpack_decoder_read_encoder(&dec, set_dtable_cap,
+                                             sizeof(set_dtable_cap));
+
+  assert_ptrdiff((nghttp3_ssize)sizeof(set_dtable_cap), ==, nread);
+
+  nread = nghttp3_qpack_decoder_read_encoder(&dec, insert, sizeof(insert));
+
+  assert_ptrdiff((nghttp3_ssize)sizeof(insert), ==, nread);
+  assert_uint64(1, ==, nghttp3_qpack_decoder_get_icnt(&dec));
+
+  nread = nghttp3_qpack_decoder_read_request(&dec, &sctx, &qnv, &flags, NULL, 0,
+                                             /* fin = */ 1);
+
+  assert_ptrdiff(0, ==, nread);
+  assert_uint8(NGHTTP3_QPACK_DECODE_FLAG_FINAL, ==, flags);
+  /* Section Acknowledgment is written. */
+  assert_size(1, ==, nghttp3_qpack_decoder_get_decoder_streamlen2(&dec));
+
+  nghttp3_qpack_stream_context_free(&sctx);
+  nghttp3_qpack_decoder_free(&dec);
 }
 
 void test_nghttp3_qpack_encoder_read_decoder(void) {

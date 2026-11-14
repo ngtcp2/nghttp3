@@ -3389,7 +3389,7 @@ nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
                                    const uint8_t *src, size_t srclen, int fin) {
   const uint8_t *p = src, *end = src ? src + srclen : src;
   int rv;
-  int busy = 0;
+  int busy;
   nghttp3_ssize nread;
   int rfin;
   const nghttp3_mem *mem = decoder->ctx.mem;
@@ -3400,6 +3400,11 @@ nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
   }
 
   *pflags = NGHTTP3_QPACK_DECODE_FLAG_NONE;
+
+  /* A field section might end with its prefix.  In that case, we have
+     no input to read when decoding is resumed, but we still need to
+     leave NGHTTP3_QPACK_RS_STATE_BLOCKED to complete it. */
+  busy = sctx->state == NGHTTP3_QPACK_RS_STATE_BLOCKED;
 
   for (; p != end || busy;) {
     busy = 0;
