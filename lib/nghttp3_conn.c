@@ -1756,6 +1756,12 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
         nghttp3_conn_on_headers(conn, stream, p, len, len == rstate->left, ts);
       if (nread < 0) {
         if (nread == NGHTTP3_ERR_MAX_FIELD_SECTION_SIZE_EXCEEDED) {
+          /* We do not expect too frequent field sections that exceed
+             the limit we have advertised. */
+          if (conn_glitch_ratelim_drain(conn, 1, ts) != 0) {
+            return NGHTTP3_ERR_H3_EXCESSIVE_LOAD;
+          }
+
           rstate->state = NGHTTP3_REQ_STREAM_STATE_IGN_REST;
           busy = 1;
           break;

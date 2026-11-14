@@ -8189,6 +8189,7 @@ void test_nghttp3_conn_max_field_section_size(void) {
   nghttp3_ssize sconsumed;
   nghttp3_frame fr;
   nghttp3_stream *stream;
+  size_t i;
 
   nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
 
@@ -8232,6 +8233,26 @@ void test_nghttp3_conn_max_field_section_size(void) {
 
   assert_not_null(stream);
   assert_int(NGHTTP3_REQ_STREAM_STATE_IGN_REST, ==, stream->rstate.state);
+  assert_uint64(conn->local.settings.glitch_ratelim_burst - 1, ==,
+                conn->glitch_rlim.tokens);
+
+  /* Receiving too many field sections that exceed the limit */
+  nghttp3_conn_set_max_client_streams_bidi(
+    conn, conn->local.settings.glitch_ratelim_burst + 1);
+
+  for (i = 1; i < conn->local.settings.glitch_ratelim_burst; ++i) {
+    sconsumed = nghttp3_conn_read_stream2(
+      conn, (int64_t)(i * 4), buf.pos, nghttp3_buf_len(&buf), /* fin = */ 0, 0);
+
+    assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  }
+
+  assert_uint64(0, ==, conn->glitch_rlim.tokens);
+
+  sconsumed = nghttp3_conn_read_stream2(
+    conn, (int64_t)(i * 4), buf.pos, nghttp3_buf_len(&buf), /* fin = */ 0, 0);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, sconsumed);
 
   nghttp3_qpack_encoder_free(&qenc);
   nghttp3_conn_del(conn);
