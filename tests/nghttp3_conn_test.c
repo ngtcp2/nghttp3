@@ -5085,6 +5085,53 @@ void test_nghttp3_conn_recv_goaway(void) {
   assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nconsumed);
 
   nghttp3_conn_del(conn);
+
+  /* Receiving too many GOAWAY frames with the decreasing Stream ID is
+     suspicious */
+  nghttp3_buf_reset(&buf);
+  setup_default_client(&conn);
+
+  fr.settings = (nghttp3_frame_settings){
+    .type = NGHTTP3_FRAME_SETTINGS,
+  };
+
+  conn_read_control_stream(conn, 3, &fr);
+
+  /* The first GOAWAY is not counted toward glitch counter. */
+  for (i = 0; i < conn->local.settings.glitch_ratelim_burst + 1; ++i) {
+    nghttp3_buf_reset(&buf);
+
+    fr.goaway = (nghttp3_frame_goaway){
+      .type = NGHTTP3_FRAME_GOAWAY,
+      .id = (int64_t)(conn->local.settings.glitch_ratelim_burst + 1 - i) * 4,
+    };
+
+    nghttp3_write_frame(&buf, &fr);
+
+    nconsumed = nghttp3_conn_read_stream2(
+      conn, 3, buf.pos, nghttp3_buf_len(&buf), /* fin = */ 0, 0);
+
+    assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  }
+
+  assert_uint64(0, ==, conn->glitch_rlim.tokens);
+  assert_int64(4, ==, conn->rx.goaway_id);
+
+  nghttp3_buf_reset(&buf);
+
+  fr.goaway = (nghttp3_frame_goaway){
+    .type = NGHTTP3_FRAME_GOAWAY,
+    .id = 0,
+  };
+
+  nghttp3_write_frame(&buf, &fr);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 3, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nconsumed);
+
+  nghttp3_conn_del(conn);
 }
 
 void test_nghttp3_conn_shutdown_server(void) {
@@ -7176,6 +7223,44 @@ void test_nghttp3_conn_push(void) {
   }
 
   assert_uint64(0, ==, conn->glitch_rlim.tokens);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nconsumed);
+
+  nghttp3_conn_del(conn);
+
+  /* Receiving too many MAX_PUSH_ID with the increasing maximum value
+     from client is suspicious */
+  nghttp3_buf_reset(&buf);
+  setup_default_server(&conn);
+
+  conn_read_control_stream(conn, 2, &fr);
+
+  /* The first MAX_PUSH_ID is not counted toward glitch counter. */
+  for (i = 0; i < conn->local.settings.glitch_ratelim_burst + 1; ++i) {
+    nghttp3_buf_reset(&buf);
+
+    buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
+    buf.last = nghttp3_put_uvarint(buf.last, nghttp3_put_uvarintlen(i));
+    buf.last = nghttp3_put_uvarint(buf.last, i);
+
+    nconsumed =
+      nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                /* fin = */ 0, 0);
+
+    assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+  }
+
+  assert_uint64(0, ==, conn->glitch_rlim.tokens);
+  assert_uint64(i, ==, conn->local.uni.max_pushes);
+
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_FRAME_MAX_PUSH_ID);
+  buf.last = nghttp3_put_uvarint(buf.last, nghttp3_put_uvarintlen(i));
+  buf.last = nghttp3_put_uvarint(buf.last, i);
 
   nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
                                         /* fin = */ 0, 0);

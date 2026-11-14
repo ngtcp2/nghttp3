@@ -1056,8 +1056,10 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
         return NGHTTP3_ERR_H3_ID_ERROR;
       }
 
-      /* Receiving same GOAWAY ID is suspicious. */
-      if (conn->rx.goaway_id == (int64_t)rvint->acc &&
+      /* Receiving GOAWAY more than once is suspicious regardless of
+         its ID.  Lowering ID in each frame must not evade the glitch
+         rate limiter.  The first GOAWAY is not counted. */
+      if ((conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED) &&
           conn_glitch_ratelim_drain(conn, 1, ts) != 0) {
         return NGHTTP3_ERR_H3_EXCESSIVE_LOAD;
       }
@@ -1096,8 +1098,11 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
         return NGHTTP3_ERR_H3_FRAME_ERROR;
       }
 
-      /* Receiving same MAX_PUSH_ID is suspicious. */
-      if (conn->local.uni.max_pushes == rvint->acc + 1 &&
+      /* Receiving MAX_PUSH_ID more than once is suspicious regardless
+         of its value.  Raising the value in each frame must not evade
+         the glitch rate limiter.  The first MAX_PUSH_ID is not
+         counted; max_pushes is nonzero once it has been received. */
+      if (conn->local.uni.max_pushes &&
           conn_glitch_ratelim_drain(conn, 1, ts) != 0) {
         return NGHTTP3_ERR_H3_EXCESSIVE_LOAD;
       }
