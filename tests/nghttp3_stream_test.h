@@ -36,5 +36,6 @@
 extern const MunitSuite stream_suite;
 
 munit_void_test_decl(test_nghttp3_read_varint)
+munit_void_test_decl(test_nghttp3_stream_buffer_data)
 
 #endif /* !defined(NGHTTP3_STREAM_TEST_H) */

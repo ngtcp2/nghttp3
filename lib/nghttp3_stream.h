@@ -41,6 +41,14 @@
 
 #define NGHTTP3_STREAM_MIN_CHUNK_SIZE 256
 
+/* NGHTTP3_STREAM_MIN_INQ_BUFLEN is the minimum size of a buffer in
+   nghttp3_stream.inq. */
+#define NGHTTP3_STREAM_MIN_INQ_BUFLEN 256
+/* NGHTTP3_STREAM_CAP_INQ_BUFLEN is the maximum geometric growth in
+   buffer size in nghttp3_stream.inq.  If there is more data to
+   buffer, it is allocated in its own size. */
+#define NGHTTP3_STREAM_CAP_INQ_BUFLEN 16384
+
 /* NGHTTP3_MIN_UNSENT_BYTES is the minimum unsent bytes which is large
    enough to fill outgoing single QUIC packet or TLS record in case of
    QMux (Cut 2 bytes for QMux record length). */
