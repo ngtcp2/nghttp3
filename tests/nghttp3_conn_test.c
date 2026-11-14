@@ -2524,8 +2524,10 @@ void test_nghttp3_conn_http_req_header(void) {
   };
   /* :protocol contains a list of tokens. */
   static const nghttp3_nv listproto_reqnv[] = {
-    MAKE_NV(":scheme", "https"),            MAKE_NV(":path", "/"),
-    MAKE_NV(":method", "CONNECT"),          MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":scheme", "https"),
+    MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "CONNECT"),
+    MAKE_NV(":authority", "localhost"),
     MAKE_NV(":protocol", "websocket, h2c"),
   };
   /* :protocol contains a bad character. */
@@ -5789,6 +5791,8 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
 
   assert_int(0, ==, rv);
   assert_size(1, ==, nghttp3_buf_len(&conn->qdec.dbuf));
+  assert_size(1, ==, nghttp3_pq_size(&conn->qpack_blocked_streams));
+  assert_size(1, ==, conn->qpack_blocked_streams_cancelled);
 
   /* Reading further stream data is discarded. */
   nghttp3_buf_reset(&buf);
@@ -5818,6 +5822,98 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&ebuf), ==, sconsumed);
   /* Make sure that Section Acknowledgement is not written. */
   assert_size(1, ==, nghttp3_buf_len(&conn->qdec.dbuf));
+  assert_size(indatalen, ==,
+              consumed_total + ud.deferred_consume_cb.consumed_total);
+  assert_true(nghttp3_pq_empty(&conn->qpack_blocked_streams));
+  assert_size(0, ==, conn->qpack_blocked_streams_cancelled);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_buf_free(&ebuf, mem);
+
+  /* Shutting down read-side stream when a stream is blocked by QPACK
+     dependency lets a remote endpoint block another stream. */
+  settings.qpack_blocked_streams = 1;
+
+  nghttp3_buf_init(&ebuf);
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_dtable_capacity,
+                             NGHTTP3_TEST_MAP_SEED, mem);
+  nghttp3_qpack_encoder_set_max_blocked_streams(&qenc,
+                                                settings.qpack_blocked_streams);
+  nghttp3_qpack_encoder_set_max_dtable_capacity(
+    &qenc, settings.qpack_max_dtable_capacity);
+
+  opts = (conn_options){
+    .callbacks = &callbacks,
+    .settings = &settings,
+    .user_data = &ud,
+  };
+
+  setup_default_client_with_options(&conn, opts);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_conn_submit_request(conn, 4, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
+
+  nghttp3_write_frame_qpack_dyn(&buf, &ebuf, &qenc, 0, &fr);
+
+  ud.deferred_consume_cb.consumed_total = 0;
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff(0, <, sconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), !=, sconsumed);
+  assert_size(1, ==, nghttp3_pq_size(&conn->qpack_blocked_streams));
+  assert_size(0, ==, conn->qpack_blocked_streams_cancelled);
+
+  consumed_total = (size_t)sconsumed;
+
+  rv = nghttp3_conn_shutdown_stream_read(conn, 0);
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, nghttp3_buf_len(&conn->qdec.dbuf));
+  assert_size(1, ==, nghttp3_pq_size(&conn->qpack_blocked_streams));
+  assert_size(1, ==, conn->qpack_blocked_streams_cancelled);
+
+  /* Remote endpoint reads Stream Cancellation, and is allowed to
+     block another stream. */
+  sconsumed = nghttp3_qpack_encoder_read_decoder(
+    &qenc, conn->qdec.dbuf.pos, nghttp3_buf_len(&conn->qdec.dbuf));
+
+  assert_ptrdiff(1, ==, sconsumed);
+
+  indatalen = nghttp3_buf_len(&buf);
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_qpack_dyn(&buf, &ebuf, &qenc, 4, &fr);
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 4, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff(0, <, sconsumed);
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), !=, sconsumed);
+  assert_size(2, ==, nghttp3_pq_size(&conn->qpack_blocked_streams));
+  assert_size(1, ==, conn->qpack_blocked_streams_cancelled);
+
+  rv = nghttp3_conn_close_stream(conn, 0, NGHTTP3_H3_NO_ERROR);
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, nghttp3_pq_size(&conn->qpack_blocked_streams));
+  assert_size(0, ==, conn->qpack_blocked_streams_cancelled);
   assert_size(indatalen, ==,
               consumed_total + ud.deferred_consume_cb.consumed_total);
 

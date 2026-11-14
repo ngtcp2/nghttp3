@@ -1352,6 +1352,12 @@ static int conn_delete_stream(nghttp3_conn *conn, nghttp3_stream *stream,
   if (stream->qpack_blocked_pe.index != NGHTTP3_PQ_BAD_INDEX) {
     nghttp3_conn_qpack_blocked_streams_remove(conn, stream);
 
+    if (stream->flags & NGHTTP3_STREAM_FLAG_SHUT_RD) {
+      assert(conn->qpack_blocked_streams_cancelled > 0);
+
+      --conn->qpack_blocked_streams_cancelled;
+    }
+
     rv = nghttp3_qpack_decoder_cancel_stream(&conn->qdec, stream->node.id);
     if (rv != 0) {
       return rv;
@@ -1475,6 +1481,12 @@ nghttp3_ssize nghttp3_conn_read_qpack_encoder(nghttp3_conn *conn,
     nghttp3_conn_qpack_blocked_streams_pop(conn);
     stream->qpack_blocked_pe.index = NGHTTP3_PQ_BAD_INDEX;
     stream->flags &= (uint16_t)~NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED;
+
+    if (stream->flags & NGHTTP3_STREAM_FLAG_SHUT_RD) {
+      assert(conn->qpack_blocked_streams_cancelled > 0);
+
+      --conn->qpack_blocked_streams_cancelled;
+    }
 
     rv = conn_process_blocked_stream_data(conn, stream, ts);
     if (rv != 0) {
@@ -1844,6 +1856,15 @@ int nghttp3_conn_on_data(nghttp3_conn *conn, nghttp3_stream *stream,
   return 0;
 }
 
+/*
+ * conn_qpack_blocked_streams returns the number of the blocked
+ * streams by QPACK decoder.
+ */
+static size_t conn_qpack_blocked_streams(const nghttp3_conn *conn) {
+  return nghttp3_pq_size(&conn->qpack_blocked_streams) -
+         conn->qpack_blocked_streams_cancelled;
+}
+
 static nghttp3_pq *conn_get_sched_pq(nghttp3_conn *conn, nghttp3_tnode *tnode) {
   assert(tnode->pri.urgency < NGHTTP3_URGENCY_LEVELS);
 
@@ -1900,8 +1921,10 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
     buf.pos += nread;
 
     if (flags & NGHTTP3_QPACK_DECODE_FLAG_BLOCKED) {
+      /* A remote endpoint does not count the streams for which
+         Stream Cancellation has been sent as blocked streams. */
       if (conn->local.settings.qpack_blocked_streams <=
-          nghttp3_pq_size(&conn->qpack_blocked_streams)) {
+          conn_qpack_blocked_streams(conn)) {
         return NGHTTP3_ERR_QPACK_DECOMPRESSION_FAILED;
       }
 
@@ -1910,6 +1933,14 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
       if (rv != 0) {
         return rv;
       }
+
+      if (stream->flags & NGHTTP3_STREAM_FLAG_SHUT_RD) {
+        /* Read-side stream has been shut down in the middle of
+           processing the stream data, and Stream Cancellation has
+           already been sent. */
+        ++conn->qpack_blocked_streams_cancelled;
+      }
+
       break;
     }
 
@@ -2874,6 +2905,14 @@ int nghttp3_conn_shutdown_stream_read(nghttp3_conn *conn, int64_t stream_id) {
     }
 
     stream->flags |= NGHTTP3_STREAM_FLAG_SHUT_RD;
+
+    if (stream->qpack_blocked_pe.index != NGHTTP3_PQ_BAD_INDEX) {
+      /* The stream stays in qpack_blocked_streams until it is
+         unblocked or closed so that the buffered stream data is
+         consumed, but a remote endpoint no longer counts it as
+         blocked stream once it receives Stream Cancellation. */
+      ++conn->qpack_blocked_streams_cancelled;
+    }
   }
 
   return nghttp3_qpack_decoder_cancel_stream(&conn->qdec, stream_id);
