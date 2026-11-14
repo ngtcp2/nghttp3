@@ -2516,6 +2516,24 @@ void test_nghttp3_conn_http_req_header(void) {
     MAKE_NV(":method", "CONNECT"),     MAKE_NV(":authority", "localhost"),
     MAKE_NV(":protocol", "websocket"), MAKE_NV(":protocol", "websocket"),
   };
+  /* :protocol is an empty string. */
+  static const nghttp3_nv emptyproto_reqnv[] = {
+    MAKE_NV(":scheme", "https"),   MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "CONNECT"), MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":protocol", ""),
+  };
+  /* :protocol contains a list of tokens. */
+  static const nghttp3_nv listproto_reqnv[] = {
+    MAKE_NV(":scheme", "https"),            MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "CONNECT"),          MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":protocol", "websocket, h2c"),
+  };
+  /* :protocol contains a bad character. */
+  static const nghttp3_nv badcharproto_reqnv[] = {
+    MAKE_NV(":scheme", "https"),           MAKE_NV(":path", "/"),
+    MAKE_NV(":method", "CONNECT"),         MAKE_NV(":authority", "localhost"),
+    MAKE_NV(":protocol", "websocket\x99"),
+  };
   /* host contains a bad character. */
   static const nghttp3_nv badcharhost_reqnv[] = {
     MAKE_NV(":scheme", "https"),
@@ -2645,6 +2663,13 @@ void test_nghttp3_conn_http_req_header(void) {
   check_http_req_header(headmethod_reqnv, nghttp3_arraylen(headmethod_reqnv),
                         0);
   check_http_req_header(dupproto_reqnv, nghttp3_arraylen(dupproto_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(emptyproto_reqnv, nghttp3_arraylen(emptyproto_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(listproto_reqnv, nghttp3_arraylen(listproto_reqnv),
+                        NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
+  check_http_req_header(badcharproto_reqnv,
+                        nghttp3_arraylen(badcharproto_reqnv),
                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
   check_http_req_header(badcharhost_reqnv, nghttp3_arraylen(badcharhost_reqnv),
                         NGHTTP3_ERR_MALFORMED_HTTP_HEADER);
