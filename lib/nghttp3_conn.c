@@ -2679,6 +2679,10 @@ int nghttp3_conn_submit_request(nghttp3_conn *conn, int64_t stream_id,
 
   /* TODO Check GOAWAY last stream ID */
 
+  if (nvlen == 0) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
+
   if (conn->flags & NGHTTP3_CONN_FLAG_GOAWAY_RECVED) {
     return NGHTTP3_ERR_CONN_CLOSING;
   }
@@ -2730,6 +2734,10 @@ int nghttp3_conn_submit_response(nghttp3_conn *conn, int64_t stream_id,
   /* TODO Verify that it is allowed to send response now. */
   assert(conn->server);
   assert(conn->tx.qenc);
+
+  if (nvlen == 0) {
+    return NGHTTP3_ERR_INVALID_ARGUMENT;
+  }
 
   stream = nghttp3_conn_find_stream(conn, stream_id);
   if (stream == NULL) {
