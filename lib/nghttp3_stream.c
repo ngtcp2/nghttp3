@@ -817,6 +817,14 @@ int nghttp3_stream_ensure_chunk(nghttp3_stream *stream, size_t need) {
   for (; n < need; n *= 2)
     ;
 
+  if (nghttp3_ringbuf_full(chunks)) {
+    size_t nlen = nghttp3_max(NGHTTP3_MIN_RBLEN, len * 2);
+    rv = nghttp3_ringbuf_reserve(chunks, nlen);
+    if (rv != 0) {
+      return rv;
+    }
+  }
+
   if (n == NGHTTP3_STREAM_MIN_CHUNK_SIZE) {
     p =
       (uint8_t *)nghttp3_objalloc_chunk_len_get(stream->out_chunk_objalloc, n);
@@ -825,14 +833,6 @@ int nghttp3_stream_ensure_chunk(nghttp3_stream *stream, size_t need) {
   }
   if (p == NULL) {
     return NGHTTP3_ERR_NOMEM;
-  }
-
-  if (nghttp3_ringbuf_full(chunks)) {
-    size_t nlen = nghttp3_max(NGHTTP3_MIN_RBLEN, len * 2);
-    rv = nghttp3_ringbuf_reserve(chunks, nlen);
-    if (rv != 0) {
-      return rv;
-    }
   }
 
   chunk = nghttp3_ringbuf_push_back(chunks);
