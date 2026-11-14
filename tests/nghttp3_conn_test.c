@@ -144,6 +144,19 @@ typedef struct {
   } recv_settings2_cb;
   struct {
     size_t ncalled;
+  } recv_header_cb;
+  struct {
+    size_t ncalled;
+  } begin_headers_cb;
+  struct {
+    size_t ncalled;
+    size_t datalen;
+  } recv_data_cb;
+  struct {
+    size_t ncalled;
+  } end_headers_cb;
+  struct {
+    size_t ncalled;
   } recv_trailer_cb;
   struct {
     size_t ncalled;
@@ -213,6 +226,62 @@ static int recv_header(nghttp3_conn *conn, int64_t stream_id, int32_t token,
   return 0;
 }
 
+static int begin_headers_shutdown_stream_read(nghttp3_conn *conn,
+                                              int64_t stream_id,
+                                              void *user_data,
+                                              void *stream_user_data) {
+  userdata *ud = user_data;
+  (void)stream_user_data;
+
+  ++ud->begin_headers_cb.ncalled;
+
+  if (nghttp3_conn_shutdown_stream_read(conn, stream_id) != 0) {
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
+  return 0;
+}
+
+static int recv_data_shutdown_stream_read(nghttp3_conn *conn, int64_t stream_id,
+                                          const uint8_t *data, size_t datalen,
+                                          void *user_data,
+                                          void *stream_user_data) {
+  userdata *ud = user_data;
+  (void)data;
+  (void)stream_user_data;
+
+  ++ud->recv_data_cb.ncalled;
+  ud->recv_data_cb.datalen += datalen;
+
+  if (nghttp3_conn_shutdown_stream_read(conn, stream_id) != 0) {
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
+  return 0;
+}
+
+static int recv_header_shutdown_stream_read(nghttp3_conn *conn,
+                                            int64_t stream_id, int32_t token,
+                                            nghttp3_rcbuf *name,
+                                            nghttp3_rcbuf *value, uint8_t flags,
+                                            void *user_data,
+                                            void *stream_user_data) {
+  userdata *ud = user_data;
+  (void)token;
+  (void)name;
+  (void)value;
+  (void)flags;
+  (void)stream_user_data;
+
+  ++ud->recv_header_cb.ncalled;
+
+  if (nghttp3_conn_shutdown_stream_read(conn, stream_id) != 0) {
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
+  return 0;
+}
+
 static int end_headers(nghttp3_conn *conn, int64_t stream_id, int fin,
                        void *user_data, void *stream_user_data) {
   (void)conn;
@@ -220,6 +289,23 @@ static int end_headers(nghttp3_conn *conn, int64_t stream_id, int fin,
   (void)fin;
   (void)stream_user_data;
   (void)user_data;
+  return 0;
+}
+
+static int end_headers_shutdown_stream_read(nghttp3_conn *conn,
+                                            int64_t stream_id, int fin,
+                                            void *user_data,
+                                            void *stream_user_data) {
+  userdata *ud = user_data;
+  (void)stream_user_data;
+
+  ++ud->end_headers_cb.ncalled;
+  assert_true(fin);
+
+  if (nghttp3_conn_shutdown_stream_read(conn, stream_id) != 0) {
+    return NGHTTP3_ERR_CALLBACK_FAILURE;
+  }
+
   return 0;
 }
 
@@ -6155,11 +6241,36 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   static const nghttp3_callbacks callbacks = {
     .deferred_consume = deferred_consume,
   };
+  static const nghttp3_callbacks shut_callbacks = {
+    .recv_header = recv_header_shutdown_stream_read,
+  };
+  static const nghttp3_callbacks begin_headers_shut_callbacks = {
+    .begin_headers = begin_headers_shutdown_stream_read,
+    .recv_header = recv_header_shutdown_stream_read,
+    .end_headers = end_headers_shutdown_stream_read,
+    .end_stream = end_stream,
+  };
+  static const nghttp3_callbacks recv_data_shut_callbacks = {
+    .recv_data = recv_data_shutdown_stream_read,
+    .end_stream = end_stream,
+  };
+  static const nghttp3_callbacks outside_shut_callbacks = {
+    .begin_headers = begin_headers_shutdown_stream_read,
+    .recv_header = recv_header_shutdown_stream_read,
+    .end_headers = end_headers_shutdown_stream_read,
+    .recv_data = recv_data_shutdown_stream_read,
+    .end_stream = end_stream,
+  };
+  static const nghttp3_callbacks end_headers_shut_callbacks = {
+    .end_headers = end_headers_shutdown_stream_read,
+    .end_stream = end_stream,
+  };
   nghttp3_settings settings;
   nghttp3_qpack_encoder qenc;
   int rv;
   nghttp3_buf ebuf;
   uint8_t rawbuf[4096];
+  static const uint8_t qenc_stream_type[] = {NGHTTP3_STREAM_TYPE_QPACK_ENCODER};
   nghttp3_buf buf;
   nghttp3_frame fr;
   nghttp3_ssize sconsumed;
@@ -6350,6 +6461,290 @@ void test_nghttp3_conn_shutdown_stream_read(void) {
   nghttp3_conn_del(conn);
   nghttp3_qpack_encoder_free(&qenc);
   nghttp3_buf_free(&ebuf, mem);
+
+  /* Shutting down read-side stream from recv_header callback while
+     the field section that refers to dynamic table is being
+     decoded. */
+  nghttp3_buf_init(&ebuf);
+  nghttp3_buf_reset(&buf);
+
+  nghttp3_qpack_encoder_init(&qenc, settings.qpack_max_dtable_capacity,
+                             NGHTTP3_TEST_MAP_SEED, mem);
+  nghttp3_qpack_encoder_set_max_blocked_streams(&qenc,
+                                                settings.qpack_blocked_streams);
+  nghttp3_qpack_encoder_set_max_dtable_capacity(
+    &qenc, settings.qpack_max_dtable_capacity);
+
+  ud = (userdata){0};
+  opts = (conn_options){
+    .callbacks = &shut_callbacks,
+    .settings = &settings,
+    .user_data = &ud,
+  };
+
+  setup_default_client_with_options(&conn, opts);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
+
+  nghttp3_write_frame_qpack_dyn(&buf, &ebuf, &qenc, 0, &fr);
+  nghttp3_write_frame_data(&buf, 111);
+
+  assert_size(0, <, nghttp3_buf_len(&ebuf));
+
+  /* Feed QPACK encoder stream first so that the stream is not
+     blocked. */
+  sconsumed = nghttp3_conn_read_stream2(
+    conn, 7, qenc_stream_type, sizeof(qenc_stream_type), /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)sizeof(qenc_stream_type), ==, sconsumed);
+
+  sconsumed = nghttp3_conn_read_stream2(
+    conn, 7, ebuf.pos, nghttp3_buf_len(&ebuf), /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&ebuf), ==, sconsumed);
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 1, 0);
+
+  /* The rest of the field section and the following DATA frame are
+     discarded. */
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_size(1, ==, ud.recv_header_cb.ncalled);
+  /* Make sure that Section Acknowledgement is not written after
+     Stream Cancellation. */
+  assert_size(1, ==, nghttp3_buf_len(&conn->qdec.dbuf));
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+  nghttp3_buf_free(&ebuf, mem);
+
+  /* Shutting down reading from end_headers when HEADERS ends exactly
+     at FIN must not invoke end_stream. */
+  nghttp3_buf_reset(&buf);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  ud = (userdata){0};
+  opts = (conn_options){
+    .callbacks = &end_headers_shut_callbacks,
+    .user_data = &ud,
+  };
+
+  setup_default_client_with_options(&conn, opts);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 1, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_size(1, ==, ud.end_headers_cb.ncalled);
+  assert_size(0, ==, ud.end_stream_cb.ncalled);
+  assert_true(nghttp3_conn_find_stream(conn, 0)->flags &
+              NGHTTP3_STREAM_FLAG_SHUT_RD);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* Shutting down reading from begin_headers must discard the field
+     section without invoking subsequent callbacks. */
+  nghttp3_buf_reset(&buf);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  ud = (userdata){0};
+  opts = (conn_options){
+    .callbacks = &begin_headers_shut_callbacks,
+    .user_data = &ud,
+  };
+
+  setup_default_client_with_options(&conn, opts);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 1, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_size(1, ==, ud.begin_headers_cb.ncalled);
+  assert_size(0, ==, ud.recv_header_cb.ncalled);
+  assert_size(0, ==, ud.end_headers_cb.ncalled);
+  assert_size(0, ==, ud.end_stream_cb.ncalled);
+  assert_true(nghttp3_conn_find_stream(conn, 0)->flags &
+              NGHTTP3_STREAM_FLAG_SHUT_RD);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* Shutting down reading from recv_data must discard the following
+     DATA frame and suppress end_stream at FIN. */
+  nghttp3_buf_reset(&buf);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  ud = (userdata){0};
+  opts = (conn_options){
+    .callbacks = &recv_data_shut_callbacks,
+    .user_data = &ud,
+  };
+
+  setup_default_client_with_options(&conn, opts);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+  nghttp3_write_frame_data(&buf, 10);
+  nghttp3_write_frame_data(&buf, 10);
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 1, 0);
+
+  /* Only the first DATA payload is consumed by the application. */
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf) - 10, ==, sconsumed);
+  assert_size(1, ==, ud.recv_data_cb.ncalled);
+  assert_size(10, ==, ud.recv_data_cb.datalen);
+  assert_size(0, ==, ud.end_stream_cb.ncalled);
+  assert_true(nghttp3_conn_find_stream(conn, 0)->flags &
+              NGHTTP3_STREAM_FLAG_SHUT_RD);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* Shutting down reading outside a callback, between read calls,
+     discards the remaining HEADERS and DATA without callbacks. */
+  nghttp3_buf_reset(&buf);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  ud = (userdata){0};
+  opts = (conn_options){
+    .callbacks = &outside_shut_callbacks,
+    .user_data = &ud,
+  };
+
+  setup_default_client_with_options(&conn, opts);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+  nghttp3_write_frame_data(&buf, 10);
+
+  /* Read only the HEADERS frame type before shutting down. */
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, 1, /* fin = */ 0, 0);
+
+  assert_ptrdiff(1, ==, sconsumed);
+
+  rv = nghttp3_conn_shutdown_stream_read(conn, 0);
+
+  assert_int(0, ==, rv);
+
+  sconsumed = nghttp3_conn_read_stream2(
+    conn, 0, buf.pos + 1, nghttp3_buf_len(&buf) - 1, /* fin = */ 1, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf) - 1, ==, sconsumed);
+  assert_size(0, ==, ud.begin_headers_cb.ncalled);
+  assert_size(0, ==, ud.recv_header_cb.ncalled);
+  assert_size(0, ==, ud.end_headers_cb.ncalled);
+  assert_size(0, ==, ud.recv_data_cb.ncalled);
+  assert_size(0, ==, ud.end_stream_cb.ncalled);
+  assert_size(1, ==, nghttp3_buf_len(&conn->qdec.dbuf));
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
+
+  /* Shutting down reading after HEADERS but before DATA discards the
+     DATA frame and FIN without recv_data or end_stream callbacks. */
+  nghttp3_buf_reset(&buf);
+  nghttp3_qpack_encoder_init(&qenc, 0, NGHTTP3_TEST_MAP_SEED, mem);
+
+  ud = (userdata){0};
+  opts = (conn_options){
+    .callbacks = &recv_data_shut_callbacks,
+    .user_data = &ud,
+  };
+
+  setup_default_client_with_options(&conn, opts);
+
+  rv = nghttp3_conn_submit_request(conn, 0, req_nva, nghttp3_arraylen(req_nva),
+                                   NULL, NULL);
+
+  assert_int(0, ==, rv);
+
+  fr.headers = (nghttp3_frame_headers){
+    .type = NGHTTP3_FRAME_HEADERS,
+    .nva = (nghttp3_nv *)resp_nva,
+    .nvlen = nghttp3_arraylen(resp_nva),
+  };
+
+  nghttp3_write_frame_qpack(&buf, &qenc, 0, &fr);
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+
+  rv = nghttp3_conn_shutdown_stream_read(conn, 0);
+
+  assert_int(0, ==, rv);
+
+  nghttp3_buf_reset(&buf);
+  nghttp3_write_frame_data(&buf, 10);
+
+  sconsumed = nghttp3_conn_read_stream2(conn, 0, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 1, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, sconsumed);
+  assert_size(0, ==, ud.recv_data_cb.ncalled);
+  assert_size(0, ==, ud.recv_data_cb.datalen);
+  assert_size(0, ==, ud.end_stream_cb.ncalled);
+
+  nghttp3_conn_del(conn);
+  nghttp3_qpack_encoder_free(&qenc);
 }
 
 void test_nghttp3_conn_stream_data_overflow(void) {

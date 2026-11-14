@@ -1716,6 +1716,12 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
           return rv;
         }
 
+        if (stream->flags & NGHTTP3_STREAM_FLAG_SHUT_RD) {
+          rstate->state = NGHTTP3_REQ_STREAM_STATE_IGN_REST;
+          busy = 1;
+          break;
+        }
+
         rstate->state = NGHTTP3_REQ_STREAM_STATE_HEADERS;
         break;
       case NGHTTP3_FRAME_PUSH_PROMISE: /* We do not support push */
@@ -1751,6 +1757,12 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       p += len;
       rstate->left -= len;
 
+      if (stream->flags & NGHTTP3_STREAM_FLAG_SHUT_RD) {
+        rstate->state = NGHTTP3_REQ_STREAM_STATE_IGN_REST;
+        busy = 1;
+        break;
+      }
+
       if (rstate->left) {
         goto almost_done;
       }
@@ -1784,6 +1796,12 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       p += nread;
       nconsumed += (size_t)nread;
       rstate->left -= (uint64_t)nread;
+
+      if (stream->flags & NGHTTP3_STREAM_FLAG_SHUT_RD) {
+        rstate->state = NGHTTP3_REQ_STREAM_STATE_IGN_REST;
+        busy = 1;
+        break;
+      }
 
       if (stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) {
         if (p != end && nghttp3_stream_get_buffered_datalen(stream) == 0) {
@@ -1853,6 +1871,12 @@ nghttp3_ssize nghttp3_conn_read_bidi(nghttp3_conn *conn, size_t *pnproc,
       assert(0 == rv);
 
       nghttp3_stream_read_state_reset(rstate);
+
+      if (stream->flags & NGHTTP3_STREAM_FLAG_SHUT_RD) {
+        rstate->state = NGHTTP3_REQ_STREAM_STATE_IGN_REST;
+        busy = 1;
+        break;
+      }
 
       break;
     case NGHTTP3_REQ_STREAM_STATE_IGN_FRAME:
@@ -2080,6 +2104,15 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
 
       if (rv != 0) {
         return rv;
+      }
+
+      if (stream->flags & NGHTTP3_STREAM_FLAG_SHUT_RD) {
+        /* Application called nghttp3_conn_shutdown_stream_read from
+           the callback, and Stream Cancellation has been written.
+           Stop decoding here; otherwise Section Acknowledgment for
+           the cancelled stream is written when the decoder reaches
+           the end of the field section. */
+        break;
       }
     }
   }
