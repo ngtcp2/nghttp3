@@ -555,8 +555,14 @@ int nghttp3_stream_write_header_block(nghttp3_stream *stream,
       return rv;
     }
     nghttp3_buf_init(rbuf);
-  } else if (rbuflen) {
-    chunk->last = nghttp3_cpymem(chunk->last, rbuf->pos, rbuflen);
+  } else {
+    /* Field section might be empty.  We still have to add the frame
+       header and field section prefix, which have been written to
+       chunk, to outq. */
+    if (rbuflen) {
+      chunk->last = nghttp3_cpymem(chunk->last, rbuf->pos, rbuflen);
+    }
+
     tbuf.buf.last = chunk->last;
 
     rv = nghttp3_stream_outq_add(stream, &tbuf);

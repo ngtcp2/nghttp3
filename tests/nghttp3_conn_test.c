@@ -4667,6 +4667,39 @@ void test_nghttp3_conn_submit_info(void) {
 
   nghttp3_conn_del(conn);
 
+  /* Empty header block is written, and its buffer is released when it
+     is acknowledged. */
+  setup_default_server(&conn);
+  conn_write_initial_streams(conn);
+
+  nghttp3_conn_create_stream(conn, &stream, 0);
+
+  rv = nghttp3_conn_submit_info(conn, 0, NULL, 0);
+
+  assert_int(0, ==, rv);
+
+  sveccnt = nghttp3_conn_writev_stream(conn, &stream_id, &fin, vec,
+                                       nghttp3_arraylen(vec));
+
+  assert_ptrdiff(1, ==, sveccnt);
+  assert_int64(0, ==, stream_id);
+  assert_false(fin);
+  assert_size(4, ==, vec[0].len);
+  assert_memory_equal(4, "\x01\x02\x00\x00", vec[0].base);
+
+  rv = nghttp3_conn_add_write_offset(conn, 0, 4);
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, nghttp3_ringbuf_len(&stream->chunks));
+
+  rv = nghttp3_conn_add_ack_offset(conn, 0, 4);
+
+  assert_int(0, ==, rv);
+  assert_size(0, ==, nghttp3_ringbuf_len(&stream->outq));
+  assert_size(0, ==, nghttp3_ringbuf_len(&stream->chunks));
+
+  nghttp3_conn_del(conn);
+
   /* Submitting non-final response against non-existing stream is
      treated as error. */
   setup_default_server(&conn);
