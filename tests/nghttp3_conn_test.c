@@ -8619,6 +8619,9 @@ void test_nghttp3_conn_close_stream2(void) {
   nghttp3_stream *stream;
   userdata ud;
   int rv;
+  uint8_t rawbuf[16];
+  nghttp3_buf buf;
+  nghttp3_ssize nconsumed;
   conn_options opts;
   nghttp3_data_reader dr;
   nghttp3_vec vec[256];
@@ -8804,6 +8807,79 @@ void test_nghttp3_conn_close_stream2(void) {
 
   assert_int64(-1, ==, stream_id);
   assert_ptrdiff(0, ==, sveccnt);
+
+  nghttp3_conn_del(conn);
+
+  /* Remote unidirectional stream is closed before its stream type is
+     fully read */
+  callbacks = (nghttp3_callbacks){
+    .stream_close2 = stream_close2,
+  };
+
+  opts = (conn_options){
+    .callbacks = &callbacks,
+    .user_data = &ud,
+  };
+
+  nghttp3_buf_wrap_init(&buf, rawbuf, sizeof(rawbuf));
+
+  /* Unknown stream type which is encoded in 2 bytes */
+  buf.last = nghttp3_put_uvarint(buf.last, 0x54);
+
+  assert_size(2, ==, nghttp3_buf_len(&buf));
+
+  setup_default_server_with_options(&conn, opts);
+
+  /* Read the first byte only */
+  nconsumed = nghttp3_conn_read_stream2(conn, 14, buf.pos, 1, /* fin = */ 0, 0);
+
+  assert_ptrdiff(1, ==, nconsumed);
+
+  stream = nghttp3_conn_find_stream(conn, 14);
+
+  assert_not_null(stream);
+  assert_false(stream->flags & NGHTTP3_STREAM_FLAG_TYPE_IDENTIFIED);
+
+  ud = (userdata){0};
+  rv = nghttp3_conn_close_stream2(
+    conn, NGHTTP3_STREAM_CLOSE_FLAG_RX_APP_ERROR_CODE_SET, 14,
+    NGHTTP3_H3_NO_ERROR, 0);
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, ud.stream_close2.ncalled);
+  assert_int64(14, ==, ud.stream_close2.stream_id);
+  assert_null(nghttp3_conn_find_stream(conn, 14));
+
+  nghttp3_conn_del(conn);
+
+  /* Remote control stream is closed */
+  nghttp3_buf_reset(&buf);
+
+  buf.last = nghttp3_put_uvarint(buf.last, NGHTTP3_STREAM_TYPE_CONTROL);
+
+  setup_default_server(&conn);
+
+  nconsumed = nghttp3_conn_read_stream2(conn, 2, buf.pos, nghttp3_buf_len(&buf),
+                                        /* fin = */ 0, 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&buf), ==, nconsumed);
+
+  rv = nghttp3_conn_close_stream2(
+    conn, NGHTTP3_STREAM_CLOSE_FLAG_RX_APP_ERROR_CODE_SET, 2,
+    NGHTTP3_H3_NO_ERROR, 0);
+
+  assert_int(NGHTTP3_ERR_H3_CLOSED_CRITICAL_STREAM, ==, rv);
+
+  nghttp3_conn_del(conn);
+
+  /* Local control stream is closed */
+  setup_default_server(&conn);
+
+  rv = nghttp3_conn_close_stream2(
+    conn, NGHTTP3_STREAM_CLOSE_FLAG_TX_APP_ERROR_CODE_SET, 3, 0,
+    NGHTTP3_H3_NO_ERROR);
+
+  assert_int(NGHTTP3_ERR_H3_CLOSED_CRITICAL_STREAM, ==, rv);
 
   nghttp3_conn_del(conn);
 }
