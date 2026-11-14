@@ -850,6 +850,10 @@ int nghttp3_stream_is_blocked(const nghttp3_stream *stream) {
 }
 
 int nghttp3_stream_require_schedule(const nghttp3_stream *stream) {
+  if (stream->flags & NGHTTP3_STREAM_FLAG_CLOSED) {
+    return 0;
+  }
+
   return (!nghttp3_stream_outq_write_done(stream) &&
           !(stream->flags & NGHTTP3_STREAM_FLAG_FC_BLOCKED) &&
           !(stream->flags & NGHTTP3_STREAM_FLAG_SHUT_WR)) ||
