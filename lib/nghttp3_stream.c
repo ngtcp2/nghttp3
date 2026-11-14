@@ -62,6 +62,7 @@ int nghttp3_stream_new(nghttp3_stream **pstream, int64_t stream_id,
     .stream_objalloc = stream_objalloc,
     .qpack_blocked_pe.index = NGHTTP3_PQ_BAD_INDEX,
     .mem = mem,
+    .type = NGHTTP3_STREAM_TYPE_UNKNOWN,
     .rx =
       {
         .http.status_code = -1,
