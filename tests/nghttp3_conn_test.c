@@ -4588,6 +4588,44 @@ void test_nghttp3_conn_recv_uni(void) {
   assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nread);
 
   nghttp3_conn_del(conn);
+
+  /* Receiving too many 0 length unidirectional streams */
+  setup_default_client(&conn);
+
+  for (i = 0; i < conn->local.settings.glitch_ratelim_burst; ++i) {
+    nread = nghttp3_conn_read_stream2(conn, (int64_t)((i << 2) | 0x3), NULL, 0,
+                                      /* fin = */ 1, 0);
+
+    assert_ptrdiff(0, ==, nread);
+  }
+
+  assert_uint64(0, ==, conn->glitch_rlim.tokens);
+
+  nread = nghttp3_conn_read_stream2(conn, (int64_t)((i << 2) | 0x3), NULL, 0,
+                                    /* fin = */ 1, 0);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nread);
+
+  nghttp3_conn_del(conn);
+
+  /* Receiving too many 0 length unidirectional streams (server) */
+  setup_default_server(&conn);
+
+  for (i = 0; i < conn->local.settings.glitch_ratelim_burst; ++i) {
+    nread = nghttp3_conn_read_stream2(conn, (int64_t)((i << 2) | 0x2), NULL, 0,
+                                      /* fin = */ 1, 0);
+
+    assert_ptrdiff(0, ==, nread);
+  }
+
+  assert_uint64(0, ==, conn->glitch_rlim.tokens);
+
+  nread = nghttp3_conn_read_stream2(conn, (int64_t)((i << 2) | 0x2), NULL, 0,
+                                    /* fin = */ 1, 0);
+
+  assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nread);
+
+  nghttp3_conn_del(conn);
 }
 
 void test_nghttp3_conn_recv_goaway(void) {

@@ -518,6 +518,12 @@ nghttp3_ssize nghttp3_conn_read_stream2(nghttp3_conn *conn, int64_t stream_id,
       } else {
         /* unidirectional stream */
         if (srclen == 0 && fin) {
+          /* Receiving too frequent 0 length unidirectional stream is
+             suspicious. */
+          if (conn_glitch_ratelim_drain(conn, 1, ts) != 0) {
+            return NGHTTP3_ERR_H3_EXCESSIVE_LOAD;
+          }
+
           return 0;
         }
 
@@ -530,6 +536,12 @@ nghttp3_ssize nghttp3_conn_read_stream2(nghttp3_conn *conn, int64_t stream_id,
       stream->rx.hstate = NGHTTP3_HTTP_STATE_REQ_INITIAL;
     } else if (nghttp3_server_stream_uni(stream_id)) {
       if (srclen == 0 && fin) {
+        /* Receiving too frequent 0 length unidirectional stream is
+           suspicious. */
+        if (conn_glitch_ratelim_drain(conn, 1, ts) != 0) {
+          return NGHTTP3_ERR_H3_EXCESSIVE_LOAD;
+        }
+
         return 0;
       }
 
