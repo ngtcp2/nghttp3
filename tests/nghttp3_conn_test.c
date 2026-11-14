@@ -7610,6 +7610,82 @@ void test_nghttp3_conn_recv_origin(void) {
 
     nghttp3_conn_del(conn);
   }
+
+  {
+    /* Receive too many origins in a single ORIGIN frame */
+    static const uint8_t origin_list[] = "\x0\x1"
+                                         "a"
+                                         "\x0\x1"
+                                         "b"
+                                         "\x0\x1"
+                                         "c";
+    static const nghttp3_vec expected[] = {
+      {
+        .base = (uint8_t *)"a",
+        .len = 1,
+      },
+      {
+        .base = (uint8_t *)"b",
+        .len = 1,
+      },
+    };
+    nghttp3_settings local_settings;
+
+    /* ORIGIN frame itself consumes 1 token, and then each origin
+       consumes 1 token. */
+    nghttp3_settings_default(&local_settings);
+    local_settings.glitch_ratelim_burst = 3;
+    opts.settings = &local_settings;
+
+    nghttp3_buf_reset(&buf);
+    setup_default_client_with_options(&conn, opts);
+    conn_read_control_stream(conn, 3, &settings);
+
+    fr.origin.origin_list.base = (uint8_t *)origin_list;
+    fr.origin.origin_list.len = nghttp3_strlen_lit(origin_list);
+
+    nghttp3_write_frame(&buf, &fr);
+
+    ud.recv_origin_cb.origin_list = expected;
+    ud.recv_origin_cb.origin_listlen = nghttp3_arraylen(expected);
+    ud.recv_origin_cb.offset = 0;
+
+    nconsumed =
+      nghttp3_conn_read_stream2(conn, 3, buf.pos, nghttp3_buf_len(&buf),
+                                /* fin = */ 0, 0);
+
+    assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nconsumed);
+    assert_size(ud.recv_origin_cb.origin_listlen, ==, ud.recv_origin_cb.offset);
+    assert_uint64(0, ==, conn->glitch_rlim.tokens);
+
+    nghttp3_conn_del(conn);
+
+    /* The same frame is received in 1 byte at a time, which makes
+       each ASCII-Origin buffered. */
+    setup_default_client_with_options(&conn, opts);
+    conn_read_control_stream(conn, 3, &settings);
+
+    ud.recv_origin_cb.offset = 0;
+
+    /* The last Origin-Len is completed by the second last byte. */
+    for (i = 0; i < nghttp3_buf_len(&buf) - 2; ++i) {
+      nconsumed = nghttp3_conn_read_stream2(conn, 3, buf.pos + i, 1,
+                                            /* fin = */ 0, 0);
+
+      assert_ptrdiff(1, ==, nconsumed);
+    }
+
+    assert_size(ud.recv_origin_cb.origin_listlen, ==, ud.recv_origin_cb.offset);
+    assert_uint64(0, ==, conn->glitch_rlim.tokens);
+
+    nconsumed = nghttp3_conn_read_stream2(conn, 3, buf.pos + i, 1,
+                                          /* fin = */ 0, 0);
+
+    assert_ptrdiff(NGHTTP3_ERR_H3_EXCESSIVE_LOAD, ==, nconsumed);
+    assert_size(ud.recv_origin_cb.origin_listlen, ==, ud.recv_origin_cb.offset);
+
+    nghttp3_conn_del(conn);
+  }
 }
 
 void test_nghttp3_conn_write_origin(void) {

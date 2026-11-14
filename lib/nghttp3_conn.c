@@ -1242,6 +1242,12 @@ nghttp3_ssize nghttp3_conn_read_control(nghttp3_conn *conn,
           return NGHTTP3_ERR_H3_FRAME_ERROR;
         }
 
+        /* ORIGIN frame can carry any number of origins.  We do not
+           expect too many origins either. */
+        if (conn_glitch_ratelim_drain(conn, 1, ts) != 0) {
+          return NGHTTP3_ERR_H3_EXCESSIVE_LOAD;
+        }
+
         if (len < conn->rx.originlen) {
           /* ASCII-Origin does not fit into this buffer.  Needs
              buffering. */
