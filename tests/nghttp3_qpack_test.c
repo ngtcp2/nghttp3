@@ -49,6 +49,7 @@ static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_qpack_decoder_read_encoder),
   munit_void_test(test_nghttp3_qpack_decoder_read_request),
   munit_void_test(test_nghttp3_qpack_encoder_read_decoder),
+  munit_void_test(test_nghttp3_qpack_stream_context_reset),
   munit_test_end(),
 };
 
@@ -1653,4 +1654,96 @@ void test_nghttp3_qpack_encoder_read_decoder(void) {
   nghttp3_buf_free(&ebuf, mem);
   nghttp3_buf_free(&rbuf, mem);
   nghttp3_buf_free(&pbuf, mem);
+}
+
+static void *counted_malloc(size_t size, void *user_data) {
+  size_t *nalloc = user_data;
+  void *p = malloc(size);
+
+  if (p) {
+    ++*nalloc;
+  }
+
+  return p;
+}
+
+static void counted_free(void *ptr, void *user_data) {
+  size_t *nalloc = user_data;
+
+  if (ptr) {
+    --*nalloc;
+  }
+
+  free(ptr);
+}
+
+static void *counted_calloc(size_t nmemb, size_t size, void *user_data) {
+  size_t *nalloc = user_data;
+  void *p = calloc(nmemb, size);
+
+  if (p) {
+    ++*nalloc;
+  }
+
+  return p;
+}
+
+static void *counted_realloc(void *ptr, size_t size, void *user_data) {
+  size_t *nalloc = user_data;
+  void *p = realloc(ptr, size);
+
+  if (p && !ptr) {
+    ++*nalloc;
+  }
+
+  return p;
+}
+
+void test_nghttp3_qpack_stream_context_reset(void) {
+  size_t nalloc = 0;
+  size_t nalloc_before;
+  nghttp3_mem mem = {
+    .user_data = &nalloc,
+    .malloc = counted_malloc,
+    .free = counted_free,
+    .calloc = counted_calloc,
+    .realloc = counted_realloc,
+  };
+  nghttp3_qpack_decoder dec;
+  nghttp3_qpack_stream_context sctx;
+  nghttp3_qpack_nv qnv;
+  uint8_t flags;
+  nghttp3_ssize nread;
+  /* Literal Field Line With Literal Name.  The value is 3 bytes long,
+     but only the first byte is included. */
+  static const uint8_t in[] = {0x00, 0x00, 0x21, 'a', 0x03, 'b'};
+
+  nghttp3_qpack_decoder_init(&dec, 4096, 0, &mem);
+  nghttp3_qpack_stream_context_init(&sctx, 0, &mem);
+
+  nalloc_before = nalloc;
+
+  nread = nghttp3_qpack_decoder_read_request(&dec, &sctx, &qnv, &flags, in,
+                                             sizeof(in), 0);
+
+  assert_ptrdiff((nghttp3_ssize)sizeof(in), ==, nread);
+  assert_uint8(NGHTTP3_QPACK_DECODE_FLAG_NONE, ==, flags);
+  assert_not_null(sctx.rstate.name);
+  assert_not_null(sctx.rstate.value);
+  assert_size(nalloc_before + 2, ==, nalloc);
+
+  /* Resetting sctx in the middle of field line must not leak name and
+     value. */
+  nghttp3_qpack_stream_context_reset(&sctx);
+
+  assert_null(sctx.rstate.name);
+  assert_null(sctx.rstate.value);
+  assert_enum(nghttp3_qpack_request_stream_state, NGHTTP3_QPACK_RS_STATE_RICNT,
+              ==, sctx.state);
+  assert_size(nalloc_before, ==, nalloc);
+
+  nghttp3_qpack_stream_context_free(&sctx);
+  nghttp3_qpack_decoder_free(&dec);
+
+  assert_size(0, ==, nalloc);
 }

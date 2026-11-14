@@ -3372,6 +3372,7 @@ void nghttp3_qpack_stream_context_free(nghttp3_qpack_stream_context *sctx) {
 }
 
 void nghttp3_qpack_stream_context_reset(nghttp3_qpack_stream_context *sctx) {
+  nghttp3_qpack_stream_context_free(sctx);
   nghttp3_qpack_stream_context_init(sctx, sctx->stream_id, sctx->mem);
 }
 
