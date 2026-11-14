@@ -416,7 +416,8 @@ int nghttp3_qpack_encoder_write_dynamic_indexed(
  * nghttp3_qpack_encoder_write_static_indexed writes Literal Header
  * Field With Name Reference to |rbuf|.  |absidx| is an absolute index
  * into static table to reference a name.  |nv| is a header field to
- * encode.
+ * encode.  If |indexing_mode| is NGHTTP3_QPACK_INDEXING_MODE_NEVER, N
+ * bit is set so that intermediaries never index this header field.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -426,13 +427,15 @@ int nghttp3_qpack_encoder_write_dynamic_indexed(
  */
 int nghttp3_qpack_encoder_write_static_indexed_name(
   const nghttp3_qpack_encoder *encoder, nghttp3_buf *rbuf, uint64_t absidx,
-  const nghttp3_nv *nv);
+  const nghttp3_nv *nv, nghttp3_qpack_indexing_mode indexing_mode);
 
 /*
  * nghttp3_qpack_encoder_write_dynamic_indexed writes Literal Header
  * Field With Name Reference to |rbuf|.  |absidx| is an absolute index
  * into dynamic table to reference a name.  |base| is a base.  |nv| is
- * a header field to encode.
+ * a header field to encode.  If |indexing_mode| is
+ * NGHTTP3_QPACK_INDEXING_MODE_NEVER, N bit is set so that
+ * intermediaries never index this header field.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -442,11 +445,14 @@ int nghttp3_qpack_encoder_write_static_indexed_name(
  */
 int nghttp3_qpack_encoder_write_dynamic_indexed_name(
   const nghttp3_qpack_encoder *encoder, nghttp3_buf *rbuf, uint64_t absidx,
-  uint64_t base, const nghttp3_nv *nv);
+  uint64_t base, const nghttp3_nv *nv,
+  nghttp3_qpack_indexing_mode indexing_mode);
 
 /*
  * nghttp3_qpack_encoder_write_literal writes Literal Header Field
- * With Literal Name to |rbuf|.  |nv| is a header field to encode.
+ * With Literal Name to |rbuf|.  |nv| is a header field to encode.  If
+ * |indexing_mode| is NGHTTP3_QPACK_INDEXING_MODE_NEVER, N bit is set
+ * so that intermediaries never index this header field.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
@@ -454,9 +460,9 @@ int nghttp3_qpack_encoder_write_dynamic_indexed_name(
  * NGHTTP3_ERR_NOMEM
  *     Out of memory.
  */
-int nghttp3_qpack_encoder_write_literal(const nghttp3_qpack_encoder *encoder,
-                                        nghttp3_buf *rbuf,
-                                        const nghttp3_nv *nv);
+int nghttp3_qpack_encoder_write_literal(
+  const nghttp3_qpack_encoder *encoder, nghttp3_buf *rbuf, const nghttp3_nv *nv,
+  nghttp3_qpack_indexing_mode indexing_mode);
 
 /*
  * nghttp3_qpack_encoder_write_static_insert writes Insert With Name

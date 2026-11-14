@@ -34,6 +34,7 @@
 static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_qpack_encoder_encode),
   munit_void_test(test_nghttp3_qpack_encoder_encode_try_encode),
+  munit_void_test(test_nghttp3_qpack_encoder_encode_never_index),
   munit_void_test(test_nghttp3_qpack_encoder_encode_indexing_strat_eager),
   munit_void_test(test_nghttp3_qpack_encoder_encode_large_absidx),
   munit_void_test(test_nghttp3_qpack_encoder_still_blocked),
@@ -344,6 +345,104 @@ void test_nghttp3_qpack_encoder_encode_try_encode(void) {
   assert_size(nva[0].namelen, ==, ent->nv.name->len);
   assert_memory_equal(ent->nv.name->len, nva[0].name, ent->nv.name->base);
 
+  nghttp3_qpack_encoder_free(&enc);
+  nghttp3_buf_free(&ebuf, mem);
+  nghttp3_buf_free(&rbuf, mem);
+  nghttp3_buf_free(&pbuf, mem);
+}
+
+void test_nghttp3_qpack_encoder_encode_never_index(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_qpack_encoder enc;
+  nghttp3_qpack_decoder dec;
+  nghttp3_nv nva[] = {
+    MAKE_NV("authorization", "bearer token"),
+    MAKE_NV("cookie", "short00000000000000"),
+    MAKE_NV("cookie", "large000000000000000"),
+    MAKE_NV("nonstd", "public"),
+    MAKE_NV("nonstd", "secret"),
+    MAKE_NV("nonstd2", "secret"),
+    MAKE_NV("nonstd3", "public"),
+  };
+  /* Whether the decoder is expected to see
+     NGHTTP3_NV_FLAG_NEVER_INDEX for each field in nva. */
+  static const int never[] = {1, 1, 0, 0, 1, 1, 0};
+  int rv;
+  nghttp3_buf pbuf, rbuf, ebuf;
+  nghttp3_ssize nread;
+  nghttp3_qpack_stream_context sctx;
+  nghttp3_qpack_nv qnv;
+  uint8_t flags;
+  size_t i = 0;
+
+  /* authorization and short cookie are never indexed without
+     NGHTTP3_NV_FLAG_NEVER_INDEX.  The others exercise literal with
+     dynamic name reference, and literal with literal name. */
+  nva[3].flags = NGHTTP3_NV_FLAG_TRY_INDEX;
+  nva[4].flags = NGHTTP3_NV_FLAG_NEVER_INDEX;
+  nva[5].flags = NGHTTP3_NV_FLAG_NEVER_INDEX;
+
+  nghttp3_buf_init(&pbuf);
+  nghttp3_buf_init(&rbuf);
+  nghttp3_buf_init(&ebuf);
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
+
+  nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 1);
+
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 4096);
+
+  nghttp3_qpack_decoder_init(&dec, 4096, 1, mem);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 0, nva,
+                                    nghttp3_arraylen(nva));
+
+  assert_int(0, ==, rv);
+  /* Only large cookie, and nonstd with NGHTTP3_NV_FLAG_TRY_INDEX are
+     inserted into dynamic table. */
+  assert_size(2, ==, nghttp3_ringbuf_len(&enc.ctx.dtable));
+
+  nread =
+    nghttp3_qpack_decoder_read_encoder(&dec, ebuf.pos, nghttp3_buf_len(&ebuf));
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&ebuf), ==, nread);
+
+  nghttp3_qpack_stream_context_init(&sctx, 0, mem);
+
+  nread = nghttp3_qpack_decoder_read_request(
+    &dec, &sctx, &qnv, &flags, pbuf.pos, nghttp3_buf_len(&pbuf), 0);
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&pbuf), ==, nread);
+
+  for (; nghttp3_buf_len(&rbuf);) {
+    nread = nghttp3_qpack_decoder_read_request(
+      &dec, &sctx, &qnv, &flags, rbuf.pos, nghttp3_buf_len(&rbuf), 1);
+
+    assert_ptrdiff(0, <, nread);
+
+    rbuf.pos += nread;
+
+    if (flags & NGHTTP3_QPACK_DECODE_FLAG_FINAL) {
+      break;
+    }
+    if (flags & NGHTTP3_QPACK_DECODE_FLAG_EMIT) {
+      assert_size(nghttp3_arraylen(nva), >, i);
+      assert_size(nva[i].namelen, ==, qnv.name->len);
+      assert_memory_equal(nva[i].namelen, nva[i].name, qnv.name->base);
+      assert_size(nva[i].valuelen, ==, qnv.value->len);
+      assert_memory_equal(nva[i].valuelen, nva[i].value, qnv.value->base);
+      assert_int(never[i], ==, (qnv.flags & NGHTTP3_NV_FLAG_NEVER_INDEX) != 0);
+
+      ++i;
+
+      nghttp3_rcbuf_decref(qnv.name);
+      nghttp3_rcbuf_decref(qnv.value);
+    }
+  }
+
+  assert_size(nghttp3_arraylen(nva), ==, i);
+
+  nghttp3_qpack_stream_context_free(&sctx);
+  nghttp3_qpack_decoder_free(&dec);
   nghttp3_qpack_encoder_free(&enc);
   nghttp3_buf_free(&ebuf, mem);
   nghttp3_buf_free(&rbuf, mem);

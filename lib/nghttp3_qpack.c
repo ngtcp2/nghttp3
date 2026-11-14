@@ -1600,7 +1600,7 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
     }
 
     return nghttp3_qpack_encoder_write_static_indexed_name(
-      encoder, rbuf, (uint64_t)sres.index, nv);
+      encoder, rbuf, (uint64_t)sres.index, nv, indexing_mode);
   }
 
   if (dres.index != -1) {
@@ -1639,7 +1639,7 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
     *pmin_cnt = nghttp3_min(*pmin_cnt, (uint64_t)(dres.index + 1));
 
     return nghttp3_qpack_encoder_write_dynamic_indexed_name(
-      encoder, rbuf, (uint64_t)dres.index, base, nv);
+      encoder, rbuf, (uint64_t)dres.index, base, nv, indexing_mode);
   }
 
   if (just_index && qpack_encoder_can_index_nv(encoder, nv, *pmin_cnt)) {
@@ -1661,7 +1661,7 @@ int nghttp3_qpack_encoder_encode_nv(nghttp3_qpack_encoder *encoder,
     }
   }
 
-  return nghttp3_qpack_encoder_write_literal(encoder, rbuf, nv);
+  return nghttp3_qpack_encoder_write_literal(encoder, rbuf, nv, indexing_mode);
 }
 
 nghttp3_qpack_lookup_result
@@ -1934,34 +1934,34 @@ qpack_encoder_write_indexed_name(const nghttp3_qpack_encoder *encoder,
 
 int nghttp3_qpack_encoder_write_static_indexed_name(
   const nghttp3_qpack_encoder *encoder, nghttp3_buf *rbuf, uint64_t absidx,
-  const nghttp3_nv *nv) {
-  uint8_t fb =
-    (uint8_t)(0x50U |
-              ((nv->flags & NGHTTP3_NV_FLAG_NEVER_INDEX) ? 0x20U : 0x00U));
+  const nghttp3_nv *nv, nghttp3_qpack_indexing_mode indexing_mode) {
+  int never = indexing_mode == NGHTTP3_QPACK_INDEXING_MODE_NEVER;
+  uint8_t fb = (uint8_t)(0x50U | (never ? 0x20U : 0x00U));
 
   DEBUGF("qpack::encode: Literal Field Line With Name Reference (static) "
          "absidx=%" PRIu64 " never=%d\n",
-         absidx, (nv->flags & NGHTTP3_NV_FLAG_NEVER_INDEX) != 0);
+         absidx, never);
   return qpack_encoder_write_indexed_name(encoder, rbuf, fb, absidx, 4, nv);
 }
 
 int nghttp3_qpack_encoder_write_dynamic_indexed_name(
   const nghttp3_qpack_encoder *encoder, nghttp3_buf *rbuf, uint64_t absidx,
-  uint64_t base, const nghttp3_nv *nv) {
+  uint64_t base, const nghttp3_nv *nv,
+  nghttp3_qpack_indexing_mode indexing_mode) {
+  int never = indexing_mode == NGHTTP3_QPACK_INDEXING_MODE_NEVER;
   uint8_t fb;
 
   DEBUGF("qpack::encode: Literal Field Line With Name Reference (dynamic) "
          "absidx=%" PRIu64 " base=%" PRIu64 " never=%d\n",
-         absidx, base, (nv->flags & NGHTTP3_NV_FLAG_NEVER_INDEX) != 0);
+         absidx, base, never);
 
   if (absidx < base) {
-    fb = (uint8_t)(0x40U |
-                   ((nv->flags & NGHTTP3_NV_FLAG_NEVER_INDEX) ? 0x20U : 0x00U));
+    fb = (uint8_t)(0x40U | (never ? 0x20U : 0x00U));
     return qpack_encoder_write_indexed_name(encoder, rbuf, fb,
                                             base - absidx - 1, 4, nv);
   }
 
-  fb = (nv->flags & NGHTTP3_NV_FLAG_NEVER_INDEX) ? 0x08U : 0x0U;
+  fb = never ? 0x08U : 0x0U;
   return qpack_encoder_write_indexed_name(encoder, rbuf, fb, absidx - base, 3,
                                           nv);
 }
@@ -2042,14 +2042,14 @@ static int qpack_encoder_write_literal(const nghttp3_qpack_encoder *encoder,
   return 0;
 }
 
-int nghttp3_qpack_encoder_write_literal(const nghttp3_qpack_encoder *encoder,
-                                        nghttp3_buf *rbuf,
-                                        const nghttp3_nv *nv) {
-  uint8_t fb =
-    (uint8_t)(0x20U |
-              ((nv->flags & NGHTTP3_NV_FLAG_NEVER_INDEX) ? 0x10U : 0x0U));
+int nghttp3_qpack_encoder_write_literal(
+  const nghttp3_qpack_encoder *encoder, nghttp3_buf *rbuf, const nghttp3_nv *nv,
+  nghttp3_qpack_indexing_mode indexing_mode) {
+  int never = indexing_mode == NGHTTP3_QPACK_INDEXING_MODE_NEVER;
+  uint8_t fb = (uint8_t)(0x20U | (never ? 0x10U : 0x0U));
 
-  DEBUGF("qpack::encode: Literal Field Line With Literal Name\n");
+  DEBUGF("qpack::encode: Literal Field Line With Literal Name never=%d\n",
+         never);
   return qpack_encoder_write_literal(encoder, rbuf, fb, 3, nv);
 }
 
