@@ -954,7 +954,7 @@ void nghttp3_qpack_encoder_set_max_dtable_capacity(
   max_dtable_capacity =
     nghttp3_min(max_dtable_capacity, encoder->ctx.hard_max_dtable_capacity);
 
-  if (encoder->ctx.max_dtable_capacity == max_dtable_capacity) {
+  if (encoder->last_max_dtable_update == max_dtable_capacity) {
     return;
   }
 
