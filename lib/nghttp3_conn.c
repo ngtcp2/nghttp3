@@ -1455,6 +1455,15 @@ static int conn_process_blocked_stream_data(nghttp3_conn *conn,
     }
   }
 
+  if (!(stream->flags & NGHTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED) &&
+      (stream->flags & NGHTTP3_STREAM_FLAG_CLOSED)) {
+    assert(stream->qpack_blocked_pe.index == NGHTTP3_PQ_BAD_INDEX);
+
+    return conn_delete_stream(conn, stream, stream->close_flags,
+                              stream->close_rx_app_error_code,
+                              stream->close_tx_app_error_code);
+  }
+
   return 0;
 }
 
@@ -2826,9 +2835,10 @@ int nghttp3_conn_is_stream_writable2(const nghttp3_conn *conn,
     return 0;
   }
 
-  return (stream->flags & (NGHTTP3_STREAM_FLAG_FC_BLOCKED |
-                           NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED |
-                           NGHTTP3_STREAM_FLAG_SHUT_WR)) == 0;
+  return (stream->flags &
+          (NGHTTP3_STREAM_FLAG_FC_BLOCKED |
+           NGHTTP3_STREAM_FLAG_READ_DATA_BLOCKED | NGHTTP3_STREAM_FLAG_SHUT_WR |
+           NGHTTP3_STREAM_FLAG_CLOSED)) == 0;
 }
 
 int nghttp3_conn_resume_stream(nghttp3_conn *conn, int64_t stream_id) {
@@ -2882,6 +2892,24 @@ int nghttp3_conn_close_stream2(nghttp3_conn *conn, uint32_t flags,
   if (nghttp3_stream_uni(stream_id) &&
       stream->type != NGHTTP3_STREAM_TYPE_UNKNOWN) {
     return NGHTTP3_ERR_H3_CLOSED_CRITICAL_STREAM;
+  }
+
+  /* If client has received all stream data, but the stream is blocked
+     by QPACK decoder, the buffered response can still be delivered
+     to an application.  Defer the deletion of the stream until it is
+     unblocked. */
+  if (!conn->server && stream->qpack_blocked_pe.index != NGHTTP3_PQ_BAD_INDEX &&
+      (stream->flags & NGHTTP3_STREAM_FLAG_READ_EOF) &&
+      !(stream->flags & NGHTTP3_STREAM_FLAG_SHUT_RD)) {
+    stream->flags |= NGHTTP3_STREAM_FLAG_CLOSED;
+    stream->close_flags = flags;
+    stream->close_rx_app_error_code = rx_app_error_code;
+    stream->close_tx_app_error_code = tx_app_error_code;
+
+    /* The closed stream must be unscheduled. */
+    nghttp3_conn_unschedule_stream(conn, stream);
+
+    return 0;
   }
 
   return conn_delete_stream(conn, stream, flags, rx_app_error_code,

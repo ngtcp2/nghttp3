@@ -122,6 +122,10 @@ typedef struct nghttp3_stream_read_state {
 /* NGHTTP3_STREAM_FLAG_READ_EOF indicates that remote endpoint sent
    fin. */
 #define NGHTTP3_STREAM_FLAG_READ_EOF 0x0020U
+/* NGHTTP3_STREAM_FLAG_CLOSED indicates that QUIC stream was closed.
+   nghttp3_stream object can still be alive because it has received
+   all stream data, and is blocked by QPACK decoder. */
+#define NGHTTP3_STREAM_FLAG_CLOSED 0x0040U
 /* NGHTTP3_STREAM_FLAG_SHUT_WR indicates that any further write
    operation to a stream is prohibited. */
 #define NGHTTP3_STREAM_FLAG_SHUT_WR 0x0100U
@@ -244,6 +248,15 @@ struct nghttp3_stream {
         nghttp3_stream_http_state hstate;
         nghttp3_http_state http;
       } rx;
+
+      /* close_rx_app_error_code, close_tx_app_error_code, and
+         close_flags are the arguments passed to
+         nghttp3_conn_close_stream2.  They are kept until the deferred
+         deletion of this object takes place, and are only used when
+         NGHTTP3_STREAM_FLAG_CLOSED is set. */
+      uint64_t close_rx_app_error_code;
+      uint64_t close_tx_app_error_code;
+      uint32_t close_flags;
 
       uint16_t flags;
     };
