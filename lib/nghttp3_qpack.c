@@ -1206,8 +1206,11 @@ int nghttp3_qpack_encoder_encode(nghttp3_qpack_encoder *encoder,
     }
   }
 
-  nghttp3_qpack_encoder_write_field_section_prefix(encoder, pbuf, max_cnt,
-                                                   base);
+  rv = nghttp3_qpack_encoder_write_field_section_prefix(encoder, pbuf, max_cnt,
+                                                        base);
+  if (rv != 0) {
+    goto fail;
+  }
 
   encoder->uninterrupted_decoderlen = 0;
 
