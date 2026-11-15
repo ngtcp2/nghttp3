@@ -1021,6 +1021,7 @@ int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *data,
   nghttp3_buf *buf;
   size_t nwrite;
   uint8_t *rawbuf;
+  size_t rawbuflen = NGHTTP3_STREAM_MIN_INQ_BUFLEN;
   size_t bufleft;
   int rv;
 
@@ -1031,6 +1032,11 @@ int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *data,
     buf->last = nghttp3_cpymem(buf->last, data, nwrite);
     data += nwrite;
     datalen -= nwrite;
+
+    /* Double the size of buffer so that the number of buffers stays
+       small even if data arrive in small pieces. */
+    rawbuflen =
+      nghttp3_min(nghttp3_buf_cap(buf) * 2, NGHTTP3_STREAM_CAP_INQ_BUFLEN);
   }
 
   for (; datalen;) {
@@ -1043,13 +1049,25 @@ int nghttp3_stream_buffer_data(nghttp3_stream *stream, const uint8_t *data,
       }
     }
 
-    rawbuf = nghttp3_mem_malloc(stream->mem, 16384);
+    if (datalen >= NGHTTP3_STREAM_CAP_INQ_BUFLEN) {
+      rawbuflen = datalen;
+    } else {
+      /* The buffered data is not reported as consumed, and the amount
+         of data is limited by QUIC flow control.  Keep the size of
+         buffer proportional to the amount of data so that the memory
+         is limited as well. */
+      for (; rawbuflen < datalen && rawbuflen < NGHTTP3_STREAM_CAP_INQ_BUFLEN;
+           rawbuflen *= 2)
+        ;
+    }
+
+    rawbuf = nghttp3_mem_malloc(stream->mem, rawbuflen);
     if (rawbuf == NULL) {
       return NGHTTP3_ERR_NOMEM;
     }
 
     buf = nghttp3_ringbuf_push_back(inq);
-    nghttp3_buf_wrap_init(buf, rawbuf, 16384);
+    nghttp3_buf_wrap_init(buf, rawbuf, rawbuflen);
     bufleft = nghttp3_buf_left(buf);
     nwrite = nghttp3_min(datalen, bufleft);
     buf->last = nghttp3_cpymem(buf->last, data, nwrite);

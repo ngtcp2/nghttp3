@@ -32,6 +32,7 @@
 
 static const MunitTest tests[] = {
   munit_void_test(test_nghttp3_read_varint),
+  munit_void_test(test_nghttp3_stream_buffer_data),
   munit_test_end(),
 };
 
@@ -179,4 +180,115 @@ void test_nghttp3_read_varint(void) {
 
     assert_ptrdiff(NGHTTP3_ERR_INVALID_ARGUMENT, ==, nread);
   }
+}
+
+void test_nghttp3_stream_buffer_data(void) {
+  const nghttp3_mem *mem = nghttp3_mem_default();
+  nghttp3_objalloc out_chunk_objalloc;
+  nghttp3_objalloc stream_objalloc;
+  nghttp3_stream *stream;
+  static uint8_t data[NGHTTP3_STREAM_CAP_INQ_BUFLEN * 2 + 1];
+  nghttp3_buf *buf;
+  size_t i;
+  size_t nalloc;
+  int rv;
+
+  for (i = 0; i < sizeof(data); ++i) {
+    data[i] = (uint8_t)i;
+  }
+
+  nghttp3_objalloc_init(&out_chunk_objalloc, NGHTTP3_STREAM_MIN_CHUNK_SIZE * 16,
+                        mem);
+  nghttp3_objalloc_stream_init(&stream_objalloc, 8, mem);
+
+  /* Small data must not allocate a large buffer. */
+  rv = nghttp3_stream_new(&stream, 0, NULL, &out_chunk_objalloc,
+                          &stream_objalloc, mem);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_stream_buffer_data(stream, data, 1);
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, nghttp3_ringbuf_len(&stream->inq));
+
+  buf = nghttp3_ringbuf_get(&stream->inq, 0);
+
+  assert_size(NGHTTP3_STREAM_MIN_INQ_BUFLEN, ==, nghttp3_buf_cap(buf));
+  assert_size(1, ==, nghttp3_stream_get_buffered_datalen(stream));
+
+  /* Data that arrive in small pieces fill the existing buffer first,
+     and then the size of buffer is doubled up to
+     NGHTTP3_STREAM_CAP_INQ_BUFLEN.  The allocated memory stays
+     proportional to the amount of buffered data. */
+  for (i = 1; i < NGHTTP3_STREAM_CAP_INQ_BUFLEN * 2; ++i) {
+    rv = nghttp3_stream_buffer_data(stream, &data[i], 1);
+
+    assert_int(0, ==, rv);
+  }
+
+  assert_size(NGHTTP3_STREAM_CAP_INQ_BUFLEN * 2, ==,
+              nghttp3_stream_get_buffered_datalen(stream));
+  assert_size(8, ==, nghttp3_ringbuf_len(&stream->inq));
+
+  nalloc = 0;
+
+  for (i = 0; i < nghttp3_ringbuf_len(&stream->inq); ++i) {
+    buf = nghttp3_ringbuf_get(&stream->inq, i);
+
+    assert_size(nghttp3_min((size_t)NGHTTP3_STREAM_MIN_INQ_BUFLEN << i,
+                            (size_t)NGHTTP3_STREAM_CAP_INQ_BUFLEN),
+                ==, nghttp3_buf_cap(buf));
+    assert_memory_equal(nghttp3_buf_len(buf), &data[nalloc], buf->pos);
+
+    nalloc += nghttp3_buf_cap(buf);
+  }
+
+  assert_size(NGHTTP3_STREAM_CAP_INQ_BUFLEN * 2, <=, nalloc);
+  assert_size(NGHTTP3_STREAM_CAP_INQ_BUFLEN * 4, >, nalloc);
+
+  nghttp3_stream_del(stream);
+
+  /* The first buffer is large enough to store the data that is
+     larger than NGHTTP3_STREAM_MIN_INQ_BUFLEN. */
+  rv = nghttp3_stream_new(&stream, 0, NULL, &out_chunk_objalloc,
+                          &stream_objalloc, mem);
+
+  assert_int(0, ==, rv);
+
+  rv =
+    nghttp3_stream_buffer_data(stream, data, NGHTTP3_STREAM_MIN_INQ_BUFLEN + 1);
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, nghttp3_ringbuf_len(&stream->inq));
+
+  buf = nghttp3_ringbuf_get(&stream->inq, 0);
+
+  assert_size(NGHTTP3_STREAM_MIN_INQ_BUFLEN * 2, ==, nghttp3_buf_cap(buf));
+  assert_size(NGHTTP3_STREAM_MIN_INQ_BUFLEN + 1, ==, nghttp3_buf_len(buf));
+  assert_memory_equal(nghttp3_buf_len(buf), data, buf->pos);
+
+  nghttp3_stream_del(stream);
+
+  /* Large data > NGHTTP3_STREAM_CAP_INQ_BUFLEN is allocated just once */
+  rv = nghttp3_stream_new(&stream, 0, NULL, &out_chunk_objalloc,
+                          &stream_objalloc, mem);
+
+  assert_int(0, ==, rv);
+
+  rv = nghttp3_stream_buffer_data(stream, data, sizeof(data));
+
+  assert_int(0, ==, rv);
+  assert_size(1, ==, nghttp3_ringbuf_len(&stream->inq));
+  assert_size(sizeof(data), ==, nghttp3_stream_get_buffered_datalen(stream));
+
+  buf = nghttp3_ringbuf_get(&stream->inq, 0);
+
+  assert_size(sizeof(data), ==, nghttp3_buf_cap(buf));
+  assert_memory_equal(nghttp3_buf_len(buf), &data[0], buf->pos);
+
+  nghttp3_stream_del(stream);
+
+  nghttp3_objalloc_free(&stream_objalloc);
+  nghttp3_objalloc_free(&out_chunk_objalloc);
 }
