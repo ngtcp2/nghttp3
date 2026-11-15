@@ -945,6 +945,71 @@ void test_nghttp3_qpack_encoder_set_dtable_cap(void) {
 
   nghttp3_qpack_decoder_free(&dec);
   nghttp3_qpack_encoder_free(&enc);
+
+  /* Check that the last requested size is applied when it is equal to
+     the pending minimum size */
+  nghttp3_qpack_encoder_init(&enc, 4096, NGHTTP3_TEST_MAP_SEED, mem);
+  nghttp3_qpack_encoder_set_max_blocked_streams(&enc, 1);
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 4096);
+  nghttp3_qpack_decoder_init(&dec, 4096, 1, mem);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 0, nva1,
+                                    nghttp3_arraylen(nva1));
+
+  assert_int(0, ==, rv);
+  assert_uint64(1, ==, enc.ctx.next_absidx);
+  assert_size(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD,
+              ==, enc.ctx.dtable_size);
+
+  nread =
+    nghttp3_qpack_decoder_read_encoder(&dec, ebuf.pos, nghttp3_buf_len(&ebuf));
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&ebuf), ==, nread);
+  assert_uint64(1, ==, dec.ctx.next_absidx);
+  assert_size(strlen("date") + strlen("bar1") + NGHTTP3_QPACK_ENTRY_OVERHEAD,
+              ==, dec.ctx.dtable_size);
+  assert_size(4096, ==, dec.ctx.max_dtable_capacity);
+
+  decode_header_block(&dec, &pbuf, &rbuf, 0, mem);
+  nghttp3_buf_reset(&pbuf);
+  nghttp3_buf_reset(&rbuf);
+  nghttp3_buf_reset(&ebuf);
+
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 0);
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 4096);
+  nghttp3_qpack_encoder_set_max_dtable_capacity(&enc, 0);
+
+  assert_size(0, ==, enc.min_dtable_update);
+  assert_size(0, ==, enc.last_max_dtable_update);
+  assert_size(0, ==, enc.ctx.max_dtable_capacity);
+
+  nghttp3_qpack_encoder_ack_header(&enc, 0);
+
+  rv = nghttp3_qpack_encoder_encode(&enc, &pbuf, &rbuf, &ebuf, 4, nva1,
+                                    nghttp3_arraylen(nva1));
+
+  assert_int(0, ==, rv);
+  assert_uint64(1, ==, enc.ctx.next_absidx);
+  assert_size(0, ==, enc.ctx.dtable_size);
+  assert_size(SIZE_MAX, ==, enc.min_dtable_update);
+  assert_size(0, ==, enc.last_max_dtable_update);
+  assert_size(0, ==, enc.ctx.max_dtable_capacity);
+
+  nread =
+    nghttp3_qpack_decoder_read_encoder(&dec, ebuf.pos, nghttp3_buf_len(&ebuf));
+
+  assert_ptrdiff((nghttp3_ssize)nghttp3_buf_len(&ebuf), ==, nread);
+  assert_uint64(1, ==, dec.ctx.next_absidx);
+  assert_size(0, ==, dec.ctx.dtable_size);
+  assert_size(0, ==, dec.ctx.max_dtable_capacity);
+
+  decode_header_block(&dec, &pbuf, &rbuf, 4, mem);
+  nghttp3_buf_reset(&pbuf);
+  nghttp3_buf_reset(&rbuf);
+  nghttp3_buf_reset(&ebuf);
+
+  nghttp3_qpack_decoder_free(&dec);
+  nghttp3_qpack_encoder_free(&enc);
   nghttp3_buf_free(&ebuf, mem);
   nghttp3_buf_free(&rbuf, mem);
   nghttp3_buf_free(&pbuf, mem);
