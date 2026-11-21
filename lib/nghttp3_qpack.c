@@ -3391,7 +3391,7 @@ nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
                                    nghttp3_qpack_stream_context *sctx,
                                    nghttp3_qpack_nv *nv, uint8_t *pflags,
                                    const uint8_t *src, size_t srclen, int fin) {
-  const uint8_t *p = src, *end = src ? src + srclen : src;
+  const uint8_t *p, *end;
   int rv;
   int busy;
   nghttp3_ssize nread;
@@ -3402,6 +3402,13 @@ nghttp3_qpack_decoder_read_request(nghttp3_qpack_decoder *decoder,
   if (decoder->ctx.bad) {
     return NGHTTP3_ERR_QPACK_FATAL;
   }
+
+  if (srclen == 0) {
+    src = (const uint8_t *)"";
+  }
+
+  p = src;
+  end = src + srclen;
 
   *pflags = NGHTTP3_QPACK_DECODE_FLAG_NONE;
 
