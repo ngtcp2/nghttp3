@@ -120,6 +120,7 @@ AC_CHECK_HEADERS([ \
   sys/endian.h \
   endian.h \
   byteswap.h \
+  windows.h \
 ])
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -143,9 +144,34 @@ AC_SYS_LARGEFILE
 
 # Checks for library functions.
 AC_CHECK_FUNCS([ \
+  clock_gettime \
   memmove \
   memset \
 ])
+
+AC_MSG_CHECKING([checking for QueryPerformanceCounter])
+AC_LINK_IFELSE([AC_LANG_PROGRAM(
+[[
+#include <windows.h>
+]],
+[[
+LARGE_INTEGER ticks;
+QueryPerformanceCounter(&ticks);
+]])],
+[have_queryperformancecounter=yes],
+[have_queryperformancecounter=no])
+
+if test "x${have_queryperformancecounter}" = "xyes"; then
+  AC_MSG_RESULT([yes])
+  AC_DEFINE([HAVE_QUERYPERFORMANCECOUNTER], [1],
+            [Define to 1 if you have `QueryPerformanceCounter` function.])
+else
+  AC_MSG_RESULT([no])
+fi
+
+AC_CHECK_DECLS([CLOCK_MONOTONIC], [], [], [[
+#include <time.h>
+]])
 
 # Checks for symbols.
 AC_CHECK_DECLS([be64toh], [], [], [[

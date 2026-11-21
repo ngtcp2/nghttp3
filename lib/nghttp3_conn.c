@@ -27,6 +27,11 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
+
+#ifdef HAVE_WINDOWS_H
+#  include <windows.h>
+#endif /* defined(HAVE_WINDOWS_H) */
 
 #include "nghttp3_mem.h"
 #include "nghttp3_macro.h"
@@ -282,6 +287,45 @@ static int cycle_less(const nghttp3_pq_entry *lhsx,
   return rhs->cycle - lhs->cycle <= NGHTTP3_TNODE_MAX_CYCLE_GAP;
 }
 
+static uint64_t internal_seed_fallback(void) {
+  time_t t;
+
+  t = time(NULL);
+  if (t == -1) {
+    return 0;
+  }
+
+  return (uint64_t)t * 1000000000;
+}
+
+#if defined(HAVE_QUERYPERFORMANCECOUNTER)
+static uint64_t internal_seed(void) {
+  LARGE_INTEGER ticks;
+
+  if (!QueryPerformanceCounter(&ticks)) {
+    return internal_seed_fallback();
+  }
+
+  return (uint64_t)ticks.QuadPart;
+}
+#elif defined(HAVE_CLOCK_GETTIME) && HAVE_DECL_CLOCK_MONOTONIC
+static uint64_t internal_seed(void) {
+  struct timespec tp;
+  int rv;
+
+  rv = clock_gettime(CLOCK_MONOTONIC, &tp);
+  if (rv == -1) {
+    return internal_seed_fallback();
+  }
+
+  return (uint64_t)tp.tv_sec * 1000000000 + (uint64_t)tp.tv_nsec;
+}
+#else  /* !defined(HAVE_QUERYPERFORMANCECOUNTER) &&                            \
+          (!defined(HAVE_CLOCK_GETTIME) || !HAVE_DECL_CLOCK_MONOTONIC) */
+static uint64_t internal_seed(void) { return internal_seed_fallback(); }
+#endif /* !defined(HAVE_QUERYPERFORMANCECOUNTER) &&                            \
+          (!defined(HAVE_CLOCK_GETTIME) || !HAVE_DECL_CLOCK_MONOTONIC) */
+
 static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
                     const nghttp3_callbacks *callbacks, int settings_version,
                     const nghttp3_settings *settings, const nghttp3_mem *mem,
@@ -319,7 +363,7 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
   if (callbacks->rand) {
     callbacks->rand((uint8_t *)&map_seed, sizeof(map_seed));
   } else {
-    map_seed = 0;
+    map_seed = internal_seed();
   }
 
   nghttp3_map_init(&conn->streams, map_seed, mem);
