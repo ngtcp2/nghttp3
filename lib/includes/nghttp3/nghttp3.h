@@ -726,8 +726,9 @@ NGHTTP3_EXTERN void nghttp3_buf_init(nghttp3_buf *buf);
  * @function
  *
  * `nghttp3_buf_free` frees resources allocated for |buf| using |mem|
- * as memory allocator.  :member:`buf->begin <nghttp3_buf.begin>` must
- * be a heap buffer allocated by |mem|.
+ * as memory allocator.  If :member:`buf->begin <nghttp3_buf.begin>`
+ * points to any memory that is not initialized by `nghttp3_buf_init`,
+ * it must be a heap buffer allocated by |mem|.
  */
 NGHTTP3_EXTERN void nghttp3_buf_free(nghttp3_buf *buf, const nghttp3_mem *mem);
 
@@ -1281,13 +1282,15 @@ NGHTTP3_EXTERN void nghttp3_qpack_encoder_del(nghttp3_qpack_encoder *encoder);
  * written.  An application should write |pbuf| and |rbuf| to the
  * request stream in this order.
  *
- * The buffer pointed by |pbuf|, |rbuf|, and |ebuf| can be empty
- * buffer.  It is fine to pass a buffer initialized by
- * `nghttp3_buf_init(buf) <nghttp3_buf_init>`.  This function
- * allocates memory for these buffers as necessary.  In particular, it
- * frees and expands buffer if the current capacity of buffer is not
- * enough.  If :member:`nghttp3_buf.begin` of any buffer is not NULL,
- * it must be allocated by the same memory allocator passed to
+ * The buffer pointed by |pbuf|, |rbuf|, and |ebuf| must be
+ * initialized by `nghttp3_buf_init`.  Avoid initializing it with zero
+ * values.  Any caller-supplied backing storage must come from the
+ * allocator passed to `nghttp3_qpack_encoder_new`.  This function
+ * allocates memory for these buffers as necessary if it needs more
+ * space in the buffer.  In particular, it frees and expands buffer if
+ * the current capacity of buffer is not enough.  Any dynamically
+ * allocated memory pointed by :member:`nghttp3_buf.begin` must be
+ * allocated by the same memory allocator passed to
  * `nghttp3_qpack_encoder_new`.
  *
  * This function returns 0 if it succeeds, or one of the following

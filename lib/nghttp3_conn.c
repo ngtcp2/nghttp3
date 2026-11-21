@@ -362,6 +362,8 @@ static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
   conn->rx.goaway_id = NGHTTP3_VARINT_MAX + 1;
   conn->tx.goaway_id = NGHTTP3_VARINT_MAX + 1;
   conn->rx.max_stream_id_bidi = -4;
+  nghttp3_buf_init(&conn->tx.qpack.rbuf);
+  nghttp3_buf_init(&conn->tx.qpack.ebuf);
 
   *pconn = conn;
 
@@ -2004,6 +2006,10 @@ static nghttp3_ssize conn_decode_headers(nghttp3_conn *conn,
     nghttp3_unreachable();
   }
   http = &stream->rx.http;
+
+  if (srclen == 0) {
+    src = (const uint8_t *)"";
+  }
 
   nghttp3_buf_wrap_init(&buf, (uint8_t *)src, srclen);
   buf.last = buf.end;
