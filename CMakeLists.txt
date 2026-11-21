@@ -77,6 +77,7 @@ check_include_file("unistd.h"      HAVE_UNISTD_H)
 check_include_file("sys/endian.h"  HAVE_SYS_ENDIAN_H)
 check_include_file("endian.h"      HAVE_ENDIAN_H)
 check_include_file("byteswap.h"    HAVE_BYTESWAP_H)
+check_include_file("windows.h"     HAVE_WINDOWS_H)
 
 include(CheckTypeSize)
 # Checks for typedefs, structures, and compiler characteristics.
@@ -88,6 +89,10 @@ if(SIZEOF_SSIZE_T STREQUAL "")
   set(ssize_t ptrdiff_t)
 endif()
 
+# Checks for library functions.
+include(CheckFunctionExists)
+check_function_exists(clock_gettime HAVE_CLOCK_GETTIME)
+
 # Checks for symbols.
 include(CheckSymbolExists)
 if(HAVE_ENDIAN_H)
@@ -98,6 +103,8 @@ if(NOT HAVE_DECL_BE64TOH AND HAVE_SYS_ENDIAN_H)
 endif()
 
 check_symbol_exists(bswap_64 "byteswap.h" HAVE_DECL_BSWAP_64)
+check_symbol_exists(QueryPerformanceCounter "windows.h;sysinfoapi.h" HAVE_QUERYPERFORMANCECOUNTER)
+check_symbol_exists(CLOCK_MONOTONIC "time.h" HAVE_DECL_CLOCK_MONOTONIC)
 
 if(${CMAKE_C_BYTE_ORDER} STREQUAL "BIG_ENDIAN")
   set(WORDS_BIGENDIAN 1)
