@@ -2882,6 +2882,8 @@ NGHTTP3_EXTERN int nghttp3_conn_is_stream_writable2(const nghttp3_conn *conn,
  * further write operation to stream identified by |stream_id| is
  * prohibited.  This works like `nghttp3_conn_block_stream`, but it
  * cannot be unblocked by `nghttp3_conn_unblock_stream`.
+ *
+ * This function must not be called from any nghttp3 callbacks.
  */
 NGHTTP3_EXTERN void nghttp3_conn_shutdown_stream_write(nghttp3_conn *conn,
                                                        int64_t stream_id);
@@ -2900,6 +2902,8 @@ NGHTTP3_EXTERN void nghttp3_conn_shutdown_stream_write(nghttp3_conn *conn,
  *
  * This function does not fail if a stream denoted by |stream_id| is
  * not found, although it may fail with the other reasons.
+ *
+ * This function must not be called from any nghttp3 callbacks.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
