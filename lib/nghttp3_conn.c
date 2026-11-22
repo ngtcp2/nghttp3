@@ -298,7 +298,7 @@ static uint64_t internal_seed_fallback(void) {
   return (uint64_t)t * 1000000000;
 }
 
-#if defined(HAVE_QUERYPERFORMANCECOUNTER)
+#if defined(HAVE_QUERYPERFORMANCECOUNTER) && !defined(__CYGWIN__)
 static uint64_t internal_seed(void) {
   LARGE_INTEGER ticks;
 
@@ -320,10 +320,10 @@ static uint64_t internal_seed(void) {
 
   return (uint64_t)tp.tv_sec * 1000000000 + (uint64_t)tp.tv_nsec;
 }
-#else  /* !defined(HAVE_QUERYPERFORMANCECOUNTER) &&                            \
+#else  /* (!defined(HAVE_QUERYPERFORMANCECOUNTER) || defined(__CYGWIN__))&&    \
           (!defined(HAVE_CLOCK_GETTIME) || !HAVE_DECL_CLOCK_MONOTONIC) */
 static uint64_t internal_seed(void) { return internal_seed_fallback(); }
-#endif /* !defined(HAVE_QUERYPERFORMANCECOUNTER) &&                            \
+#endif /* (!defined(HAVE_QUERYPERFORMANCECOUNTER) || defined(__CYGWIN__)) &&   \
           (!defined(HAVE_CLOCK_GETTIME) || !HAVE_DECL_CLOCK_MONOTONIC) */
 
 static int conn_new(nghttp3_conn **pconn, int server, int callbacks_version,
