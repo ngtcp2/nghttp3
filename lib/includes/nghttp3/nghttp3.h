@@ -2942,6 +2942,8 @@ NGHTTP3_EXTERN int nghttp3_conn_resume_stream(nghttp3_conn *conn,
  * identified by |stream_id| has been closed.  QUIC application error
  * code |app_error_code| is the reason of the closure.
  *
+ * This function must not be called from any nghttp3 callbacks.
+ *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
  *
@@ -2976,6 +2978,8 @@ NGHTTP3_EXTERN int nghttp3_conn_close_stream(nghttp3_conn *conn,
  * For stream close callback, prefer
  * :member:`nghttp3_callbacks.stream_close2` to
  * :member:`nghttp3_callbacks.stream_close`.
+ *
+ * This function must not be called from any nghttp3 callbacks.
  *
  * This function returns 0 if it succeeds, or one of the following
  * negative error codes:
